@@ -1,0 +1,8 @@
+{
+    "compatibilityLevel": "JAVA_8",
+    "package": "net.mcreator.cavesnotcliffs.mixin",
+    "refmap": "mixins.cavesnotcliffs.refmap.json",
+    "mixins": [
+        "ClaudronLiquidsMixin"
+    ]
+}

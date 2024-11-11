@@ -1,0 +1,19 @@
+{
+  "_fv": 6,
+  "_type": "structure",
+  "definition": {
+    "structure": "amethyst_geode2",
+    "randomlyRotateStructure": true,
+    "surfaceDetectionType": "First motion blocking block",
+    "spawnProbability": 10000,
+    "minCountPerChunk": 1,
+    "maxCountPerChunk": 1,
+    "spawnLocation": "Ground",
+    "spawnHeightOffset": 0,
+    "spawnWorldTypes": [
+      "Surface"
+    ],
+    "restrictionBlocks": [],
+    "restrictionBiomes": []
+  }
+}

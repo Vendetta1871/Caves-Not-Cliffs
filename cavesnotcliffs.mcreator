@@ -1,0 +1,117 @@
+{
+  "id_map": {},
+  "mod_elements": [
+    {
+      "name": "AmethystGeode0",
+      "type": "structure",
+      "sortid": 1,
+      "compiles": true,
+      "locked_code": true,
+      "ids": {}
+    },
+    {
+      "name": "LavaCauldron",
+      "type": "block",
+      "sortid": 8,
+      "compiles": true,
+      "locked_code": true,
+      "ids": {}
+    },
+    {
+      "name": "SubsCauldron",
+      "type": "procedure",
+      "sortid": 14,
+      "compiles": true,
+      "locked_code": false,
+      "ids": {},
+      "metadata": {
+        "dependencies": [
+          {
+            "name": "x",
+            "type": "int"
+          },
+          {
+            "name": "y",
+            "type": "int"
+          },
+          {
+            "name": "z",
+            "type": "int"
+          },
+          {
+            "name": "world",
+            "type": "world"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LushCaves",
+      "type": "structure",
+      "sortid": 16,
+      "compiles": true,
+      "locked_code": true,
+      "ids": {}
+    },
+    {
+      "name": "DripstoneCaves",
+      "type": "structure",
+      "sortid": 18,
+      "compiles": true,
+      "locked_code": true,
+      "ids": {}
+    },
+    {
+      "name": "DropStalactite",
+      "type": "procedure",
+      "sortid": 19,
+      "compiles": true,
+      "locked_code": true,
+      "ids": {},
+      "metadata": {
+        "dependencies": [
+          {
+            "name": "x",
+            "type": "int"
+          },
+          {
+            "name": "y",
+            "type": "int"
+          },
+          {
+            "name": "z",
+            "type": "int"
+          },
+          {
+            "name": "world",
+            "type": "world"
+          }
+        ]
+      }
+    }
+  ],
+  "variable_elements": [],
+  "sound_elements": [],
+  "language_map": {
+    "en_us": {
+      "tile.lavacauldron.name": "Lava Cauldron"
+    }
+  },
+  "workspaceSettings": {
+    "modid": "cavesnotcliffs",
+    "modName": "CavesNotCliffs",
+    "version": "1.0.0",
+    "author": "tianlong, MCreator",
+    "websiteURL": "https://mcreator.net",
+    "disableForgeVersionCheck": true,
+    "serverSideOnly": false,
+    "requiredMods": [],
+    "dependencies": [],
+    "dependants": [],
+    "mcreatorDependencies": [],
+    "currentGenerator": "1.12.2",
+    "modElementsPackage": "net.mcreator.cavesnotcliffs",
+    "lockBaseModFiles": false
+  },
+  "mcreatorVersion": 202000214217
+}
