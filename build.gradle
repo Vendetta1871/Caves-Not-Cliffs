@@ -2,17 +2,15 @@ buildscript {
     repositories {
         jcenter()
         maven { url = "http://files.minecraftforge.net/maven" }
-        maven { url = "http://repo.spongepowered.org/maven" }
-        mavenCentral()
+        flatDir { dirs 'libs' }
+        //mavenCentral()
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
-        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
     }
 }
 
 apply plugin: 'net.minecraftforge.gradle.forge'
-apply plugin: 'org.spongepowered.mixin'
 
 version = "1.0"
 group = "com.yourname.modid"
@@ -29,12 +27,15 @@ minecraft {
     mappings = 'snapshot_20171003'
 }
 
-dependencies {
-  provided files('libs/CCv1.0.9.jar')
-}
+repositories {
+        flatDir { dirs 'libs' }
+    }
 
-mixin {
-    add sourceSets.main, "mixins.cavesnotcliffs.refmap.json"
+dependencies {
+    repositories {
+        flatDir { dirs 'libs' }
+    }
+    compile "net.mcreator:cavesandcliffs:1.0.9"
 }
 
 processResources {
@@ -53,14 +54,4 @@ runClient.outputs.upToDateWhen { false }
 runServer.outputs.upToDateWhen { false }
 
 apply from: 'mcreator.gradle'
-
-jar {
-    manifest {
-        attributes([
-                "TweakClass": "org.spongepowered.asm.launch.MixinTweaker",
-                "MixinConfigs": "mixins.cavesnotcliffs.json",
-                "FMLCorePluginContainsFMLMod": "true"
-        ])
-    }
-}
 
