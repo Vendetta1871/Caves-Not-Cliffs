@@ -11,9 +11,13 @@ import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.state.BlockStateContainer;
+import net.minecraft.block.properties.PropertyDirection;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -42,7 +46,8 @@ public class BlockAmethystCrystalStage1 extends ElementsCavesNotCliffs.ModElemen
     }
 
     public static class BlockCustom extends Block {
-        private static final AxisAlignedBB AABB = new AxisAlignedBB(0.1, 0.0, 0.1, 0.9, 0.8, 0.9);
+        public static final PropertyDirection FACING = PropertyDirection.create("facing");
+        private static final AxisAlignedBB AABB = new AxisAlignedBB(0.1, 0.0, 0.1, 0.9, 0.5, 0.9);
 
         public BlockCustom() {
             super(Material.ROCK);
@@ -51,6 +56,7 @@ public class BlockAmethystCrystalStage1 extends ElementsCavesNotCliffs.ModElemen
             setHardness(1.5f);
             setResistance(1.0f);
             setTickRandomly(true);
+            setDefaultState(blockState.getBaseState().withProperty(FACING, EnumFacing.UP));
         }
 
         @Override public boolean isOpaqueCube(IBlockState state) { return false; }
@@ -59,11 +65,49 @@ public class BlockAmethystCrystalStage1 extends ElementsCavesNotCliffs.ModElemen
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
 
         @Override
+        public IBlockState getStateForPlacement(World world, BlockPos pos, EnumFacing facing, float hitX, float hitY, float hitZ, int meta, EntityLivingBase placer) {
+            return getDefaultState().withProperty(FACING, facing);
+        }
+
+        @Override
+        protected BlockStateContainer createBlockState() {
+            return new BlockStateContainer(this, FACING);
+        }
+
+        @Override
+        public IBlockState getStateFromMeta(int meta) {
+            return getDefaultState().withProperty(FACING, EnumFacing.getFront(meta & 7));
+        }
+
+        @Override
+        public int getMetaFromState(IBlockState state) {
+            return state.getValue(FACING).getIndex();
+        }
+
+        @Override
+        public Item getItemDropped(IBlockState state, Random rand, int fortune) {
+            return Item.getItemFromBlock(BlockAmethystCrystal.block);
+        }
+
+        @Override
+        public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos) {
+            if (!worldIn.isRemote) {
+                EnumFacing facing = state.getValue(FACING);
+                BlockPos support = pos.offset(facing.getOpposite());
+                if (fromPos.equals(support) && !worldIn.getBlockState(support).isSideSolid(worldIn, support, facing)) {
+                    worldIn.destroyBlock(pos, true);
+                }
+            }
+        }
+
+        @Override
         public void randomTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
             if (!worldIn.isRemote && rand.nextInt(5) == 0) {
-                IBlockState below = worldIn.getBlockState(pos.down());
-                if (below.getBlock() == BlockAmethystGeode.block || below.getBlock() == BlockGeodeCasing.block) {
-                    worldIn.setBlockState(pos, BlockAmethystCrystalStage2.block.getDefaultState());
+                EnumFacing facing = state.getValue(FACING);
+                Block support = worldIn.getBlockState(pos.offset(facing.getOpposite())).getBlock();
+                if (support == BlockAmethystGeode.block || support == BlockGeodeCasing.block) {
+                    worldIn.setBlockState(pos, BlockAmethystCrystalStage2.block.getDefaultState()
+                        .withProperty(BlockAmethystCrystalStage2.BlockCustom.FACING, facing));
                 }
             }
         }

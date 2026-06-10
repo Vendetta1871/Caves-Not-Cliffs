@@ -13,6 +13,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import java.util.Random;
 import net.mcreator.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
@@ -42,6 +43,11 @@ public class BlockAmethystGeode extends ElementsCavesNotCliffs.ModElement {
             setSoundType(SoundType.STONE);
             setHardness(1.5f);
             setResistance(6.0f);
+        }
+
+        @Override
+        public Item getItemDropped(IBlockState state, Random rand, int fortune) {
+            return Item.getItemFromBlock(BlockAmethystGeode.block);
         }
     }
 }
