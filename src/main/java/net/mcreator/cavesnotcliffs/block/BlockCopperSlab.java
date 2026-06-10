@@ -38,6 +38,7 @@ public class BlockCopperSlab extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.IRON);
+            setUnlocalizedName("copper_slab");
             setSoundType(SoundType.METAL);
             setHardness(3.0f);
             setResistance(6.0f);

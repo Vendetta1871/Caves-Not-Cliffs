@@ -44,6 +44,7 @@ public class BlockBabyAzaleaTree extends ElementsCavesNotCliffs.ModElement {
 
         public BlockCustom() {
             super(Material.AIR);
+            setUnlocalizedName("baby_azalea_tree");
             setSoundType(SoundType.PLANT);
             setHardness(0.0f);
             setResistance(0.0f);

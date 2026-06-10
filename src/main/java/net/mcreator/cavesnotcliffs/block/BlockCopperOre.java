@@ -38,6 +38,7 @@ public class BlockCopperOre extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.ROCK);
+            setUnlocalizedName("copper_ore");
             setSoundType(SoundType.STONE);
             setHardness(3.0f);
             setResistance(3.0f);

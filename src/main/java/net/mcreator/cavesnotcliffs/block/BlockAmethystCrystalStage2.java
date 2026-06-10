@@ -46,6 +46,7 @@ public class BlockAmethystCrystalStage2 extends ElementsCavesNotCliffs.ModElemen
 
         public BlockCustom() {
             super(Material.ROCK);
+            setUnlocalizedName("amethyst_crystal_stage_2");
             setSoundType(SoundType.GLASS);
             setHardness(1.5f);
             setResistance(1.0f);

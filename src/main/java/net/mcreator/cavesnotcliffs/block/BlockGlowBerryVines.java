@@ -44,6 +44,7 @@ public class BlockGlowBerryVines extends ElementsCavesNotCliffs.ModElement {
     public static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.VINE);
+            setUnlocalizedName("glow_berry_vines");
             setSoundType(SoundType.PLANT);
             setHardness(0.2f);
             setLightLevel(0.5f);

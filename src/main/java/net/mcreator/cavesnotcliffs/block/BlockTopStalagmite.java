@@ -50,6 +50,7 @@ public class BlockTopStalagmite extends ElementsCavesNotCliffs.ModElement {
 
         public BlockCustom() {
             super(Material.ROCK);
+            setUnlocalizedName("top_stalagmite");
             setSoundType(SoundType.STONE);
             setHardness(1.5f);
             setResistance(6.0f);
@@ -80,7 +81,7 @@ public class BlockTopStalagmite extends ElementsCavesNotCliffs.ModElement {
 
         @Override
         public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos) {
-            if (!worldIn.isRemote && !hasValidSupport(worldIn, pos)) {
+            if (!worldIn.isRemote && fromPos.equals(pos.down()) && !hasValidSupport(worldIn, pos)) {
                 worldIn.destroyBlock(pos, true);
             }
         }

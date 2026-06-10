@@ -38,6 +38,7 @@ public class BlockMoss extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.GRASS);
+            setUnlocalizedName("moss");
             setSoundType(SoundType.PLANT);
             setHardness(0.1f);
             setResistance(0.1f);

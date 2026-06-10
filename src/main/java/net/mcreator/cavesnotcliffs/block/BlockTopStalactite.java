@@ -50,6 +50,7 @@ public class BlockTopStalactite extends ElementsCavesNotCliffs.ModElement {
 
         public BlockCustom() {
             super(Material.ROCK);
+            setUnlocalizedName("top_stalactite");
             setSoundType(SoundType.STONE);
             setHardness(1.5f);
             setResistance(6.0f);

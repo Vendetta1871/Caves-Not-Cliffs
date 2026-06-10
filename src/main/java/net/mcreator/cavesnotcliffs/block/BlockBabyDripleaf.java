@@ -44,6 +44,7 @@ public class BlockBabyDripleaf extends ElementsCavesNotCliffs.ModElement {
 
         public BlockCustom() {
             super(Material.AIR);
+            setUnlocalizedName("baby_dripleaf");
             setSoundType(SoundType.PLANT);
             setHardness(0.0f);
             setResistance(0.0f);

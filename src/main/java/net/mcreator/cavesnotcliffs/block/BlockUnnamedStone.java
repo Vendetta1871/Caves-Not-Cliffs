@@ -38,6 +38,7 @@ public class BlockUnnamedStone extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.ROCK);
+            setUnlocalizedName("unnamed_stone");
             setSoundType(SoundType.STONE);
             setHardness(1.5f);
             setResistance(6.0f);
