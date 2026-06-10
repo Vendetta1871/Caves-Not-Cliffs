@@ -1,0 +1,10 @@
+{
+  "parent": "minecraft:block/cauldron_level2",
+  "textures": {
+    "top":    "cavesnotcliffs:blocks/cauldron_top",
+    "bottom": "cavesnotcliffs:blocks/cauldron_bottom",
+    "side":   "cavesnotcliffs:blocks/cauldron_side",
+    "inside": "cavesnotcliffs:blocks/cauldron_inner",
+    "water":  "minecraft:blocks/lava_still"
+  }
+}

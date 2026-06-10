@@ -14,11 +14,13 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import java.util.List;
+import java.util.Random;
 import javax.annotation.Nullable;
 import net.minecraft.entity.Entity;
 import net.mcreator.cavesnotcliffs.ElementsCavesNotCliffs;
@@ -61,5 +63,22 @@ public class BlockBottomStalagmite extends ElementsCavesNotCliffs.ModElement {
             addCollisionBoxToList(pos, entityBox, collidingBoxes, SHAFT_AABB);
         }
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
+
+        @Override
+        public Item getItemDropped(IBlockState state, Random rand, int fortune) {
+            return Item.getItemFromBlock(BlockStalactite.block);
+        }
+
+        private boolean hasValidSupport(World worldIn, BlockPos pos) {
+            IBlockState below = worldIn.getBlockState(pos.down());
+            return below.isSideSolid(worldIn, pos.down(), EnumFacing.UP);
+        }
+
+        @Override
+        public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos) {
+            if (!worldIn.isRemote && fromPos.equals(pos.down()) && !hasValidSupport(worldIn, pos)) {
+                worldIn.destroyBlock(pos, true);
+            }
+        }
     }
 }

@@ -1,0 +1,7 @@
+{
+  "parent": "block/cross",
+  "textures": {
+    "cross": "cavesnotcliffs:blocks/baby_azalea_tree",
+    "particle": "cavesnotcliffs:blocks/baby_azalea_tree"
+  }
+}

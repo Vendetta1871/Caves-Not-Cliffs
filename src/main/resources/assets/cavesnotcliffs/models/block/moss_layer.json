@@ -1,0 +1,7 @@
+{
+  "parent": "block/cross",
+  "textures": {
+    "cross": "cavesnotcliffs:blocks/moss",
+    "particle": "cavesnotcliffs:blocks/moss"
+  }
+}

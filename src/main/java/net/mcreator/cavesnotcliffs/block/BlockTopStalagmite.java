@@ -14,14 +14,15 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import java.util.List;
+import java.util.Random;
 import javax.annotation.Nullable;
 import net.minecraft.entity.Entity;
-import java.util.Random;
 import net.mcreator.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
@@ -52,6 +53,7 @@ public class BlockTopStalagmite extends ElementsCavesNotCliffs.ModElement {
             setSoundType(SoundType.STONE);
             setHardness(1.5f);
             setResistance(6.0f);
+            setTickRandomly(true);
         }
 
         @Override public boolean isOpaqueCube(IBlockState state) { return false; }
@@ -64,12 +66,36 @@ public class BlockTopStalagmite extends ElementsCavesNotCliffs.ModElement {
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
 
         @Override
-        public void randomTick(World worldIn, BlockPos pos, IBlockState state, java.util.Random rand) {
+        public Item getItemDropped(IBlockState state, Random rand, int fortune) {
+            return Item.getItemFromBlock(BlockStalactite.block);
+        }
+
+        private boolean hasValidSupport(World worldIn, BlockPos pos) {
+            IBlockState below = worldIn.getBlockState(pos.down());
+            Block belowBlock = below.getBlock();
+            return belowBlock == BlockMiddleStalagmite.block
+                || belowBlock == BlockBottomStalagmite.block
+                || below.isSideSolid(worldIn, pos.down(), EnumFacing.UP);
+        }
+
+        @Override
+        public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos) {
+            if (!worldIn.isRemote && !hasValidSupport(worldIn, pos)) {
+                worldIn.destroyBlock(pos, true);
+            }
+        }
+
+        @Override
+        public void randomTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
             if (!worldIn.isRemote && rand.nextInt(50) == 0) {
                 BlockPos above = pos.up();
                 if (worldIn.isAirBlock(above)) {
-                    worldIn.setBlockState(pos, BlockMiddleStalagmite.block.getDefaultState());
-                    worldIn.setBlockState(above, BlockCustom.this.getDefaultState());
+                    Block below = worldIn.getBlockState(pos.down()).getBlock();
+                    IBlockState newState = (below == BlockBottomStalagmite.block || below == BlockMiddleStalagmite.block)
+                        ? BlockMiddleStalagmite.block.getDefaultState()
+                        : BlockBottomStalagmite.block.getDefaultState();
+                    worldIn.setBlockState(pos, newState, 3);
+                    worldIn.setBlockState(above, BlockCustom.this.getDefaultState(), 3);
                 }
             }
         }

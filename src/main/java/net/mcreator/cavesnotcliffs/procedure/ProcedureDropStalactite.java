@@ -26,40 +26,7 @@ public class ProcedureDropStalactite extends ElementsCavesNotCliffs.ModElement {
 	}
 
 	public static void executeProcedure(java.util.HashMap<String, Object> dependencies) {
-		if (dependencies.get("x") == null) {
-			System.err.println("Failed to load dependency x for procedure DropStalactite!");
-			return;
-		}
-		if (dependencies.get("y") == null) {
-			System.err.println("Failed to load dependency y for procedure DropStalactite!");
-			return;
-		}
-		if (dependencies.get("z") == null) {
-			System.err.println("Failed to load dependency z for procedure DropStalactite!");
-			return;
-		}
-		if (dependencies.get("world") == null) {
-			System.err.println("Failed to load dependency world for procedure DropStalactite!");
-			return;
-		}
-		int x = (int) dependencies.get("x");
-		int y = (int) dependencies.get("y");
-		int z = (int) dependencies.get("z");
-		World world = (World) dependencies.get("world");
-		if (((world.getBlockState(new BlockPos(x, y, z))).getBlock() == BlockTopStalactite.block.getDefaultState().getBlock())) {
-			if (!world.isRemote) {
-				EntityItem entityToSpawn = new EntityItem(world, x, y, z, new ItemStack(BlockStalactite.block, (int) (1)));
-				entityToSpawn.setPickupDelay(10);
-				world.spawnEntity(entityToSpawn);
-			}
-		}
-		else if (((world.getBlockState(new BlockPos(x, y, z))).getBlock() == BlockTopStalagmite.block.getDefaultState().getBlock())) {
-			if (!world.isRemote) {
-				EntityItem entityToSpawn = new EntityItem(world, x, y, z, new ItemStack(BlockStalagmite.block, (int) (1)));
-				entityToSpawn.setPickupDelay(10);
-				world.spawnEntity(entityToSpawn);
-			}
-		}
+		// drops are now handled by getItemDropped() overrides in each block class
 	}
 
 	@SubscribeEvent

@@ -1,0 +1,7 @@
+{
+  "parent": "block/cross",
+  "textures": {
+    "cross": "cavesnotcliffs:blocks/glow_berry_middle_fill",
+    "particle": "cavesnotcliffs:blocks/glow_berry_middle_fill"
+  }
+}

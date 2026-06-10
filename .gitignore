@@ -1,8 +1,8 @@
 build
 gradle
 libs
-models
+/models
 run
 .gradle
 .mcreator
-
+CLAUDE.md

@@ -54,7 +54,7 @@ public class StructureDripstoneCaves extends ElementsCavesNotCliffs.ModElement {
 			world.setBlockState(new BlockPos(x, y, z), BlockTopStalactite.block.getDefaultState(), 3);
 		}
 		else if (len == 2) {
-			world.setBlockState(new BlockPos(x, y, z), BlockMiddleStalactite.block.getDefaultState(), 3);
+			world.setBlockState(new BlockPos(x, y, z), BlockBottomStalactite.block.getDefaultState(), 3);
 			world.setBlockState(new BlockPos(x, y - 1, z), BlockTopStalactite.block.getDefaultState(), 3);
 		}
 		else {
@@ -71,7 +71,7 @@ public class StructureDripstoneCaves extends ElementsCavesNotCliffs.ModElement {
 			world.setBlockState(new BlockPos(x, y, z), BlockTopStalagmite.block.getDefaultState(), 3);
 		}
 		else if (len == 2) {
-			world.setBlockState(new BlockPos(x, y, z), BlockMiddleStalagmite.block.getDefaultState(), 3);
+			world.setBlockState(new BlockPos(x, y, z), BlockBottomStalagmite.block.getDefaultState(), 3);
 			world.setBlockState(new BlockPos(x, y + 1, z), BlockTopStalagmite.block.getDefaultState(), 3);
 		}
 		else {

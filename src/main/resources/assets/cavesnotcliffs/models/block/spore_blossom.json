@@ -1,0 +1,7 @@
+{
+  "parent": "block/cross",
+  "textures": {
+    "cross": "cavesnotcliffs:blocks/spore_blossom",
+    "particle": "cavesnotcliffs:blocks/spore_blossom"
+  }
+}

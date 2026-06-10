@@ -1,0 +1,7 @@
+{
+  "parent": "block/cross",
+  "textures": {
+    "cross": "cavesnotcliffs:blocks/baby_dripleaf",
+    "particle": "cavesnotcliffs:blocks/baby_dripleaf"
+  }
+}
