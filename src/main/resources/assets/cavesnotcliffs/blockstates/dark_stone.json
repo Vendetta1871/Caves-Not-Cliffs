@@ -1,7 +1,7 @@
 {
   "variants": {
     "normal": {
-      "model": "cavesnotcliffs:block/dark_stone"
+      "model": "cavesnotcliffs:dark_stone"
     }
   }
 }

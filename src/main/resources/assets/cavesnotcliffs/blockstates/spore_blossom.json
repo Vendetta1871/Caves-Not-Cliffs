@@ -1,7 +1,7 @@
 {
   "variants": {
     "normal": {
-      "model": "cavesnotcliffs:block/spore_blossom"
+      "model": "cavesnotcliffs:spore_blossom"
     }
   }
 }

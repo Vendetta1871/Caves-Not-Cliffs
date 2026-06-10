@@ -1,7 +1,7 @@
 {
   "variants": {
     "normal": {
-      "model": "cavesnotcliffs:block/stalactite"
+      "model": "cavesnotcliffs:stalactite"
     }
   }
 }

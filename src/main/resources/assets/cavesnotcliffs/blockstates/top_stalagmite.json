@@ -1,7 +1,7 @@
 {
   "variants": {
     "normal": {
-      "model": "cavesnotcliffs:block/top_stalagmite"
+      "model": "cavesnotcliffs:top_stalagmite"
     }
   }
 }
