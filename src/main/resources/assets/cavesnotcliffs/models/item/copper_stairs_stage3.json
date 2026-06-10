@@ -1,3 +1,6 @@
 {
-  "parent": "cavesnotcliffs:block/copper_stairs_stage3"
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "cavesnotcliffs:blocks/copper_block_stage3"
+  }
 }

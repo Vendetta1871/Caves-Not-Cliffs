@@ -1,3 +1,6 @@
 {
-  "parent": "cavesnotcliffs:block/dripstone"
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "cavesnotcliffs:blocks/dripstone"
+  }
 }

@@ -1,3 +1,6 @@
 {
-  "parent": "cavesnotcliffs:block/unknown_stone_stairs"
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "cavesnotcliffs:blocks/unknown_stone"
+  }
 }
