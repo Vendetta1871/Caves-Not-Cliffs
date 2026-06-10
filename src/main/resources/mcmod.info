@@ -1,16 +1,16 @@
 [
   {
     "modid": "cavesnotcliffs",
-    "name": "CavesNotCliffs",
-    "description": "",
-    "version": "1.0.0",
-    "credits": "Created using mod maker MCreator - https://mcreator.net/about",
+    "name": "Caves Not Cliffs",
+    "description": "Backports Caves & Cliffs features to 1.12.2: lush caves, dripstone caves, amethyst geodes, copper, and a lava cauldron.",
+    "version": "1.5.0",
+    "credits": "CelestialD",
     "logoFile": "",
     "mcversion": "1.12.2",
-    "url": "https://mcreator.net",
-    "updateUrl": "",
+    "url": "https://github.com/Vendetta1871/Caves-Not-Cliffs",
+    "updateUrl": "https://modrinth.com/mod/caves-not-cliffs-backported",
     "authorList": [
-      "tianlong, MCreator"
+      "CelestialD"
     ],
     "dependencies": [],
     "dependants": [],
