@@ -1,7 +1,7 @@
 {
   "variants": {
     "normal": {
-      "model": "cavesnotcliffs:copper_stairs_stage1"
+      "model": "cavesnotcliffs:block/copper_stairs_stage1"
     }
   }
 }

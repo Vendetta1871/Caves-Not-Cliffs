@@ -1,7 +1,7 @@
 {
   "variants": {
     "normal": {
-      "model": "cavesnotcliffs:unknown_stone_wall"
+      "model": "cavesnotcliffs:block/unknown_stone_wall"
     }
   }
 }

@@ -1,7 +1,7 @@
 {
   "variants": {
     "normal": {
-      "model": "cavesnotcliffs:copper_block"
+      "model": "cavesnotcliffs:block/copper_block"
     }
   }
 }
