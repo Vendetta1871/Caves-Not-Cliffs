@@ -1,18 +1,18 @@
 
 package net.mcreator.cavesnotcliffs.world.structure;
 
-import net.mcreator.cavesandcliffs.block.BlockMoss;
-import net.mcreator.cavesandcliffs.block.BlockMossLayer;
-import net.mcreator.cavesandcliffs.block.BlockGlowBerryVines;
-import net.mcreator.cavesandcliffs.block.BlockGlowBerryMiddleFill;
-import net.mcreator.cavesandcliffs.block.BlockSporeBlossom;
-import net.mcreator.cavesandcliffs.block.BlockBabyAzaleaTree;
-import net.mcreator.cavesandcliffs.block.BlockBloomingBabyAzaleaTree;
-import net.mcreator.cavesandcliffs.block.BlockBabyDripleaf;
-import net.mcreator.cavesandcliffs.block.BlockDripleafPlant;
-import net.mcreator.cavesandcliffs.block.BlockDripleafStem;
+import net.mcreator.cavesnotcliffs.block.BlockMoss;
+import net.mcreator.cavesnotcliffs.block.BlockMossLayer;
+import net.mcreator.cavesnotcliffs.block.BlockGlowBerryVines;
+import net.mcreator.cavesnotcliffs.block.BlockGlowBerryMiddleFill;
+import net.mcreator.cavesnotcliffs.block.BlockSporeBlossom;
+import net.mcreator.cavesnotcliffs.block.BlockBabyAzaleaTree;
+import net.mcreator.cavesnotcliffs.block.BlockBloomingBabyAzaleaTree;
+import net.mcreator.cavesnotcliffs.block.BlockBabyDripleaf;
+import net.mcreator.cavesnotcliffs.block.BlockDripleafPlant;
+import net.mcreator.cavesnotcliffs.block.BlockDripleafStem;
 
-import net.mcreator.cavesandcliffs.entity.EntityAxolotl;
+import net.mcreator.cavesnotcliffs.entity.EntityAxolotl;
 
 import net.minecraft.world.gen.structure.template.Template;
 import net.minecraft.world.gen.structure.template.PlacementSettings;
@@ -81,7 +81,8 @@ public class StructureLushCaves extends ElementsCavesNotCliffs.ModElement {
 		}
 	}
 
-	private void generateLake(Random random, World world, int x, int y, int z, int depth) {
+	private void generateLake(Random random, World world, int x, int y, int z, int depth, int cx, int cz) {
+		if (x < cx || x >= cx + 16 || z < cz || z >= cz + 16) return;
 	    boolean isOnAir = world.isAirBlock(new BlockPos(x, y - 2, z));
 		if (world.isAirBlock(new BlockPos(x, y + 1, z)) && !isOnAir) {
 			world.setBlockState(new BlockPos(x, y - 1, z), Blocks.CLAY.getDefaultState(), 3);
@@ -91,23 +92,23 @@ public class StructureLushCaves extends ElementsCavesNotCliffs.ModElement {
 			world.setBlockState(new BlockPos(x, y, z + 1), Blocks.CLAY.getDefaultState(), 3);
 			generateDripleaf(random, world, x + 1 - 2 * random.nextInt(2), y + 1, z + 1 - 2 * random.nextInt(2));
 		}
-		
+
 		if (depth < 4) {
 			int rnd = random.nextInt(4);
 			 if (rnd == 0) {
-			 	generateLake(random, world, x - 1, y, z, depth + 1);
+			 	generateLake(random, world, x - 1, y, z, depth + 1, cx, cz);
 			 }
 			 else if (rnd == 1) {
-			 	generateLake(random, world, x + 1, y, z, depth + 1);
+			 	generateLake(random, world, x + 1, y, z, depth + 1, cx, cz);
 			 }
 			 else if (rnd == 2) {
-			 	generateLake(random, world, x, y, z - 1, depth + 1);
+			 	generateLake(random, world, x, y, z - 1, depth + 1, cx, cz);
 			 }
 			 else {
-			 	generateLake(random, world, x, y, z + 1, depth + 1);
+			 	generateLake(random, world, x, y, z + 1, depth + 1, cx, cz);
 			 }
 		}
-		
+
 		if (world.isAirBlock(new BlockPos(x, y + 1, z)) && !isOnAir) {
 			world.setBlockState(new BlockPos(x, y, z), Blocks.WATER.getDefaultState(), 3);
 			if (random.nextInt(5) == 1) {
@@ -131,11 +132,11 @@ public class StructureLushCaves extends ElementsCavesNotCliffs.ModElement {
 		}
 
 		if ((random.nextInt(1000) + 1) <= 100) {
-			int x0 = i2;
+			int x0 = i2 + 1;
 			int x1 = i2 + 15;
 			int y0 = 16;
 			int y1 = 48;
-			int z0 = k2;
+			int z0 = k2 + 1;
 			int z1 = k2 + 15;
 
 			int r0 = random.nextInt(12) + 4;
@@ -192,7 +193,7 @@ public class StructureLushCaves extends ElementsCavesNotCliffs.ModElement {
 				    	}
 					}
 					if ((random.nextInt(1000) + 1) <= 5) {
-						generateLake(random, world, x, y, z, 0);
+						generateLake(random, world, x, y, z, 0, i2, k2);
 					}
 				}
 				else if (world.isAirBlock(new BlockPos(x - 1, y, z))) { // side

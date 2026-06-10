@@ -1,13 +1,13 @@
 
 package net.mcreator.cavesnotcliffs.world.structure;
 
-import net.mcreator.cavesandcliffs.block.BlockBottomStalactite;
-import net.mcreator.cavesandcliffs.block.BlockBottomStalagmite;
-import net.mcreator.cavesandcliffs.block.BlockMiddleStalactite;
-import net.mcreator.cavesandcliffs.block.BlockMiddleStalagmite;
-import net.mcreator.cavesandcliffs.block.BlockTopStalactite;
-import net.mcreator.cavesandcliffs.block.BlockTopStalagmite;
-import net.mcreator.cavesandcliffs.block.BlockDripstone;
+import net.mcreator.cavesnotcliffs.block.BlockBottomStalactite;
+import net.mcreator.cavesnotcliffs.block.BlockBottomStalagmite;
+import net.mcreator.cavesnotcliffs.block.BlockMiddleStalactite;
+import net.mcreator.cavesnotcliffs.block.BlockMiddleStalagmite;
+import net.mcreator.cavesnotcliffs.block.BlockTopStalactite;
+import net.mcreator.cavesnotcliffs.block.BlockTopStalagmite;
+import net.mcreator.cavesnotcliffs.block.BlockDripstone;
 
 import net.minecraft.world.gen.structure.template.Template;
 import net.minecraft.world.gen.structure.template.PlacementSettings;
@@ -30,7 +30,6 @@ import net.mcreator.cavesnotcliffs.ElementsCavesNotCliffs;
 
 import java.util.Random;
 import javax.annotation.Generated;
-import sun.security.action.GetLongAction;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class StructureDripstoneCaves extends ElementsCavesNotCliffs.ModElement {
@@ -82,7 +81,8 @@ public class StructureDripstoneCaves extends ElementsCavesNotCliffs.ModElement {
 		}
 	}
 
-	private void generateLake(Random random, World world, int x, int y, int z, int depth) {
+	private void generateLake(Random random, World world, int x, int y, int z, int depth, int cx, int cz) {
+		if (x < cx || x >= cx + 16 || z < cz || z >= cz + 16) return;
 	    boolean isOnAir = world.isAirBlock(new BlockPos(x, y - 2, z));
 		if (world.isAirBlock(new BlockPos(x, y + 1, z)) && !isOnAir) {
 			world.setBlockState(new BlockPos(x, y - 1, z), Blocks.CLAY.getDefaultState(), 3);
@@ -91,23 +91,23 @@ public class StructureDripstoneCaves extends ElementsCavesNotCliffs.ModElement {
 			world.setBlockState(new BlockPos(x, y, z - 1), Blocks.CLAY.getDefaultState(), 3);
 			world.setBlockState(new BlockPos(x, y, z + 1), Blocks.CLAY.getDefaultState(), 3);
 		}
-		
+
 		if (depth < 4) {
 			int rnd = random.nextInt(4);
 			 if (rnd == 0) {
-			 	generateLake(random, world, x - 1, y, z, depth + 1);
+			 	generateLake(random, world, x - 1, y, z, depth + 1, cx, cz);
 			 }
 			 else if (rnd == 1) {
-			 	generateLake(random, world, x + 1, y, z, depth + 1);
+			 	generateLake(random, world, x + 1, y, z, depth + 1, cx, cz);
 			 }
 			 else if (rnd == 2) {
-			 	generateLake(random, world, x, y, z - 1, depth + 1);
+			 	generateLake(random, world, x, y, z - 1, depth + 1, cx, cz);
 			 }
 			 else {
-			 	generateLake(random, world, x, y, z + 1, depth + 1);
+			 	generateLake(random, world, x, y, z + 1, depth + 1, cx, cz);
 			 }
 		}
-		
+
 		if (world.isAirBlock(new BlockPos(x, y + 1, z)) && !isOnAir) {
 			world.setBlockState(new BlockPos(x, y, z), Blocks.WATER.getDefaultState(), 3);
 		}
@@ -124,11 +124,11 @@ public class StructureDripstoneCaves extends ElementsCavesNotCliffs.ModElement {
 		}
 
 		if ((random.nextInt(1000) + 1) <= 100) {
-			int x0 = i2;
+			int x0 = i2 + 1;
 			int x1 = i2 + 15;
 			int y0 = 16;
 			int y1 = 48;
-			int z0 = k2;
+			int z0 = k2 + 1;
 			int z1 = k2 + 15;
 
 			int r0 = random.nextInt(12) + 4;

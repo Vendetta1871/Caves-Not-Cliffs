@@ -5,10 +5,10 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.common.MinecraftForge;
 
-import net.mcreator.cavesandcliffs.block.BlockStalactite;
-import net.mcreator.cavesandcliffs.block.BlockStalagmite;
-import net.mcreator.cavesandcliffs.block.BlockTopStalactite;
-import net.mcreator.cavesandcliffs.block.BlockTopStalagmite;
+import net.mcreator.cavesnotcliffs.block.BlockStalactite;
+import net.mcreator.cavesnotcliffs.block.BlockStalagmite;
+import net.mcreator.cavesnotcliffs.block.BlockTopStalactite;
+import net.mcreator.cavesnotcliffs.block.BlockTopStalagmite;
 
 import net.minecraft.world.World;
 import net.minecraft.util.math.BlockPos;

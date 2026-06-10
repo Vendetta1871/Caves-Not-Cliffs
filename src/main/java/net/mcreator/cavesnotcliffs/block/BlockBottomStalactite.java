@@ -1,0 +1,65 @@
+
+package net.mcreator.cavesnotcliffs.block;
+
+import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.client.model.ModelLoader;
+import net.minecraftforge.client.event.ModelRegistryEvent;
+import net.minecraft.block.Block;
+import net.minecraft.util.BlockRenderLayer;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.SoundType;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
+import java.util.List;
+import javax.annotation.Nullable;
+import net.minecraft.entity.Entity;
+import net.mcreator.cavesnotcliffs.ElementsCavesNotCliffs;
+
+@ElementsCavesNotCliffs.ModElement.Tag
+public class BlockBottomStalactite extends ElementsCavesNotCliffs.ModElement {
+    @GameRegistry.ObjectHolder("cavesnotcliffs:bottom_stalactite")
+    public static final Block block = null;
+
+    public BlockBottomStalactite(ElementsCavesNotCliffs instance) { super(instance, 21); }
+
+    @Override
+    public void initElements() {
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("bottom_stalactite"));
+        elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
+    }
+
+    @SideOnly(Side.CLIENT)
+    @Override
+    public void registerModels(ModelRegistryEvent event) {
+        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
+            new ModelResourceLocation("cavesnotcliffs:bottom_stalactite", "inventory"));
+    }
+
+    public static class BlockCustom extends Block {
+        private static final AxisAlignedBB SHAFT_AABB = new AxisAlignedBB(0.3, 0.0, 0.3, 0.7, 1.0, 0.7);
+
+        public BlockCustom() {
+            super(Material.ROCK);
+            setSoundType(SoundType.STONE);
+            setHardness(1.5f);
+            setResistance(6.0f);
+        }
+
+        @Override public boolean isOpaqueCube(IBlockState state) { return false; }
+        @Override public boolean isFullCube(IBlockState state) { return false; }
+        @Override public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess source, BlockPos pos) { return SHAFT_AABB; }
+        @Override
+        public void addCollisionBoxToList(IBlockState state, World worldIn, BlockPos pos, AxisAlignedBB entityBox, List<AxisAlignedBB> collidingBoxes, @Nullable Entity entityIn, boolean isActualState) {
+            addCollisionBoxToList(pos, entityBox, collidingBoxes, SHAFT_AABB);
+        }
+        @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
+    }
+}

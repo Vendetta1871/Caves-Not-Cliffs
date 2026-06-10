@@ -8,9 +8,9 @@ import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 
-import net.mcreator.cavesandcliffs.block.BlockTopStalactite;
-import net.mcreator.cavesandcliffs.block.BlockMiddleStalactite;
-import net.mcreator.cavesandcliffs.block.BlockBottomStalactite;
+import net.mcreator.cavesnotcliffs.block.BlockTopStalactite;
+import net.mcreator.cavesnotcliffs.block.BlockMiddleStalactite;
+import net.mcreator.cavesnotcliffs.block.BlockBottomStalactite;
 
 import net.minecraft.world.World;
 import net.minecraft.world.IBlockAccess;
