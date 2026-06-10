@@ -1,0 +1,31 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "cross": "cavesnotcliffs:blocks/amethyst_crystal",
+    "particle": "cavesnotcliffs:blocks/amethyst_crystal"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 5],
+      "to": [16, 16, 11],
+      "shade": false,
+      "faces": {
+        "north": {"uv": [0, 0, 16, 16], "texture": "#cross"},
+        "south": {"uv": [0, 0, 16, 16], "texture": "#cross"},
+        "up":    {"uv": [0, 5, 16, 11], "texture": "#cross"},
+        "down":  {"uv": [0, 5, 16, 11], "texture": "#cross"}
+      }
+    },
+    {
+      "from": [5, 0, 0],
+      "to": [11, 16, 16],
+      "shade": false,
+      "faces": {
+        "east": {"uv": [0, 0, 16, 16], "texture": "#cross"},
+        "west": {"uv": [0, 0, 16, 16], "texture": "#cross"},
+        "up":   {"uv": [5, 0, 11, 16], "texture": "#cross"},
+        "down": {"uv": [5, 0, 11, 16], "texture": "#cross"}
+      }
+    }
+  ]
+}

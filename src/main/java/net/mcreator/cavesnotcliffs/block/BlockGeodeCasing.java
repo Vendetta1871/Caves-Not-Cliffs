@@ -3,6 +3,7 @@ package net.mcreator.cavesnotcliffs.block;
 
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.event.ModelRegistryEvent;
@@ -13,6 +14,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.util.ResourceLocation;
 import net.mcreator.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
@@ -25,7 +27,10 @@ public class BlockGeodeCasing extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void initElements() {
         elements.blocks.add(() -> new BlockCustom().setRegistryName("caves_and_cliffs", "geode_casing"));
-        elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
+        elements.items.add(() -> {
+            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("caves_and_cliffs", "geode_casing"));
+            return new ItemBlock(b).setRegistryName(b.getRegistryName());
+        });
     }
 
     @SideOnly(Side.CLIENT)

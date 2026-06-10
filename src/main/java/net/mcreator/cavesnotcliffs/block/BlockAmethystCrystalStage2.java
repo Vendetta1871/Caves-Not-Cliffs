@@ -3,6 +3,7 @@ package net.mcreator.cavesnotcliffs.block;
 
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.event.ModelRegistryEvent;
@@ -18,6 +19,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -35,7 +37,10 @@ public class BlockAmethystCrystalStage2 extends ElementsCavesNotCliffs.ModElemen
     @Override
     public void initElements() {
         elements.blocks.add(() -> new BlockCustom().setRegistryName("caves_and_cliffs", "amethyst_crystal_stage_2"));
-        elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
+        elements.items.add(() -> {
+            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("caves_and_cliffs", "amethyst_crystal_stage_2"));
+            return new ItemBlock(b).setRegistryName(b.getRegistryName());
+        });
     }
 
     @SideOnly(Side.CLIENT)
