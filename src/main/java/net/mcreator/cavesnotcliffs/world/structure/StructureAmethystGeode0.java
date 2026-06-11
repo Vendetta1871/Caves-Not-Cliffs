@@ -13,6 +13,9 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 
 import net.mcreator.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.mcreator.cavesnotcliffs.block.BlockAmethystCrystal;
+import net.mcreator.cavesnotcliffs.block.BlockAmethystCrystalStage1;
+import net.mcreator.cavesnotcliffs.block.BlockAmethystCrystalStage2;
 
 import java.util.Random;
 
@@ -42,17 +45,19 @@ public class StructureAmethystGeode0 extends ElementsCavesNotCliffs.ModElement {
 	private void generateGeode(World world, Random random, int cx, int cy, int cz) {
 		Block casingBlock  = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "geode_casing"));
 		Block geodeBlock   = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_geode"));
+		Block calciteBlock = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "unknown_stone"));
 		Block stage1Block  = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal_stage_1"));
 		Block stage2Block  = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal_stage_2"));
 		Block crystalBlock = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal"));
 		if (casingBlock == null || geodeBlock == null) return;
 
-		int radius = 4 + random.nextInt(3); // 4–6
+		int radius = 6 + random.nextInt(4); // 6–9
 		double noiseAmp = 0.9;
 		int ext = radius + 2;
 
-		IBlockState casingState = casingBlock.getDefaultState();
-		IBlockState geodeState  = geodeBlock.getDefaultState();
+		IBlockState casingState  = casingBlock.getDefaultState();
+		IBlockState geodeState   = geodeBlock.getDefaultState();
+		IBlockState calciteState = calciteBlock != null ? calciteBlock.getDefaultState() : casingState;
 
 		// Pass 1: carve shells
 		for (int dx = -ext; dx <= ext; dx++) {
@@ -63,15 +68,18 @@ public class StructureAmethystGeode0 extends ElementsCavesNotCliffs.ModElement {
 					double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 					double n = noiseAt(cx + dx, cy + dy, cz + dz) * noiseAmp;
 
-					double outerR  = radius + n;
-					double innerR  = radius - 1.5 + n * 0.7;
-					double hollowR = radius - 3.0 + n * 0.5;
+					double outerR   = radius + n;
+					double calciteR = radius - 0.75 + n * 0.8;
+					double innerR   = radius - 1.5 + n * 0.7;
+					double hollowR  = radius - 3.0 + n * 0.5;
 
 					if (dist > outerR) continue;
 
 					BlockPos pos = new BlockPos(cx + dx, ny, cz + dz);
-					if (dist > innerR) {
+					if (dist > calciteR) {
 						world.setBlockState(pos, casingState, 2);
+					} else if (dist > innerR) {
+						world.setBlockState(pos, calciteState, 2);
 					} else if (dist > hollowR) {
 						world.setBlockState(pos, geodeState, 2);
 					} else {
@@ -95,15 +103,24 @@ public class StructureAmethystGeode0 extends ElementsCavesNotCliffs.ModElement {
 					for (EnumFacing face : EnumFacing.values()) {
 						BlockPos neighbor = pos.offset(face);
 						if (!world.isAirBlock(neighbor)) continue;
-						if (random.nextFloat() > 0.25f) continue;
+						if (random.nextFloat() > 0.20f) continue;
 
 						// Crystal grows from geode surface inward; facing = direction from geode to air
 						float rnd = random.nextFloat();
 						Block chosen = rnd < 0.40f ? stage1Block
 								: (rnd < 0.75f ? stage2Block : crystalBlock);
-						// getStateFromMeta(face.getIndex()) maps EnumFacing ordinal → facing property
-						IBlockState crystalState = chosen.getStateFromMeta(face.getIndex());
-						world.setBlockState(neighbor, crystalState, 2);
+						IBlockState crystalState;
+						if (chosen == crystalBlock) {
+							crystalState = chosen.getDefaultState()
+								.withProperty(BlockAmethystCrystal.BlockCustom.FACING, face);
+						} else if (chosen == stage1Block) {
+							crystalState = chosen.getDefaultState()
+								.withProperty(BlockAmethystCrystalStage1.BlockCustom.FACING, face);
+						} else {
+							crystalState = chosen.getDefaultState()
+								.withProperty(BlockAmethystCrystalStage2.BlockCustom.FACING, face);
+						}
+						world.setBlockState(neighbor, crystalState, 18);
 					}
 				}
 			}

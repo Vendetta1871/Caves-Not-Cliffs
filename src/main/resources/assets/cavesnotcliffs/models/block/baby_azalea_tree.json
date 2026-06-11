@@ -1,7 +1,10 @@
 {
-  "parent": "block/cross",
+  "parent": "cavesnotcliffs:custom/baby_azalea_tree",
   "textures": {
-    "cross": "cavesnotcliffs:blocks/baby_azalea_tree",
-    "particle": "cavesnotcliffs:blocks/baby_azalea_tree"
+    "0": "cavesnotcliffs:blocks/baby_azalea_tree_1_1",
+    "1": "cavesnotcliffs:blocks/baby__azalea_tree",
+    "2": "cavesnotcliffs:blocks/babyazaleawood_3",
+    "all": "cavesnotcliffs:blocks/baby_azalea_tree_1_1",
+    "particle": "cavesnotcliffs:blocks/baby_azalea_tree_1_1"
   }
 }
