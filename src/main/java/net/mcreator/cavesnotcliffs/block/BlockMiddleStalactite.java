@@ -50,6 +50,7 @@ public class BlockMiddleStalactite extends ElementsCavesNotCliffs.ModElement {
         public BlockCustom() {
             super(Material.ROCK);
             setUnlocalizedName("middle_stalactite");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(1.5f);
             setResistance(6.0f);

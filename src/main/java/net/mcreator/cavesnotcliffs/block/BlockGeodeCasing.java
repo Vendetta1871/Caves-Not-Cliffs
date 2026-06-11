@@ -19,16 +19,16 @@ import net.mcreator.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockGeodeCasing extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("caves_and_cliffs:geode_casing")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:geode_casing")
     public static final Block block = null;
 
     public BlockGeodeCasing(ElementsCavesNotCliffs instance) { super(instance, 30); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("caves_and_cliffs", "geode_casing"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("cavesnotcliffs", "geode_casing"));
         elements.items.add(() -> {
-            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("caves_and_cliffs", "geode_casing"));
+            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "geode_casing"));
             return new ItemBlock(b).setRegistryName(b.getRegistryName());
         });
     }
@@ -36,14 +36,17 @@ public class BlockGeodeCasing extends ElementsCavesNotCliffs.ModElement {
     @SideOnly(Side.CLIENT)
     @Override
     public void registerModels(ModelRegistryEvent event) {
-        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("caves_and_cliffs:geode_casing", "inventory"));
+        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("cavesnotcliffs", "geode_casing"));
+        if (item != null)
+            ModelLoader.setCustomModelResourceLocation(item, 0,
+                new ModelResourceLocation("cavesnotcliffs:geode_casing", "inventory"));
     }
 
     private static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.ROCK);
             setUnlocalizedName("geode_casing");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(1.5f);
             setResistance(6.0f);

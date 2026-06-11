@@ -39,6 +39,7 @@ public class BlockCopperOre extends ElementsCavesNotCliffs.ModElement {
         public BlockCustom() {
             super(Material.ROCK);
             setUnlocalizedName("copper_ore");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(3.0f);
             setResistance(3.0f);

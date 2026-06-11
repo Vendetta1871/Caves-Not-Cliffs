@@ -45,6 +45,7 @@ public class BlockSporeBlossom extends ElementsCavesNotCliffs.ModElement {
         public BlockCustom() {
             super(Material.AIR);
             setUnlocalizedName("spore_blossom");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.PLANT);
             setHardness(0.0f);
             setResistance(0.0f);

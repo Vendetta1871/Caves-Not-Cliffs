@@ -39,6 +39,7 @@ public class BlockMoss extends ElementsCavesNotCliffs.ModElement {
         public BlockCustom() {
             super(Material.GRASS);
             setUnlocalizedName("moss");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.PLANT);
             setHardness(0.1f);
             setResistance(0.1f);

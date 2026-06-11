@@ -42,6 +42,7 @@ public class BlockCopperBlock extends ElementsCavesNotCliffs.ModElement {
         public BlockCustom() {
             super(Material.IRON);
             setUnlocalizedName("copper_block");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.METAL);
             setHardness(3.0f);
             setResistance(6.0f);

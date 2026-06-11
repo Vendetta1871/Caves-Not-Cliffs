@@ -45,6 +45,7 @@ public class BlockDripleafStem extends ElementsCavesNotCliffs.ModElement {
         public BlockCustom() {
             super(Material.AIR);
             setUnlocalizedName("dripleaf_stem");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.PLANT);
             setHardness(0.0f);
             setResistance(0.0f);

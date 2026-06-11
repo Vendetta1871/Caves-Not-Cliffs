@@ -19,16 +19,16 @@ import net.mcreator.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockUnknownStoneBlock extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("caves_and_cliffs:unknown_stone")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:unknown_stone")
     public static final Block block = null;
 
     public BlockUnknownStoneBlock(ElementsCavesNotCliffs instance) { super(instance, 34); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("caves_and_cliffs", "unknown_stone"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("cavesnotcliffs", "unknown_stone"));
         elements.items.add(() -> {
-            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("caves_and_cliffs", "unknown_stone"));
+            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "unknown_stone"));
             return new ItemBlock(b).setRegistryName(b.getRegistryName());
         });
     }
@@ -36,14 +36,17 @@ public class BlockUnknownStoneBlock extends ElementsCavesNotCliffs.ModElement {
     @SideOnly(Side.CLIENT)
     @Override
     public void registerModels(ModelRegistryEvent event) {
-        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("caves_and_cliffs:unknown_stone", "inventory"));
+        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("cavesnotcliffs", "unknown_stone"));
+        if (item != null)
+            ModelLoader.setCustomModelResourceLocation(item, 0,
+                new ModelResourceLocation("cavesnotcliffs:unknown_stone", "inventory"));
     }
 
     private static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.ROCK);
             setUnlocalizedName("unknown_stone");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(1.5f);
             setResistance(6.0f);

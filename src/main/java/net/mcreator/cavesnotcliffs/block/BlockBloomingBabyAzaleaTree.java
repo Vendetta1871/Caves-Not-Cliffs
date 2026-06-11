@@ -45,6 +45,7 @@ public class BlockBloomingBabyAzaleaTree extends ElementsCavesNotCliffs.ModEleme
         public BlockCustom() {
             super(Material.AIR);
             setUnlocalizedName("blooming_baby_azalea_tree");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.PLANT);
             setHardness(0.0f);
             setResistance(0.0f);

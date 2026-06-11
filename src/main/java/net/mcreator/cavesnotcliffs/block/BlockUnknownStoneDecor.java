@@ -15,7 +15,6 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.mcreator.cavesnotcliffs.ElementsCavesNotCliffs;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockUnknownStoneDecor extends ElementsCavesNotCliffs.ModElement {
     @GameRegistry.ObjectHolder("cavesnotcliffs:unknown_stone")
     public static final Block block = null;
@@ -39,6 +38,7 @@ public class BlockUnknownStoneDecor extends ElementsCavesNotCliffs.ModElement {
         public BlockCustom() {
             super(Material.ROCK);
             setUnlocalizedName("unknown_stone");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(1.5f);
             setResistance(6.0f);

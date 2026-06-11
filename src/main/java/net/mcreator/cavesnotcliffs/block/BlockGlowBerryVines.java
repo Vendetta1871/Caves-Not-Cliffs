@@ -45,6 +45,7 @@ public class BlockGlowBerryVines extends ElementsCavesNotCliffs.ModElement {
         public BlockCustom() {
             super(Material.VINE);
             setUnlocalizedName("glow_berry_vines");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.PLANT);
             setHardness(0.2f);
             setLightLevel(0.5f);

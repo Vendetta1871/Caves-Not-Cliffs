@@ -20,16 +20,16 @@ import net.mcreator.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockAmethystGeode extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("caves_and_cliffs:amethyst_geode")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:amethyst_geode")
     public static final Block block = null;
 
     public BlockAmethystGeode(ElementsCavesNotCliffs instance) { super(instance, 29); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("caves_and_cliffs", "amethyst_geode"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("cavesnotcliffs", "amethyst_geode"));
         elements.items.add(() -> {
-            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("caves_and_cliffs", "amethyst_geode"));
+            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_geode"));
             return new ItemBlock(b).setRegistryName(b.getRegistryName());
         });
     }
@@ -37,22 +37,21 @@ public class BlockAmethystGeode extends ElementsCavesNotCliffs.ModElement {
     @SideOnly(Side.CLIENT)
     @Override
     public void registerModels(ModelRegistryEvent event) {
-        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("caves_and_cliffs:amethyst_geode", "inventory"));
+        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_geode"));
+        if (item != null)
+            ModelLoader.setCustomModelResourceLocation(item, 0,
+                new ModelResourceLocation("cavesnotcliffs:amethyst_geode", "inventory"));
     }
 
     private static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.ROCK);
             setUnlocalizedName("amethyst_geode");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(1.5f);
             setResistance(6.0f);
         }
 
-        @Override
-        public Item getItemDropped(IBlockState state, Random rand, int fortune) {
-            return Item.getItemFromBlock(BlockAmethystGeode.block);
-        }
     }
 }

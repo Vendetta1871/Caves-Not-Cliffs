@@ -39,6 +39,7 @@ public class BlockCopperSlabStage2 extends ElementsCavesNotCliffs.ModElement {
         public BlockCustom() {
             super(Material.IRON);
             setUnlocalizedName("copper_slab_stage2");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.METAL);
             setHardness(3.0f);
             setResistance(6.0f);

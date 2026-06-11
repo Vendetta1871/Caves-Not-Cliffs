@@ -110,6 +110,7 @@ public class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
         	this.setDefaultState(this.blockState.getBaseState().withProperty(LEVEL, Integer.valueOf(0)));
         	this.setTickRandomly(true);
 			setUnlocalizedName("lavacauldron");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
 		}
 
 		@Override

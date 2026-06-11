@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "facing=up":    { "model": "cavesnotcliffs:amethyst_crystal" },
+    "facing=down":  { "model": "cavesnotcliffs:amethyst_crystal", "x": 180 },
+    "facing=north": { "model": "cavesnotcliffs:amethyst_crystal", "x": 90 },
+    "facing=south": { "model": "cavesnotcliffs:amethyst_crystal", "x": 90, "y": 180 },
+    "facing=east":  { "model": "cavesnotcliffs:amethyst_crystal", "x": 90, "y": 90 },
+    "facing=west":  { "model": "cavesnotcliffs:amethyst_crystal", "x": 90, "y": 270 }
+  }
+}

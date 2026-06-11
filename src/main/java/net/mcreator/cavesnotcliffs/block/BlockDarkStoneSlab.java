@@ -39,6 +39,7 @@ public class BlockDarkStoneSlab extends ElementsCavesNotCliffs.ModElement {
         public BlockCustom() {
             super(Material.ROCK);
             setUnlocalizedName("dark_stone_slab");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(1.5f);
             setResistance(6.0f);
