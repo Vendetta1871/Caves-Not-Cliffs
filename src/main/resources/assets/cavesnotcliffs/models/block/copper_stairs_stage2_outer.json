@@ -1,0 +1,1 @@
+{ "parent": "block/outer_stairs", "textures": { "bottom": "cavesnotcliffs:blocks/copper_block_stage2", "top": "cavesnotcliffs:blocks/copper_block_stage2", "side": "cavesnotcliffs:blocks/copper_block_stage2" } }

@@ -1,7 +1,1 @@
-{
-  "parent": "block/cube_all",
-  "textures": {
-    "all": "cavesnotcliffs:blocks/copper_block_stage1",
-    "particle": "cavesnotcliffs:blocks/copper_block_stage1"
-  }
-}
+{ "parent": "block/half_slab", "textures": { "bottom": "cavesnotcliffs:blocks/copper_block_stage1", "top": "cavesnotcliffs:blocks/copper_block_stage1", "side": "cavesnotcliffs:blocks/copper_block_stage1" } }

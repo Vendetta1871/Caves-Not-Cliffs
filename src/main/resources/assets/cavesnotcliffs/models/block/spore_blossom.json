@@ -1,7 +1,9 @@
 {
-  "parent": "block/cross",
+  "parent": "cavesnotcliffs:custom/sporeblossom",
   "textures": {
-    "cross": "cavesnotcliffs:blocks/spore_blossom",
+    "0": "cavesnotcliffs:blocks/spore_blossom",
+    "2": "cavesnotcliffs:blocks/petals",
+    "all": "cavesnotcliffs:blocks/spore_blossom",
     "particle": "cavesnotcliffs:blocks/spore_blossom"
   }
 }

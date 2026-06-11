@@ -1,7 +1,10 @@
 {
-  "parent": "block/cross",
+  "parent": "cavesnotcliffs:custom/smalldripleafplant",
   "textures": {
-    "cross": "cavesnotcliffs:blocks/baby_dripleaf",
-    "particle": "cavesnotcliffs:blocks/baby_dripleaf"
+    "0": "cavesnotcliffs:blocks/dripleaf_plant",
+    "1": "cavesnotcliffs:blocks/smalldripleaf",
+    "2": "cavesnotcliffs:blocks/tinydripleaftinyleaves",
+    "all": "cavesnotcliffs:blocks/smalldripleaf",
+    "particle": "cavesnotcliffs:blocks/dripleaf_plant"
   }
 }

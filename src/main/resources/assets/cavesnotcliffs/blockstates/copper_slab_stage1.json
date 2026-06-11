@@ -1,7 +1,6 @@
 {
   "variants": {
-    "normal": {
-      "model": "cavesnotcliffs:copper_slab_stage1"
-    }
+    "half=bottom,variant=default": { "model": "cavesnotcliffs:copper_slab_stage1" },
+    "half=top,variant=default":    { "model": "cavesnotcliffs:copper_slab_stage1_top" }
   }
 }

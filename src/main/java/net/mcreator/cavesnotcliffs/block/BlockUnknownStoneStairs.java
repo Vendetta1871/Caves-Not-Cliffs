@@ -7,6 +7,7 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockStairs;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.state.IBlockState;
@@ -35,12 +36,13 @@ public class BlockUnknownStoneStairs extends ElementsCavesNotCliffs.ModElement {
             new ModelResourceLocation("cavesnotcliffs:unknown_stone_stairs", "inventory"));
     }
 
-    private static class BlockCustom extends Block {
+    private static class BlockCustom extends BlockStairs {
         public BlockCustom() {
-            super(Material.ROCK);
+            super(new Block(Material.ROCK).getDefaultState());
             setUnlocalizedName("unknown_stone_stairs");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
+            setHarvestLevel("pickaxe", 1);
             setHardness(1.5f);
             setResistance(6.0f);
         }

@@ -1,0 +1,10 @@
+{
+  "parent": "cavesnotcliffs:custom/dripleafplant1",
+  "textures": {
+    "all": "cavesnotcliffs:blocks/dripleaf_plant_1_1_1",
+    "particle": "cavesnotcliffs:blocks/dripleaf_plant_1_1_1",
+    "1": "cavesnotcliffs:blocks/dripleaf_plant",
+    "2": "cavesnotcliffs:blocks/dripleaf_plant_1_1_1",
+    "3": "cavesnotcliffs:blocks/dripleafsides"
+  }
+}

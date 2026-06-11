@@ -1,7 +1,1 @@
-{
-  "parent": "block/cube_all",
-  "textures": {
-    "all": "cavesnotcliffs:blocks/dark_stone",
-    "particle": "cavesnotcliffs:blocks/dark_stone"
-  }
-}
+{ "parent": "block/stairs", "textures": { "bottom": "cavesnotcliffs:blocks/dark_stone", "top": "cavesnotcliffs:blocks/dark_stone", "side": "cavesnotcliffs:blocks/dark_stone" } }

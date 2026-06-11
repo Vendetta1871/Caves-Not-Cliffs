@@ -1,7 +1,7 @@
 {
-  "parent": "minecraft:block/end_rod",
+  "parent": "block/cross",
   "textures": {
-    "end_rod": "cavesnotcliffs:blocks/amethyst_crystal",
+    "cross": "cavesnotcliffs:blocks/amethyst_crystal",
     "particle": "cavesnotcliffs:blocks/amethyst_crystal"
   }
 }

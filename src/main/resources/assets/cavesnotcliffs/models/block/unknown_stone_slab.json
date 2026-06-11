@@ -1,7 +1,1 @@
-{
-  "parent": "block/cube_all",
-  "textures": {
-    "all": "cavesnotcliffs:blocks/unknown_stone",
-    "particle": "cavesnotcliffs:blocks/unknown_stone"
-  }
-}
+{ "parent": "block/half_slab", "textures": { "bottom": "cavesnotcliffs:blocks/unknown_stone", "top": "cavesnotcliffs:blocks/unknown_stone", "side": "cavesnotcliffs:blocks/unknown_stone" } }

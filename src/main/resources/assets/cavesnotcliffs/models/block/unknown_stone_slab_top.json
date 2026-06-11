@@ -1,0 +1,1 @@
+{ "parent": "block/upper_slab", "textures": { "bottom": "cavesnotcliffs:blocks/unknown_stone", "top": "cavesnotcliffs:blocks/unknown_stone", "side": "cavesnotcliffs:blocks/unknown_stone" } }
