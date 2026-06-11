@@ -1,0 +1,105 @@
+
+package net.celestiald.cavesnotcliffs.block;
+
+import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.client.model.ModelLoader;
+import net.minecraftforge.client.event.ModelRegistryEvent;
+import net.minecraft.block.Block;
+import net.minecraft.util.BlockRenderLayer;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.SoundType;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
+import java.util.List;
+import java.util.Random;
+import javax.annotation.Nullable;
+import net.minecraft.entity.Entity;
+import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+
+@ElementsCavesNotCliffs.ModElement.Tag
+public class BlockTopStalactite extends ElementsCavesNotCliffs.ModElement {
+    @GameRegistry.ObjectHolder("cavesnotcliffs:top_stalactite")
+    public static final Block block = null;
+
+    public BlockTopStalactite(ElementsCavesNotCliffs instance) { super(instance, 23); }
+
+    @Override
+    public void initElements() {
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("top_stalactite"));
+        elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
+    }
+
+    @SideOnly(Side.CLIENT)
+    @Override
+    public void registerModels(ModelRegistryEvent event) {
+        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
+            new ModelResourceLocation("cavesnotcliffs:top_stalactite", "inventory"));
+    }
+
+    public static class BlockCustom extends Block {
+        private static final AxisAlignedBB SHAFT_AABB = new AxisAlignedBB(0.3, 0.0, 0.3, 0.7, 1.0, 0.7);
+
+        public BlockCustom() {
+            super(Material.ROCK);
+            setUnlocalizedName("top_stalactite");
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
+            setSoundType(SoundType.STONE);
+            setHardness(1.5f);
+            setResistance(6.0f);
+            setTickRandomly(true);
+        }
+
+        @Override public boolean isOpaqueCube(IBlockState state) { return false; }
+        @Override public boolean isFullCube(IBlockState state) { return false; }
+        @Override public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess source, BlockPos pos) { return SHAFT_AABB; }
+        @Override
+        public void addCollisionBoxToList(IBlockState state, World worldIn, BlockPos pos, AxisAlignedBB entityBox, List<AxisAlignedBB> collidingBoxes, @Nullable Entity entityIn, boolean isActualState) {
+            addCollisionBoxToList(pos, entityBox, collidingBoxes, SHAFT_AABB);
+        }
+        @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
+
+        @Override
+        public Item getItemDropped(IBlockState state, Random rand, int fortune) {
+            return Item.getItemFromBlock(BlockStalactite.block);
+        }
+
+        private boolean hasValidSupport(World worldIn, BlockPos pos) {
+            IBlockState above = worldIn.getBlockState(pos.up());
+            Block aboveBlock = above.getBlock();
+            return aboveBlock == BlockMiddleStalactite.block
+                || aboveBlock == BlockBottomStalactite.block
+                || above.isSideSolid(worldIn, pos.up(), EnumFacing.DOWN);
+        }
+
+        @Override
+        public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos) {
+            if (!worldIn.isRemote && fromPos.equals(pos.up()) && !hasValidSupport(worldIn, pos)) {
+                worldIn.destroyBlock(pos, true);
+            }
+        }
+
+        @Override
+        public void randomTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
+            if (!worldIn.isRemote && rand.nextInt(50) == 0) {
+                BlockPos below = pos.down();
+                if (worldIn.isAirBlock(below)) {
+                    Block above = worldIn.getBlockState(pos.up()).getBlock();
+                    IBlockState newState = (above == BlockBottomStalactite.block || above == BlockMiddleStalactite.block)
+                        ? BlockMiddleStalactite.block.getDefaultState()
+                        : BlockBottomStalactite.block.getDefaultState();
+                    worldIn.setBlockState(pos, newState, 3);
+                    worldIn.setBlockState(below, BlockCustom.this.getDefaultState(), 3);
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,11 @@
+{
+  "variants": {
+    "level=0": { "model": "minecraft:cauldron_empty" },
+    "level=1": { "model": "minecraft:cauldron_level1" },
+    "level=2": { "model": "minecraft:cauldron_level2" },
+    "level=3": { "model": "minecraft:cauldron_level3" },
+    "level=4": { "model": "cavesnotcliffs:lavacauldron_level4" },
+    "level=5": { "model": "cavesnotcliffs:lavacauldron_level5" },
+    "level=6": { "model": "cavesnotcliffs:lavacauldron_level6" }
+  }
+}

@@ -1,6 +1,7 @@
 build
 gradle
 libs
+libs_disabled
 /models
 run
 .gradle

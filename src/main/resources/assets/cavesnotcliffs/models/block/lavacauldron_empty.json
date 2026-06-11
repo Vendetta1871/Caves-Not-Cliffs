@@ -1,9 +1,0 @@
-{
-  "parent": "minecraft:block/cauldron_empty",
-  "textures": {
-    "top":    "cavesnotcliffs:blocks/cauldron_top",
-    "bottom": "cavesnotcliffs:blocks/cauldron_bottom",
-    "side":   "cavesnotcliffs:blocks/cauldron_side",
-    "inside": "cavesnotcliffs:blocks/cauldron_inner"
-  }
-}

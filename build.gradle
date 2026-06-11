@@ -2,19 +2,21 @@ buildscript {
     repositories {
         jcenter()
         maven { url = "http://files.minecraftforge.net/maven" }
+        maven { url = "https://repo.spongepowered.org/maven" }
         flatDir { dirs 'libs' }
-        //mavenCentral()
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
     }
 }
 
 apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'org.spongepowered.mixin'
 
 version = "1.5.0"
-group = "com.yourname.modid"
-archivesBaseName = "modid"
+group = "net.celestiald"
+archivesBaseName = "cavesnotcliffs"
 
 sourceCompatibility = targetCompatibility = '1.8'
 compileJava {
@@ -25,9 +27,19 @@ minecraft {
     version = '1.12.2-14.23.5.2768'
     runDir = 'run'
     mappings = 'snapshot_20171003'
+    coreMod = 'net.celestiald.cavesnotcliffs.core.CNCLoadingPlugin'
+}
+
+repositories {
+    maven { url "https://repo.spongepowered.org/maven" }
 }
 
 dependencies {
+    provided('org.spongepowered:mixin:0.7.11-SNAPSHOT') { transitive = false }
+}
+
+mixin {
+    add sourceSets.main, 'mixins.cavesnotcliffs.refmap.json'
 }
 
 processResources {
