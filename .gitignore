@@ -7,3 +7,6 @@ run
 .gradle
 .mcreator
 CLAUDE.md
+.idea
+*.ipr
+*.iws

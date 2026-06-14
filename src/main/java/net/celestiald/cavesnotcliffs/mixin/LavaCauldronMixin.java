@@ -8,6 +8,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockCauldron;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.IProperty;
+import net.minecraft.block.properties.PropertyBool;
 import net.minecraft.block.properties.PropertyInteger;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
@@ -26,7 +27,6 @@ import net.minecraft.stats.StatList;
 import net.minecraft.tileentity.TileEntityBanner;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -35,8 +35,6 @@ import net.minecraft.world.World;
 
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Mutable;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -46,71 +44,84 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.Random;
 
 /**
- * Extends vanilla BlockCauldron to support lava (levels 4-6) in addition to water (1-3).
- * Level encoding: 0=empty, 1-3=water, 4-6=lava.
+ * Extends vanilla BlockCauldron with lava support via @Inject (not @Overwrite).
+ *
+ * @Overwrite renames methods to SRG names in compiled bytecode. At dev runtime,
+ * FML has already deobfuscated BlockCauldron to MCP names, so SRG-named methods
+ * never match their targets. @Inject stores the target as a string in the annotation;
+ * in dev this matches the MCP name directly, in production the searge refmap maps it
+ * to the SRG name.
+ *
+ * State encoding: is_lava=false + level 0-3 = empty/water; is_lava=true + level 1-3 = lava.
+ * Metadata 0-3 = water, 4-7 = lava (meta - 4 = lava fill level).
  */
 @Mixin(BlockCauldron.class)
 public abstract class LavaCauldronMixin extends Block {
 
-    @Shadow @Mutable @Final
+    @Shadow @Final
     public static PropertyInteger LEVEL;
+
+    private static final PropertyBool IS_LAVA = PropertyBool.create("is_lava");
 
     protected LavaCauldronMixin(Material materialIn) {
         super(materialIn);
     }
 
-    // Expand LEVEL from 0-3 to 0-6 before BlockCauldron is instantiated
-    @Inject(method = "<clinit>", at = @At("TAIL"))
-    private static void expandLevel(CallbackInfo ci) {
-        LEVEL = PropertyInteger.create("level", 0, 6);
-    }
-
-    // Enable random ticks so dripstone drip logic fires
     @Inject(method = "<init>", at = @At("RETURN"))
     private void enableRandomTicks(CallbackInfo ci) {
         setTickRandomly(true);
     }
 
-    @Overwrite
-    protected BlockStateContainer createBlockState() {
-        return new BlockStateContainer((Block)(Object)this, new IProperty[]{LEVEL});
+    @Inject(method = "createBlockState", at = @At("HEAD"), cancellable = true)
+    private void injectCreateBlockState(CallbackInfoReturnable<BlockStateContainer> cir) {
+        cir.setReturnValue(new BlockStateContainer((Block)(Object)this, new IProperty[]{LEVEL, IS_LAVA}));
     }
 
-    @Overwrite
-    public IBlockState getStateFromMeta(int meta) {
-        return this.getDefaultState().withProperty(LEVEL, MathHelper.clamp(meta, 0, 6));
+    @Inject(method = "getStateFromMeta", at = @At("HEAD"), cancellable = true)
+    private void injectGetStateFromMeta(int meta, CallbackInfoReturnable<IBlockState> cir) {
+        if (meta >= 4) {
+            cir.setReturnValue(getDefaultState()
+                    .withProperty(IS_LAVA, true)
+                    .withProperty(LEVEL, MathHelper.clamp(meta - 4, 0, 3)));
+        } else {
+            cir.setReturnValue(getDefaultState()
+                    .withProperty(IS_LAVA, false)
+                    .withProperty(LEVEL, MathHelper.clamp(meta, 0, 3)));
+        }
     }
 
-    @Overwrite
-    public int getMetaFromState(IBlockState state) {
-        return (Integer) state.getValue(LEVEL);
+    @Inject(method = "getMetaFromState", at = @At("HEAD"), cancellable = true)
+    private void injectGetMetaFromState(IBlockState state, CallbackInfoReturnable<Integer> cir) {
+        int level = (Integer) state.getValue(LEVEL);
+        boolean isLava = (Boolean) state.getValue(IS_LAVA);
+        cir.setReturnValue(isLava ? (4 + level) : level);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private void setWaterLevel(World worldIn, BlockPos pos, IBlockState state, int level) {
-        if ((Integer) state.getValue(LEVEL) < 4) {
-            worldIn.setBlockState(pos, state.withProperty(LEVEL, MathHelper.clamp(level, 0, 3)), 2);
-            worldIn.updateComparatorOutputLevel(pos, (Block)(Object)this);
-        }
+    private void cncSetWaterLevel(World worldIn, BlockPos pos, IBlockState state, int level) {
+        worldIn.setBlockState(pos,
+                state.withProperty(IS_LAVA, false)
+                     .withProperty(LEVEL, MathHelper.clamp(level, 0, 3)), 2);
+        worldIn.updateComparatorOutputLevel(pos, (Block)(Object)this);
     }
 
-    private void setLavaLevel(World worldIn, BlockPos pos, IBlockState state, int level) {
-        int current = (Integer) state.getValue(LEVEL);
-        if (current < 1 || current > 3) {
-            level = MathHelper.clamp(level, 0, 3);
-            level = level == 0 ? 0 : level + 3;
-            worldIn.setBlockState(pos, state.withProperty(LEVEL, level), 2);
-            worldIn.updateComparatorOutputLevel(pos, (Block)(Object)this);
+    private void cncSetLavaLevel(World worldIn, BlockPos pos, IBlockState state, int lavaLevel) {
+        if (lavaLevel <= 0) {
+            worldIn.setBlockState(pos,
+                    state.withProperty(IS_LAVA, false).withProperty(LEVEL, 0), 2);
+        } else {
+            worldIn.setBlockState(pos,
+                    state.withProperty(IS_LAVA, true)
+                         .withProperty(LEVEL, MathHelper.clamp(lavaLevel, 1, 3)), 2);
         }
+        worldIn.updateComparatorOutputLevel(pos, (Block)(Object)this);
     }
 
-    // Checks whether a matching liquid is dripping from a stalactite above the cauldron
-    private boolean isLiquidAbove(World worldIn, BlockPos pos, Material liquidType) {
+    private boolean cncIsLiquidAbove(World worldIn, BlockPos pos, Material liquidType) {
         int x = pos.getX(), y = pos.getY(), z = pos.getZ();
         for (int i = 0; i < 9 && worldIn.isAirBlock(new BlockPos(x, y + 1, z)); i++) y++;
-        Block top = worldIn.getBlockState(new BlockPos(x, y + 1, z)).getBlock();
-        if (top != BlockTopStalactite.block) return false;
+        if (worldIn.getBlockState(new BlockPos(x, y + 1, z)).getBlock() != BlockTopStalactite.block) return false;
         if (worldIn.getBlockState(new BlockPos(x, y + 2, z)).getBlock() == BlockMiddleStalactite.block) {
             y++;
             if (worldIn.getBlockState(new BlockPos(x, y + 2, z)).getBlock() == BlockBottomStalactite.block) y++;
@@ -120,34 +131,41 @@ public abstract class LavaCauldronMixin extends Block {
 
     // ── Block interactions ────────────────────────────────────────────────────
 
-    @Overwrite
-    public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn,
-            EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
+    @Inject(method = "onBlockActivated", at = @At("HEAD"), cancellable = true)
+    private void injectOnBlockActivated(World worldIn, BlockPos pos, IBlockState state,
+            EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
+            float hitX, float hitY, float hitZ, CallbackInfoReturnable<Boolean> cir) {
         ItemStack held = playerIn.getHeldItem(hand);
-        if (held.isEmpty()) return true;
+        if (held.isEmpty()) {
+            cir.setReturnValue(false);
+            return;
+        }
         int level = (Integer) state.getValue(LEVEL);
+        boolean isLava = (Boolean) state.getValue(IS_LAVA);
         Item item = held.getItem();
 
         if (item == Items.WATER_BUCKET) {
-            if (level < 3 && !worldIn.isRemote) {
+            if (!isLava && level < 3 && !worldIn.isRemote) {
                 if (!playerIn.capabilities.isCreativeMode) playerIn.setHeldItem(hand, new ItemStack(Items.BUCKET));
                 playerIn.addStat(StatList.CAULDRON_FILLED);
-                setWaterLevel(worldIn, pos, state, 3);
+                cncSetWaterLevel(worldIn, pos, state, 3);
                 worldIn.playSound(null, pos, SoundEvents.ITEM_BUCKET_EMPTY, SoundCategory.BLOCKS, 1.0F, 1.0F);
             }
-            return true;
+            cir.setReturnValue(true);
+            return;
         }
         if (item == Items.LAVA_BUCKET) {
-            if (level != 1 && level != 2 && level != 3 && !worldIn.isRemote) {
+            if (!isLava && level == 0 && !worldIn.isRemote) {
                 if (!playerIn.capabilities.isCreativeMode) playerIn.setHeldItem(hand, new ItemStack(Items.BUCKET));
                 playerIn.addStat(StatList.CAULDRON_FILLED);
-                setLavaLevel(worldIn, pos, state, 3);
+                cncSetLavaLevel(worldIn, pos, state, 3);
                 worldIn.playSound(null, pos, SoundEvents.ITEM_BUCKET_EMPTY, SoundCategory.BLOCKS, 1.0F, 1.0F);
             }
-            return true;
+            cir.setReturnValue(true);
+            return;
         }
         if (item == Items.BUCKET) {
-            if (level == 3 && !worldIn.isRemote) {
+            if (!isLava && level == 3 && !worldIn.isRemote) {
                 if (!playerIn.capabilities.isCreativeMode) {
                     held.shrink(1);
                     ItemStack water = new ItemStack(Items.WATER_BUCKET);
@@ -155,10 +173,10 @@ public abstract class LavaCauldronMixin extends Block {
                     else if (!playerIn.inventory.addItemStackToInventory(water)) playerIn.dropItem(water, false);
                 }
                 playerIn.addStat(StatList.CAULDRON_USED);
-                setWaterLevel(worldIn, pos, state, 0);
+                cncSetWaterLevel(worldIn, pos, state, 0);
                 worldIn.playSound(null, pos, SoundEvents.ITEM_BUCKET_FILL, SoundCategory.BLOCKS, 1.0F, 1.0F);
             }
-            if (level == 6 && !worldIn.isRemote) {
+            if (isLava && level == 3 && !worldIn.isRemote) {
                 if (!playerIn.capabilities.isCreativeMode) {
                     held.shrink(1);
                     ItemStack lava = new ItemStack(Items.LAVA_BUCKET);
@@ -166,13 +184,14 @@ public abstract class LavaCauldronMixin extends Block {
                     else if (!playerIn.inventory.addItemStackToInventory(lava)) playerIn.dropItem(lava, false);
                 }
                 playerIn.addStat(StatList.CAULDRON_USED);
-                setLavaLevel(worldIn, pos, state, 0);
+                cncSetLavaLevel(worldIn, pos, state, 0);
                 worldIn.playSound(null, pos, SoundEvents.ITEM_BUCKET_FILL, SoundCategory.BLOCKS, 1.0F, 1.0F);
             }
-            return true;
+            cir.setReturnValue(true);
+            return;
         }
         if (item == Items.GLASS_BOTTLE) {
-            if (level > 0 && level < 4 && !worldIn.isRemote) {
+            if (!isLava && level > 0 && !worldIn.isRemote) {
                 if (!playerIn.capabilities.isCreativeMode) {
                     ItemStack bottle = PotionUtils.addPotionToItemStack(new ItemStack(Items.POTIONITEM), PotionTypes.WATER);
                     playerIn.addStat(StatList.CAULDRON_USED);
@@ -182,30 +201,33 @@ public abstract class LavaCauldronMixin extends Block {
                     else if (playerIn instanceof EntityPlayerMP) ((EntityPlayerMP)playerIn).sendContainerToPlayer(playerIn.inventoryContainer);
                 }
                 worldIn.playSound(null, pos, SoundEvents.ITEM_BOTTLE_FILL, SoundCategory.BLOCKS, 1.0F, 1.0F);
-                setWaterLevel(worldIn, pos, state, level - 1);
+                cncSetWaterLevel(worldIn, pos, state, level - 1);
             }
-            return true;
+            cir.setReturnValue(true);
+            return;
         }
         if (item == Items.POTIONITEM && PotionUtils.getPotionFromItem(held) == PotionTypes.WATER) {
-            if (level < 3 && !worldIn.isRemote) {
+            if (!isLava && level < 3 && !worldIn.isRemote) {
                 if (!playerIn.capabilities.isCreativeMode) {
                     playerIn.addStat(StatList.CAULDRON_USED);
                     playerIn.setHeldItem(hand, new ItemStack(Items.GLASS_BOTTLE));
                     if (playerIn instanceof EntityPlayerMP) ((EntityPlayerMP)playerIn).sendContainerToPlayer(playerIn.inventoryContainer);
                 }
                 worldIn.playSound(null, pos, SoundEvents.ITEM_BOTTLE_EMPTY, SoundCategory.BLOCKS, 1.0F, 1.0F);
-                setWaterLevel(worldIn, pos, state, level + 1);
+                cncSetWaterLevel(worldIn, pos, state, level + 1);
             }
-            return true;
+            cir.setReturnValue(true);
+            return;
         }
-        if (level > 0 && level < 4) {
+        if (!isLava && level > 0) {
             if (item instanceof ItemArmor) {
                 ItemArmor armor = (ItemArmor) item;
                 if (armor.getArmorMaterial() == ItemArmor.ArmorMaterial.LEATHER && armor.hasColor(held) && !worldIn.isRemote) {
                     armor.removeColor(held);
-                    setWaterLevel(worldIn, pos, state, level - 1);
+                    cncSetWaterLevel(worldIn, pos, state, level - 1);
                     playerIn.addStat(StatList.ARMOR_CLEANED);
-                    return true;
+                    cir.setReturnValue(true);
+                    return;
                 }
             }
             if (item instanceof ItemBanner && TileEntityBanner.getPatterns(held) > 0 && !worldIn.isRemote) {
@@ -215,87 +237,88 @@ public abstract class LavaCauldronMixin extends Block {
                 playerIn.addStat(StatList.BANNER_CLEANED);
                 if (!playerIn.capabilities.isCreativeMode) {
                     held.shrink(1);
-                    setWaterLevel(worldIn, pos, state, level - 1);
+                    cncSetWaterLevel(worldIn, pos, state, level - 1);
                 }
                 if (held.isEmpty()) playerIn.setHeldItem(hand, clean);
                 else if (!playerIn.inventory.addItemStackToInventory(clean)) playerIn.dropItem(clean, false);
                 else if (playerIn instanceof EntityPlayerMP) ((EntityPlayerMP)playerIn).sendContainerToPlayer(playerIn.inventoryContainer);
-                return true;
+                cir.setReturnValue(true);
+                return;
             }
         }
-        return false;
+        cir.setReturnValue(false);
     }
 
-    @Overwrite
-    public void onEntityCollidedWithBlock(World worldIn, BlockPos pos, IBlockState state, Entity entityIn) {
+    @Inject(method = "onEntityCollidedWithBlock", at = @At("HEAD"), cancellable = true)
+    private void injectOnEntityCollidedWithBlock(World worldIn, BlockPos pos,
+            IBlockState state, Entity entityIn, CallbackInfo ci) {
         int level = (Integer) state.getValue(LEVEL);
-        int subLevel = level > 3 ? (level - 3) : level;
-        float liquidTop = (float) pos.getY() + (6.0F + (float)(3 * subLevel)) / 16.0F;
-        if (!worldIn.isRemote && entityIn.getEntityBoundingBox().minY <= (double) liquidTop) {
-            if (level > 0 && level < 4 && entityIn.isBurning()) {
+        boolean isLava = (Boolean) state.getValue(IS_LAVA);
+        float liquidTop = (float) pos.getY() + (6.0F + (float)(3 * level)) / 16.0F;
+        if (!worldIn.isRemote && level > 0 && entityIn.getEntityBoundingBox().minY <= (double) liquidTop) {
+            if (!isLava && entityIn.isBurning()) {
                 entityIn.extinguish();
-                setWaterLevel(worldIn, pos, state, level - 1);
-            } else if (level > 3) {
+                cncSetWaterLevel(worldIn, pos, state, level - 1);
+            } else if (isLava) {
                 entityIn.setFire(5);
             }
         }
+        ci.cancel();
     }
 
-    // Forge-added method (not obfuscated), remap=false is correct
-    @Inject(method = "getLightValue(Lnet/minecraft/block/state/IBlockState;)I",
-            at = @At("RETURN"), cancellable = true, remap = false)
-    public void onGetLightValue(IBlockState state, CallbackInfoReturnable<Integer> cir) {
-        if ((Integer) state.getValue(LEVEL) > 3) {
-            cir.setReturnValue(12);
-        }
+    // BlockCauldron does not override getLightValue (inherited from Block), so we can't @Inject
+    // into it — declare a plain override and let Mixin merge it into the target as a real override.
+    @Override
+    public int getLightValue(IBlockState state, IBlockAccess world, BlockPos pos) {
+        return ((Boolean) state.getValue(IS_LAVA)) ? 15 : super.getLightValue(state, world, pos);
     }
 
-    // Dripstone drip: randomly fill cauldron from stalactite above
-    @Overwrite
+    // Likewise, BlockCauldron does not override randomTick — merge an override rather than @Inject.
+    // setTickRandomly(true) is enabled in the <init> inject so this actually fires.
+    @Override
     public void randomTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
         if (rand.nextInt(2) == 1) {
             int level = (Integer) state.getValue(LEVEL);
-            if (isLiquidAbove(worldIn, pos, Material.LAVA)) {
-                if (level == 0 || level > 3) {
-                    setLavaLevel(worldIn, pos, state, level + 1);
-                }
-            } else if (isLiquidAbove(worldIn, pos, Material.WATER)) {
-                if (level < 3) {
-                    setWaterLevel(worldIn, pos, state, level + 1);
-                }
-            }
-        }
-    }
-
-    // Drip particles below stalactites (client-side); remap=false: Forge-added method
-    @Inject(method = "randomDisplayTick(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Ljava/util/Random;)V",
-            at = @At("TAIL"), remap = false)
-    public void onRandomDisplayTick(IBlockState state, World worldIn, BlockPos pos, Random rand, CallbackInfo ci) {
-        if ((rand.nextInt(10) + 1) <= 3) {
-            int x = pos.getX(), y = pos.getY(), z = pos.getZ();
-            if (isLiquidAbove(worldIn, pos, Material.LAVA)) {
-                worldIn.spawnParticle(EnumParticleTypes.LAVA, x, y + 1, z, 0, 1, 0);
-            } else if (isLiquidAbove(worldIn, pos, Material.WATER)) {
-                worldIn.spawnParticle(EnumParticleTypes.WATER_DROP, x, y + 1, z, 0, 1, 0);
+            boolean isLava = (Boolean) state.getValue(IS_LAVA);
+            if (cncIsLiquidAbove(worldIn, pos, Material.LAVA)) {
+                if (level < 3) cncSetLavaLevel(worldIn, pos, state, level + 1);
+            } else if (cncIsLiquidAbove(worldIn, pos, Material.WATER)) {
+                if (!isLava && level < 3) cncSetWaterLevel(worldIn, pos, state, level + 1);
             }
         }
     }
 
     @Inject(method = "fillWithRain", at = @At("HEAD"), cancellable = true)
-    public void onFillWithRain(World worldIn, BlockPos pos, CallbackInfo ci) {
-        IBlockState state = worldIn.getBlockState(pos);
-        if ((Integer) state.getValue(LEVEL) > 3) {
-            ci.cancel();
+    private void injectFillWithRain(World worldIn, BlockPos pos, CallbackInfo ci) {
+        if (worldIn.rand.nextInt(20) == 1) {
+            float f = worldIn.getBiome(pos).getTemperature(pos);
+            if (worldIn.getBiomeProvider().getTemperatureAtHeight(f, pos.getY()) >= 0.15F) {
+                IBlockState state = worldIn.getBlockState(pos);
+                boolean isLava = (Boolean) state.getValue(IS_LAVA);
+                int level = (Integer) state.getValue(LEVEL);
+                if (!isLava && level < 3) {
+                    worldIn.setBlockState(pos, state.withProperty(LEVEL, level + 1), 2);
+                }
+            }
         }
+        ci.cancel();
     }
 
-    @Overwrite
-    public Item getItemDropped(IBlockState state, Random rand, int fortune) {
-        return Items.CAULDRON;
+    @Inject(method = "getComparatorInputOverride", at = @At("HEAD"), cancellable = true)
+    private void injectGetComparatorInputOverride(IBlockState blockState, World worldIn, BlockPos pos,
+            CallbackInfoReturnable<Integer> cir) {
+        cir.setReturnValue((Integer) blockState.getValue(LEVEL));
     }
 
-    @Overwrite
-    public ItemStack getItem(World worldIn, BlockPos pos, IBlockState state) {
-        return new ItemStack(Items.CAULDRON);
+    @Inject(method = "getItemDropped", at = @At("HEAD"), cancellable = true)
+    private void injectGetItemDropped(IBlockState state, Random rand, int fortune,
+            CallbackInfoReturnable<Item> cir) {
+        cir.setReturnValue(Items.CAULDRON);
+    }
+
+    @Inject(method = "getItem", at = @At("HEAD"), cancellable = true)
+    private void injectGetItem(World worldIn, BlockPos pos, IBlockState state,
+            CallbackInfoReturnable<ItemStack> cir) {
+        cir.setReturnValue(new ItemStack(Items.CAULDRON));
     }
 }

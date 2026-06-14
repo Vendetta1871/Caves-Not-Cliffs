@@ -35,11 +35,28 @@ repositories {
 }
 
 dependencies {
-    provided('org.spongepowered:mixin:0.7.11-SNAPSHOT') { transitive = false }
+    // Compiled against, and present in the dev runtime, but deliberately NOT bundled into the jar.
+    // At runtime in a real instance, Mixin is provided by the MixinBootstrap mod
+    // (https://modrinth.com/mod/mixinbootstrap), which is a required dependency. Bundling Mixin here
+    // too would mean two copies of the library fighting over the same packages.
+    compile('org.spongepowered:mixin:0.7.11-SNAPSHOT') { transitive = false }
 }
 
 mixin {
     add sourceSets.main, 'mixins.cavesnotcliffs.refmap.json'
+}
+
+jar {
+    // The `coreMod` property only sets FMLCorePlugin. Without these, a shipped JAR loads purely as a
+    // coremod: the @Mod (CavesNotCliffs) and the mod's resource pack (incl. the overridden
+    // minecraft:cauldron blockstate) would not load. Dev runs hide this.
+    manifest {
+        attributes(
+            'FMLCorePlugin': 'net.celestiald.cavesnotcliffs.core.CNCLoadingPlugin',
+            'FMLCorePluginContainsFMLMod': 'true',
+            'ForceLoadAsMod': 'true'
+        )
+    }
 }
 
 processResources {

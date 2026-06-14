@@ -54,6 +54,13 @@ public class CavesNotCliffs {
 	public ElementsCavesNotCliffs elements = new ElementsCavesNotCliffs();
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
+		// The lava cauldron is implemented as a Mixin, which is provided at runtime by the
+		// MixinBootstrap mod. If the coremod couldn't boot Mixin, stop here with a clear message
+		// rather than letting the game run with a half-applied, broken cauldron.
+		if (Boolean.getBoolean("cavesnotcliffs.mixinMissing")) {
+			throw new RuntimeException("Caves Not Cliffs requires the MixinBootstrap mod. "
+					+ "Download it from https://modrinth.com/mod/mixinbootstrap and put it in your mods folder.");
+		}
 		MinecraftForge.EVENT_BUS.register(this);
 		GameRegistry.registerWorldGenerator(elements, 5);
 		GameRegistry.registerFuelHandler(elements);

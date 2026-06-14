@@ -2,7 +2,7 @@
   {
     "modid": "cavesnotcliffs",
     "name": "Caves Not Cliffs",
-    "description": "Backports Caves & Cliffs features to 1.12.2: lush caves, dripstone caves, amethyst geodes, copper, and a lava cauldron.",
+    "description": "Backports Caves & Cliffs features to 1.12.2: lush caves, dripstone caves, amethyst geodes, copper, and a lava cauldron. Requires the MixinBootstrap mod (https://modrinth.com/mod/mixinbootstrap).",
     "version": "1.5.0",
     "credits": "CelestialD",
     "logoFile": "",
