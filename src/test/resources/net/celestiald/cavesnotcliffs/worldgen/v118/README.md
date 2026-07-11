@@ -55,7 +55,7 @@ and record complete-column material hashes and histograms. The harness is
 `Cnc118CarverOracle.java.txt`.
 
 - Carver harness SHA-256:
-  `97c31b3b38e14114cde4ba11d3ebb7b453efa6d6f153982cf995ada52fb36f08`
+  `73da9c441cda513b652e9e4943c9c36f7c854ec60fc02a2ddde5afd26eeb6319`
 - Carver TSV SHA-256:
   `7effd3bee64b751598b8c6682074d57130c17d23388bab58fa09971e7da8a1dd`
 

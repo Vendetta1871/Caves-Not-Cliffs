@@ -2,6 +2,7 @@ package net.minecraft.world.level.levelgen;
 
 import it.unimi.dsi.fastutil.shorts.ShortList;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -33,7 +34,14 @@ import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.UpgradeData;
 import net.minecraft.world.level.levelgen.blending.Blender;
 import net.minecraft.world.level.levelgen.carver.CarvingContext;
+import net.minecraft.world.level.levelgen.carver.CarverConfiguration;
+import net.minecraft.world.level.levelgen.carver.CaveCarverConfiguration;
+import net.minecraft.world.level.levelgen.carver.CanyonCarverConfiguration;
 import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver;
+import net.minecraft.world.level.levelgen.heightproviders.UniformHeight;
+import net.minecraft.world.level.levelgen.VerticalAnchor;
+import net.minecraft.util.valueproviders.FloatProvider;
+import net.minecraft.util.valueproviders.TrapezoidFloat;
 
 /** Emits native Overworld carver schedules, deterministic shapes, and full terrain digests. */
 public final class Cnc118CarverOracle {
@@ -56,7 +64,9 @@ public final class Cnc118CarverOracle {
         BuiltinRegistries.bootstrap();
         PrintWriter out = new PrintWriter(args[0], "UTF-8");
         out.println("# official Minecraft Java 1.18.2 Overworld carver oracle");
-        emitCatalog(out);
+        Environment catalogEnvironment = new Environment("normal", 0L, 0, 0, false);
+        emitCatalog(out, new WorldGenerationContext(catalogEnvironment.generator,
+            catalogEnvironment.height));
         for (int index = 0; index < SEEDS.length; ++index) {
             emitScaffold(out, SEEDS[index], CHUNKS[index][0], CHUNKS[index][1]);
             emitTerrain(out, PROFILES[index], SEEDS[index], CHUNKS[index][0],
@@ -68,32 +78,68 @@ public final class Cnc118CarverOracle {
         out.close();
     }
 
-    private static void emitCatalog(PrintWriter out) {
-        out.println("catalog\tcave\t0\t" + Float.floatToRawIntBits(0.15F)
-            + "\t-56\t180\t" + Float.floatToRawIntBits(0.1F) + "\t"
-            + Float.floatToRawIntBits(0.9F) + "\t-56\t"
-            + Float.floatToRawIntBits(0.7F) + "\t" + Float.floatToRawIntBits(1.4F)
-            + "\t" + Float.floatToRawIntBits(0.8F) + "\t"
-            + Float.floatToRawIntBits(1.3F) + "\t" + Float.floatToRawIntBits(-1.0F)
-            + "\t" + Float.floatToRawIntBits(-0.4F));
-        out.println("catalog\tcave_extra_underground\t1\t"
-            + Float.floatToRawIntBits(0.07F) + "\t-56\t47\t"
-            + Float.floatToRawIntBits(0.1F) + "\t" + Float.floatToRawIntBits(0.9F)
-            + "\t-56\t" + Float.floatToRawIntBits(0.7F) + "\t"
-            + Float.floatToRawIntBits(1.4F) + "\t" + Float.floatToRawIntBits(0.8F)
-            + "\t" + Float.floatToRawIntBits(1.3F) + "\t"
-            + Float.floatToRawIntBits(-1.0F) + "\t" + Float.floatToRawIntBits(-0.4F));
-        out.println("catalog\tcanyon\t2\t" + Float.floatToRawIntBits(0.01F)
-            + "\t10\t67\t" + Float.floatToRawIntBits(3.0F) + "\t"
-            + Float.floatToRawIntBits(3.0F) + "\t-56\t"
-            + Float.floatToRawIntBits(-0.125F) + "\t" + Float.floatToRawIntBits(0.125F)
-            + "\t" + Float.floatToRawIntBits(0.75F) + "\t"
-            + Float.floatToRawIntBits(1.0F) + "\t" + Float.floatToRawIntBits(0.0F)
-            + "\t" + Float.floatToRawIntBits(6.0F) + "\t"
-            + Float.floatToRawIntBits(2.0F) + "\t3\t"
-            + Float.floatToRawIntBits(0.75F) + "\t" + Float.floatToRawIntBits(1.0F)
-            + "\t" + Float.floatToRawIntBits(1.0F) + "\t"
-            + Float.floatToRawIntBits(0.0F));
+    private static void emitCatalog(PrintWriter out, WorldGenerationContext context)
+            throws Exception {
+        emitCatalogEntry(out, "cave", 0, Carvers.CAVE.value().config(), context);
+        emitCatalogEntry(out, "cave_extra_underground", 1,
+            Carvers.CAVE_EXTRA_UNDERGROUND.value().config(), context);
+        emitCatalogEntry(out, "canyon", 2, Carvers.CANYON.value().config(), context);
+    }
+
+    private static void emitCatalogEntry(PrintWriter out, String id, int index,
+            CarverConfiguration configuration, WorldGenerationContext context) throws Exception {
+        VerticalAnchor minimum = field(configuration.y, "minInclusive", VerticalAnchor.class);
+        VerticalAnchor maximum = field(configuration.y, "maxInclusive", VerticalAnchor.class);
+        StringBuilder row = new StringBuilder("catalog").append('\t').append(id).append('\t')
+            .append(index).append('\t').append(bits(configuration.probability)).append('\t')
+            .append(minimum.resolveY(context)).append('\t').append(maximum.resolveY(context))
+            .append('\t').append(bits(configuration.yScale.getMinValue())).append('\t')
+            .append(bits(providerMaximum(configuration.yScale))).append('\t')
+            .append(configuration.lavaLevel.resolveY(context));
+        if (configuration instanceof CaveCarverConfiguration) {
+            CaveCarverConfiguration cave = (CaveCarverConfiguration) configuration;
+            FloatProvider floor = field(cave, "floorLevel", FloatProvider.class);
+            row.append('\t').append(bits(cave.horizontalRadiusMultiplier.getMinValue()))
+                .append('\t').append(bits(cave.horizontalRadiusMultiplier.getMaxValue()))
+                .append('\t').append(bits(cave.verticalRadiusMultiplier.getMinValue()))
+                .append('\t').append(bits(cave.verticalRadiusMultiplier.getMaxValue()))
+                .append('\t').append(bits(floor.getMinValue()))
+                .append('\t').append(bits(floor.getMaxValue()));
+        } else {
+            CanyonCarverConfiguration canyon = (CanyonCarverConfiguration) configuration;
+            FloatProvider thickness = canyon.shape.thickness;
+            float plateau = field(thickness, "plateau", Float.class);
+            row.append('\t').append(bits(canyon.verticalRotation.getMinValue()))
+                .append('\t').append(bits(canyon.verticalRotation.getMaxValue()))
+                .append('\t').append(bits(canyon.shape.distanceFactor.getMinValue()))
+                .append('\t').append(bits(canyon.shape.distanceFactor.getMaxValue()))
+                .append('\t').append(bits(thickness.getMinValue()))
+                .append('\t').append(bits(thickness.getMaxValue()))
+                .append('\t').append(bits(plateau))
+                .append('\t').append(canyon.shape.widthSmoothness)
+                .append('\t').append(bits(canyon.shape.horizontalRadiusFactor.getMinValue()))
+                .append('\t').append(bits(canyon.shape.horizontalRadiusFactor.getMaxValue()))
+                .append('\t').append(bits(canyon.shape.verticalRadiusDefaultFactor))
+                .append('\t').append(bits(canyon.shape.verticalRadiusCenterFactor));
+        }
+        out.println(row);
+    }
+
+    private static int bits(float value) {
+        return Float.floatToRawIntBits(value);
+    }
+
+    private static float providerMaximum(FloatProvider provider) {
+        // ConstantFloat reports value + 1 from getMaxValue for codec-range bookkeeping even
+        // though sample() always returns value. Catalog the actual sampled constant instead.
+        return provider.getClass().getSimpleName().equals("ConstantFloat")
+            ? provider.getMinValue() : provider.getMaxValue();
+    }
+
+    private static <T> T field(Object owner, String name, Class<T> type) throws Exception {
+        Field field = owner.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        return type.cast(field.get(owner));
     }
 
     private static void emitScaffold(PrintWriter out, long seed, int chunkX, int chunkZ)
