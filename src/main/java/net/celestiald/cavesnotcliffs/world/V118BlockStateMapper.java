@@ -27,6 +27,7 @@ public final class V118BlockStateMapper {
     private static final String DEEPSLATE_IRON_ORE = "cavesnotcliffs:deepslate_iron_ore";
     private static final String RAW_IRON_BLOCK = "cavesnotcliffs:raw_iron_block";
     private static final String CALCITE = "cavesnotcliffs:calcite";
+    private static final String POWDER_SNOW = "cavesnotcliffs:powder_snow";
 
     private final IBlockState[] states = new IBlockState[V118Material.values().length];
 
@@ -39,12 +40,14 @@ public final class V118BlockStateMapper {
             registeredState(RAW_COPPER_BLOCK),
             registeredState(DEEPSLATE_IRON_ORE),
             registeredState(RAW_IRON_BLOCK),
-            registeredState(CALCITE));
+            registeredState(CALCITE),
+            registeredState(POWDER_SNOW));
     }
 
     V118BlockStateMapper(IBlockState deepslate, IBlockState tuff,
             IBlockState copperOre, IBlockState rawCopperBlock,
-            IBlockState deepslateIronOre, IBlockState rawIronBlock, IBlockState calcite) {
+            IBlockState deepslateIronOre, IBlockState rawIronBlock, IBlockState calcite,
+            IBlockState powderSnow) {
         states[V118Material.AIR.ordinal()] = Blocks.AIR.getDefaultState();
         states[V118Material.STONE.ordinal()] = Blocks.STONE.getDefaultState();
         states[V118Material.WATER.ordinal()] = Blocks.WATER.getDefaultState();
@@ -87,8 +90,7 @@ public final class V118BlockStateMapper {
         states[V118Material.LIGHT_GRAY_TERRACOTTA.ordinal()] = clay(EnumDyeColor.SILVER);
         states[V118Material.PACKED_ICE.ordinal()] = Blocks.PACKED_ICE.getDefaultState();
         states[V118Material.SNOW_BLOCK.ordinal()] = Blocks.SNOW.getDefaultState();
-        // Replaced by the canonical registered powder-snow state in the content checkpoint.
-        states[V118Material.POWDER_SNOW.ordinal()] = Blocks.SNOW.getDefaultState();
+        states[V118Material.POWDER_SNOW.ordinal()] = requireState(powderSnow, POWDER_SNOW);
         states[V118Material.ICE.ordinal()] = Blocks.ICE.getDefaultState();
 
         for (V118Material material : V118Material.values()) {

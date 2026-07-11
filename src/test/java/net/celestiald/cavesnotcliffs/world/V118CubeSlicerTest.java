@@ -155,7 +155,7 @@ public class V118CubeSlicerTest {
             Blocks.COAL_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(),
             Blocks.GOLD_ORE.getDefaultState(), Blocks.GOLD_BLOCK.getDefaultState(),
             Blocks.IRON_ORE.getDefaultState(), Blocks.IRON_BLOCK.getDefaultState(),
-            Blocks.QUARTZ_BLOCK.getDefaultState());
+            Blocks.QUARTZ_BLOCK.getDefaultState(), Blocks.WEB.getDefaultState());
     }
 
     private static V118BiomeMapper biomeMapper() {

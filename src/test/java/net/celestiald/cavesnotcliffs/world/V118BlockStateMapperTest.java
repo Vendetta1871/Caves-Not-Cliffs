@@ -26,8 +26,9 @@ public class V118BlockStateMapperTest {
         IBlockState deepslateIronOre = Blocks.IRON_ORE.getDefaultState();
         IBlockState rawIronBlock = Blocks.IRON_BLOCK.getDefaultState();
         IBlockState calcite = Blocks.QUARTZ_BLOCK.getDefaultState();
+        IBlockState powderSnow = Blocks.WEB.getDefaultState();
         V118BlockStateMapper mapper = new V118BlockStateMapper(deepslate, tuff,
-            copperOre, rawCopperBlock, deepslateIronOre, rawIronBlock, calcite);
+            copperOre, rawCopperBlock, deepslateIronOre, rawIronBlock, calcite, powderSnow);
 
         assertSame(Blocks.AIR.getDefaultState(), mapper.stateFor(V118Material.AIR));
         assertSame(Blocks.STONE.getDefaultState(), mapper.stateFor(V118Material.STONE));
@@ -44,6 +45,7 @@ public class V118BlockStateMapperTest {
             mapper.stateFor(V118Material.DEEPSLATE_IRON_ORE));
         assertSame(rawIronBlock, mapper.stateFor(V118Material.RAW_IRON_BLOCK));
         assertSame(calcite, mapper.stateFor(V118Material.CALCITE));
+        assertSame(powderSnow, mapper.stateFor(V118Material.POWDER_SNOW));
 
         for (V118Material material : V118Material.values()) {
             assertSame(mapper.stateFor(material), mapper.stateFor(material.storageId()));
@@ -56,7 +58,7 @@ public class V118BlockStateMapperTest {
             Blocks.STONE.getDefaultState(), Blocks.STONE.getDefaultState(),
             Blocks.GOLD_ORE.getDefaultState(), Blocks.GOLD_BLOCK.getDefaultState(),
             Blocks.IRON_ORE.getDefaultState(), Blocks.IRON_BLOCK.getDefaultState(),
-            Blocks.QUARTZ_BLOCK.getDefaultState());
+            Blocks.QUARTZ_BLOCK.getDefaultState(), Blocks.WEB.getDefaultState());
         mapper.stateFor(V118Material.values().length);
     }
 }
