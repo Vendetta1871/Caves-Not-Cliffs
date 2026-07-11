@@ -170,7 +170,7 @@ public class LegacyCubicStructureMetadataTest {
         }
     }
 
-    private static NBTTagCompound structureRoot(NBTTagCompound... starts) {
+    static NBTTagCompound structureRoot(NBTTagCompound... starts) {
         NBTTagCompound features = new NBTTagCompound();
         for (NBTTagCompound start : starts) {
             features.setTag('[' + Integer.toString(start.getInteger("ChunkX")) + ','
@@ -183,7 +183,7 @@ public class LegacyCubicStructureMetadataTest {
         return root;
     }
 
-    private static NBTTagCompound feature(int chunkX, int chunkZ, int chunkY,
+    static NBTTagCompound feature(int chunkX, int chunkZ, int chunkY,
             int[] startBox, int[]... childBoxes) {
         NBTTagCompound start = new NBTTagCompound();
         start.setIntArray("BB", startBox);
@@ -202,7 +202,7 @@ public class LegacyCubicStructureMetadataTest {
         return start;
     }
 
-    private static int[] box(int minX, int minY, int minZ,
+    static int[] box(int minX, int minY, int minZ,
             int maxX, int maxY, int maxZ) {
         return new int[] {minX, minY, minZ, maxX, maxY, maxZ};
     }
@@ -228,7 +228,7 @@ public class LegacyCubicStructureMetadataTest {
         return root;
     }
 
-    private static Path write(Path world, String name, NBTTagCompound root) throws IOException {
+    static Path write(Path world, String name, NBTTagCompound root) throws IOException {
         Path data = Files.createDirectories(world.resolve("data"));
         Path file = data.resolve(name).toAbsolutePath().normalize();
         try (OutputStream output = new BufferedOutputStream(Files.newOutputStream(file))) {

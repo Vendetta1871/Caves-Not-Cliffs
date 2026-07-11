@@ -55,10 +55,13 @@ public final class LegacyCubicSaveImporter {
                     LegacyCubicPositionMetadata.validate(worldRoot, levelFile.toPath());
             LegacyCubicTicketMetadata.Result tickets = LegacyCubicTicketMetadata.validate(
                     dimensionRoots(discovery));
+            LegacyCubicStructureMetadata.Result structures =
+                    LegacyCubicStructureMetadata.validate(dimensions);
             List<Path> additionalSources = new ArrayList<Path>(
                     discovery.getMetadataFiles());
             additionalSources.addAll(positions.getSourceFiles());
             additionalSources.addAll(tickets.getSourceFiles());
+            additionalSources.addAll(structures.getSourceFiles());
             List<CubicImportJournal.FileRecord> sources =
                     CubicImportJournal.captureSources(
                             worldRoot, dimensions, additionalSources);
@@ -109,6 +112,8 @@ public final class LegacyCubicSaveImporter {
         List<Path> additionalSources = new ArrayList<Path>(discovery.getMetadataFiles());
         additionalSources.addAll(LegacyCubicTicketMetadata.validate(
                 dimensionRoots(discovery)).getSourceFiles());
+        additionalSources.addAll(LegacyCubicStructureMetadata.validate(
+                dimensions).getSourceFiles());
         List<CubicImportJournal.FileRecord> sources =
                 CubicImportJournal.captureSources(
                         normalizedRoot, dimensions, additionalSources);

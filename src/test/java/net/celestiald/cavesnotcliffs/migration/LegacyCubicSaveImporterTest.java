@@ -33,6 +33,11 @@ public class LegacyCubicSaveImporterTest {
             CubicDimensionStagerTest.writeCube(world, 0, cubeY, 0,
                     CubicDimensionStagerTest.cube(0, cubeY, 0, true, true));
         }
+        LegacyCubicStructureMetadataTest.write(world, "Mineshaft.dat",
+                LegacyCubicStructureMetadataTest.structureRoot(
+                        LegacyCubicStructureMetadataTest.feature(0, 0, 0,
+                                LegacyCubicStructureMetadataTest.box(
+                                        0, 0, 0, 15, 20, 15))));
 
         assertTrue(LegacyCubicSaveImporter.importWorld(
                 world, CavesNotCliffsWorldData.CURRENT_SCHEMA, 99L));
@@ -46,6 +51,11 @@ public class LegacyCubicSaveImporterTest {
                 world.resolve(CubicImportJournal.FILE_NAME));
         assertTrue(journal.getState() == CubicImportJournal.State.COMMITTED);
         assertTrue(journal.isDimensionCommitted("."));
+        boolean recordedStructure = false;
+        for (CubicImportJournal.FileRecord source : journal.getSources()) {
+            recordedStructure |= "data/Mineshaft.dat".equals(source.getPath());
+        }
+        assertTrue(recordedStructure);
         assertFalse(LegacyCubicSaveImporter.importWorld(
                 world, CavesNotCliffsWorldData.CURRENT_SCHEMA, 100L));
     }
@@ -141,6 +151,26 @@ public class LegacyCubicSaveImporterTest {
             fail("Expected cubic ticket rejection");
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("forces 1 cubic columns"));
+        }
+        assertFalse(Files.exists(world.resolve(CubicImportJournal.FILE_NAME)));
+    }
+
+    @Test
+    public void refusesUnsafeStructureMetadataBeforeCreatingAJournal() throws Exception {
+        Path world = temporary.newFolder("unsafe-structure").toPath();
+        writeCubicMetadata(world);
+        LegacyCubicStructureMetadataTest.write(world, "Mineshaft.dat",
+                LegacyCubicStructureMetadataTest.structureRoot(
+                        LegacyCubicStructureMetadataTest.feature(0, 0, 1,
+                                LegacyCubicStructureMetadataTest.box(
+                                        0, 0, 0, 15, 20, 15))));
+
+        try {
+            LegacyCubicSaveImporter.importWorld(
+                    world, CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L);
+            fail("Expected unsafe structure metadata rejection");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains("unsupported cubic ChunkY=1"));
         }
         assertFalse(Files.exists(world.resolve(CubicImportJournal.FILE_NAME)));
     }
