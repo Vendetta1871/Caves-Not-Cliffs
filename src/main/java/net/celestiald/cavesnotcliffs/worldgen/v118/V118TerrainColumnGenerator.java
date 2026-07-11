@@ -4,6 +4,10 @@ package net.celestiald.cavesnotcliffs.worldgen.v118;
 public final class V118TerrainColumnGenerator {
     public static final int SEA_LEVEL = 63;
     public static final int LAVA_LEVEL = -54;
+    private static final NoiseBasedAquifer.FluidStatus GLOBAL_LAVA =
+        new NoiseBasedAquifer.FluidStatus(LAVA_LEVEL, NoiseBasedAquifer.Material.LAVA);
+    private static final NoiseBasedAquifer.FluidStatus GLOBAL_WATER =
+        new NoiseBasedAquifer.FluidStatus(SEA_LEVEL, NoiseBasedAquifer.Material.WATER);
 
     private final V118NoiseSettings settings;
     private final V118NoiseRouter router;
@@ -118,10 +122,11 @@ public final class V118TerrainColumnGenerator {
     private void fillVirtualBiomes(TerrainColumn.Builder builder, int columnX, int columnZ) {
         int minQuartX = columnX * TerrainColumn.QUART_WIDTH;
         int minQuartZ = columnZ * TerrainColumn.QUART_WIDTH;
-        for (int quartY = TerrainColumn.MIN_QUART_Y;
-                quartY <= TerrainColumn.MAX_QUART_Y; ++quartY) {
+        // Keep each vertical pair in one 4x8x4 density cell before moving horizontally.
+        for (int localQuartX = 0; localQuartX < TerrainColumn.QUART_WIDTH; ++localQuartX) {
             for (int localQuartZ = 0; localQuartZ < TerrainColumn.QUART_WIDTH; ++localQuartZ) {
-                for (int localQuartX = 0; localQuartX < TerrainColumn.QUART_WIDTH; ++localQuartX) {
+                for (int quartY = TerrainColumn.MIN_QUART_Y;
+                        quartY <= TerrainColumn.MAX_QUART_Y; ++quartY) {
                     V118Biome biome = climateSampler.resolveQuart(minQuartX + localQuartX,
                         quartY, minQuartZ + localQuartZ);
                     builder.setVirtualBiomeIdAtQuart(localQuartX, quartY, localQuartZ,
@@ -134,11 +139,9 @@ public final class V118TerrainColumnGenerator {
     private static NoiseBasedAquifer.FluidStatus globalFluid(int blockX, int blockY,
             int blockZ) {
         if (blockY < Math.min(LAVA_LEVEL, SEA_LEVEL)) {
-            return new NoiseBasedAquifer.FluidStatus(LAVA_LEVEL,
-                NoiseBasedAquifer.Material.LAVA);
+            return GLOBAL_LAVA;
         }
-        return new NoiseBasedAquifer.FluidStatus(SEA_LEVEL,
-            NoiseBasedAquifer.Material.WATER);
+        return GLOBAL_WATER;
     }
 
     private static V118Material material(NoiseBasedAquifer.Material material) {
