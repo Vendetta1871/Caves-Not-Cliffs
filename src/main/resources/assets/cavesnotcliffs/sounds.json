@@ -608,5 +608,19 @@
       "cavesnotcliffs:item/trident/thunder2"
     ],
     "subtitle": "subtitles.item.trident.thunder"
+  },
+  "ui.stonecutter.select_recipe": {
+    "sounds": [
+      "minecraft:random/click"
+    ]
+  },
+  "ui.stonecutter.take_result": {
+    "sounds": [
+      "cavesnotcliffs:ui/stonecutter/cut1",
+      { "name": "cavesnotcliffs:ui/stonecutter/cut1", "pitch": 0.92 },
+      "cavesnotcliffs:ui/stonecutter/cut2",
+      { "name": "cavesnotcliffs:ui/stonecutter/cut2", "pitch": 0.92 }
+    ],
+    "subtitle": "subtitles.ui.stonecutter.take_result"
   }
 }

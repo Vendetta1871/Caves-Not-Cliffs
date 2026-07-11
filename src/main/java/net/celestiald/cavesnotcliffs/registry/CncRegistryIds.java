@@ -35,6 +35,7 @@ public final class CncRegistryIds {
     public static final ResourceLocation POWDER_SNOW_CAULDRON = id("powder_snow_cauldron");
     public static final ResourceLocation COMPOSTER = id("composter");
     public static final ResourceLocation INFESTED_DEEPSLATE = id("infested_deepslate");
+    public static final ResourceLocation STONECUTTER = id("stonecutter");
 
     /**
      * The released pre-v2 geode-shell identity is intentionally retained as an internal marker.

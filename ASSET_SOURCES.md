@@ -86,3 +86,15 @@ that client artifact; the hidden waterlogged storage block reuses the same model
 - Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
 - Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
 - Asset base: <https://resources.download.minecraft.net/>
+
+The stonecutter block textures, animated saw metadata, container texture, and two result Ogg
+Vorbis files are unmodified Minecraft 1.18.2 assets from Mojang's official client and 1.18 asset
+index. The block model and blockstate preserve Mojang's geometry and rotations with resource-path
+syntax adapted for Java 1.12.2. The selection event delegates to the target runtime's identical
+`minecraft:random/click` sound object.
+
+- Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
+- Result sound object SHA-1s: `f9c33914acfd606ea5c624f25d33cccc60663e22`,
+  `34eec70d1a60aba94b92065274fd456a97b1e036`
+- Asset base: <https://resources.download.minecraft.net/>

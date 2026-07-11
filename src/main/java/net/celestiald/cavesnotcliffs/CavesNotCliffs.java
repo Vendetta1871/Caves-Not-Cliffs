@@ -45,6 +45,7 @@ import net.minecraft.block.Block;
 import net.celestiald.cavesnotcliffs.command.CommandCaveBiome;
 import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
 import net.celestiald.cavesnotcliffs.handler.LavaCauldronHandler;
+import net.celestiald.cavesnotcliffs.stonecutter.CncGuiHandler;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldTypes;
 import net.celestiald.cavesnotcliffs.world.WorldHeightBootstrap;
@@ -76,7 +77,7 @@ public class CavesNotCliffs {
 		MinecraftForge.EVENT_BUS.register(this);
 		GameRegistry.registerWorldGenerator(elements, 5);
 		GameRegistry.registerFuelHandler(elements);
-		NetworkRegistry.INSTANCE.registerGuiHandler(this, new ElementsCavesNotCliffs.GuiHandler());
+		NetworkRegistry.INSTANCE.registerGuiHandler(this, new CncGuiHandler());
 		elements.preInit(event);
 		MinecraftForge.EVENT_BUS.register(elements);
 		elements.getElements().forEach(element -> element.preInit(event));
