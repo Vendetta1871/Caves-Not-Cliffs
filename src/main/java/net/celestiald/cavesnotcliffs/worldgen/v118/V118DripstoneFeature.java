@@ -5,6 +5,7 @@ import java.util.Random;
 /** Shared, dependency-free Java 8 port of Java 1.18.2's dripstone feature primitives. */
 public final class V118DripstoneFeature {
     private static final Direction[] RANDOM_DIRECTIONS = Direction.values();
+    private static final float[] SIN = createSinTable();
 
     private V118DripstoneFeature() {
     }
@@ -106,6 +107,22 @@ public final class V118DripstoneFeature {
 
     static float randomBetween(Random random, float minimum, float maximum) {
         return random.nextFloat() * (maximum - minimum) + minimum;
+    }
+
+    static float sin(float angle) {
+        return SIN[(int) (angle * 10430.378F) & 65535];
+    }
+
+    static float cos(float angle) {
+        return SIN[(int) (angle * 10430.378F + 16384.0F) & 65535];
+    }
+
+    private static float[] createSinTable() {
+        float[] result = new float[65536];
+        for (int index = 0; index < result.length; ++index) {
+            result[index] = (float) Math.sin((double) index * Math.PI * 2.0D / 65536.0D);
+        }
+        return result;
     }
 
     static int uniformInt(Random random, int minimum, int maximum) {

@@ -13,6 +13,7 @@ public final class V118WorldgenRandom extends Random {
     private static final long serialVersionUID = 1L;
 
     private XoroshiroRandomSource source;
+    private int count;
 
     public V118WorldgenRandom(long seed) {
         super(0L);
@@ -21,7 +22,12 @@ public final class V118WorldgenRandom extends Random {
 
     @Override
     protected int next(int bits) {
+        ++count;
         return (int) (source.nextLong() >>> 64 - bits);
+    }
+
+    public int getCount() {
+        return count;
     }
 
     @Override

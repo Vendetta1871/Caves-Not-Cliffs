@@ -1,0 +1,282 @@
+import java.io.PrintWriter;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
+import java.util.function.Predicate;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.PointedDripstoneBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.chunk.ProtoChunk;
+import net.minecraft.world.level.chunk.UpgradeData;
+import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
+import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
+import net.minecraft.world.level.levelgen.WorldgenRandom;
+import net.minecraft.world.level.levelgen.XoroshiroRandomSource;
+import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+import net.minecraft.world.level.levelgen.placement.PlacementModifier;
+
+/** Emits final dripstone feature digests from official mapped Java 1.18.2. */
+public final class Cnc118DripstoneDecorationOracle {
+    private static final long[] SEEDS = {
+        0L, 1L, -1L, 123456789L, Long.MIN_VALUE, Long.MAX_VALUE
+    };
+    private static final int[][] CHUNKS = {
+        {0, 0}, {-1, 0}, {0, -1}, {-1, -1}, {1, -2}, {-33, 17}
+    };
+
+    public static void main(String[] args) throws Exception {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        BuiltinRegistries.bootstrap();
+        PrintWriter out = new PrintWriter(args[0], "UTF-8");
+        out.println("# official Minecraft Java 1.18.2 dripstone decoration digest");
+        for (int index = 0; index < SEEDS.length; ++index) {
+            long seed = SEEDS[index];
+            int chunkX = CHUNKS[index][0];
+            int chunkZ = CHUNKS[index][1];
+            SparseWorld world = new SparseWorld(chunkX, chunkZ);
+            NoiseBasedChunkGenerator generator = new NoiseBasedChunkGenerator(
+                BuiltinRegistries.STRUCTURE_SETS, BuiltinRegistries.NOISE,
+                MultiNoiseBiomeSource.Preset.OVERWORLD.biomeSource(BuiltinRegistries.BIOME),
+                seed, BuiltinRegistries.NOISE_GENERATOR_SETTINGS.getHolderOrThrow(
+                    NoiseGeneratorSettings.OVERWORLD));
+            WorldgenRandom random = new WorldgenRandom(new XoroshiroRandomSource(0L));
+            long decorationSeed = random.setDecorationSeed(seed,
+                chunkX << 4, chunkZ << 4);
+            boolean large = place("large_dripstone", 2, 3, world, generator, random,
+                decorationSeed, chunkX, chunkZ);
+            boolean clusters = place("dripstone_cluster", 7, 0, world, generator, random,
+                decorationSeed, chunkX, chunkZ);
+            boolean pointed = place("pointed_dripstone", 7, 1, world, generator, random,
+                decorationSeed, chunkX, chunkZ);
+            Summary summary = world.summary();
+            out.println("decorate\t" + seed + "\t" + chunkX + "\t" + chunkZ
+                + "\t" + large + "," + clusters + "," + pointed
+                + "\t" + world.setCalls + "\t" + summary.total + "\t" + summary.counts + "\t"
+                + summary.digest);
+        }
+        out.close();
+    }
+
+    private static boolean place(String id, int step, int featureIndex, SparseWorld world,
+            NoiseBasedChunkGenerator generator, WorldgenRandom random, long decorationSeed,
+            int chunkX, int chunkZ) {
+        PlacedFeature registered = BuiltinRegistries.PLACED_FEATURE.get(
+            new net.minecraft.resources.ResourceLocation(id));
+        List<PlacementModifier> modifiers = registered.placement();
+        PlacedFeature withoutBiome = new PlacedFeature(registered.feature(),
+            modifiers.subList(0, modifiers.size() - 1));
+        random.setFeatureSeed(decorationSeed, featureIndex, step);
+        return withoutBiome.place(world.level, generator, random,
+            new BlockPos(chunkX << 4, -64, chunkZ << 4));
+    }
+
+    private static final class Summary {
+        final int total;
+        final String counts;
+        final String digest;
+
+        Summary(int total, String counts, String digest) {
+            this.total = total;
+            this.counts = counts;
+            this.digest = digest;
+        }
+    }
+
+    private static final class SparseWorld implements InvocationHandler {
+        final Map<Long, ProtoChunk> chunks = new HashMap<>();
+        final WorldGenLevel level;
+        final int minChunkX;
+        final int maxChunkX;
+        final int minChunkZ;
+        final int maxChunkZ;
+        int setCalls;
+
+        SparseWorld(int chunkX, int chunkZ) {
+            minChunkX = chunkX - 2;
+            maxChunkX = chunkX + 2;
+            minChunkZ = chunkZ - 2;
+            maxChunkZ = chunkZ + 2;
+            LevelHeightAccessor height = LevelHeightAccessor.create(-64, 384);
+            for (int cx = minChunkX; cx <= maxChunkX; ++cx) {
+                for (int cz = minChunkZ; cz <= maxChunkZ; ++cz) {
+                    ProtoChunk chunk = new ProtoChunk(new ChunkPos(cx, cz), UpgradeData.EMPTY,
+                        height, BuiltinRegistries.BIOME, null);
+                    fill(chunk, cx, cz);
+                    chunks.put(key(cx, cz), chunk);
+                }
+            }
+            level = (WorldGenLevel) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class[] {WorldGenLevel.class}, this);
+        }
+
+        private static void fill(ProtoChunk chunk, int chunkX, int chunkZ) {
+            for (int sectionIndex = 0; sectionIndex < 24; ++sectionIndex) {
+                LevelChunkSection section = chunk.getSection(sectionIndex);
+                int sectionY = sectionIndex - 4;
+                for (int localX = 0; localX < 16; ++localX) {
+                    int x = (chunkX << 4) + localX;
+                    for (int localY = 0; localY < 16; ++localY) {
+                        int y = (sectionY << 4) + localY;
+                        for (int localZ = 0; localZ < 16; ++localZ) {
+                            int z = (chunkZ << 4) + localZ;
+                            BlockState state = baseline(x, y, z);
+                            if (!state.isAir()) {
+                                section.setBlockState(localX, localY, localZ, state, false);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Object invoke(Object proxy, Method method, Object[] args) {
+            String name = method.getName();
+            if (name.equals("getMinBuildHeight")) return -64;
+            if (name.equals("getMaxBuildHeight")) return 320;
+            if (name.equals("getHeight") && method.getParameterCount() == 0) return 384;
+            if (name.equals("getHeight") && method.getParameterCount() == 3) return 320;
+            if (name.equals("getSectionsCount")) return 24;
+            if (name.equals("getSectionIndex")) return ((Integer) args[0] + 64) >> 4;
+            if (name.equals("getMinSection")) return -4;
+            if (name.equals("getMaxSection")) return 20;
+            if (name.equals("getChunk")) {
+                if (args[0] instanceof Integer) {
+                    return chunks.get(key((Integer) args[0], (Integer) args[1]));
+                }
+                BlockPos pos = (BlockPos) args[0];
+                return chunks.get(key(Math.floorDiv(pos.getX(), 16),
+                    Math.floorDiv(pos.getZ(), 16)));
+            }
+            if (name.equals("ensureCanWrite")) return contains((BlockPos) args[0]);
+            if (name.equals("isOutsideBuildHeight")) {
+                int y = args[0] instanceof BlockPos ? ((BlockPos) args[0]).getY()
+                    : (Integer) args[0];
+                return y < -64 || y >= 320;
+            }
+            if (name.equals("getBlockState")) return state((BlockPos) args[0]);
+            if (name.equals("isStateAtPosition")) {
+                return ((Predicate<BlockState>) args[1]).test(state((BlockPos) args[0]));
+            }
+            if (name.equals("isWaterAt")) {
+                return state((BlockPos) args[0]).getFluidState().isSourceOfType(
+                    net.minecraft.world.level.material.Fluids.WATER);
+            }
+            if (name.equals("setBlock")) {
+                ++setCalls;
+                BlockPos pos = (BlockPos) args[0];
+                ProtoChunk chunk = chunk(pos);
+                if (chunk == null || pos.getY() < -64 || pos.getY() >= 320) return false;
+                chunk.setBlockState(pos, (BlockState) args[1], false);
+                return true;
+            }
+            if (name.equals("getBiome")) {
+                return BuiltinRegistries.BIOME.getHolderOrThrow(
+                    net.minecraft.resources.ResourceKey.create(Registry.BIOME_REGISTRY,
+                        new net.minecraft.resources.ResourceLocation("dripstone_caves")));
+            }
+            if (name.equals("getSeed")) return 0L;
+            if (method.getReturnType() == boolean.class) return false;
+            if (method.getReturnType() == int.class) return 0;
+            if (method.getReturnType() == long.class) return 0L;
+            if (method.getReturnType() == float.class) return 0.0F;
+            if (method.getReturnType() == double.class) return 0.0D;
+            return null;
+        }
+
+        private boolean contains(BlockPos pos) {
+            return chunk(pos) != null && pos.getY() >= -64 && pos.getY() < 320;
+        }
+
+        private ProtoChunk chunk(BlockPos pos) {
+            return chunks.get(key(Math.floorDiv(pos.getX(), 16),
+                Math.floorDiv(pos.getZ(), 16)));
+        }
+
+        private BlockState state(BlockPos pos) {
+            ProtoChunk chunk = chunk(pos);
+            return chunk == null || pos.getY() < -64 || pos.getY() >= 320
+                ? Blocks.AIR.defaultBlockState() : chunk.getBlockState(pos);
+        }
+
+        Summary summary() throws Exception {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            TreeMap<String, Integer> counts = new TreeMap<>();
+            int total = 0;
+            for (int x = minChunkX << 4; x < (maxChunkX + 1) << 4; ++x) {
+                for (int y = -64; y < 320; ++y) {
+                    for (int z = minChunkZ << 4; z < (maxChunkZ + 1) << 4; ++z) {
+                        BlockState state = state(new BlockPos(x, y, z));
+                        if (state.equals(baseline(x, y, z))) continue;
+                        String encoded = encode(state);
+                        counts.put(encoded, counts.getOrDefault(encoded, 0) + 1);
+                        digest.update((x + "," + y + "," + z + "," + encoded + "\n")
+                            .getBytes(StandardCharsets.UTF_8));
+                        ++total;
+                    }
+                }
+            }
+            StringBuilder countString = new StringBuilder();
+            for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+                if (countString.length() > 0) countString.append(';');
+                countString.append(entry.getKey()).append('=').append(entry.getValue());
+            }
+            return new Summary(total, countString.toString(), hex(digest.digest()));
+        }
+
+        private static String encode(BlockState state) {
+            String name = Registry.BLOCK.getKey(state.getBlock()).getPath();
+            if (!state.is(Blocks.POINTED_DRIPSTONE)) return name;
+            return name + "[" + state.getValue(PointedDripstoneBlock.TIP_DIRECTION)
+                .getName() + "," + state.getValue(PointedDripstoneBlock.THICKNESS)
+                .getSerializedName() + "," + state.getValue(PointedDripstoneBlock.WATERLOGGED)
+                + "]";
+        }
+
+        private static BlockState baseline(int x, int y, int z) {
+            int phase = Math.floorMod(y + 64, 32);
+            if (phase >= 5 && phase <= 12) {
+                long hash = (long) x * 73428767L ^ (long) z * 42317861L
+                    ^ (long) (y >> 5) * 912931L;
+                if (phase <= 6 && (hash & 7L) == 0L) {
+                    return Blocks.WATER.defaultBlockState();
+                }
+                return Blocks.AIR.defaultBlockState();
+            }
+            // Bootstrap alone does not load datapack tags, so use the feature's explicit
+            // dripstone-base block here instead of relying on DRIPSTONE_REPLACEABLE.
+            return Blocks.DRIPSTONE_BLOCK.defaultBlockState();
+        }
+
+        private static long key(int x, int z) {
+            return (long) x << 32 ^ z & 0xFFFFFFFFL;
+        }
+
+        private static String hex(byte[] bytes) {
+            StringBuilder result = new StringBuilder(bytes.length * 2);
+            for (byte value : bytes) result.append(String.format("%02x", value & 0xFF));
+            return result.toString();
+        }
+    }
+}

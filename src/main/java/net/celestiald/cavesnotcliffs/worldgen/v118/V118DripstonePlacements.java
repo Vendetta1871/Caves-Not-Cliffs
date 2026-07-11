@@ -62,18 +62,32 @@ public final class V118DripstonePlacements {
             return new UndergroundResult(0, 0, 0, 0);
         }
 
+        FeatureResult clusters = decorateClusters(world, decorationSeed,
+            chunkX, chunkZ, random);
+        FeatureResult pointed = decoratePointed(world, decorationSeed,
+            chunkX, chunkZ, random);
+        return new UndergroundResult(clusters.attempts, clusters.placed,
+            pointed.attempts, pointed.placed);
+    }
+
+    static FeatureResult decorateClusters(WorldAccess world, long decorationSeed,
+            int chunkX, int chunkZ, V118WorldgenRandom random) {
         random.setFeatureSeed(decorationSeed, DRIPSTONE_CLUSTER_INDEX,
             UNDERGROUND_DECORATION_STEP);
-        int clusterAttempts = V118DripstoneFeature.uniformInt(random,
+        int attempts = V118DripstoneFeature.uniformInt(random,
             CLUSTER_COUNT_MINIMUM, CLUSTER_COUNT_MAXIMUM);
-        int clustersPlaced = placeSimple(world, random, chunkX, chunkZ, clusterAttempts,
+        int placed = placeSimple(world, random, chunkX, chunkZ, attempts,
             new ConfiguredFeature() {
                 @Override
                 public boolean place(WorldAccess target, Random source, int x, int y, int z) {
                     return V118DripstoneClusterFeature.place(target, source, x, y, z);
                 }
             });
+        return new FeatureResult(attempts, placed);
+    }
 
+    static FeatureResult decoratePointed(WorldAccess world, long decorationSeed,
+            int chunkX, int chunkZ, V118WorldgenRandom random) {
         random.setFeatureSeed(decorationSeed, POINTED_DRIPSTONE_INDEX,
             UNDERGROUND_DECORATION_STEP);
         int outerAttempts = V118DripstoneFeature.uniformInt(random,
@@ -97,16 +111,19 @@ public final class V118DripstonePlacements {
                 int placedZ = z + V118DripstoneFeature.clampedNormalInt(random,
                     0.0F, 3.0F, -10, 10);
                 ++pointedAttempts;
-                if (world.biomeAt(placedX, placedY, placedZ)
-                        == V118Biome.DRIPSTONE_CAVES
-                        && V118PointedDripstoneFeature.selectScanAndPlace(world, random,
-                            placedX, placedY, placedZ)) {
+                boolean insideBuildHeight = placedY >= world.minBuildHeight()
+                    && placedY < world.maxBuildHeight();
+                boolean placed = insideBuildHeight
+                    && world.biomeAt(placedX, placedY, placedZ)
+                    == V118Biome.DRIPSTONE_CAVES
+                    && V118PointedDripstoneFeature.selectScanAndPlace(world, random,
+                        placedX, placedY, placedZ);
+                if (placed) {
                     ++pointedPlaced;
                 }
             }
         }
-        return new UndergroundResult(clusterAttempts, clustersPlaced,
-            pointedAttempts, pointedPlaced);
+        return new FeatureResult(pointedAttempts, pointedPlaced);
     }
 
     public static PlacementResult decorateUnderground(WorldAccess world, long worldSeed,
@@ -235,6 +252,24 @@ public final class V118DripstonePlacements {
 
         public int pointedPlaced() {
             return pointedPlaced;
+        }
+    }
+
+    static final class FeatureResult {
+        private final int attempts;
+        private final int placed;
+
+        private FeatureResult(int attempts, int placed) {
+            this.attempts = attempts;
+            this.placed = placed;
+        }
+
+        int attempts() {
+            return attempts;
+        }
+
+        int placed() {
+            return placed;
         }
     }
 

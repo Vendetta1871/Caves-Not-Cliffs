@@ -189,8 +189,8 @@ public final class V118LargeDripstoneFeature {
         }
         float step = 6.0F / (float) radius;
         for (float angle = 0.0F; angle < (float) Math.PI * 2.0F; angle += step) {
-            int offsetX = (int) ((float) Math.cos(angle) * (float) radius);
-            int offsetZ = (int) ((float) Math.sin(angle) * (float) radius);
+            int offsetX = (int) (V118DripstoneFeature.cos(angle) * (float) radius);
+            int offsetZ = (int) (V118DripstoneFeature.sin(angle) * (float) radius);
             if (V118DripstoneFeature.isEmptyOrWaterOrLava(
                     world.getState(x + offsetX, y, z + offsetZ))) {
                 return false;
@@ -210,8 +210,8 @@ public final class V118LargeDripstoneFeature {
             float speed = V118DripstoneFeature.uniformFloat(random,
                 MIN_WIND_SPEED, MAX_WIND_SPEED);
             float angle = V118DripstoneFeature.randomBetween(random, 0.0F, (float) Math.PI);
-            speedX = (float) Math.cos(angle) * speed;
-            speedZ = (float) Math.sin(angle) * speed;
+            speedX = V118DripstoneFeature.cos(angle) * speed;
+            speedZ = V118DripstoneFeature.sin(angle) * speed;
             enabled = true;
         }
 
