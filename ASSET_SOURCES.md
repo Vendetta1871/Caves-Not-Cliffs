@@ -81,6 +81,9 @@ texture selection and stair rotations with only the Java 1.12 slab property name
 paths adapted. Waxed variants intentionally reuse the matching unwaxed-stage texture, as in
 Java 1.18.2. The lightning rod's two textures and geometry are likewise adapted directly from
 that client artifact; the hidden waterlogged storage block reuses the same model.
+The dedicated 1.18 scrape and wax-off particle sprites do not exist in Java 1.12.2; their bridge
+retains the exact six-face positions, velocities, and 3-to-5 count while using block-crack and
+instant-spell target-runtime sprites respectively.
 
 - Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
 - Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`

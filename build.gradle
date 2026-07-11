@@ -123,10 +123,18 @@ task verifyReleaseJar(dependsOn: reobfJar) {
             if (!manifestText.contains('Implementation-Version: ' + project.version)) {
                 throw new GradleException('Production manifest does not contain the release version')
             }
-            if (!manifestText.contains('FMLCorePlugin: net.celestiald.cavesnotcliffs.core.CavesNotCliffsCorePlugin')) {
+            def manifestStream = zip.getInputStream(zip.getEntry('META-INF/MANIFEST.MF'))
+            def manifest
+            try {
+                manifest = new java.util.jar.Manifest(manifestStream)
+            } finally {
+                manifestStream.close()
+            }
+            if (manifest.mainAttributes.getValue('FMLCorePlugin') !=
+                    'net.celestiald.cavesnotcliffs.core.CavesNotCliffsCorePlugin') {
                 throw new GradleException('Production manifest does not declare the piston core plugin')
             }
-            if (!manifestText.contains('FMLCorePluginContainsFMLMod: true')) {
+            if (manifest.mainAttributes.getValue('FMLCorePluginContainsFMLMod') != 'true') {
                 throw new GradleException('Production manifest does not retain the regular Forge mod container')
             }
             if (zip.getEntry('net/celestiald/cavesnotcliffs/core/HoneyPistonTransformer.class') == null) {

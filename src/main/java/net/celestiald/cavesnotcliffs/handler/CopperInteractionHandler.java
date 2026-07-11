@@ -2,20 +2,18 @@ package net.celestiald.cavesnotcliffs.handler;
 
 import net.celestiald.cavesnotcliffs.CavesNotCliffs;
 import net.celestiald.cavesnotcliffs.content.CopperContent;
+import net.celestiald.cavesnotcliffs.content.CopperInteractionEffects;
 import net.celestiald.cavesnotcliffs.content.CopperSoundEvents;
-import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemAxe;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.stats.StatBase;
 import net.minecraft.stats.StatList;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fml.common.Mod;
@@ -65,7 +63,7 @@ public final class CopperInteractionHandler {
         world.playSound(null, pos,
                 scrape ? CopperSoundEvents.AXE_SCRAPE : CopperSoundEvents.AXE_WAX_OFF,
                 SoundCategory.BLOCKS, 1.0F, 1.0F);
-        spawnDebris(world, pos, state);
+        CopperInteractionEffects.spawn(world, pos, state, scrape);
         world.setBlockState(pos, changed, 11);
         ItemStack original = held.copy();
         StatBase useStat = StatList.getObjectUseStats(original.getItem());
@@ -78,12 +76,4 @@ public final class CopperInteractionHandler {
         }
     }
 
-    private static void spawnDebris(World world, BlockPos pos, IBlockState oldState) {
-        if (world instanceof WorldServer) {
-            ((WorldServer) world).spawnParticle(EnumParticleTypes.BLOCK_CRACK,
-                    pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D,
-                    10, 0.35D, 0.35D, 0.35D, 0.02D,
-                    Block.getStateId(oldState));
-        }
-    }
 }
