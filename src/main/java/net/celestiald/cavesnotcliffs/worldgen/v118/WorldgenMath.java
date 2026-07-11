@@ -81,6 +81,15 @@ public final class WorldgenMath {
         return value * value;
     }
 
+    /** Mojang's one-iteration inverse-square-root approximation, including raw-bit constants. */
+    public static double fastInvSqrt(double value) {
+        double half = 0.5D * value;
+        long bits = Double.doubleToRawLongBits(value);
+        bits = 6910469410427058090L - (bits >> 1);
+        value = Double.longBitsToDouble(bits);
+        return value * (1.5D - half * value * value);
+    }
+
     public static long square(long value) {
         return value * value;
     }

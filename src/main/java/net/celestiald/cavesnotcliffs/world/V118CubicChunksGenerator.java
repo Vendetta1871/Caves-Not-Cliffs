@@ -46,6 +46,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
     private final V118BlockStateMapper blockStates;
     private final V118BiomeMapper biomes;
     private final V118CubeSlicer slicer;
+    private final V118GeodeWorldBridge geodes;
     private final V118OreWorldBridge ordinaryOres;
     private ChunkPrimer cachedStructureColumn;
     private int cachedStructureX;
@@ -79,6 +80,8 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         this.blockStates = blockStates;
         this.biomes = biomes;
         slicer = new V118CubeSlicer(blockStates, biomes);
+        geodes = new V118GeodeWorldBridge(world,
+            V118GeodeBlockMapper.fromRegisteredBlocks());
         ordinaryOres = new V118OreWorldBridge(world, this,
             V118OreBlockMapper.fromRegisteredBlocks());
         registerActiveGenerator(world, this);
@@ -149,6 +152,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         }
         if (cube.getY() == 0) {
             structures.populate(cube.getX(), cube.getZ());
+            geodes.populate(cube.getX(), cube.getZ());
             ordinaryOres.populate(cube.getX(), cube.getZ(),
                 decorationBiomeUnion(cube.getX(), cube.getZ()));
         }

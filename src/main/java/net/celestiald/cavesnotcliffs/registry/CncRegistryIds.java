@@ -15,7 +15,17 @@ public final class CncRegistryIds {
     public static final ResourceLocation CALCITE = id("calcite");
     public static final ResourceLocation SMALL_AMETHYST_BUD = id("small_amethyst_bud");
     public static final ResourceLocation MEDIUM_AMETHYST_BUD = id("medium_amethyst_bud");
+    public static final ResourceLocation LARGE_AMETHYST_BUD = id("large_amethyst_bud");
     public static final ResourceLocation AMETHYST_CLUSTER = id("amethyst_cluster");
+    /** Hidden storage identities used only when a generated growth occupies source water. */
+    public static final ResourceLocation SMALL_AMETHYST_BUD_WATERLOGGED =
+            id("small_amethyst_bud_waterlogged");
+    public static final ResourceLocation MEDIUM_AMETHYST_BUD_WATERLOGGED =
+            id("medium_amethyst_bud_waterlogged");
+    public static final ResourceLocation LARGE_AMETHYST_BUD_WATERLOGGED =
+            id("large_amethyst_bud_waterlogged");
+    public static final ResourceLocation AMETHYST_CLUSTER_WATERLOGGED =
+            id("amethyst_cluster_waterlogged");
     public static final ResourceLocation GLOW_BERRIES = id("glow_berries");
     public static final ResourceLocation BIG_DRIPLEAF = id("big_dripleaf");
     public static final ResourceLocation POINTED_DRIPSTONE = id("pointed_dripstone");
@@ -37,10 +47,16 @@ public final class CncRegistryIds {
             Collections.unmodifiableList(Arrays.asList(
                     SMOOTH_BASALT,
                     AMETHYST_BLOCK,
+                    BUDDING_AMETHYST,
                     CALCITE,
                     SMALL_AMETHYST_BUD,
                     MEDIUM_AMETHYST_BUD,
-                    AMETHYST_CLUSTER));
+                    LARGE_AMETHYST_BUD,
+                    AMETHYST_CLUSTER,
+                    SMALL_AMETHYST_BUD_WATERLOGGED,
+                    MEDIUM_AMETHYST_BUD_WATERLOGGED,
+                    LARGE_AMETHYST_BUD_WATERLOGGED,
+                    AMETHYST_CLUSTER_WATERLOGGED));
 
     private CncRegistryIds() {
     }

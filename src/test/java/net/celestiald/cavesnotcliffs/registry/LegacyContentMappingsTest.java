@@ -8,6 +8,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class LegacyContentMappingsTest {
     @Test
@@ -74,6 +75,15 @@ public class LegacyContentMappingsTest {
 
     @Test
     public void retainedGeodeGeneratorUsesOnlyCanonicalRuntimeIds() {
+        assertEquals(12, CncRegistryIds.GEODE_GENERATION_BLOCKS.size());
+        assertTrue(CncRegistryIds.GEODE_GENERATION_BLOCKS.contains(
+                CncRegistryIds.BUDDING_AMETHYST));
+        assertTrue(CncRegistryIds.GEODE_GENERATION_BLOCKS.contains(
+                CncRegistryIds.LARGE_AMETHYST_BUD));
+        assertTrue(CncRegistryIds.GEODE_GENERATION_BLOCKS.contains(
+                CncRegistryIds.SMALL_AMETHYST_BUD_WATERLOGGED));
+        assertTrue(CncRegistryIds.GEODE_GENERATION_BLOCKS.contains(
+                CncRegistryIds.AMETHYST_CLUSTER_WATERLOGGED));
         for (ResourceLocation id : CncRegistryIds.GEODE_GENERATION_BLOCKS) {
             assertEquals("cavesnotcliffs", id.getResourceDomain());
             assertEquals(id.getResourcePath(),
