@@ -209,13 +209,13 @@ inside `OreFeature`.
 - Ore-catalog TSV SHA-256:
   `7a18a19f65c0de456fa732495538e553c93ed4528acbb8b37945f59f9318244e`
 - Ore-placement harness SHA-256:
-  `99b99ad64efd350ae6b5b59c160c418432b0cc2ad6479a26f8e3608ed3b4072c`
+  `099b6a35606d9cff0bf805a55222716cebf673364ceb5e397afb69f1fa68eccb`
 - Ore-placement TSV SHA-256:
-  `e5fcc9da66cd371334fd5c61c6be533899e2db0b6b1a85165b4c8893c3aa70d7`
+  `feb023fdaa409dd4bf279fcec665dacf603f0bddbada5de5d167fd6bc7cae2ac`
 - Ore-shape harness SHA-256:
-  `f8d03bae93dd3d1bd97923f5174b8bfdcde6abb3e1dc7d2328324fd98b046ca8`
+  `86628d7b6aa9c3bcff3e5fc13cb08832d512ed70a850bb84f373a966010feeaf`
 - Ore-shape TSV SHA-256:
-  `63800d4130945024699c6922dd8a8baadda8ceaf712c26edfced80db47bf288e`
+  `f51910ca170efe54ee7b4950cf9ef61ac5835dd57bad28700ccfb7ceae580b05`
 - Ore-decoration harness SHA-256:
   `d0f6c6ea79b865c11d1e556aee36611972725636ea4276294bbcc40d0f3ab4ea`
 - Ore-decoration TSV SHA-256:

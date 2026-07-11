@@ -63,7 +63,7 @@ public class V118OreFeatureOracleTest {
                 String changed = world.changed();
                 assertEquals(line, Integer.parseInt(fields[11]),
                     changed.isEmpty() ? 0 : changed.split(";", -1).length);
-                assertEquals(line, fields[12], changed);
+                assertEquals(line, "-".equals(fields[12]) ? "" : fields[12], changed);
                 seeds.add(seed);
                 sizes.add(size);
                 discardBits.add(rawDiscard);

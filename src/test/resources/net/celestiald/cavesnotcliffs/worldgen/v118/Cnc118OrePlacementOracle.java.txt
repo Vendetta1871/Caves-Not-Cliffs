@@ -53,7 +53,7 @@ public final class Cnc118OrePlacementOracle {
           }
           List<BlockPos> result=positions.toList(); StringJoiner encoded=new StringJoiner(";");
           for(BlockPos position:result)encoded.add(position.getX()+","+position.getY()+","+position.getZ());
-          out.println("case\t"+profile+"\t"+seed+"\t"+chunkX+"\t"+chunkZ+"\t"+id+"\t"+result.size()+"\t"+encoded);
+          out.println("case\t"+profile+"\t"+seed+"\t"+chunkX+"\t"+chunkZ+"\t"+id+"\t"+result.size()+"\t"+(result.isEmpty()?"-":encoded.toString()));
         }
       }
     }

@@ -37,7 +37,7 @@ public final class Cnc118OreShapeOracle {
       long decoration=random.setDecorationSeed(seed,chunkX<<4,chunkZ<<4); random.setFeatureSeed(decoration,caseIndex,6);
       boolean success=new ConfiguredFeature<>(Feature.ORE,config).place(sparse.level,null,random,new BlockPos(x,y,z));
       List<String> changed=sparse.changed();
-      out.println("shape\t"+seed+"\t"+chunkX+"\t"+chunkZ+"\t"+caseIndex+"\t"+size+"\t"+Integer.toUnsignedString(bits)+"\t"+x+"\t"+y+"\t"+z+"\t"+(success?1:0)+"\t"+changed.size()+"\t"+String.join(";",changed));
+      out.println("shape\t"+seed+"\t"+chunkX+"\t"+chunkZ+"\t"+caseIndex+"\t"+size+"\t"+Integer.toUnsignedString(bits)+"\t"+x+"\t"+y+"\t"+z+"\t"+(success?1:0)+"\t"+changed.size()+"\t"+(changed.isEmpty()?"-":String.join(";",changed)));
     }
     out.close();
   }

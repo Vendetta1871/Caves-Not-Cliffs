@@ -54,7 +54,7 @@ public class V118OrePlacementOracleTest {
                     random, chunkX << 4, -64, chunkZ << 4, -64, 320);
                 assertEquals(line, Integer.parseInt(fields[6]), positions.size());
                 String encoded = encode(positions);
-                assertEquals(line, fields[7], encoded);
+                assertEquals(line, "-".equals(fields[7]) ? "" : fields[7], encoded);
                 String key = seed + ":" + chunkX + ':' + chunkZ + ':' + feature.placedId();
                 String previous = profileIndependent.put(key, encoded);
                 if (previous != null) {
