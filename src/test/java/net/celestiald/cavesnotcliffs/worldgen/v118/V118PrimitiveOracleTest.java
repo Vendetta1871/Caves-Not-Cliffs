@@ -24,6 +24,13 @@ public class V118PrimitiveOracleTest {
     private static final double[] AMPLITUDES = {1.0D, 0.5D, 0.0D, 1.5D};
 
     @Test
+    public void positionalFactoryConfigStringMatchesOfficialFormatting() {
+        PositionalRandomFactory factory = new XoroshiroRandomSource(1L).forkPositional();
+        assertEquals("seedLo:-1033667707219518978, seedHi:6451672561743293322",
+            factory.parityConfigString());
+    }
+
+    @Test
     public void matchesOfficialMinecraft1182OracleBitForBit() throws IOException {
         Map<Long, NoiseBundle> noiseBySeed = new HashMap<Long, NoiseBundle>();
         List<Long> fixtureSeeds = new ArrayList<Long>();

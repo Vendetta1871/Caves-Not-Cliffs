@@ -166,7 +166,7 @@ public final class XoroshiroRandomSource implements RandomSource {
 
         @Override
         public void appendParityConfigString(StringBuilder builder) {
-            builder.append("seedLo: ").append(seedLo).append(", seedHi: ").append(seedHi);
+            builder.append("seedLo:").append(seedLo).append(", seedHi:").append(seedHi);
         }
 
         private static long longFromBigEndian(byte[] bytes, int offset) {
