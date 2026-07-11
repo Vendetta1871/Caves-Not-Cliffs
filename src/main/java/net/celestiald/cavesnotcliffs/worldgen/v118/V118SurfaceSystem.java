@@ -139,6 +139,24 @@ public final class V118SurfaceSystem {
         }
     }
 
+    /**
+     * Evaluates the Overworld rule in the one-above/one-below context used when a carver removes
+     * grass or mycelium and exposes dirt. This mirrors Java 1.18.2's deprecated
+     * {@code SurfaceSystem#topMaterial} bridge exactly.
+     */
+    public V118Material topMaterial(SurfaceAccess access, int blockX, int blockY, int blockZ,
+            boolean hasFluidAbove) {
+        if (access == null) {
+            throw new NullPointerException("access");
+        }
+        V118SurfaceRules.Context context = new V118SurfaceRules.Context(this, access,
+            blockX >> 4 << 4, blockZ >> 4 << 4);
+        context.updateXZ(blockX, blockZ);
+        context.updateY(1, 1, hasFluidAbove ? blockY + 1 : Integer.MIN_VALUE,
+            blockX, blockY, blockZ);
+        return V118SurfaceRuleData.overworld().tryApply(context);
+    }
+
     int getSurfaceDepth(int blockX, int blockZ) {
         double value = surfaceNoise.getValue(blockX, 0.0D, blockZ);
         return (int) (value * 2.75D + 3.0D

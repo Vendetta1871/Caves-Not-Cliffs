@@ -9,6 +9,7 @@ public final class V118TerrainColumnGenerator {
     private static final NoiseBasedAquifer.FluidStatus GLOBAL_WATER =
         new NoiseBasedAquifer.FluidStatus(SEA_LEVEL, NoiseBasedAquifer.Material.WATER);
 
+    private final long seed;
     private final V118NoiseSettings settings;
     private final V118NoiseRouter router;
     private final DensityFunction finalDensity;
@@ -17,15 +18,26 @@ public final class V118TerrainColumnGenerator {
     private final V118OreVeinifier oreVeinifier;
     private final V118SurfaceSystem surfaceSystem;
     private final boolean applySurfaceRules;
+    private final boolean applyCarvers;
     private final TerrainColumnCache cache;
 
     public V118TerrainColumnGenerator(long seed, V118NoiseRouterData.Profile profile) {
-        this(seed, profile, true);
+        this(seed, profile, true, true);
     }
 
     V118TerrainColumnGenerator(long seed, V118NoiseRouterData.Profile profile,
             boolean applySurfaceRules) {
+        this(seed, profile, applySurfaceRules, false);
+    }
+
+    V118TerrainColumnGenerator(long seed, V118NoiseRouterData.Profile profile,
+            boolean applySurfaceRules, boolean applyCarvers) {
+        if (applyCarvers && !applySurfaceRules) {
+            throw new IllegalArgumentException("Native carvers require the post-surface seam");
+        }
+        this.seed = seed;
         this.applySurfaceRules = applySurfaceRules;
+        this.applyCarvers = applyCarvers;
         settings = V118NoiseSettings.overworld(profile.amplified());
         router = V118NoiseRouterData.create(seed, profile);
         finalDensity = V118DensityInterpolator.realizeFinalDensity(router.finalDensity(),
@@ -100,10 +112,16 @@ public final class V118TerrainColumnGenerator {
             }
         }
 
+        MutableSurfaceAccess surfaceAccess = null;
+        if (applySurfaceRules || applyCarvers) {
+            surfaceAccess = new MutableSurfaceAccess(builder, preliminarySurface, aquifer,
+                highestNonAir, columnX, columnZ, minBlockX, minBlockZ);
+        }
         if (applySurfaceRules) {
-            MutableSurfaceAccess surfaceAccess = new MutableSurfaceAccess(builder,
-                preliminarySurface, highestNonAir, minBlockX, minBlockZ);
             surfaceSystem.buildSurface(surfaceAccess, columnX, columnZ);
+        }
+        if (applyCarvers) {
+            V118OverworldCarvers.carve(seed, columnX, columnZ, surfaceAccess);
         }
 
         for (int localZ = 0; localZ < TerrainColumn.WIDTH; ++localZ) {
@@ -179,21 +197,39 @@ public final class V118TerrainColumnGenerator {
         }
     }
 
-    private final class MutableSurfaceAccess implements V118SurfaceSystem.SurfaceAccess {
+    private final class MutableSurfaceAccess implements V118SurfaceSystem.SurfaceAccess,
+            V118WorldCarver.WorldAccess {
         private final TerrainColumn.Builder builder;
         private final V118PreliminarySurface preliminarySurface;
+        private final NoiseBasedAquifer aquifer;
         private final int[] highestNonAir;
+        private final int columnX;
+        private final int columnZ;
         private final int minBlockX;
         private final int minBlockZ;
+        private boolean lastAquiferShouldScheduleFluidUpdate;
 
         private MutableSurfaceAccess(TerrainColumn.Builder builder,
-                V118PreliminarySurface preliminarySurface, int[] highestNonAir,
-                int minBlockX, int minBlockZ) {
+                V118PreliminarySurface preliminarySurface, NoiseBasedAquifer aquifer,
+                int[] highestNonAir, int columnX, int columnZ, int minBlockX, int minBlockZ) {
             this.builder = builder;
             this.preliminarySurface = preliminarySurface;
+            this.aquifer = aquifer;
             this.highestNonAir = highestNonAir;
+            this.columnX = columnX;
+            this.columnZ = columnZ;
             this.minBlockX = minBlockX;
             this.minBlockZ = minBlockZ;
+        }
+
+        @Override
+        public int targetChunkX() {
+            return columnX;
+        }
+
+        @Override
+        public int targetChunkZ() {
+            return columnZ;
         }
 
         @Override
@@ -214,6 +250,11 @@ public final class V118TerrainColumnGenerator {
                 return V118Material.AIR;
             }
             return V118Material.fromStorageId(builder.materialId(localX, blockY, localZ));
+        }
+
+        @Override
+        public V118Material getMaterial(int blockX, int blockY, int blockZ) {
+            return getBlock(blockX, blockY, blockZ);
         }
 
         @Override
@@ -239,6 +280,33 @@ public final class V118TerrainColumnGenerator {
                     && highestNonAir[heightIndex] == blockY) {
                 highestNonAir[heightIndex] = findHighestNonAir(localX, localZ, blockY - 1);
             }
+        }
+
+        @Override
+        public void setMaterial(int blockX, int blockY, int blockZ, V118Material material,
+                boolean scheduleFluidUpdate) {
+            setBlock(blockX, blockY, blockZ, material);
+            int localX = local(blockX, minBlockX, "blockX");
+            int localZ = local(blockZ, minBlockZ, "blockZ");
+            builder.setScheduledFluidUpdate(localX, blockY, localZ, scheduleFluidUpdate);
+        }
+
+        @Override
+        public V118Material computeAquiferMaterial(int blockX, int blockY, int blockZ) {
+            NoiseBasedAquifer.Result result = aquifer.compute(blockX, blockY, blockZ, 0.0D);
+            lastAquiferShouldScheduleFluidUpdate = result.shouldScheduleFluidUpdate();
+            return result.isSolid() ? null : material(result.material());
+        }
+
+        @Override
+        public boolean shouldScheduleAquiferFluidUpdate() {
+            return lastAquiferShouldScheduleFluidUpdate;
+        }
+
+        @Override
+        public V118Material topMaterial(int blockX, int blockY, int blockZ,
+                boolean hasFluidAbove) {
+            return surfaceSystem.topMaterial(this, blockX, blockY, blockZ, hasFluidAbove);
         }
 
         @Override

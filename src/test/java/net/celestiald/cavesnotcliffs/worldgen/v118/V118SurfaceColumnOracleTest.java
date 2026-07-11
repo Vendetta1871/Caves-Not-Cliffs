@@ -86,7 +86,8 @@ public class V118SurfaceColumnOracleTest {
         }
         assertEquals(expected.message("final counts"), expected.finalCounts, access.counts());
 
-        TerrainColumn integrated = new V118TerrainColumnGenerator(expected.seed, profile)
+        TerrainColumn integrated = new V118TerrainColumnGenerator(expected.seed, profile,
+            true, false)
             .column(expected.chunkX, expected.chunkZ);
         int minX = expected.chunkX << 4;
         int minZ = expected.chunkZ << 4;

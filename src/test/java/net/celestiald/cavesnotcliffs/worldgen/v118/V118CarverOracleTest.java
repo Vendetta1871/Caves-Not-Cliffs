@@ -14,6 +14,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.TreeMap;
 
 import static org.junit.Assert.assertEquals;
@@ -132,6 +134,43 @@ public class V118CarverOracleTest {
         assertEquals(6, cases);
     }
 
+    @Test
+    public void postSurfaceTerrainAndLiveAquiferMatchAllEdgeSeedsAndNativeProfiles()
+            throws IOException, NoSuchAlgorithmException {
+        InputStream input = getClass().getResourceAsStream(FIXTURE);
+        assertNotNull("missing fixture " + FIXTURE, input);
+        Set<Long> seeds = new HashSet<Long>();
+        Set<String> profiles = new HashSet<String>();
+        int cases = 0;
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(input,
+                StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (!line.startsWith("terrain\t")) {
+                    continue;
+                }
+                String[] fields = line.split("\t", -1);
+                String profileName = fields[1];
+                long seed = Long.parseLong(fields[2]);
+                int chunkX = Integer.parseInt(fields[3]);
+                int chunkZ = Integer.parseInt(fields[4]);
+                TerrainColumn column = new V118TerrainColumnGenerator(seed,
+                    profile(profileName)).column(chunkX, chunkZ);
+                String hash = hashColumn(column);
+                String counts = countColumn(column);
+                String context = line + "\nactual\t" + hash + '\t' + counts;
+                assertEquals(context, fields[10], hash);
+                assertEquals(context, fields[11], counts);
+                seeds.add(seed);
+                profiles.add(profileName);
+                ++cases;
+            }
+        }
+        assertEquals(6, seeds.size());
+        assertEquals(3, profiles.size());
+        assertEquals(6, cases);
+    }
+
     static String startCounts(List<V118OverworldCarvers.Start> starts) {
         Map<String, Integer> counts = new TreeMap<String, Integer>();
         for (V118OverworldCarvers.Start start : starts) {
@@ -179,6 +218,48 @@ public class V118CarverOracleTest {
             result.append(String.format("%02x", value & 255));
         }
         return result.toString();
+    }
+
+    private static String hashColumn(TerrainColumn column) throws NoSuchAlgorithmException {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        for (int localX = 0; localX < TerrainColumn.WIDTH; ++localX) {
+            for (int y = TerrainColumn.MIN_Y; y <= TerrainColumn.MAX_Y; ++y) {
+                for (int localZ = 0; localZ < TerrainColumn.WIDTH; ++localZ) {
+                    V118Material material = V118Material.fromStorageId(
+                        column.materialId(localX, y, localZ));
+                    String value = localX + "," + y + "," + localZ + ","
+                        + material.name().toLowerCase(Locale.ROOT) + "\n";
+                    digest.update(value.getBytes(StandardCharsets.UTF_8));
+                }
+            }
+        }
+        return hex(digest.digest());
+    }
+
+    private static String countColumn(TerrainColumn column) {
+        Map<String, Integer> counts = new TreeMap<String, Integer>();
+        for (int localX = 0; localX < TerrainColumn.WIDTH; ++localX) {
+            for (int y = TerrainColumn.MIN_Y; y <= TerrainColumn.MAX_Y; ++y) {
+                for (int localZ = 0; localZ < TerrainColumn.WIDTH; ++localZ) {
+                    String material = V118Material.fromStorageId(
+                        column.materialId(localX, y, localZ)).name()
+                        .toLowerCase(Locale.ROOT);
+                    Integer count = counts.get(material);
+                    counts.put(material, count == null ? 1 : count + 1);
+                }
+            }
+        }
+        return encodeCounts(counts);
+    }
+
+    private static V118NoiseRouterData.Profile profile(String name) {
+        if ("large".equals(name)) {
+            return V118NoiseRouterData.Profile.LARGE_BIOMES;
+        }
+        if ("amplified".equals(name)) {
+            return V118NoiseRouterData.Profile.AMPLIFIED;
+        }
+        return V118NoiseRouterData.Profile.DEFAULT;
     }
 
     private static void assertFloatBits(String message, String expectedBits, float actual) {
