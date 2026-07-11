@@ -150,8 +150,10 @@ public class CandleResourceMatrixTest {
     }
 
     private static void assertModel(String model, Set<String> models) {
-        assertTrue(model, model.startsWith("cavesnotcliffs:block/"));
-        String path = model.substring("cavesnotcliffs:block/".length());
+        // Forge 1.12's Variant deserializer supplies the block-model directory itself.
+        assertTrue(model, model.startsWith("cavesnotcliffs:"));
+        assertTrue(model, !model.startsWith("cavesnotcliffs:block/"));
+        String path = model.substring("cavesnotcliffs:".length());
         json("models/block/" + path + ".json");
         models.add(path);
     }
