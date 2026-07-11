@@ -1,10 +1,14 @@
 package net.celestiald.cavesnotcliffs.migration;
 
+import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +64,54 @@ public class CubicNbtSpoolTest {
     }
 
     @Test
+    public void rejectsOversizedRecordWithoutLeavingFileOrIndexState() throws Exception {
+        NBTTagCompound value = tag("bounded");
+        int compressedSize = compressedSize(value);
+        Path path = temporary.newFile("record-limit.spool").toPath();
+        try (CubicNbtSpool spool = new CubicNbtSpool(
+                path, compressedSize - 1, Long.MAX_VALUE)) {
+            try {
+                spool.append(1, 2, 3, value);
+                fail("Expected compressed record limit rejection");
+            } catch (IOException expected) {
+                assertTrue(expected.getMessage().contains("record limit"));
+            }
+            assertEquals(0L, Files.size(path));
+            assertEquals(0L, spool.getCubeCount());
+            assertFalse(spool.containsColumn(1, 3));
+            assertTrue(spool.remainingColumns().isEmpty());
+        }
+    }
+
+    @Test
+    public void rejectsTotalOverflowAtomicallyAndKeepsFirstRecordReadable() throws Exception {
+        NBTTagCompound first = tag("first");
+        long oneRecordBytes = Integer.BYTES + compressedSize(first);
+        Path path = temporary.newFile("total-limit.spool").toPath();
+        try (CubicNbtSpool spool = new CubicNbtSpool(
+                path, 1024, oneRecordBytes)) {
+            spool.append(1, 2, 3, first);
+            long lengthAfterFirst = Files.size(path);
+            try {
+                spool.append(4, 5, 6, tag("second"));
+                fail("Expected total spool limit rejection");
+            } catch (IOException expected) {
+                assertTrue(expected.getMessage().contains("total limit"));
+            }
+            assertEquals(lengthAfterFirst, Files.size(path));
+            assertEquals(1L, spool.getCubeCount());
+            assertTrue(spool.containsColumn(1, 3));
+            assertFalse(spool.containsColumn(4, 6));
+            assertEquals(1, spool.remainingColumns().size());
+
+            spool.force();
+            Map<Integer, NBTTagCompound> column = spool.takeColumn(1, 3);
+            assertEquals(1, column.size());
+            assertEquals("first", column.get(2).getString("value"));
+        }
+    }
+
+    @Test
     public void requiresForceBeforeReadingAndDisallowsLaterAppends() throws Exception {
         Path path = temporary.newFile("force.spool").toPath();
         try (CubicNbtSpool spool = new CubicNbtSpool(path)) {
@@ -84,5 +136,11 @@ public class CubicNbtSpoolTest {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setString("value", value);
         return tag;
+    }
+
+    private static int compressedSize(NBTTagCompound tag) throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        CompressedStreamTools.writeCompressed(tag, output);
+        return output.size();
     }
 }
