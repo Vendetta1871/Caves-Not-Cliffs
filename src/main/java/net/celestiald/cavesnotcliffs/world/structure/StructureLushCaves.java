@@ -128,8 +128,8 @@ public class StructureLushCaves extends ElementsCavesNotCliffs.ModElement {
 
 	@Override
 	public void generateWorld(Random random, int i2, int k2, World world, int dimID, IChunkGenerator cg, IChunkProvider cp) {
-		// v2 worlds use the deterministic 3D CaveBiomeDecorator instead of this legacy
-		// per-chunk coin flip. Keep the old generator for existing/default world types.
+		// Caves Not Cliffs worlds use the schema-aware native feature pipeline. This legacy
+		// per-chunk coin flip remains available only to unrelated/default world types.
 		if (CavesNotCliffsWorldType.isCavesNotCliffs(world)) {
 			return;
 		}

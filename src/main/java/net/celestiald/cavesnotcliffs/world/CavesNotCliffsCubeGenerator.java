@@ -31,11 +31,12 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Finite-height Cubic Chunks generator used by the v2 world type.
+ * Finite-height Cubic Chunks generator retained for draft-v2 schema-1 saves.
  *
  * Y=0..255 is copied from the selected vanilla 1.12 generator so surface terrain, structures and
  * seeds remain familiar.  Y=-64..-1 is a deepslate extension with worm caves and deep ores; the
- * future v3 noise-carver rewrite is intentionally not pulled into this release.
+ * New schema-2 worlds use {@link V118CubicChunksGenerator}; this class intentionally preserves the
+ * old terrain profile to avoid seams while its population pass emits canonical content only.
  */
 public final class CavesNotCliffsCubeGenerator implements ICubeGenerator {
     private static final int VANILLA_MIN_CUBE = 0;
@@ -231,7 +232,10 @@ public final class CavesNotCliffsCubeGenerator implements ICubeGenerator {
                 ^ (long) position.getZ() * 42317861L));
         MinecraftForge.EVENT_BUS.post(new PopulateCubeEvent.Pre(world, random,
                 position.getX(), position.getY(), position.getZ(), false));
-        CaveBiomeDecorator.decorate(world, random, position);
+        // The draft-v2 CaveBiomeDecorator emitted state-split lush aliases after load migration
+        // (and could place only the lower half of small dripleaf). Do not run it in schema-1 saves:
+        // retained vanilla/structure population below remains authoritative, while new schema-2
+        // worlds receive the exact 1.18 feature pipeline through V118CubicChunksGenerator.
         CubeGeneratorsRegistry.generateWorld(world, random, position,
                 world.getBiome(position.getCenterBlockPos()));
         MinecraftForge.EVENT_BUS.post(new PopulateCubeEvent.Post(world, random,
