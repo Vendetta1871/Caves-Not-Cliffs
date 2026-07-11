@@ -1,0 +1,1 @@
+{ "parent": "block/cube_all", "textures": { "all": "cavesnotcliffs:blocks/cobbled_deepslate", "particle": "cavesnotcliffs:blocks/cobbled_deepslate" } }

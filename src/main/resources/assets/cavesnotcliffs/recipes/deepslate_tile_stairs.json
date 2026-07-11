@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "#  ",
+    "## ",
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "cavesnotcliffs:deepslate_tiles"
+    }
+  },
+  "result": {
+    "item": "cavesnotcliffs:deepslate_tile_stairs",
+    "count": 4
+  }
+}

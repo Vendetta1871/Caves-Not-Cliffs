@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "variant=default": { "model": "cavesnotcliffs:polished_deepslate_slab_double" }
+  }
+}

@@ -43,6 +43,7 @@ import net.minecraft.potion.Potion;
 import net.minecraft.item.Item;
 import net.minecraft.block.Block;
 import net.celestiald.cavesnotcliffs.command.CommandCaveBiome;
+import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
 import net.celestiald.cavesnotcliffs.handler.LavaCauldronHandler;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldTypes;
@@ -85,6 +86,7 @@ public class CavesNotCliffs {
 	@Mod.EventHandler
 	public void init(FMLInitializationEvent event) {
 		elements.getElements().forEach(element -> element.init(event));
+		CncMaterialContent.registerSmelting();
 		proxy.init(event);
 	}
 

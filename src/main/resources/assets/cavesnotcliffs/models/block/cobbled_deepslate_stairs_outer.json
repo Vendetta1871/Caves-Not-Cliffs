@@ -1,0 +1,1 @@
+{ "parent": "block/outer_stairs", "textures": { "bottom": "cavesnotcliffs:blocks/cobbled_deepslate", "top": "cavesnotcliffs:blocks/cobbled_deepslate", "side": "cavesnotcliffs:blocks/cobbled_deepslate" } }

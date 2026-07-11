@@ -1,6 +1,8 @@
 package net.celestiald.cavesnotcliffs.block;
 
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
+import net.celestiald.cavesnotcliffs.content.OreDropLogic;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
@@ -27,7 +29,8 @@ import java.util.Random;
 @ElementsCavesNotCliffs.ModElement.Tag
 public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement {
     private static final String[] NAMES = {
-            "deepslate_coal_ore", "deepslate_iron_ore", "deepslate_gold_ore",
+            "deepslate_coal_ore", "deepslate_iron_ore", "deepslate_copper_ore",
+            "deepslate_gold_ore",
             "deepslate_redstone_ore", "deepslate_lapis_ore", "deepslate_diamond_ore",
             "deepslate_emerald_ore"
     };
@@ -36,6 +39,8 @@ public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement 
     public static final Block DEEPSLATE_COAL_ORE = null;
     @GameRegistry.ObjectHolder("cavesnotcliffs:deepslate_iron_ore")
     public static final Block DEEPSLATE_IRON_ORE = null;
+    @GameRegistry.ObjectHolder("cavesnotcliffs:deepslate_copper_ore")
+    public static final Block DEEPSLATE_COPPER_ORE = null;
     @GameRegistry.ObjectHolder("cavesnotcliffs:deepslate_gold_ore")
     public static final Block DEEPSLATE_GOLD_ORE = null;
     @GameRegistry.ObjectHolder("cavesnotcliffs:deepslate_redstone_ore")
@@ -54,8 +59,9 @@ public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement 
     @Override
     public void initElements() {
         register("deepslate_coal_ore", Drop.COAL, 0);
-        register("deepslate_iron_ore", Drop.SELF, 1);
-        register("deepslate_gold_ore", Drop.SELF, 2);
+        register("deepslate_iron_ore", Drop.RAW_IRON, 1);
+        register("deepslate_copper_ore", Drop.RAW_COPPER, 1);
+        register("deepslate_gold_ore", Drop.RAW_GOLD, 2);
         register("deepslate_redstone_ore", Drop.REDSTONE, 2);
         register("deepslate_lapis_ore", Drop.LAPIS, 1);
         register("deepslate_diamond_ore", Drop.DIAMOND, 2);
@@ -74,10 +80,22 @@ public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement 
 
     @Override
     public void init(FMLInitializationEvent event) {
+        GameRegistry.addSmelting(new ItemStack(DEEPSLATE_COAL_ORE),
+                new ItemStack(Items.COAL), 0.1F);
         GameRegistry.addSmelting(new ItemStack(DEEPSLATE_IRON_ORE),
                 new ItemStack(Items.IRON_INGOT), 0.7F);
+        GameRegistry.addSmelting(new ItemStack(DEEPSLATE_COPPER_ORE),
+                new ItemStack(CncMaterialContent.item("copper_ingot")), 0.7F);
         GameRegistry.addSmelting(new ItemStack(DEEPSLATE_GOLD_ORE),
                 new ItemStack(Items.GOLD_INGOT), 1.0F);
+        GameRegistry.addSmelting(new ItemStack(DEEPSLATE_REDSTONE_ORE),
+                new ItemStack(Items.REDSTONE), 0.7F);
+        GameRegistry.addSmelting(new ItemStack(DEEPSLATE_LAPIS_ORE),
+                new ItemStack(Items.DYE, 1, 4), 0.2F);
+        GameRegistry.addSmelting(new ItemStack(DEEPSLATE_DIAMOND_ORE),
+                new ItemStack(Items.DIAMOND), 1.0F);
+        GameRegistry.addSmelting(new ItemStack(DEEPSLATE_EMERALD_ORE),
+                new ItemStack(Items.EMERALD), 1.0F);
     }
 
     @SideOnly(Side.CLIENT)
@@ -94,7 +112,7 @@ public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement 
     }
 
     private enum Drop {
-        SELF, COAL, REDSTONE, LAPIS, DIAMOND, EMERALD
+        RAW_IRON, RAW_COPPER, RAW_GOLD, COAL, REDSTONE, LAPIS, DIAMOND, EMERALD
     }
 
     private static final class DeepslateOreBlock extends Block {
@@ -107,7 +125,7 @@ public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement 
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(4.5F);
-            setResistance(6.0F);
+            setResistance(3.0F);
             setHarvestLevel("pickaxe", harvestLevel);
         }
 
@@ -124,6 +142,12 @@ public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement 
                     return Items.DIAMOND;
                 case EMERALD:
                     return Items.EMERALD;
+                case RAW_IRON:
+                    return CncMaterialContent.item("raw_iron");
+                case RAW_COPPER:
+                    return CncMaterialContent.item("raw_copper");
+                case RAW_GOLD:
+                    return CncMaterialContent.item("raw_gold");
                 default:
                     return Item.getItemFromBlock(this);
             }
@@ -137,21 +161,24 @@ public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement 
         @Override
         public int quantityDropped(Random random) {
             if (drop == Drop.LAPIS) {
-                return 4 + random.nextInt(5);
+                return 4 + random.nextInt(6);
             }
             if (drop == Drop.REDSTONE) {
                 return 4 + random.nextInt(2);
+            }
+            if (drop == Drop.RAW_COPPER) {
+                return 2 + random.nextInt(4);
             }
             return 1;
         }
 
         @Override
         public int quantityDroppedWithBonus(int fortune, Random random) {
-            if (fortune > 0 && drop != Drop.SELF) {
-                int multiplier = random.nextInt(fortune + 2) - 1;
-                return quantityDropped(random) * (Math.max(0, multiplier) + 1);
+            int base = quantityDropped(random);
+            if (drop == Drop.REDSTONE) {
+                return OreDropLogic.applyUniformBonus(base, fortune, random);
             }
-            return quantityDropped(random);
+            return OreDropLogic.applyOreBonus(base, fortune, random);
         }
 
         @Override
@@ -169,6 +196,11 @@ public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement 
                 default:
                     return 0;
             }
+        }
+
+        @Override
+        protected boolean canSilkHarvest() {
+            return true;
         }
     }
 }

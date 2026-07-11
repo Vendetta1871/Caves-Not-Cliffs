@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "cavesnotcliffs:raw_gold_block"
+    }
+  ],
+  "result": {
+    "item": "cavesnotcliffs:raw_gold",
+    "count": 9
+  }
+}

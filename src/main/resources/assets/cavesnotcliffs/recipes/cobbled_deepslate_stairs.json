@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "#  ",
+    "## ",
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "cavesnotcliffs:cobbled_deepslate"
+    }
+  },
+  "result": {
+    "item": "cavesnotcliffs:cobbled_deepslate_stairs",
+    "count": 4
+  }
+}

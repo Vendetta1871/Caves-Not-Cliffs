@@ -1,7 +1,7 @@
 {
   "variants": {
-    "normal": {
-      "model": "cavesnotcliffs:unnamed_stone"
-    }
+    "axis=y": { "model": "cavesnotcliffs:deepslate" },
+    "axis=z": { "model": "cavesnotcliffs:deepslate", "x": 90 },
+    "axis=x": { "model": "cavesnotcliffs:deepslate", "x": 90, "y": 90 }
   }
 }
