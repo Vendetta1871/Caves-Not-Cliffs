@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.migration;
 
 import net.celestiald.cavesnotcliffs.migration.cubic.CubicRegionReader;
+import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldData;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.chunk.storage.RegionFileCache;
@@ -21,13 +22,15 @@ final class CubicDimensionStager {
         private final long columns;
         private final long cubes;
         private final long discardedLookaheadColumns;
+        private final long verifiedRegenerationColumns;
         private final List<CubicImportJournal.FileRecord> outputs;
 
         private Result(long columns, long cubes, long discardedLookaheadColumns,
-                List<CubicImportJournal.FileRecord> outputs) {
+                long verifiedRegenerationColumns, List<CubicImportJournal.FileRecord> outputs) {
             this.columns = columns;
             this.cubes = cubes;
             this.discardedLookaheadColumns = discardedLookaheadColumns;
+            this.verifiedRegenerationColumns = verifiedRegenerationColumns;
             this.outputs = outputs;
         }
 
@@ -43,6 +46,10 @@ final class CubicDimensionStager {
             return discardedLookaheadColumns;
         }
 
+        long getVerifiedRegenerationColumns() {
+            return verifiedRegenerationColumns;
+        }
+
         List<CubicImportJournal.FileRecord> getOutputs() {
             return outputs;
         }
@@ -55,9 +62,26 @@ final class CubicDimensionStager {
     private CubicDimensionStager() {
     }
 
+    interface CubeVerifier {
+        void verifyCube(int cubeX, int cubeY, int cubeZ, NBTTagCompound cubeRoot)
+                throws CubicColumnConversionException;
+    }
+
     static Result stage(Path sourceDimension, Path stagingDimension,
             boolean cavesNotCliffsOverworld, int terrainSchema, long lastUpdate)
             throws IOException {
+        return stage(sourceDimension, stagingDimension, cavesNotCliffsOverworld,
+                terrainSchema, lastUpdate, null);
+    }
+
+    static Result stage(Path sourceDimension, Path stagingDimension,
+            boolean cavesNotCliffsOverworld, int terrainSchema, long lastUpdate,
+            CubeVerifier lookaheadVerifier) throws IOException {
+        if (lookaheadVerifier != null && (!cavesNotCliffsOverworld
+                || terrainSchema != CavesNotCliffsWorldData.CURRENT_SCHEMA)) {
+            throw new IOException("A cube-only terrain verifier is supported only for the "
+                    + "schema-2 Caves Not Cliffs Overworld");
+        }
         if (Files.exists(stagingDimension)) {
             throw new IOException("Cubic import staging path already exists: " + stagingDimension);
         }
@@ -66,6 +90,7 @@ final class CubicDimensionStager {
         long cubeCount;
         long[] columnCount = {0L};
         long discardedLookahead = 0L;
+        long verifiedRegeneration = 0L;
 
         try (CubicNbtSpool spool = new CubicNbtSpool(spoolPath)) {
             Path cubeRegions = sourceDimension.resolve("region3d");
@@ -101,12 +126,24 @@ final class CubicDimensionStager {
             for (CubicNbtSpool.ColumnKey key : spool.remainingColumns()) {
                 Map<Integer, NBTTagCompound> cubes = spool.takeColumn(key.getX(), key.getZ());
                 try {
-                    CubicColumnConverter.validateDiscardableLookahead(cubes);
+                    if (lookaheadVerifier == null) {
+                        CubicColumnConverter.validateDiscardableLookahead(cubes);
+                    } else {
+                        CubicColumnConverter.validateRegenerableLookahead(cubes);
+                        for (Map.Entry<Integer, NBTTagCompound> cube : cubes.entrySet()) {
+                            lookaheadVerifier.verifyCube(key.getX(), cube.getKey(), key.getZ(),
+                                    cube.getValue());
+                        }
+                    }
                 } catch (CubicColumnConversionException exception) {
-                    throw new IOException("Cannot discard cube-only column " + key + " in "
+                    throw new IOException("Cannot omit cube-only column " + key + " in "
                             + sourceDimension + ": " + exception.getMessage(), exception);
                 }
-                discardedLookahead++;
+                if (lookaheadVerifier == null) {
+                    discardedLookahead++;
+                } else {
+                    verifiedRegeneration++;
+                }
             }
         } finally {
             // No world is loaded while the importer runs, so closing the global Anvil cache here
@@ -130,7 +167,8 @@ final class CubicDimensionStager {
                         + sourceDimension);
             }
         }
-        return new Result(columnCount[0], cubeCount, discardedLookahead, outputs);
+        return new Result(columnCount[0], cubeCount, discardedLookahead,
+                verifiedRegeneration, outputs);
     }
 
     private static void writeAndVerify(Path stagingDimension, int chunkX, int chunkZ,

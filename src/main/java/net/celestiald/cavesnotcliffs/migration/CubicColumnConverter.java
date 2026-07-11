@@ -90,6 +90,32 @@ public final class CubicColumnConverter {
         }
     }
 
+    /** Proves that cube-only terrain has no populated or dynamic state before oracle comparison. */
+    static void validateRegenerableLookahead(Map<Integer, NBTTagCompound> cubeRoots)
+            throws CubicColumnConversionException {
+        if (cubeRoots.isEmpty()) {
+            throw new CubicColumnConversionException(
+                    "A regenerable cube-only column contains no cube records");
+        }
+        NBTTagCompound firstRoot = cubeRoots.values().iterator().next();
+        NBTTagCompound first = requireCompound(firstRoot, "Level",
+                "cube-only regeneration candidate");
+        int chunkX = requireInt(first, "x", "cube-only regeneration candidate");
+        int chunkZ = requireInt(first, "z", "cube-only regeneration candidate");
+        for (Map.Entry<Integer, NBTTagCompound> entry : cubeRoots.entrySet()) {
+            int cubeY = entry.getKey();
+            NBTTagCompound cube = validateCube(entry.getValue(), chunkX, cubeY, chunkZ);
+            if (cube.getBoolean("populated") || cube.getBoolean("fullyPopulated")) {
+                throw fail(chunkX, chunkZ, "cube-only Y=" + cubeY
+                        + " has already-populated state that cannot be regenerated");
+            }
+            if (hasDynamicPayload(cube)) {
+                throw fail(chunkX, chunkZ, "cube-only Y=" + cubeY
+                        + " has dynamic state that cannot be regenerated");
+            }
+        }
+    }
+
     private static NBTTagCompound convert(NBTTagCompound columnRoot,
             Map<Integer, NBTTagCompound> cubeRoots, int terrainSchema, long lastUpdate,
             boolean cavesNotCliffsOverworld)

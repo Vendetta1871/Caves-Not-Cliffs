@@ -45,6 +45,7 @@ public class CubicDimensionStagerTest {
         assertEquals(1L, result.getColumns());
         assertEquals(25L, result.getCubes());
         assertEquals(1L, result.getDiscardedLookaheadColumns());
+        assertEquals(0L, result.getVerifiedRegenerationColumns());
         assertTrue(result.hasOutputRegion());
         assertFalse(result.getOutputs().isEmpty());
         assertTrue(Files.isRegularFile(staging.resolve("region/r.0.0.mca")));
@@ -80,6 +81,75 @@ public class CubicDimensionStagerTest {
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("cube-only column"));
             assertTrue(expected.getMessage().contains("stateful cube Y=0"));
+        }
+    }
+
+    @Test
+    public void omitsGeneratedCubeOnlyTerrainOnlyAfterEveryCubeIsVerified()
+            throws Exception {
+        Path source = temporary.newFolder("verified-lookahead-source").toPath();
+        writeCube(source, -3, -4, 7, cube(-3, -4, 7, false, true));
+        writeCube(source, -3, -3, 7, cube(-3, -3, 7, false, true));
+        final int[] calls = {0};
+
+        CubicDimensionStager.Result result = CubicDimensionStager.stage(source,
+                temporary.getRoot().toPath().resolve("verified-lookahead-stage"),
+                true, CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L,
+                (cubeX, cubeY, cubeZ, cubeRoot) -> {
+                    assertEquals(-3, cubeX);
+                    assertEquals(7, cubeZ);
+                    assertEquals(-4 + calls[0], cubeY);
+                    assertEquals(cubeY, cubeRoot.getCompoundTag("Level").getInteger("y"));
+                    calls[0]++;
+                });
+
+        assertEquals(2, calls[0]);
+        assertEquals(0L, result.getColumns());
+        assertEquals(2L, result.getCubes());
+        assertEquals(0L, result.getDiscardedLookaheadColumns());
+        assertEquals(1L, result.getVerifiedRegenerationColumns());
+        assertFalse(result.hasOutputRegion());
+    }
+
+    @Test
+    public void rejectsPopulatedLookaheadBeforeCallingTerrainVerifier() throws Exception {
+        Path source = temporary.newFolder("populated-lookahead-source").toPath();
+        writeCube(source, 4, 0, -2, cube(4, 0, -2, true, true));
+        final int[] calls = {0};
+
+        try {
+            CubicDimensionStager.stage(source,
+                    temporary.getRoot().toPath().resolve("populated-lookahead-stage"),
+                    true, CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L,
+                    (cubeX, cubeY, cubeZ, cubeRoot) -> calls[0]++);
+            fail("Expected populated lookahead rejection");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains("already-populated state"));
+        }
+        assertEquals(0, calls[0]);
+    }
+
+    @Test
+    public void restrictsTerrainVerifierToSchemaTwoOverworld() throws Exception {
+        Path source = temporary.newFolder("wrong-contract-source").toPath();
+        CubicDimensionStager.CubeVerifier verifier =
+                (cubeX, cubeY, cubeZ, cubeRoot) -> { };
+
+        try {
+            CubicDimensionStager.stage(source,
+                    temporary.getRoot().toPath().resolve("schema-one-stage"),
+                    true, CavesNotCliffsWorldData.LEGACY_SCHEMA, 0L, verifier);
+            fail("Expected schema-one verifier rejection");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains("schema-2"));
+        }
+        try {
+            CubicDimensionStager.stage(source,
+                    temporary.getRoot().toPath().resolve("other-dimension-stage"),
+                    false, CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L, verifier);
+            fail("Expected non-Overworld verifier rejection");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains("schema-2"));
         }
     }
 
