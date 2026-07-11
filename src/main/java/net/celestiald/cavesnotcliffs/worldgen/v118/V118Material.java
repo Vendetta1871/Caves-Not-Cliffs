@@ -13,7 +13,32 @@ public enum V118Material {
     COPPER_ORE,
     RAW_COPPER_BLOCK,
     DEEPSLATE_IRON_ORE,
-    RAW_IRON_BLOCK;
+    RAW_IRON_BLOCK,
+
+    // SurfaceRuleData and SurfaceSystem outputs.  Append-only: storage ids above are already
+    // persisted by draft-v2 terrain columns.
+    DIRT,
+    PODZOL,
+    COARSE_DIRT,
+    MYCELIUM,
+    GRASS_BLOCK,
+    CALCITE,
+    GRAVEL,
+    SAND,
+    SANDSTONE,
+    RED_SAND,
+    RED_SANDSTONE,
+    TERRACOTTA,
+    WHITE_TERRACOTTA,
+    ORANGE_TERRACOTTA,
+    YELLOW_TERRACOTTA,
+    BROWN_TERRACOTTA,
+    RED_TERRACOTTA,
+    LIGHT_GRAY_TERRACOTTA,
+    PACKED_ICE,
+    SNOW_BLOCK,
+    POWDER_SNOW,
+    ICE;
 
     private static final V118Material[] VALUES = values();
 

@@ -38,6 +38,23 @@ java -cp .:<unsigned-inner-server.jar>:<extracted-libraries/*> \
 
 The production sources and tests remain Java 8 and have no dependency on the oracle jars.
 
+## Seeded Overworld surface primitives
+
+`surface-primitives-oracle-1.18.2.tsv` executes Mojang's mapped official `SurfaceSystem`
+directly. It records exact surface depth, raw secondary-noise bits, and badlands clay-band
+materials for all six edge seeds. The coordinate matrix covers negative chunk/cube boundaries,
+ordinary positive boundaries, and both sides of the Perlin wrapping interval. The independent
+harness is `Cnc118SurfacePrimitiveOracle.java.txt`.
+
+- Surface-primitive harness SHA-256:
+  `3c66d26b08e6213518a519bcf56dc15dfca6c4806747d735c6149a5bf44b18c9`
+- Surface-primitive TSV SHA-256:
+  `ee62990ccf80d77a619c57b94577d4fe31064b792789263d1837c99b88406a8b`
+
+Compile the harness with Java 17 against the mapped official server jar and its extracted
+libraries. It bootstraps the official registries, then reflectively invokes only the protected
+surface methods; production code is not present on its classpath.
+
 ## Built-in noise registry and blended base density
 
 `noise-parameters-oracle-1.18.2.tsv` enumerates all 60 entries in Mojang's built-in noise
