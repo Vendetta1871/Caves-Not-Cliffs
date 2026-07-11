@@ -4,12 +4,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.celestiald.cavesnotcliffs.item.ItemHoneyBottle;
+import net.celestiald.cavesnotcliffs.client.HoneyDrinkSoundHandler;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.minecraft.block.Block;
 import net.minecraft.init.Bootstrap;
 import net.minecraft.init.Items;
 import net.minecraft.item.EnumAction;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.client.event.sound.PlaySoundEvent;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import org.junit.BeforeClass;
@@ -57,6 +59,8 @@ public class HoneyContentTest {
         assertTrue(bottle.hasContainerItem(stack));
         assertSame(Items.GLASS_BOTTLE,
                 bottle.getContainerItem(stack).getItem());
+        assertNotNull(HoneyDrinkSoundHandler.INSTANCE);
+        assertNotNull(PlaySoundEvent.class);
     }
 
     @Test
