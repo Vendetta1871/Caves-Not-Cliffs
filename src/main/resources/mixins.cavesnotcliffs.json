@@ -1,8 +1,0 @@
-{
-    "compatibilityLevel": "JAVA_8",
-    "package": "net.celestiald.cavesnotcliffs.mixin",
-    "refmap": "mixins.cavesnotcliffs.refmap.json",
-    "mixins": [
-        "LavaCauldronMixin"
-    ]
-}

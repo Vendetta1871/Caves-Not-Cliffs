@@ -42,6 +42,22 @@ public class StructureAmethystGeode0 extends ElementsCavesNotCliffs.ModElement {
 			  + Math.sin(z * 0.93 + y * 1.47 + x * 0.59)) / 3.0;
 	}
 
+	/** Keep geode carving out of modded machines, chests, and other player-built blocks. */
+	private boolean canReplace(World world, BlockPos pos) {
+		if (world.getTileEntity(pos) != null) return false;
+		Block block = world.getBlockState(pos).getBlock();
+		if (block == Blocks.STONE || block == Blocks.DIRT || block == Blocks.GRAVEL
+				|| block == Blocks.COAL_ORE || block == Blocks.IRON_ORE || block == Blocks.GOLD_ORE
+				|| block == Blocks.REDSTONE_ORE || block == Blocks.LAPIS_ORE
+				|| block == Blocks.DIAMOND_ORE || block == Blocks.EMERALD_ORE) {
+			return true;
+		}
+		ResourceLocation name = block.getRegistryName();
+		if (name == null || !"cavesnotcliffs".equals(name.getResourceDomain())) return false;
+		String path = name.getResourcePath();
+		return "unnamed_stone".equals(path) || "dark_stone".equals(path);
+	}
+
 	private void generateGeode(World world, Random random, int cx, int cy, int cz) {
 		Block casingBlock  = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "geode_casing"));
 		Block geodeBlock   = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_geode"));
@@ -76,6 +92,7 @@ public class StructureAmethystGeode0 extends ElementsCavesNotCliffs.ModElement {
 					if (dist > outerR) continue;
 
 					BlockPos pos = new BlockPos(cx + dx, ny, cz + dz);
+					if (!canReplace(world, pos)) continue;
 					if (dist > calciteR) {
 						world.setBlockState(pos, casingState, 2);
 					} else if (dist > innerR) {

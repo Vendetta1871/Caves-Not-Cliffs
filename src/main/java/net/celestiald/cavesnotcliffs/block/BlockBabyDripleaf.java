@@ -43,7 +43,7 @@ public class BlockBabyDripleaf extends ElementsCavesNotCliffs.ModElement {
         private static final AxisAlignedBB NO_AABB = new AxisAlignedBB(0, 0, 0, 0, 0, 0);
 
         public BlockCustom() {
-            super(Material.AIR);
+            super(Material.PLANTS);
             setUnlocalizedName("baby_dripleaf");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.PLANT);

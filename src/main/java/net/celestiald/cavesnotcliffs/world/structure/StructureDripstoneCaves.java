@@ -27,6 +27,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.entity.Entity;
 
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
 
 import java.util.Random;
 import javax.annotation.Generated;
@@ -119,6 +120,11 @@ public class StructureDripstoneCaves extends ElementsCavesNotCliffs.ModElement {
 
 	@Override
 	public void generateWorld(Random random, int i2, int k2, World world, int dimID, IChunkGenerator cg, IChunkProvider cp) {
+		// v2 worlds use a mutually exclusive 3D cave-biome pass. Retain this decorator
+		// only for legacy/default world types so old saves do not change behavior.
+		if (CavesNotCliffsWorldType.isCavesNotCliffs(world)) {
+			return;
+		}
 		if (dimID != 0) {
 			return;
 		}

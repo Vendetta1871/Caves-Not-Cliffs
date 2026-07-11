@@ -43,12 +43,11 @@ public class BlockDripleafplant1 extends ElementsCavesNotCliffs.ModElement {
 
     private static class BlockCustom extends Block {
         public BlockCustom() {
-            super(Material.AIR);
+            super(Material.PLANTS);
             setUnlocalizedName("dripleafplant_1");
             setSoundType(SoundType.PLANT);
             setHardness(0.0f);
             setResistance(0.0f);
-            setTickRandomly(true);
         }
 
         @Override public boolean isOpaqueCube(IBlockState state) { return false; }
@@ -60,14 +59,18 @@ public class BlockDripleafplant1 extends ElementsCavesNotCliffs.ModElement {
 
         @Override
         public void onEntityWalk(World worldIn, BlockPos pos, Entity entityIn) {
-            if (!worldIn.isRemote && BlockDripleafPlant2.block != null)
+            if (!worldIn.isRemote && BlockDripleafPlant2.block != null) {
                 worldIn.setBlockState(pos, BlockDripleafPlant2.block.getDefaultState(), 3);
+                worldIn.scheduleUpdate(pos, BlockDripleafPlant2.block, 100);
+            }
         }
 
         @Override
-        public void randomTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
-            if (!worldIn.isRemote && BlockDripleafPlant.block != null)
-                worldIn.setBlockState(pos, BlockDripleafPlant.block.getDefaultState(), 3);
+        public void updateTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
+            if (!worldIn.isRemote && BlockDripleafPlant2.block != null) {
+                worldIn.setBlockState(pos, BlockDripleafPlant2.block.getDefaultState(), 3);
+                worldIn.scheduleUpdate(pos, BlockDripleafPlant2.block, 100);
+            }
         }
     }
 }

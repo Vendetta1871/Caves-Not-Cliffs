@@ -42,12 +42,11 @@ public class BlockDripleafPlant2 extends ElementsCavesNotCliffs.ModElement {
 
     private static class BlockCustom extends Block {
         public BlockCustom() {
-            super(Material.AIR);
+            super(Material.PLANTS);
             setUnlocalizedName("dripleaf_plant_2");
             setSoundType(SoundType.PLANT);
             setHardness(0.0f);
             setResistance(0.0f);
-            setTickRandomly(true);
         }
 
         @Override public boolean isOpaqueCube(IBlockState state) { return false; }
@@ -56,9 +55,9 @@ public class BlockDripleafPlant2 extends ElementsCavesNotCliffs.ModElement {
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
 
         @Override
-        public void randomTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
-            if (!worldIn.isRemote && BlockDripleafplant1.block != null)
-                worldIn.setBlockState(pos, BlockDripleafplant1.block.getDefaultState(), 3);
+        public void updateTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
+            if (!worldIn.isRemote && BlockDripleafPlant.block != null)
+                worldIn.setBlockState(pos, BlockDripleafPlant.block.getDefaultState(), 3);
         }
     }
 }

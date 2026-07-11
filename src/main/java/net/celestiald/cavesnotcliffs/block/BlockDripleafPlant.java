@@ -45,7 +45,7 @@ public class BlockDripleafPlant extends ElementsCavesNotCliffs.ModElement {
         private static final AxisAlignedBB NO_AABB = new AxisAlignedBB(0, 0, 0, 0, 0, 0);
 
         public BlockCustom() {
-            super(Material.AIR);
+            super(Material.PLANTS);
             setUnlocalizedName("dripleaf_plant");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.PLANT);
@@ -62,8 +62,10 @@ public class BlockDripleafPlant extends ElementsCavesNotCliffs.ModElement {
 
         @Override
         public void onEntityWalk(World worldIn, BlockPos pos, Entity entityIn) {
-            if (!worldIn.isRemote && BlockDripleafplant1.block != null)
+            if (!worldIn.isRemote && BlockDripleafplant1.block != null) {
                 worldIn.setBlockState(pos, BlockDripleafplant1.block.getDefaultState(), 3);
+                worldIn.scheduleUpdate(pos, BlockDripleafplant1.block, 10);
+            }
         }
     }
 }

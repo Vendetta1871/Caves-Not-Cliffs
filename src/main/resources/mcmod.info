@@ -2,19 +2,19 @@
   {
     "modid": "cavesnotcliffs",
     "name": "Caves Not Cliffs",
-    "description": "Backports Caves & Cliffs features to 1.12.2: lush caves, dripstone caves, amethyst geodes, copper, and a lava cauldron. Requires the MixinBootstrap mod (https://modrinth.com/mod/mixinbootstrap).",
-    "version": "1.5.0",
+    "description": "Backports Caves & Cliffs features to 1.12.2. Requires Forge 14.23.5.2860+ and CubicChunks 1.12.2-0.0.1301.0-SNAPSHOT+.",
+    "version": "${version}",
     "credits": "CelestialD",
     "logoFile": "",
-    "mcversion": "1.12.2",
+    "mcversion": "${mcversion}",
     "url": "https://github.com/Vendetta1871/Caves-Not-Cliffs",
     "updateUrl": "https://modrinth.com/mod/caves-not-cliffs-backported",
     "authorList": [
       "CelestialD"
     ],
-    "dependencies": [],
-    "dependants": [],
-    "requiredMods": [],
-    "useDependencyInformation": "true"
+    "dependencies": [
+      "required-after:forge@[14.23.5.2860,)",
+      "required-after:cubicchunks@[1.12.2-0.0.1301.0-SNAPSHOT,)"
+    ]
   }
 ]

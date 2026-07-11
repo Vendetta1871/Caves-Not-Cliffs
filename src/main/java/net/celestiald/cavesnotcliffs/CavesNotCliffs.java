@@ -39,28 +39,35 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.potion.Potion;
 import net.minecraft.item.Item;
 import net.minecraft.block.Block;
+import net.celestiald.cavesnotcliffs.command.CommandCaveBiome;
+import net.celestiald.cavesnotcliffs.handler.LavaCauldronHandler;
+import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
+import net.celestiald.cavesnotcliffs.world.WorldHeightBootstrap;
 
 import java.util.function.Supplier;
 
-@Mod(modid = CavesNotCliffs.MODID, version = CavesNotCliffs.VERSION)
+@Mod(modid = CavesNotCliffs.MODID, version = CavesNotCliffs.VERSION,
+		dependencies = "required-after:forge@[14.23.5.2860,);required-after:cubicchunks@[1.12.2-0.0.1301.0-SNAPSHOT,)")
 public class CavesNotCliffs {
 	public static final String MODID = "cavesnotcliffs";
-	public static final String VERSION = "1.0.0";
+	public static final String VERSION = "2.0.0";
 	public static final SimpleNetworkWrapper PACKET_HANDLER = NetworkRegistry.INSTANCE.newSimpleChannel("cavesnotcliffs:a");
+	public static CavesNotCliffsWorldType WORLD_TYPE;
 	@SidedProxy(clientSide = "net.celestiald.cavesnotcliffs.ClientProxyCavesNotCliffs", serverSide = "net.celestiald.cavesnotcliffs.ServerProxyCavesNotCliffs")
 	public static IProxyCavesNotCliffs proxy;
 	@Mod.Instance(MODID)
 	public static CavesNotCliffs instance;
 	public ElementsCavesNotCliffs elements = new ElementsCavesNotCliffs();
+	private final WorldHeightBootstrap worldHeightBootstrap = new WorldHeightBootstrap();
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
-		// The lava cauldron is implemented as a Mixin, which is provided at runtime by the
-		// MixinBootstrap mod. If the coremod couldn't boot Mixin, stop here with a clear message
-		// rather than letting the game run with a half-applied, broken cauldron.
-		if (Boolean.getBoolean("cavesnotcliffs.mixinMissing")) {
-			throw new RuntimeException("Caves Not Cliffs requires the MixinBootstrap mod. "
-					+ "Download it from https://modrinth.com/mod/mixinbootstrap and put it in your mods folder.");
+		// Creating a WorldType registers it in 1.12's world-type table. The accompanying
+		// capability hook seeds Cubic Chunks' save metadata with the finite v2 bounds.
+		if (WORLD_TYPE == null) {
+			WORLD_TYPE = new CavesNotCliffsWorldType();
 		}
+		MinecraftForge.EVENT_BUS.register(worldHeightBootstrap);
+		MinecraftForge.EVENT_BUS.register(LavaCauldronHandler.INSTANCE);
 		MinecraftForge.EVENT_BUS.register(this);
 		GameRegistry.registerWorldGenerator(elements, 5);
 		GameRegistry.registerFuelHandler(elements);
@@ -84,6 +91,7 @@ public class CavesNotCliffs {
 
 	@Mod.EventHandler
 	public void serverLoad(FMLServerStartingEvent event) {
+		event.registerServerCommand(new CommandCaveBiome());
 		elements.getElements().forEach(element -> element.serverLoad(event));
 		proxy.serverLoad(event);
 	}
