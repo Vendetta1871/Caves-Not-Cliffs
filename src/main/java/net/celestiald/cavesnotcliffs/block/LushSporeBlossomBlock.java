@@ -76,6 +76,10 @@ public final class LushSporeBlossomBlock extends Block {
             IBlockAccess world, BlockPos pos) { return NULL_AABB; }
     @Override public boolean isOpaqueCube(IBlockState state) { return false; }
     @Override public boolean isFullCube(IBlockState state) { return false; }
+    @Override public int getFlammability(IBlockAccess world, BlockPos pos,
+            EnumFacing face) { return 100; }
+    @Override public int getFireSpreadSpeed(IBlockAccess world, BlockPos pos,
+            EnumFacing face) { return 60; }
     @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() {
         return BlockRenderLayer.CUTOUT;
     }

@@ -29,6 +29,7 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.IShearable;
@@ -93,7 +94,7 @@ public final class LushAzaleaBlocks {
         @Override
         public boolean canGrow(World world, BlockPos pos, IBlockState state,
                 boolean isClient) {
-            return world.isAirBlock(pos.up());
+            return hasEmptyFluid(world.getBlockState(pos.up()));
         }
 
         @Override
@@ -111,6 +112,16 @@ public final class LushAzaleaBlocks {
                     LushCaveContent.FLOWERING_AZALEA_LEAVES,
                     AzaleaLeaves.DISTANCE,
                     AzaleaLeaves.PERSISTENT);
+        }
+
+        @Override
+        public int getFlammability(IBlockAccess world, BlockPos pos, EnumFacing face) {
+            return 60;
+        }
+
+        @Override
+        public int getFireSpreadSpeed(IBlockAccess world, BlockPos pos, EnumFacing face) {
+            return 30;
         }
 
         @SideOnly(Side.CLIENT)
@@ -352,6 +363,22 @@ public final class LushAzaleaBlocks {
         }
 
         @Override
+        public ItemStack getPickBlock(IBlockState state, RayTraceResult target, World world,
+                BlockPos pos, EntityPlayer player) {
+            return new ItemStack(Item.getItemFromBlock(LushCaveContent.HANGING_ROOTS));
+        }
+
+        @Override
+        public int getFlammability(IBlockAccess world, BlockPos pos, EnumFacing face) {
+            return 60;
+        }
+
+        @Override
+        public int getFireSpreadSpeed(IBlockAccess world, BlockPos pos, EnumFacing face) {
+            return 30;
+        }
+
+        @Override
         public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess world,
                 BlockPos pos) {
             return SHAPE;
@@ -424,6 +451,12 @@ public final class LushAzaleaBlocks {
         }
 
         @Override
+        public ItemStack getPickBlock(IBlockState state, RayTraceResult target, World world,
+                BlockPos pos, EntityPlayer player) {
+            return new ItemStack(Item.getItemFromBlock(content()));
+        }
+
+        @Override
         public boolean canPlaceBlockAt(World world, BlockPos pos) {
             return world.getBlockState(pos.down()).isSideSolid(world, pos.down(),
                     EnumFacing.UP);
@@ -447,5 +480,10 @@ public final class LushAzaleaBlocks {
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() {
             return BlockRenderLayer.CUTOUT;
         }
+    }
+
+    /** Java 1.18 checks for an empty fluid state, not an empty block, above azaleas. */
+    public static boolean hasEmptyFluid(IBlockState state) {
+        return state == null || !state.getMaterial().isLiquid();
     }
 }

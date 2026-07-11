@@ -26,6 +26,7 @@ import net.minecraft.util.NonNullList;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.IShearable;
@@ -200,6 +201,17 @@ public final class LushDripleafBlocks {
                     new ItemStack(Item.getItemFromBlock(LushCaveContent.SMALL_DRIPLEAF)));
         }
 
+        @Override
+        public ItemStack getPickBlock(IBlockState state, RayTraceResult target, World world,
+                BlockPos pos, EntityPlayer player) {
+            return canonicalSmallDripleaf();
+        }
+
+        @Override public int getFlammability(IBlockAccess world, BlockPos pos,
+                EnumFacing face) { return 100; }
+        @Override public int getFireSpreadSpeed(IBlockAccess world, BlockPos pos,
+                EnumFacing face) { return 60; }
+
         @Override public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess world,
                 BlockPos pos) { return SHAPE; }
         @Override public AxisAlignedBB getCollisionBoundingBox(IBlockState state,
@@ -219,6 +231,18 @@ public final class LushDripleafBlocks {
         private static final AxisAlignedBB PARTIAL =
                 new AxisAlignedBB(0.0D, 11.0D / 16.0D, 0.0D,
                         1.0D, 13.0D / 16.0D, 1.0D);
+        private static final AxisAlignedBB NORTH_STEM = new AxisAlignedBB(
+                5.0D / 16.0D, 0.0D, 9.0D / 16.0D,
+                11.0D / 16.0D, 13.0D / 16.0D, 15.0D / 16.0D);
+        private static final AxisAlignedBB SOUTH_STEM = new AxisAlignedBB(
+                5.0D / 16.0D, 0.0D, 1.0D / 16.0D,
+                11.0D / 16.0D, 13.0D / 16.0D, 7.0D / 16.0D);
+        private static final AxisAlignedBB EAST_STEM = new AxisAlignedBB(
+                1.0D / 16.0D, 0.0D, 5.0D / 16.0D,
+                7.0D / 16.0D, 13.0D / 16.0D, 11.0D / 16.0D);
+        private static final AxisAlignedBB WEST_STEM = new AxisAlignedBB(
+                9.0D / 16.0D, 0.0D, 5.0D / 16.0D,
+                15.0D / 16.0D, 13.0D / 16.0D, 11.0D / 16.0D);
         private final boolean waterlogged;
 
         public Head(boolean waterlogged) {
@@ -369,6 +393,17 @@ public final class LushDripleafBlocks {
         }
 
         @Override
+        public ItemStack getPickBlock(IBlockState state, RayTraceResult target, World world,
+                BlockPos pos, EntityPlayer player) {
+            return canonicalBigDripleaf();
+        }
+
+        @Override public int getFlammability(IBlockAccess world, BlockPos pos,
+                EnumFacing face) { return 100; }
+        @Override public int getFireSpreadSpeed(IBlockAccess world, BlockPos pos,
+                EnumFacing face) { return 60; }
+
+        @Override
         public boolean removedByPlayer(IBlockState state, World world, BlockPos pos,
                 EntityPlayer player, boolean willHarvest) {
             onBlockHarvested(world, pos, state, player);
@@ -383,19 +418,44 @@ public final class LushDripleafBlocks {
         }
 
         @Override public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess world,
-                BlockPos pos) { return FULL_BLOCK_AABB; }
+                BlockPos pos) { return selectionShape(state); }
         @Override public AxisAlignedBB getCollisionBoundingBox(IBlockState state,
                 IBlockAccess world, BlockPos pos) {
-            switch (state.getValue(TILT)) {
-                case FULL: return NULL_AABB;
-                case PARTIAL: return PARTIAL;
-                default: return STABLE;
-            }
+            return collisionShape(state);
         }
         @Override public boolean isOpaqueCube(IBlockState state) { return false; }
         @Override public boolean isFullCube(IBlockState state) { return false; }
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() {
             return BlockRenderLayer.CUTOUT;
+        }
+
+        /** Envelope of Java 1.18's directional stem plus its tilt-dependent leaf. */
+        public static AxisAlignedBB selectionShape(IBlockState state) {
+            AxisAlignedBB stem = stemShape(state.getValue(FACING));
+            AxisAlignedBB leaf = leafShape(state.getValue(TILT));
+            return leaf == null ? stem : stem.union(leaf);
+        }
+
+        /** Java 1.18 collides with the leaf only; its stem is selection geometry. */
+        public static AxisAlignedBB collisionShape(IBlockState state) {
+            return leafShape(state.getValue(TILT));
+        }
+
+        private static AxisAlignedBB leafShape(Tilt tilt) {
+            switch (tilt) {
+                case FULL: return null;
+                case PARTIAL: return PARTIAL;
+                default: return STABLE;
+            }
+        }
+
+        private static AxisAlignedBB stemShape(EnumFacing facing) {
+            switch (facing) {
+                case SOUTH: return SOUTH_STEM;
+                case EAST: return EAST_STEM;
+                case WEST: return WEST_STEM;
+                default: return NORTH_STEM;
+            }
         }
     }
 
@@ -500,6 +560,17 @@ public final class LushDripleafBlocks {
                 BlockPos pos, IBlockState state, int fortune) {
             drops.add(new ItemStack(Item.getItemFromBlock(LushCaveContent.BIG_DRIPLEAF)));
         }
+
+        @Override
+        public ItemStack getPickBlock(IBlockState state, RayTraceResult target, World world,
+                BlockPos pos, EntityPlayer player) {
+            return canonicalBigDripleaf();
+        }
+
+        @Override public int getFlammability(IBlockAccess world, BlockPos pos,
+                EnumFacing face) { return 100; }
+        @Override public int getFireSpreadSpeed(IBlockAccess world, BlockPos pos,
+                EnumFacing face) { return 60; }
 
         @Override
         public boolean removedByPlayer(IBlockState state, World world, BlockPos pos,
@@ -607,5 +678,15 @@ public final class LushDripleafBlocks {
             return state.getValue(WATERLOGGED);
         }
         return state.getBlock() == LushCaveContent.BIG_DRIPLEAF_WATERLOGGED;
+    }
+
+    private static ItemStack canonicalSmallDripleaf() {
+        Item item = Item.getItemFromBlock(LushCaveContent.SMALL_DRIPLEAF);
+        return item == null || item == Items.AIR ? ItemStack.EMPTY : new ItemStack(item);
+    }
+
+    private static ItemStack canonicalBigDripleaf() {
+        Item item = Item.getItemFromBlock(LushCaveContent.BIG_DRIPLEAF);
+        return item == null || item == Items.AIR ? ItemStack.EMPTY : new ItemStack(item);
     }
 }

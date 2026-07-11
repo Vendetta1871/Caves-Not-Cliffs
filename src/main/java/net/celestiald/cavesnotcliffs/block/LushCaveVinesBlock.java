@@ -22,6 +22,7 @@ import net.minecraft.util.NonNullList;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
@@ -82,6 +83,10 @@ public final class LushCaveVinesBlock {
 
         @Override
         public void updateTick(World world, BlockPos pos, IBlockState state, Random random) {
+            if (!canHangFrom(world, pos.up())) {
+                breakUnsupported(world, pos, state);
+                return;
+            }
             int age = age(state);
             if (age < LushCaveMechanics.CAVE_VINE_MAX_AGE
                     && random.nextDouble() < LushCaveMechanics.CAVE_VINE_GROWTH_CHANCE
@@ -122,7 +127,7 @@ public final class LushCaveVinesBlock {
         public void neighborChanged(IBlockState state, World world, BlockPos pos,
                 Block changed, BlockPos changedPos) {
             if (!canHangFrom(world, pos.up())) {
-                breakUnsupported(world, pos, state);
+                world.scheduleUpdate(pos, this, 1);
             } else if (isVine(world.getBlockState(pos.down()).getBlock())) {
                 world.setBlockState(pos, bodyState(state.getValue(BERRIES)), 2);
             }
@@ -142,6 +147,22 @@ public final class LushCaveVinesBlock {
         public void getDrops(NonNullList<ItemStack> drops, IBlockAccess world, BlockPos pos,
                 IBlockState state, int fortune) {
             addBerryDrop(drops, state.getValue(BERRIES));
+        }
+
+        @Override
+        public ItemStack getPickBlock(IBlockState state, RayTraceResult target, World world,
+                BlockPos pos, EntityPlayer player) {
+            return glowBerriesStack();
+        }
+
+        @Override
+        public int getFlammability(IBlockAccess world, BlockPos pos, EnumFacing face) {
+            return 60;
+        }
+
+        @Override
+        public int getFireSpreadSpeed(IBlockAccess world, BlockPos pos, EnumFacing face) {
+            return 15;
         }
 
         @Override public boolean isOpaqueCube(IBlockState state) { return false; }
@@ -208,7 +229,7 @@ public final class LushCaveVinesBlock {
         public void neighborChanged(IBlockState state, World world, BlockPos pos,
                 Block changed, BlockPos changedPos) {
             if (!canHangFrom(world, pos.up())) {
-                breakUnsupported(world, pos, state);
+                world.scheduleUpdate(pos, this, 1);
                 return;
             }
             if (!isVine(world.getBlockState(pos.down()).getBlock())) {
@@ -223,6 +244,13 @@ public final class LushCaveVinesBlock {
         }
 
         @Override
+        public void updateTick(World world, BlockPos pos, IBlockState state, Random random) {
+            if (!canHangFrom(world, pos.up())) {
+                breakUnsupported(world, pos, state);
+            }
+        }
+
+        @Override
         public int getLightValue(IBlockState state, IBlockAccess world, BlockPos pos) {
             return state.getValue(BERRIES) ? LushCaveMechanics.CAVE_VINE_LIGHT : 0;
         }
@@ -231,6 +259,22 @@ public final class LushCaveVinesBlock {
         public void getDrops(NonNullList<ItemStack> drops, IBlockAccess world, BlockPos pos,
                 IBlockState state, int fortune) {
             addBerryDrop(drops, state.getValue(BERRIES));
+        }
+
+        @Override
+        public ItemStack getPickBlock(IBlockState state, RayTraceResult target, World world,
+                BlockPos pos, EntityPlayer player) {
+            return glowBerriesStack();
+        }
+
+        @Override
+        public int getFlammability(IBlockAccess world, BlockPos pos, EnumFacing face) {
+            return 60;
+        }
+
+        @Override
+        public int getFireSpreadSpeed(IBlockAccess world, BlockPos pos, EnumFacing face) {
+            return 15;
         }
 
         @Override public boolean isOpaqueCube(IBlockState state) { return false; }
@@ -298,6 +342,11 @@ public final class LushCaveVinesBlock {
         if (berries && ItemGlowBerries.item != null) {
             drops.add(new ItemStack(ItemGlowBerries.item));
         }
+    }
+
+    private static ItemStack glowBerriesStack() {
+        return ItemGlowBerries.item == null
+                ? ItemStack.EMPTY : new ItemStack(ItemGlowBerries.item);
     }
 
     private static void breakUnsupported(World world, BlockPos pos, IBlockState state) {
