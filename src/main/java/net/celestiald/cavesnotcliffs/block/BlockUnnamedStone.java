@@ -9,7 +9,6 @@ import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockRotatedPillar;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.SoundType;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
@@ -17,6 +16,7 @@ import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
 import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
+import net.celestiald.cavesnotcliffs.content.DeepslateSoundEvents;
 import java.util.Random;
 
 @ElementsCavesNotCliffs.ModElement.Tag
@@ -44,7 +44,7 @@ public class BlockUnnamedStone extends ElementsCavesNotCliffs.ModElement {
             super(Material.ROCK, CncBlockProperties.DEEPSLATE);
             setUnlocalizedName("deepslate");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
-            setSoundType(SoundType.STONE);
+            setSoundType(DeepslateSoundEvents.DEEPSLATE);
             setHardness(3.0f);
             setResistance(CncBlockProperties.legacyResistance(6.0F));
             setHarvestLevel("pickaxe", 0);

@@ -128,7 +128,7 @@ public final class CncMaterialContent {
 
     private static Block rock(String name, float hardness, float resistance, int harvestLevel) {
         return new BasicMaterialBlock(name, Material.ROCK, CncBlockProperties.DEEPSLATE,
-                SoundType.STONE,
+                DeepslateSoundEvents.forBuildingBlock(name),
                 hardness, resistance, harvestLevel);
     }
 
@@ -146,8 +146,9 @@ public final class CncMaterialContent {
     private static void registerShapes(RegistryEvent.Register<Block> event,
             String baseName, Block base) {
         String slabName = baseName + "_slab";
-        register(event, new MaterialSlab(slabName).setRegistryName(id(slabName)));
-        register(event, new MaterialDoubleSlab(slabName)
+        SoundType sound = base.getSoundType();
+        register(event, new MaterialSlab(slabName, sound).setRegistryName(id(slabName)));
+        register(event, new MaterialDoubleSlab(slabName, sound)
                 .setRegistryName(id(slabName + "_double")));
         register(event, new MaterialStairs(baseName + "_stairs", base.getDefaultState()));
         register(event, new MaterialWall(baseName + "_wall", base));
@@ -206,6 +207,7 @@ public final class CncMaterialContent {
             setRegistryName(id(name));
             setUnlocalizedName(name);
             setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
+            setSoundType(state.getBlock().getSoundType());
             setHardness(3.5F);
             setResistance(CncBlockProperties.legacyResistance(6.0F));
             setHarvestLevel("pickaxe", 0);
@@ -218,6 +220,7 @@ public final class CncMaterialContent {
             setRegistryName(id(name));
             setUnlocalizedName(name);
             setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
+            setSoundType(modelBlock.getSoundType());
             setHardness(3.5F);
             setResistance(CncBlockProperties.legacyResistance(6.0F));
             setHarvestLevel("pickaxe", 0);
@@ -228,11 +231,11 @@ public final class CncMaterialContent {
         private static final PropertyEnum<Variant> VARIANT =
                 PropertyEnum.create("variant", Variant.class);
 
-        MaterialSlab(String name) {
+        MaterialSlab(String name, SoundType sound) {
             super(Material.ROCK, CncBlockProperties.DEEPSLATE);
             setUnlocalizedName(name);
             setCreativeTab(isDouble() ? null : CreativeTabs.BUILDING_BLOCKS);
-            setSoundType(SoundType.STONE);
+            setSoundType(sound);
             setHardness(3.5F);
             setResistance(CncBlockProperties.legacyResistance(6.0F));
             setHarvestLevel("pickaxe", 0);
@@ -300,8 +303,8 @@ public final class CncMaterialContent {
     }
 
     private static final class MaterialDoubleSlab extends MaterialSlab {
-        MaterialDoubleSlab(String name) {
-            super(name);
+        MaterialDoubleSlab(String name, SoundType sound) {
+            super(name, sound);
         }
 
         @Override
