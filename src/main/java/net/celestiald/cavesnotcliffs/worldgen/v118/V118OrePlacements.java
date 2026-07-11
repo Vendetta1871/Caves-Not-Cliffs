@@ -142,6 +142,10 @@ public final class V118OrePlacements {
             ore(V118OreMaterial.COPPER_ORE, V118OreMaterial.DEEPSLATE_COPPER_ORE, 10, 0.0F),
             Count.constant(16), Height.triangle(Anchor.absolute(-16), Anchor.absolute(112)),
             Membership.NOT_DRIPSTONE),
+        ORE_CLAY("ore_clay", "ore_clay", 6, 26,
+            natural(V118OreMaterial.CLAY, 33), Count.constant(46),
+            Height.uniform(Anchor.bottom(), Anchor.absolute(256)),
+            Membership.LUSH_ONLY),
         ORE_GOLD_EXTRA("ore_gold_extra", "ore_gold", 6, 27,
             ore(V118OreMaterial.GOLD_ORE, V118OreMaterial.DEEPSLATE_GOLD_ORE, 9, 0.0F),
             Count.constant(50), Height.uniform(Anchor.absolute(32), Anchor.absolute(256)),
@@ -468,6 +472,12 @@ public final class V118OrePlacements {
             @Override
             boolean includes(V118Biome biome) {
                 return biome == V118Biome.DRIPSTONE_CAVES;
+            }
+        },
+        LUSH_ONLY {
+            @Override
+            boolean includes(V118Biome biome) {
+                return biome == V118Biome.LUSH_CAVES;
             }
         },
         BADLANDS_ONLY {

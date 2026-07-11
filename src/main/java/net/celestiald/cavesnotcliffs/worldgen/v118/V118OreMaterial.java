@@ -16,6 +16,7 @@ public enum V118OreMaterial {
     ANDESITE,
     DIRT,
     GRAVEL,
+    CLAY,
     COAL_ORE,
     DEEPSLATE_COAL_ORE,
     IRON_ORE,

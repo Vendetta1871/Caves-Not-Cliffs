@@ -60,8 +60,8 @@ public class V118OreDecorationOracleTest {
             }
         }
         assertEquals("edge seeds", 6, seeds.size());
-        assertEquals("membership representatives", 4, biomes.size());
-        assertEquals("decoration cases", 6, cases);
+        assertEquals("membership representatives", 5, biomes.size());
+        assertEquals("decoration cases", 7, cases);
     }
 
     @Test

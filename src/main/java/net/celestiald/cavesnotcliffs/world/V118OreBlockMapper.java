@@ -28,6 +28,7 @@ final class V118OreBlockMapper {
         put(states, V118OreMaterial.ANDESITE, stone(5));
         put(states, V118OreMaterial.DIRT, Blocks.DIRT.getDefaultState());
         put(states, V118OreMaterial.GRAVEL, Blocks.GRAVEL.getDefaultState());
+        put(states, V118OreMaterial.CLAY, Blocks.CLAY.getDefaultState());
         put(states, V118OreMaterial.COAL_ORE, Blocks.COAL_ORE.getDefaultState());
         put(states, V118OreMaterial.DEEPSLATE_COAL_ORE, registered("deepslate_coal_ore"));
         put(states, V118OreMaterial.IRON_ORE, Blocks.IRON_ORE.getDefaultState());
