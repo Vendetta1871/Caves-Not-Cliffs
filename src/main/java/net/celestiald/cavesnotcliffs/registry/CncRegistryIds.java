@@ -24,6 +24,7 @@ public final class CncRegistryIds {
     /** Hidden state companion; the vanilla cauldron remains the only obtainable item. */
     public static final ResourceLocation POWDER_SNOW_CAULDRON = id("powder_snow_cauldron");
     public static final ResourceLocation COMPOSTER = id("composter");
+    public static final ResourceLocation INFESTED_DEEPSLATE = id("infested_deepslate");
 
     /**
      * The released pre-v2 geode-shell identity is intentionally retained as an internal marker.
