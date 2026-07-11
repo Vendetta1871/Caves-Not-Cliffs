@@ -171,7 +171,11 @@ public final class LegacyFiniteChunkGenerator implements IChunkGenerator {
     @Override
     public void populate(int chunkX, int chunkZ) {
         vanillaGenerator.populate(chunkX, chunkZ);
-        for (int sectionY = -4; sectionY < 0; ++sectionY) {
+        // The draft-v2 cubic generator ran this decorator once for every populated cube. Its
+        // own Y clamp therefore made sections -4..3 authoritative, including the cave band in
+        // vanilla terrain up through Y=63. Replaying only the new negative sections creates a
+        // visible population seam when an old schema-1 column is converted to finite storage.
+        for (int sectionY = -4; sectionY < 4; ++sectionY) {
             FiniteSectionPos position = new FiniteSectionPos(chunkX, sectionY, chunkZ);
             Random random = new Random(CaveBiomeSampler.mix64(world.getSeed()
                     ^ (long) chunkX * 341873128712L
