@@ -40,6 +40,8 @@ public class CampfireMechanicsTest {
         assertEquals(0, CampfireMechanics.coolProgress(1));
         assertEquals(0, CampfireMechanics.coolProgress(2));
         assertEquals(1, CampfireMechanics.coolProgress(3));
+        assertEquals(600, CampfireMechanics.coolProgress(900, 600));
+        assertEquals(598, CampfireMechanics.coolProgress(600, 600));
         assertEquals(1, CampfireMechanics.fireDamage(false));
         assertEquals(2, CampfireMechanics.fireDamage(true));
         assertEquals(4, CampfireMechanics.SLOT_COUNT);

@@ -48,7 +48,12 @@ public final class CampfireMechanics {
 
     /** Unlit campfires cool twice per tick without dropping below zero. */
     public static int coolProgress(int progress) {
-        return Math.max(0, progress - BURN_COOL_SPEED);
+        return coolProgress(progress, Integer.MAX_VALUE);
+    }
+
+    /** Mirrors 1.18.2's clamp so malformed or upgraded NBT cannot exceed total cook time. */
+    public static int coolProgress(int progress, int totalCookingTime) {
+        return Math.max(0, Math.min(totalCookingTime, progress - BURN_COOL_SPEED));
     }
 
     public static int fireDamage(boolean soul) {

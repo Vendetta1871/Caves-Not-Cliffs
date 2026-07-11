@@ -72,7 +72,8 @@ public final class TileEntityCampfire extends TileEntity implements ITickable, I
     private boolean cooldownTick() {
         boolean changed = false;
         for (int slot = 0; slot < cookingProgress.length; ++slot) {
-            int cooled = CampfireMechanics.coolProgress(cookingProgress[slot]);
+            int cooled = CampfireMechanics.coolProgress(cookingProgress[slot],
+                cookingTime[slot]);
             if (cooled != cookingProgress[slot]) {
                 cookingProgress[slot] = cooled;
                 changed = true;

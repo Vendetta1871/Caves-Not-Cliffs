@@ -3,6 +3,7 @@ package net.celestiald.cavesnotcliffs.content;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.block.LushWaterlogging;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
+import net.celestiald.cavesnotcliffs.handler.CampfireProjectileHandler;
 import net.celestiald.cavesnotcliffs.tile.TileEntityCampfire;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
@@ -54,6 +55,7 @@ import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -95,6 +97,7 @@ public final class CampfireContent extends ElementsCavesNotCliffs.ModElement {
     public void preInit(FMLPreInitializationEvent event) {
         GameRegistry.registerTileEntity(TileEntityCampfire.class, CncRegistryIds.CAMPFIRE);
         BeehiveSmokeHooks.register(CampfireContent::isSmokeyPos);
+        MinecraftForge.EVENT_BUS.register(CampfireProjectileHandler.INSTANCE);
     }
 
     @SideOnly(Side.CLIENT)
@@ -285,13 +288,21 @@ public final class CampfireContent extends ElementsCavesNotCliffs.ModElement {
                     && CampfireMechanics.canLight(state.getValue(LIT),
                         state.getValue(WATERLOGGED))) {
                 if (!world.isRemote) {
+                    Item used = held.getItem();
+                    boolean flint = used == Items.FLINT_AND_STEEL;
                     world.setBlockState(pos, state.withProperty(LIT, true), 11);
-                    world.playSound(null, pos, SoundEvents.ITEM_FLINTANDSTEEL_USE,
-                        SoundCategory.BLOCKS, 1.0F, world.rand.nextFloat() * 0.4F + 0.8F);
+                    world.playSound(null, pos,
+                        flint ? SoundEvents.ITEM_FLINTANDSTEEL_USE
+                            : SoundEvents.ITEM_FIRECHARGE_USE,
+                        SoundCategory.BLOCKS, 1.0F,
+                        flint ? world.rand.nextFloat() * 0.4F + 0.8F
+                            : (world.rand.nextFloat() - world.rand.nextFloat())
+                                * 0.2F + 1.0F);
                     if (!player.capabilities.isCreativeMode) {
-                        if (held.getItem() == Items.FLINT_AND_STEEL) held.damageItem(1, player);
+                        if (flint) held.damageItem(1, player);
                         else held.shrink(1);
                     }
+                    awardUseStat(player, used);
                 }
                 return true;
             }
@@ -307,27 +318,51 @@ public final class CampfireContent extends ElementsCavesNotCliffs.ModElement {
             }
             if (held.getItem() == Items.WATER_BUCKET && !state.getValue(WATERLOGGED)) {
                 if (!world.isRemote) {
-                    if (state.getValue(LIT)) douse(player, world, pos, state);
+                    Item used = held.getItem();
+                    if (state.getValue(LIT)) {
+                        world.playSound(null, pos, SoundEvents.BLOCK_FIRE_EXTINGUISH,
+                            SoundCategory.BLOCKS, 1.0F, 1.0F);
+                        douse(player, world, pos, state);
+                    }
                     world.setBlockState(pos, state.withProperty(WATERLOGGED, true)
                         .withProperty(LIT, false), 3);
                     world.scheduleUpdate(pos, this, CampfireMechanics.WATER_TICK_DELAY);
-                    replaceHeld(player, hand, new ItemStack(Items.BUCKET));
+                    replaceContainer(player, hand, held, new ItemStack(Items.BUCKET));
+                    awardUseStat(player, used);
                 }
                 return true;
             }
             if (held.getItem() == Items.BUCKET && state.getValue(WATERLOGGED)) {
                 if (!world.isRemote) {
+                    Item used = held.getItem();
                     world.setBlockState(pos, state.withProperty(WATERLOGGED, false), 3);
-                    replaceHeld(player, hand, new ItemStack(Items.WATER_BUCKET));
+                    replaceContainer(player, hand, held,
+                        new ItemStack(Items.WATER_BUCKET));
+                    awardUseStat(player, used);
                 }
                 return true;
             }
             return false;
         }
 
-        private static void replaceHeld(EntityPlayer player, EnumHand hand,
-                ItemStack replacement) {
-            if (!player.capabilities.isCreativeMode) player.setHeldItem(hand, replacement);
+        private static void replaceContainer(EntityPlayer player, EnumHand hand,
+                ItemStack held, ItemStack replacement) {
+            if (player.capabilities.isCreativeMode) {
+                return;
+            }
+            held.shrink(1);
+            if (held.isEmpty()) {
+                player.setHeldItem(hand, replacement);
+            } else if (!player.inventory.addItemStackToInventory(replacement)) {
+                player.dropItem(replacement, false);
+            }
+        }
+
+        private static void awardUseStat(EntityPlayer player, Item item) {
+            StatBase stat = StatList.getObjectUseStats(item);
+            if (stat != null) {
+                player.addStat(stat);
+            }
         }
 
         private static void douse(@Nullable Entity entity, World world, BlockPos pos,
