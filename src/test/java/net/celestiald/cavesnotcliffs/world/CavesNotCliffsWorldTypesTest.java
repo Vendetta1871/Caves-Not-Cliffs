@@ -49,6 +49,18 @@ public class CavesNotCliffsWorldTypesTest {
         assertEquals(WorldTypeNaming.moddedWrapperName(
                 modded.getName(), modded.getClass().getName()), moddedWrapper.getName());
         assertEquals(TerrainProfile.DELEGATED, moddedWrapper.getTerrainProfile());
+
+        WorldType late = new TestWorldType("test_late_twod");
+        CavesNotCliffsWorldTypes.registerWrappers();
+        CavesNotCliffsWorldTypeWrapper lateWrapper =
+                CavesNotCliffsWorldTypes.wrapperForBase(late);
+        assertNotNull("a later lifecycle scan must discover newly registered types", lateWrapper);
+        assertSame(late, lateWrapper.getBaseType());
+        assertEquals(WorldTypeNaming.moddedWrapperName(
+                late.getName(), late.getClass().getName()), lateWrapper.getName());
+        CavesNotCliffsWorldTypes.registerWrappers();
+        assertSame("refreshing an already covered type must be idempotent", lateWrapper,
+                CavesNotCliffsWorldTypes.wrapperForBase(late));
     }
 
     private static final class TestWorldType extends WorldType {

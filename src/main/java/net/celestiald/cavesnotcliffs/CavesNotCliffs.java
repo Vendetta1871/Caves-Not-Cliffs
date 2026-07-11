@@ -25,10 +25,12 @@ import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLLoadCompleteEvent;
+import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -93,8 +95,23 @@ public class CavesNotCliffs {
 
 	@Mod.EventHandler
 	public void loadComplete(FMLLoadCompleteEvent event) {
-		// All mods have completed post-init, but no server has loaded a world yet. Snapshot and
-		// wrap every compatible two-dimensional type in a deterministic order at this boundary.
+		// This initial pass makes the fixed wrapper names available to dedicated-server properties.
+		// Later lifecycle passes pick up world types registered by later load-complete handlers.
+		CavesNotCliffsWorldTypes.registerWrappers();
+	}
+
+	@Mod.EventHandler
+	public void serverAboutToStart(FMLServerAboutToStartEvent event) {
+		// Forge fires this immediately before loadAllWorlds, so every persisted wrapper name must
+		// be registered before WorldInfo parses level.dat.
+		CavesNotCliffsWorldTypes.registerWrappers();
+	}
+
+	@SubscribeEvent
+	@SideOnly(Side.CLIENT)
+	public void clientConnected(FMLNetworkEvent.ClientConnectedToServerEvent event) {
+		// This event is posted synchronously when the FML handshake completes and before the
+		// vanilla join packet is handled, whose WorldType field is decoded by name.
 		CavesNotCliffsWorldTypes.registerWrappers();
 	}
 

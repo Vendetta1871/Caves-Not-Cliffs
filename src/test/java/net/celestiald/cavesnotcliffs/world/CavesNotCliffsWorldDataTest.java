@@ -1,5 +1,6 @@
 package net.celestiald.cavesnotcliffs.world;
 
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.GameType;
 import net.minecraft.world.WorldSettings;
 import net.minecraft.world.WorldType;
@@ -7,6 +8,8 @@ import net.minecraft.world.storage.WorldInfo;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class CavesNotCliffsWorldDataTest {
     @Test
@@ -32,6 +35,41 @@ public class CavesNotCliffsWorldDataTest {
         assertEquals(CavesNotCliffsWorldData.LEGACY_SCHEMA, loaded.getTerrainSchema());
         assertEquals("default", loaded.getBaseTypeName());
         assertEquals(TerrainProfile.DEFAULT, loaded.getTerrainProfile());
+    }
+
+    @Test
+    public void generatorContractRejectsSchemaBaseClassAndProfileDrift() {
+        WorldInfo info = worldInfo(WorldType.DEFAULT, "");
+
+        CavesNotCliffsWorldData current = CavesNotCliffsWorldData.writeCurrent(
+                info, WorldType.DEFAULT, TerrainProfile.DEFAULT);
+        expectMismatch(current, CavesNotCliffsWorldData.LEGACY_SCHEMA,
+                WorldType.DEFAULT, TerrainProfile.DEFAULT, "terrain schema");
+        expectMismatch(current, CavesNotCliffsWorldData.CURRENT_SCHEMA,
+                WorldType.LARGE_BIOMES, TerrainProfile.DEFAULT, "base world type");
+
+        NBTTagCompound dimensionData = info.getDimensionData(0);
+        dimensionData.getCompoundTag("cavesnotcliffs")
+                .setString("baseTypeClass", "missing.replaced.WorldType");
+        info.setDimensionData(0, dimensionData);
+        CavesNotCliffsWorldData wrongClass = CavesNotCliffsWorldData.read(info);
+        expectMismatch(wrongClass, CavesNotCliffsWorldData.CURRENT_SCHEMA,
+                WorldType.DEFAULT, TerrainProfile.DEFAULT, "base world type class");
+
+        CavesNotCliffsWorldData wrongProfile = CavesNotCliffsWorldData.writeCurrent(
+                info, WorldType.DEFAULT, TerrainProfile.AMPLIFIED);
+        expectMismatch(wrongProfile, CavesNotCliffsWorldData.CURRENT_SCHEMA,
+                WorldType.DEFAULT, TerrainProfile.DEFAULT, "terrain profile");
+    }
+
+    private static void expectMismatch(CavesNotCliffsWorldData data, int schema,
+            WorldType baseType, TerrainProfile profile, String messagePart) {
+        try {
+            data.validateGeneratorContract(schema, baseType, profile);
+            fail("Expected the persisted generator contract mismatch to be rejected");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains(messagePart));
+        }
     }
 
     private static WorldInfo worldInfo(WorldType type, String options) {

@@ -44,11 +44,14 @@ public final class CavesNotCliffsWorldTypeWrapper extends WorldType
     @Override
     public ICubeGenerator createCubeGenerator(World world) {
         CavesNotCliffsWorldData data = CavesNotCliffsWorldData.read(world.getWorldInfo());
-        String options = data != null && data.getTerrainSchema() >= CavesNotCliffsWorldData.CURRENT_SCHEMA
-                ? data.getGeneratorOptions() : world.getWorldInfo().getGeneratorOptions();
+        if (data == null) {
+            throw new IllegalStateException("Schema-2 Caves Not Cliffs world has no persisted generator data");
+        }
+        data.validateGeneratorContract(getTerrainSchema(), baseType, terrainProfile);
+        String options = data.getGeneratorOptions();
         IChunkGenerator baseGenerator = delegate(world,
                 () -> baseType.getChunkGenerator(world, options == null ? "" : options));
-        return new CavesNotCliffsCubeGenerator(world, baseGenerator, terrainProfile);
+        return new CavesNotCliffsCubeGenerator(world, baseGenerator, data.getTerrainProfile());
     }
 
     @Override

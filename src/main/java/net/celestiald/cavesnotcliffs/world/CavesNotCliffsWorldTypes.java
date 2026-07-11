@@ -15,21 +15,16 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-/** Registers and resolves all hidden schema-2 wrappers in a deterministic order. */
+/** Incrementally registers and resolves hidden schema-2 wrappers with stable names. */
 public final class CavesNotCliffsWorldTypes {
     private static final Map<WorldType, CavesNotCliffsWorldTypeWrapper> WRAPPERS =
             new IdentityHashMap<>();
     private static final Map<String, WorldType> BASE_TYPES_BY_NAME = new LinkedHashMap<>();
-    private static boolean registered;
 
     private CavesNotCliffsWorldTypes() {
     }
 
     public static synchronized void registerWrappers() {
-        if (registered) {
-            return;
-        }
-
         List<WorldType> snapshot = distinctSnapshot();
         Set<String> occupiedNames = new LinkedHashSet<>();
         for (WorldType type : snapshot) {
@@ -46,13 +41,16 @@ public final class CavesNotCliffsWorldTypes {
                 WorldType.DEFAULT_1_1);
 
         for (WorldType baseType : vanillaOrder) {
-            register(baseType, fixedName(baseType), TerrainProfile.forVanillaTypeName(baseType.getName()),
-                    occupiedNames);
+            if (!WRAPPERS.containsKey(baseType)) {
+                register(baseType, fixedName(baseType),
+                        TerrainProfile.forVanillaTypeName(baseType.getName()), occupiedNames);
+            }
         }
 
         List<WorldType> moddedTypes = new ArrayList<>();
         for (WorldType type : snapshot) {
-            if (!vanillaOrder.contains(type) && !(type instanceof ICubicWorldType)) {
+            if (!vanillaOrder.contains(type) && !(type instanceof ICubicWorldType)
+                    && !WRAPPERS.containsKey(type)) {
                 moddedTypes.add(type);
             }
         }
@@ -64,7 +62,6 @@ public final class CavesNotCliffsWorldTypes {
                     baseType.getName(), baseType.getClass().getName()), TerrainProfile.DELEGATED,
                     occupiedNames);
         }
-        registered = true;
     }
 
     public static CavesNotCliffsWorldTypeWrapper wrapperForBase(WorldType baseType) {

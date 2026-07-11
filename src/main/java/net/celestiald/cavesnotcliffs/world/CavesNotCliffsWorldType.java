@@ -19,8 +19,13 @@ public final class CavesNotCliffsWorldType extends WorldType
 
     @Override
     public ICubeGenerator createCubeGenerator(World world) {
+        CavesNotCliffsWorldData data = CavesNotCliffsWorldData.read(world.getWorldInfo());
+        if (data == null) {
+            throw new IllegalStateException("Schema-1 Caves Not Cliffs world has no persisted generator data");
+        }
+        data.validateGeneratorContract(getTerrainSchema(), WorldType.DEFAULT, TerrainProfile.DEFAULT);
         return new CavesNotCliffsCubeGenerator(world, world.provider.createChunkGenerator(),
-                TerrainProfile.DEFAULT);
+                data.getTerrainProfile());
     }
 
     @Override

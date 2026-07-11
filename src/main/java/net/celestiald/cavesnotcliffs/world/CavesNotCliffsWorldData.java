@@ -20,15 +20,17 @@ public final class CavesNotCliffsWorldData {
     private final String baseTypeName;
     private final String baseTypeClass;
     private final String generatorOptions;
+    private final String terrainProfileName;
     private final TerrainProfile terrainProfile;
 
     private CavesNotCliffsWorldData(int terrainSchema, String baseTypeName,
-            String baseTypeClass, String generatorOptions, TerrainProfile terrainProfile) {
+            String baseTypeClass, String generatorOptions, String terrainProfileName) {
         this.terrainSchema = terrainSchema;
         this.baseTypeName = baseTypeName;
         this.baseTypeClass = baseTypeClass;
         this.generatorOptions = generatorOptions;
-        this.terrainProfile = terrainProfile;
+        this.terrainProfileName = terrainProfileName;
+        this.terrainProfile = TerrainProfile.bySerializedName(terrainProfileName);
     }
 
     public int getTerrainSchema() {
@@ -65,7 +67,7 @@ public final class CavesNotCliffsWorldData {
                 tag.getString(BASE_TYPE_KEY),
                 tag.getString(BASE_CLASS_KEY),
                 tag.getString(OPTIONS_KEY),
-                TerrainProfile.bySerializedName(tag.getString(PROFILE_KEY)));
+                tag.getString(PROFILE_KEY));
     }
 
     public static CavesNotCliffsWorldData writeLegacy(WorldInfo worldInfo) {
@@ -92,7 +94,36 @@ public final class CavesNotCliffsWorldData {
         dimensionData.setTag(ROOT_KEY, tag);
         worldInfo.setDimensionData(0, dimensionData);
         return new CavesNotCliffsWorldData(schema, baseType.getName(),
-                baseType.getClass().getName(), options, profile);
+                baseType.getClass().getName(), options, profile.getSerializedName());
+    }
+
+    /**
+     * Verifies that the immutable level.dat contract still selects this exact generator. A saved
+     * field is never silently replaced with today's inferred wrapper mapping, because doing so can
+     * create a terrain seam in an existing world.
+     */
+    public void validateGeneratorContract(int expectedSchema, WorldType expectedBaseType,
+            TerrainProfile expectedProfile) {
+        if (terrainSchema != expectedSchema) {
+            throw mismatch("terrain schema", Integer.toString(terrainSchema),
+                    Integer.toString(expectedSchema));
+        }
+        if (!expectedBaseType.getName().equals(baseTypeName)) {
+            throw mismatch("base world type", baseTypeName, expectedBaseType.getName());
+        }
+        String expectedClass = expectedBaseType.getClass().getName();
+        if (!expectedClass.equals(baseTypeClass)) {
+            throw mismatch("base world type class", baseTypeClass, expectedClass);
+        }
+        String expectedProfileName = expectedProfile.getSerializedName();
+        if (!expectedProfileName.equals(terrainProfileName)) {
+            throw mismatch("terrain profile", terrainProfileName, expectedProfileName);
+        }
+    }
+
+    private static IllegalStateException mismatch(String field, String saved, String expected) {
+        return new IllegalStateException("Saved Caves Not Cliffs " + field + " '" + saved
+                + "' does not match the registered generator contract '" + expected + "'");
     }
 
     private static String safeOptions(String options) {
