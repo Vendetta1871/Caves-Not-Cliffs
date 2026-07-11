@@ -901,5 +901,107 @@
   "block.spore_blossom.fall": {"sounds":["cavesnotcliffs:block/spore_blossom/step1","cavesnotcliffs:block/spore_blossom/step2","cavesnotcliffs:block/spore_blossom/step3","cavesnotcliffs:block/spore_blossom/step4","cavesnotcliffs:block/spore_blossom/step5","cavesnotcliffs:block/spore_blossom/step6"]},
   "block.spore_blossom.hit": {"sounds":["cavesnotcliffs:block/spore_blossom/step1","cavesnotcliffs:block/spore_blossom/step2","cavesnotcliffs:block/spore_blossom/step3","cavesnotcliffs:block/spore_blossom/step4","cavesnotcliffs:block/spore_blossom/step5","cavesnotcliffs:block/spore_blossom/step6"],"subtitle":"subtitles.block.generic.hit"},
   "block.spore_blossom.place": {"sounds":["cavesnotcliffs:block/spore_blossom/break1","cavesnotcliffs:block/spore_blossom/break2","cavesnotcliffs:block/spore_blossom/break3","cavesnotcliffs:block/spore_blossom/break4","cavesnotcliffs:block/spore_blossom/break5"],"subtitle":"subtitles.block.generic.place"},
-  "block.spore_blossom.step": {"sounds":["cavesnotcliffs:block/spore_blossom/step1","cavesnotcliffs:block/spore_blossom/step2","cavesnotcliffs:block/spore_blossom/step3","cavesnotcliffs:block/spore_blossom/step4","cavesnotcliffs:block/spore_blossom/step5","cavesnotcliffs:block/spore_blossom/step6"],"subtitle":"subtitles.block.generic.footsteps"}
+  "block.spore_blossom.step": {"sounds":["cavesnotcliffs:block/spore_blossom/step1","cavesnotcliffs:block/spore_blossom/step2","cavesnotcliffs:block/spore_blossom/step3","cavesnotcliffs:block/spore_blossom/step4","cavesnotcliffs:block/spore_blossom/step5","cavesnotcliffs:block/spore_blossom/step6"],"subtitle":"subtitles.block.generic.footsteps"},
+  "block.beehive.drip": {
+    "sounds": [
+      { "attenuation_distance": 8, "name": "cavesnotcliffs:block/beehive/drip1", "pitch": 0.7, "volume": 0.3 },
+      { "attenuation_distance": 8, "name": "cavesnotcliffs:block/beehive/drip1", "pitch": 0.9, "volume": 0.3 },
+      { "attenuation_distance": 8, "name": "cavesnotcliffs:block/beehive/drip2", "pitch": 0.7, "volume": 0.3 },
+      { "attenuation_distance": 8, "name": "cavesnotcliffs:block/beehive/drip2", "pitch": 0.9, "volume": 0.3 },
+      { "attenuation_distance": 8, "name": "cavesnotcliffs:block/beehive/drip3", "pitch": 0.7, "volume": 0.3 },
+      { "attenuation_distance": 8, "name": "cavesnotcliffs:block/beehive/drip3", "pitch": 0.9, "volume": 0.3 },
+      { "attenuation_distance": 8, "name": "cavesnotcliffs:block/beehive/drip4", "pitch": 0.7, "volume": 0.3 },
+      { "attenuation_distance": 8, "name": "cavesnotcliffs:block/beehive/drip4", "pitch": 0.9, "volume": 0.3 },
+      { "attenuation_distance": 8, "name": "cavesnotcliffs:block/beehive/drip5", "pitch": 0.7, "volume": 0.3 },
+      { "attenuation_distance": 8, "name": "cavesnotcliffs:block/beehive/drip5", "pitch": 0.9, "volume": 0.3 },
+      { "attenuation_distance": 8, "name": "cavesnotcliffs:block/beehive/drip6", "pitch": 0.7, "volume": 0.3 },
+      { "attenuation_distance": 8, "name": "cavesnotcliffs:block/beehive/drip6", "pitch": 0.9, "volume": 0.3 }
+    ],
+    "subtitle": "subtitles.block.beehive.drip"
+  },
+  "block.beehive.enter": {
+    "sounds": [
+      { "attenuation_distance": 14, "name": "cavesnotcliffs:block/beehive/enter", "pitch": 0.7 },
+      { "attenuation_distance": 14, "name": "cavesnotcliffs:block/beehive/enter", "pitch": 0.8 }
+    ],
+    "subtitle": "subtitles.block.beehive.enter"
+  },
+  "block.beehive.exit": {
+    "sounds": [
+      { "attenuation_distance": 14, "name": "cavesnotcliffs:block/beehive/exit" },
+      { "attenuation_distance": 14, "name": "cavesnotcliffs:block/beehive/exit", "pitch": 0.9 },
+      { "attenuation_distance": 14, "name": "cavesnotcliffs:block/beehive/exit", "pitch": 1.1 }
+    ],
+    "subtitle": "subtitles.block.beehive.exit"
+  },
+  "block.beehive.shear": {
+    "sounds": [
+      { "name": "cavesnotcliffs:block/beehive/shear", "volume": 0.8 },
+      { "name": "cavesnotcliffs:block/beehive/shear", "pitch": 0.8, "volume": 0.8 },
+      { "name": "cavesnotcliffs:block/beehive/shear", "pitch": 0.9, "volume": 0.8 }
+    ],
+    "subtitle": "subtitles.block.beehive.shear"
+  },
+  "block.beehive.work": {
+    "sounds": [
+      { "attenuation_distance": 12, "name": "cavesnotcliffs:block/beehive/work1", "volume": 0.6 },
+      { "attenuation_distance": 12, "name": "cavesnotcliffs:block/beehive/work2", "volume": 0.6 },
+      { "attenuation_distance": 12, "name": "cavesnotcliffs:block/beehive/work3", "volume": 0.6 },
+      { "attenuation_distance": 12, "name": "cavesnotcliffs:block/beehive/work4", "volume": 0.6 }
+    ],
+    "subtitle": "subtitles.block.beehive.work"
+  },
+  "entity.bee.death": {
+    "sounds": [
+      "cavesnotcliffs:mob/bee/death1",
+      "cavesnotcliffs:mob/bee/death2"
+    ],
+    "subtitle": "subtitles.entity.bee.death"
+  },
+  "entity.bee.hurt": {
+    "sounds": [
+      "cavesnotcliffs:mob/bee/hurt1",
+      { "name": "cavesnotcliffs:mob/bee/hurt1", "pitch": 1.2 },
+      "cavesnotcliffs:mob/bee/hurt2",
+      { "name": "cavesnotcliffs:mob/bee/hurt2", "pitch": 1.2 },
+      "cavesnotcliffs:mob/bee/hurt3",
+      { "name": "cavesnotcliffs:mob/bee/hurt3", "pitch": 1.2 }
+    ],
+    "subtitle": "subtitles.entity.bee.hurt"
+  },
+  "entity.bee.loop": {
+    "sounds": [
+      { "attenuation_distance": 6, "name": "cavesnotcliffs:mob/bee/loop1", "volume": 0.6 },
+      { "attenuation_distance": 6, "name": "cavesnotcliffs:mob/bee/loop2", "volume": 0.6 },
+      { "attenuation_distance": 6, "name": "cavesnotcliffs:mob/bee/loop3", "volume": 0.65 },
+      { "attenuation_distance": 6, "name": "cavesnotcliffs:mob/bee/loop4", "volume": 0.65 },
+      { "attenuation_distance": 6, "name": "cavesnotcliffs:mob/bee/loop5", "volume": 0.7 },
+      { "attenuation_distance": 6, "name": "cavesnotcliffs:mob/bee/loop5", "volume": 0.75 }
+    ],
+    "subtitle": "subtitles.entity.bee.loop"
+  },
+  "entity.bee.loop_aggressive": {
+    "sounds": [
+      { "attenuation_distance": 10, "name": "cavesnotcliffs:mob/bee/aggressive1", "volume": 0.8 },
+      { "attenuation_distance": 10, "name": "cavesnotcliffs:mob/bee/aggressive2", "volume": 0.8 },
+      { "attenuation_distance": 10, "name": "cavesnotcliffs:mob/bee/aggressive3", "volume": 0.8 }
+    ],
+    "subtitle": "subtitles.entity.bee.loop_aggressive"
+  },
+  "entity.bee.pollinate": {
+    "sounds": [
+      { "attenuation_distance": 12, "name": "cavesnotcliffs:mob/bee/pollinate1", "volume": 0.8 },
+      { "attenuation_distance": 12, "name": "cavesnotcliffs:mob/bee/pollinate2", "volume": 0.8 },
+      { "attenuation_distance": 12, "name": "cavesnotcliffs:mob/bee/pollinate3", "volume": 0.8 },
+      { "attenuation_distance": 12, "name": "cavesnotcliffs:mob/bee/pollinate4", "volume": 0.8 }
+    ],
+    "subtitle": "subtitles.entity.bee.pollinate"
+  },
+  "entity.bee.sting": {
+    "sounds": [
+      "cavesnotcliffs:mob/bee/sting",
+      { "name": "cavesnotcliffs:mob/bee/sting", "pitch": 0.8 }
+    ],
+    "subtitle": "subtitles.entity.bee.sting"
+  }
 }

@@ -1,0 +1,20 @@
+{
+  "type": "forge:ore_shaped",
+  "pattern": [
+    "PPP",
+    "HHH",
+    "PPP"
+  ],
+  "key": {
+    "P": {
+      "type": "forge:ore_dict",
+      "ore": "plankWood"
+    },
+    "H": {
+      "item": "cavesnotcliffs:honeycomb"
+    }
+  },
+  "result": {
+    "item": "cavesnotcliffs:beehive"
+  }
+}

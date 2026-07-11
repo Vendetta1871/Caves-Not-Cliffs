@@ -1,0 +1,10 @@
+{
+  "parent": "cavesnotcliffs:block/orientable_with_bottom",
+  "textures": {
+    "top": "cavesnotcliffs:blocks/beehive_end",
+    "bottom": "cavesnotcliffs:blocks/beehive_end",
+    "side": "cavesnotcliffs:blocks/beehive_side",
+    "front": "cavesnotcliffs:blocks/beehive_front",
+    "particle": "cavesnotcliffs:blocks/beehive_side"
+  }
+}

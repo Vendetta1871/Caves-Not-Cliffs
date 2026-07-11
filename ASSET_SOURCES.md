@@ -127,3 +127,14 @@ blockstates reuse the matching canonical model exactly.
 - Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
 - Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
 - Asset base: <https://resources.download.minecraft.net/>
+
+The four bee renderer textures, unused canonical stinger atlas, bee-nest/beehive block textures,
+honeycomb item texture, and all 31 bee and beehive Ogg Vorbis files are unmodified Minecraft Java
+1.18.2 assets. Entity geometry, block models, blockstate rotations, and sound definitions preserve
+the official 1.18.2 values, with only Java 1.12.2 resource-path syntax and a hidden full-honey block
+state used to bridge the legacy four-bit metadata limit.
+
+- Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
+- Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
+- Asset base: <https://resources.download.minecraft.net/>
