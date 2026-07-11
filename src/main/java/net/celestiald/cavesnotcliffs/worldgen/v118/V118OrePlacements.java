@@ -50,7 +50,14 @@ public final class V118OrePlacements {
         int originZ = chunkZ << 4;
         long decorationSeed = random.setDecorationSeed(worldSeed, originX, originZ);
         EnumMap<PlacedOre, Boolean> results = new EnumMap<PlacedOre, Boolean>(PlacedOre.class);
+        boolean softDisksDecorated = false;
         for (PlacedOre feature : PlacedOre.values()) {
+            if (!softDisksDecorated && feature.decorationStep == UNDERGROUND_ORES_STEP
+                    && feature.globalFeatureIndex > 30) {
+                V118DiskPlacements.decorate(world, decorationSeed, chunkX, chunkZ,
+                        regionBiomes, random);
+                softDisksDecorated = true;
+            }
             if (!feature.belongsToAny(regionBiomes)) {
                 continue;
             }
@@ -539,7 +546,8 @@ public final class V118OrePlacements {
         }
     }
 
-    public interface WorldAccess extends V118OreFeature.WorldAccess {
+    public interface WorldAccess extends V118OreFeature.WorldAccess,
+            V118DiskPlacements.WorldAccess {
         V118Biome biomeAt(int blockX, int blockY, int blockZ);
     }
 

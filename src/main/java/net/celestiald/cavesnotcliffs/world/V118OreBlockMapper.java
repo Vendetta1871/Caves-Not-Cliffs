@@ -20,6 +20,7 @@ final class V118OreBlockMapper {
     static V118OreBlockMapper fromRegisteredBlocks() {
         IBlockState[] states = new IBlockState[V118OreMaterial.values().length];
         put(states, V118OreMaterial.AIR, Blocks.AIR.getDefaultState());
+        put(states, V118OreMaterial.WATER, Blocks.WATER.getDefaultState());
         put(states, V118OreMaterial.STONE, Blocks.STONE.getDefaultState());
         put(states, V118OreMaterial.DEEPSLATE, registered("deepslate"));
         put(states, V118OreMaterial.TUFF, registered("tuff"));
@@ -29,6 +30,9 @@ final class V118OreBlockMapper {
         put(states, V118OreMaterial.DIRT, Blocks.DIRT.getDefaultState());
         put(states, V118OreMaterial.GRAVEL, Blocks.GRAVEL.getDefaultState());
         put(states, V118OreMaterial.CLAY, Blocks.CLAY.getDefaultState());
+        put(states, V118OreMaterial.GRASS_BLOCK, Blocks.GRASS.getDefaultState());
+        put(states, V118OreMaterial.SAND, Blocks.SAND.getDefaultState());
+        put(states, V118OreMaterial.SANDSTONE, Blocks.SANDSTONE.getDefaultState());
         put(states, V118OreMaterial.COAL_ORE, Blocks.COAL_ORE.getDefaultState());
         put(states, V118OreMaterial.DEEPSLATE_COAL_ORE, registered("deepslate_coal_ore"));
         put(states, V118OreMaterial.IRON_ORE, Blocks.IRON_ORE.getDefaultState());
@@ -81,6 +85,9 @@ final class V118OreBlockMapper {
     V118OreMaterial materialFor(IBlockState state) {
         if (state == null || state.getBlock() == Blocks.AIR) {
             return V118OreMaterial.AIR;
+        }
+        if (state.getBlock() == Blocks.WATER || state.getBlock() == Blocks.FLOWING_WATER) {
+            return V118OreMaterial.WATER;
         }
         if (state.getBlock() == Blocks.STONE) {
             int metadata = state.getValue(BlockStone.VARIANT).getMetadata();

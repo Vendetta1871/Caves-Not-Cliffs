@@ -8,6 +8,7 @@ package net.celestiald.cavesnotcliffs.worldgen.v118;
  */
 public enum V118OreMaterial {
     AIR,
+    WATER,
     STONE,
     DEEPSLATE,
     TUFF,
@@ -17,6 +18,9 @@ public enum V118OreMaterial {
     DIRT,
     GRAVEL,
     CLAY,
+    GRASS_BLOCK,
+    SAND,
+    SANDSTONE,
     COAL_ORE,
     DEEPSLATE_COAL_ORE,
     IRON_ORE,

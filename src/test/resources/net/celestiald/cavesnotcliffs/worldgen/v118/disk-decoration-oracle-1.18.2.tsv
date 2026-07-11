@@ -1,0 +1,7 @@
+# official Minecraft Java 1.18.2 soft disk decoration oracle
+decorate	0	0	0	plains	72	sand=70;sandstone=2	e19333d981d8ccb67d8daeba545f9c962d5bf520dd0cac7fec1df89341c3f0bc
+decorate	1	-1	0	swamp	0		e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+decorate	-1	0	-1	lush_caves	158	gravel=17;sand=134;sandstone=7	c4053812780980048d1e3f358dc9b92a2cc8beadcf7644576ba2ad0f4ceec6f6
+decorate	123456789	-1	-1	meadow	67	sand=65;sandstone=2	7c9ca4d6ac6107fe61ad1e1a3ecddd92315689bfaff434b05a7ee1d8d2d37104
+decorate	-9223372036854775808	1	-2	plains	30	clay=1;sand=28;sandstone=1	9b614b4247fea4038f385267303a607f0680b51ad47592e6dddcd604411a0a8b
+decorate	9223372036854775807	-33	17	swamp	0		e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
