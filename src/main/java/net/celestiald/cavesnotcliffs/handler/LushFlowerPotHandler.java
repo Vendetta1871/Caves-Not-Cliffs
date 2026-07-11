@@ -7,6 +7,8 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.stats.StatList;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.TileEntityFlowerPot;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.world.World;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -24,6 +26,9 @@ public final class LushFlowerPotHandler {
     public static void onRightClickPot(PlayerInteractEvent.RightClickBlock event) {
         World world = event.getWorld();
         if (world.getBlockState(event.getPos()).getBlock() != Blocks.FLOWER_POT) {
+            return;
+        }
+        if (!isEmptyFlowerPot(world.getTileEntity(event.getPos()))) {
             return;
         }
         ItemStack held = event.getItemStack();
@@ -53,5 +58,14 @@ public final class LushFlowerPotHandler {
                 held.shrink(1);
             }
         }
+    }
+
+    /**
+     * Vanilla stores a flower pot's contents in its tile entity rather than block state. Missing
+     * or unexpected tile data must fail closed so an azalea interaction can never erase contents.
+     */
+    static boolean isEmptyFlowerPot(TileEntity tileEntity) {
+        return tileEntity instanceof TileEntityFlowerPot
+                && ((TileEntityFlowerPot) tileEntity).getFlowerItemStack().isEmpty();
     }
 }
