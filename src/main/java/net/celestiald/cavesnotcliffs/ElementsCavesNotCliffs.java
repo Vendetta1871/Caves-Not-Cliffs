@@ -76,7 +76,18 @@ public class ElementsCavesNotCliffs implements IFuelHandler, IWorldGenerator {
 
 	public void registerSounds(RegistryEvent.Register<net.minecraft.util.SoundEvent> event) {
 		for (Map.Entry<ResourceLocation, net.minecraft.util.SoundEvent> sound : sounds.entrySet())
-			event.getRegistry().register(sound.getValue().setRegistryName(sound.getKey()));
+			event.getRegistry().register(prepareSoundRegistration(sound.getKey(), sound.getValue()));
+	}
+
+	static net.minecraft.util.SoundEvent prepareSoundRegistration(ResourceLocation expected,
+			net.minecraft.util.SoundEvent sound) {
+		ResourceLocation registered = sound.getRegistryName();
+		if (registered == null)
+			return sound.setRegistryName(expected);
+		if (!expected.equals(registered))
+			throw new IllegalStateException("Sound registry name mismatch: expected " + expected
+					+ " but was " + registered);
+		return sound;
 	}
 
 	@Override
