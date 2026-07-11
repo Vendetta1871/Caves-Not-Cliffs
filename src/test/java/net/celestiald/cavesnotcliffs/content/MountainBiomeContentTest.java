@@ -5,7 +5,13 @@ import net.celestiald.cavesnotcliffs.content.MountainBiomeContent.Definition;
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.init.Bootstrap;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.gen.feature.WorldGenBigTree;
+import net.minecraft.world.gen.feature.WorldGenBirchTree;
+import net.minecraft.world.gen.feature.WorldGenTaiga1;
+import net.minecraft.world.gen.feature.WorldGenTaiga2;
 import net.minecraftforge.common.BiomeDictionary;
+import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -14,7 +20,10 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.lang.reflect.Method;
+import java.util.Random;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
@@ -41,6 +50,19 @@ public class MountainBiomeContentTest {
             assertSame(biome, MountainBiomeContent.biomeFor(definition.registryName()));
             assertTrue(MountainBiomeContent.isMountainBiome(definition.virtualBiome()));
         }
+    }
+
+    @Test
+    public void forgeRegistrySubscriberPublishesAllSixInOfficialOrder() throws Exception {
+        Biome[] expected = new Biome[Definition.values().length];
+        for (Definition definition : Definition.values()) {
+            expected[definition.ordinal()] = definition.biome();
+        }
+        assertArrayEquals(expected, MountainBiomeContent.registrationOrder());
+
+        Method subscriber = MountainBiomeContent.class.getDeclaredMethod("registerBiomes",
+            RegistryEvent.Register.class);
+        assertNotNull(subscriber.getAnnotation(SubscribeEvent.class));
     }
 
     @Test
@@ -210,7 +232,7 @@ public class MountainBiomeContentTest {
 
         assertEquals(0, Definition.MEADOW.biome().decorator.treesPerChunk);
         assertEquals(0.01F, Definition.MEADOW.biome().decorator.extraTreeChance, 0.0F);
-        assertEquals(1, Definition.MEADOW.biome().decorator.flowersPerChunk);
+        assertEquals(0, Definition.MEADOW.biome().decorator.flowersPerChunk);
         assertEquals(10, Definition.GROVE.biome().decorator.treesPerChunk);
         assertEquals(0.1F, Definition.GROVE.biome().decorator.extraTreeChance, 0.0F);
 
@@ -221,6 +243,18 @@ public class MountainBiomeContentTest {
             assertEquals(0.0F, definition.biome().decorator.extraTreeChance, 0.0F);
             assertEquals(0, definition.biome().decorator.flowersPerChunk);
         }
+    }
+
+    @Test
+    public void representableMeadowAndGroveTreeSelectorsMatchOfficialWeights() {
+        assertEquals(WorldGenBigTree.class, Definition.MEADOW.biome()
+            .getRandomTreeFeature(new FixedFloatRandom(0.499999F)).getClass());
+        assertEquals(WorldGenBirchTree.class, Definition.MEADOW.biome()
+            .getRandomTreeFeature(new FixedFloatRandom(0.5F)).getClass());
+        assertEquals(WorldGenTaiga1.class, Definition.GROVE.biome()
+            .getRandomTreeFeature(new FixedFloatRandom(0.3333333F)).getClass());
+        assertEquals(WorldGenTaiga2.class, Definition.GROVE.biome()
+            .getRandomTreeFeature(new FixedFloatRandom(0.33333334F)).getClass());
     }
 
     private static List<DecorationContract> contracts(DecorationContract... values) {
@@ -246,5 +280,18 @@ public class MountainBiomeContentTest {
                 + entry.minGroupCount + ":" + entry.maxGroupCount);
         }
         return signatures;
+    }
+
+    private static final class FixedFloatRandom extends Random {
+        private final float value;
+
+        FixedFloatRandom(float value) {
+            this.value = value;
+        }
+
+        @Override
+        public float nextFloat() {
+            return value;
+        }
     }
 }

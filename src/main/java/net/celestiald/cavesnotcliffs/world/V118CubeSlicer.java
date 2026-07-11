@@ -103,7 +103,7 @@ final class V118CubeSlicer {
         }
         for (int localZ = 0; localZ < TerrainColumn.WIDTH; ++localZ) {
             for (int localX = 0; localX < TerrainColumn.WIDTH; ++localX) {
-                Biome biome = biomes.biomeFor(column.surfaceBiomeId(localX, localZ));
+                Biome biome = projectedSurfaceBiome(column, localX, localZ);
                 int biomeId = Biome.getIdForBiome(biome);
                 if (biomeId < 0 || biomeId > 255) {
                     throw new IllegalStateException("Projected biome id does not fit the legacy "
@@ -112,6 +112,14 @@ final class V118CubeSlicer {
                 legacyBiomeArray[localZ * TerrainColumn.WIDTH + localX] = (byte) biomeId;
             }
         }
+    }
+
+    /** Registry projection used by the legacy chunk plane before byte-ID serialization. */
+    Biome projectedSurfaceBiome(TerrainColumn column, int localX, int localZ) {
+        if (column == null) {
+            throw new NullPointerException("column");
+        }
+        return biomes.biomeFor(column.surfaceBiomeId(localX, localZ));
     }
 
     void forEachScheduledFluid(TerrainColumn column, int cubeY, FluidConsumer consumer) {

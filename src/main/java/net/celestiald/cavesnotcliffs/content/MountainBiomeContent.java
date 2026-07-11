@@ -229,17 +229,21 @@ public final class MountainBiomeContent {
 
     @SubscribeEvent
     public static void registerBiomes(RegistryEvent.Register<Biome> event) {
-        Biome[] biomes = new Biome[Definition.values().length];
-        for (Definition definition : Definition.values()) {
-            biomes[definition.ordinal()] = definition.biome();
-        }
-        event.getRegistry().registerAll(biomes);
+        event.getRegistry().registerAll(registrationOrder());
 
         for (Definition definition : Definition.values()) {
             Set<BiomeDictionary.Type> types = definition.dictionaryTypes();
             BiomeDictionary.addTypes(definition.biome(),
                 types.toArray(new BiomeDictionary.Type[types.size()]));
         }
+    }
+
+    static Biome[] registrationOrder() {
+        Biome[] biomes = new Biome[Definition.values().length];
+        for (Definition definition : Definition.values()) {
+            biomes[definition.ordinal()] = definition.biome();
+        }
+        return biomes;
     }
 
     public static Biome biomeFor(V118Biome biome) {
@@ -382,7 +386,6 @@ public final class MountainBiomeContent {
 
             if (definition.virtualBiome() == V118Biome.MEADOW) {
                 decorator.extraTreeChance = 0.01F;
-                decorator.flowersPerChunk = 1;
             } else if (definition.virtualBiome() == V118Biome.GROVE) {
                 decorator.treesPerChunk = 10;
                 decorator.extraTreeChance = 0.1F;

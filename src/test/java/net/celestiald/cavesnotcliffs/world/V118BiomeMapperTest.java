@@ -1,5 +1,7 @@
 package net.celestiald.cavesnotcliffs.world;
 
+import net.celestiald.cavesnotcliffs.content.MountainBiomeContent;
+import net.celestiald.cavesnotcliffs.content.MountainBiomeContent.Definition;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.minecraft.init.Bootstrap;
 import net.minecraft.world.biome.Biome;
@@ -19,7 +21,7 @@ public class V118BiomeMapperTest {
     }
 
     @Test
-    public void documentsCompleteStableJava118ToJava112AliasTable() {
+    public void documentsCompleteStableJava118ToJava112ProjectionTable() {
         Object[][] aliases = {
             {V118Biome.BADLANDS, "minecraft:mesa"},
             {V118Biome.BAMBOO_JUNGLE, "minecraft:jungle"},
@@ -37,15 +39,15 @@ public class V118BiomeMapperTest {
             {V118Biome.FLOWER_FOREST, "minecraft:mutated_forest"},
             {V118Biome.FOREST, "minecraft:forest"},
             {V118Biome.FROZEN_OCEAN, "minecraft:frozen_ocean"},
-            {V118Biome.FROZEN_PEAKS, "minecraft:ice_mountains"},
+            {V118Biome.FROZEN_PEAKS, "cavesnotcliffs:frozen_peaks"},
             {V118Biome.FROZEN_RIVER, "minecraft:frozen_river"},
-            {V118Biome.GROVE, "minecraft:taiga_cold"},
+            {V118Biome.GROVE, "cavesnotcliffs:grove"},
             {V118Biome.ICE_SPIKES, "minecraft:mutated_ice_flats"},
-            {V118Biome.JAGGED_PEAKS, "minecraft:extreme_hills"},
+            {V118Biome.JAGGED_PEAKS, "cavesnotcliffs:jagged_peaks"},
             {V118Biome.JUNGLE, "minecraft:jungle"},
             {V118Biome.LUKEWARM_OCEAN, "minecraft:ocean"},
             {V118Biome.LUSH_CAVES, "minecraft:forest"},
-            {V118Biome.MEADOW, "minecraft:plains"},
+            {V118Biome.MEADOW, "cavesnotcliffs:meadow"},
             {V118Biome.MUSHROOM_FIELDS, "minecraft:mushroom_island"},
             {V118Biome.OCEAN, "minecraft:ocean"},
             {V118Biome.OLD_GROWTH_BIRCH_FOREST, "minecraft:mutated_birch_forest"},
@@ -57,10 +59,10 @@ public class V118BiomeMapperTest {
             {V118Biome.SAVANNA_PLATEAU, "minecraft:savanna_rock"},
             {V118Biome.SNOWY_BEACH, "minecraft:cold_beach"},
             {V118Biome.SNOWY_PLAINS, "minecraft:ice_flats"},
-            {V118Biome.SNOWY_SLOPES, "minecraft:ice_mountains"},
+            {V118Biome.SNOWY_SLOPES, "cavesnotcliffs:snowy_slopes"},
             {V118Biome.SNOWY_TAIGA, "minecraft:taiga_cold"},
             {V118Biome.SPARSE_JUNGLE, "minecraft:jungle_edge"},
-            {V118Biome.STONY_PEAKS, "minecraft:extreme_hills"},
+            {V118Biome.STONY_PEAKS, "cavesnotcliffs:stony_peaks"},
             {V118Biome.STONY_SHORE, "minecraft:stone_beach"},
             {V118Biome.SUNFLOWER_PLAINS, "minecraft:mutated_plains"},
             {V118Biome.SWAMP, "minecraft:swampland"},
@@ -77,21 +79,46 @@ public class V118BiomeMapperTest {
         for (Object[] alias : aliases) {
             V118Biome biome = (V118Biome) alias[0];
             assertTrue("duplicate fixture entry for " + biome, covered.add(biome));
-            assertEquals(alias[1], V118BiomeMapper.legacyId(biome));
+            assertEquals(alias[1], V118BiomeMapper.registryId(biome));
+            assertEquals("compatibility accessor", alias[1], V118BiomeMapper.legacyId(biome));
         }
         assertEquals(EnumSet.allOf(V118Biome.class), covered);
     }
 
     @Test
-    public void resolvesEveryAliasToARegisteredByteSizedBiome() {
-        V118BiomeMapper mapper = V118BiomeMapper.fromRegisteredBiomes();
+    public void resolvesEveryProjectionToItsRegisteredBiomeContract() {
+        V118BiomeMapper mapper = mapperWithMountainRegistry();
         for (V118Biome biome : V118Biome.values()) {
             Biome resolved = mapper.biomeFor(biome);
             assertNotNull(resolved);
             int id = Biome.getIdForBiome(resolved);
-            assertTrue("legacy chunk biome id must fit one byte: " + id,
-                id >= 0 && id <= 255);
+            if (MountainBiomeContent.isMountainBiome(biome)) {
+                // Forge assigns the numeric ID during the real Register<Biome> event. The
+                // resolver seam keeps this unit test out of the intentionally locked registry.
+                assertEquals(V118BiomeMapper.registryId(biome),
+                    resolved.getRegistryName().toString());
+            } else {
+                assertTrue("legacy chunk biome id must fit one byte: " + id,
+                    id >= 0 && id <= 255);
+            }
             assertEquals(resolved, mapper.biomeFor(biome.ordinal()));
         }
+    }
+
+    @Test
+    public void nativeMountainRowsResolveToTheirCanonicalRegisteredInstances() {
+        V118BiomeMapper mapper = mapperWithMountainRegistry();
+        for (Definition definition : Definition.values()) {
+            assertEquals(definition.registryName().toString(),
+                V118BiomeMapper.registryId(definition.virtualBiome()));
+            assertEquals(definition.biome(), mapper.biomeFor(definition.virtualBiome()));
+        }
+    }
+
+    private static V118BiomeMapper mapperWithMountainRegistry() {
+        return V118BiomeMapper.fromResolver(location -> {
+            Biome mountain = MountainBiomeContent.biomeFor(location);
+            return mountain == null ? Biome.REGISTRY.getObject(location) : mountain;
+        });
     }
 }

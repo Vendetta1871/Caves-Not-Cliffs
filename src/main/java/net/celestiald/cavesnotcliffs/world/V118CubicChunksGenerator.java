@@ -94,6 +94,11 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         return columns.biomeAt(blockX, blockY, blockZ);
     }
 
+    /** Returns the registered 1.12 projection used for spawning, colors, and cube storage. */
+    public Biome getRegisteredVirtualBiome(int blockX, int blockY, int blockZ) {
+        return biomes.biomeFor(getVirtualBiome(blockX, blockY, blockZ));
+    }
+
     public static V118CubicChunksGenerator forWorld(World world) {
         if (world == null) {
             return null;
@@ -190,7 +195,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
 
     @Override
     public List<Biome.SpawnListEntry> getPossibleCreatures(EnumCreatureType type, BlockPos pos) {
-        return biomes.biomeFor(getVirtualBiome(pos.getX(), pos.getY(), pos.getZ()))
+        return getRegisteredVirtualBiome(pos.getX(), pos.getY(), pos.getZ())
             .getSpawnableList(type);
     }
 
