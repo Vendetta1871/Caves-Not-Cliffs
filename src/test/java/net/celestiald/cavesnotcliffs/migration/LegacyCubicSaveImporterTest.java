@@ -23,6 +23,7 @@ public class LegacyCubicSaveImporterTest {
     @Test
     public void commitsOnceAndLeavesCubicRollbackSourcesUntouched() throws Exception {
         Path world = temporary.newFolder("world").toPath();
+        writeCubicMetadata(world);
         CubicDimensionStagerTest.writeExtension(
                 world.resolve("region2d/0.0.2dr.ext"), 0,
                 CubicDimensionStagerTest.column(0, 0));
@@ -50,6 +51,7 @@ public class LegacyCubicSaveImporterTest {
     @Test
     public void blocksStartupForAnIncompleteJournal() throws Exception {
         Path world = temporary.newFolder("incomplete").toPath();
+        writeCubicMetadata(world);
         Path source = world.resolve("region2d/0.0.2dr");
         Files.createDirectories(source.getParent());
         Files.write(source, "source".getBytes(StandardCharsets.UTF_8));
@@ -70,6 +72,7 @@ public class LegacyCubicSaveImporterTest {
     @Test
     public void neverOverwritesPreexistingFiniteRegionStorage() throws Exception {
         Path world = temporary.newFolder("existing-target").toPath();
+        writeCubicMetadata(world);
         Path source = world.resolve("region2d/source-marker");
         Files.createDirectories(source.getParent());
         Files.write(source, "source".getBytes(StandardCharsets.UTF_8));
@@ -82,5 +85,38 @@ public class LegacyCubicSaveImporterTest {
             assertTrue(expected.getMessage().contains("Refusing to overwrite existing finite region"));
         }
         assertFalse(Files.exists(world.resolve(CubicImportJournal.FILE_NAME)));
+    }
+
+    @Test
+    public void verifiesCommittedOutputHashesBeforeMetadataCleanup() throws Exception {
+        Path world = temporary.newFolder("verified-output").toPath();
+        writeCubicMetadata(world);
+        CubicDimensionStagerTest.writeExtension(
+                world.resolve("region2d/0.0.2dr.ext"), 0,
+                CubicDimensionStagerTest.column(0, 0));
+        for (int cubeY = -4; cubeY < 20; cubeY++) {
+            CubicDimensionStagerTest.writeCube(world, 0, cubeY, 0,
+                    CubicDimensionStagerTest.cube(0, cubeY, 0, true, true));
+        }
+        assertTrue(LegacyCubicSaveImporter.importWorld(
+                world, CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L));
+        CubicImportJournal journal = CubicImportJournal.read(
+                world.resolve(CubicImportJournal.FILE_NAME));
+        LegacyCubicSaveImporter.verifyCommittedTargets(world, journal, true);
+
+        Files.write(world.resolve("region/r.0.0.mca"), new byte[] {1},
+                java.nio.file.StandardOpenOption.APPEND);
+        try {
+            LegacyCubicSaveImporter.verifyCommittedTargets(world, journal, true);
+            fail("Expected changed output rejection");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains(
+                    "changed before legacy metadata cleanup"));
+        }
+    }
+
+    private static void writeCubicMetadata(Path world) throws IOException {
+        LegacyCubicDimensionMetadataTest.writeMetadata(world, true, -64, 320,
+                "cubicchunks:anvil3d", "cubicchunks:default");
     }
 }

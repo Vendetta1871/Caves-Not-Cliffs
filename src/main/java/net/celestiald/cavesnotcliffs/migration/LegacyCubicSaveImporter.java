@@ -24,10 +24,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Stream;
 
 /** Pre-world, one-time, transactional importer for draft-v2 CubicChunks saves. */
@@ -51,9 +49,11 @@ public final class LegacyCubicSaveImporter {
         }
 
         try {
-            List<Path> dimensions = discoverDimensions(worldRoot);
+            LegacyCubicDimensionMetadata.Result discovery = discoverDimensions(worldRoot);
+            List<Path> dimensions = discovery.getTrueDimensionRoots();
             List<CubicImportJournal.FileRecord> sources =
-                    CubicImportJournal.captureSources(worldRoot, dimensions);
+                    CubicImportJournal.captureSources(
+                            worldRoot, dimensions, discovery.getMetadataFiles());
             Path journalPath = worldRoot.resolve(CubicImportJournal.FILE_NAME);
             if (sources.isEmpty() && !Files.exists(journalPath)) {
                 return;
@@ -69,8 +69,24 @@ public final class LegacyCubicSaveImporter {
                         + "Caves Not Cliffs world. Refusing to generate finite chunks over it; restore "
                         + "CubicChunks or convert that world with its owning mod.");
             }
-            importWorld(worldRoot, terrainSchema, worldInfo.getWorldTotalTime(),
-                    dimensions, sources);
+            // Fail before committing finite regions if this CubicChunks version left metadata
+            // that the narrow, deterministic cleaner does not understand.
+            LegacyCubicLevelMetadata.Result metadata = LegacyCubicLevelMetadata.inspect(
+                    levelFile.toPath(), !Files.exists(journalPath));
+            boolean imported = importWorld(worldRoot, terrainSchema, worldInfo.getWorldTotalTime(),
+                    dimensions, discovery.getMetadataFiles(), sources);
+            if (metadata.changed() && !imported) {
+                verifyCommittedTargets(worldRoot, CubicImportJournal.read(journalPath), true);
+            }
+            LegacyCubicLevelMetadata.Result cleaned = LegacyCubicLevelMetadata.clean(
+                    levelFile.toPath());
+            if (cleaned.changed()) {
+                LOGGER.info("Removed {} CubicChunks registries, {} stale mod entries, and the "
+                                + "cubic-world flag={} from level.dat. The byte-identical original "
+                                + "is preserved as {}.",
+                        cleaned.getRemovedRegistries(), cleaned.getRemovedMods(),
+                        cleaned.removedWorldFlag(), LegacyCubicLevelMetadata.BACKUP_FILE_NAME);
+            }
         } catch (IOException exception) {
             throw new IllegalStateException("Caves Not Cliffs could not safely import legacy "
                     + "CubicChunks storage in " + worldRoot + ": " + exception.getMessage(), exception);
@@ -80,14 +96,18 @@ public final class LegacyCubicSaveImporter {
     static boolean importWorld(Path worldRoot, int terrainSchema, long lastUpdate)
             throws IOException {
         Path normalizedRoot = worldRoot.toAbsolutePath().normalize();
-        List<Path> dimensions = discoverDimensions(normalizedRoot);
+        LegacyCubicDimensionMetadata.Result discovery = discoverDimensions(normalizedRoot);
+        List<Path> dimensions = discovery.getTrueDimensionRoots();
         List<CubicImportJournal.FileRecord> sources =
-                CubicImportJournal.captureSources(normalizedRoot, dimensions);
-        return importWorld(normalizedRoot, terrainSchema, lastUpdate, dimensions, sources);
+                CubicImportJournal.captureSources(
+                        normalizedRoot, dimensions, discovery.getMetadataFiles());
+        return importWorld(normalizedRoot, terrainSchema, lastUpdate, dimensions,
+                discovery.getMetadataFiles(), sources);
     }
 
     private static boolean importWorld(Path worldRoot, int terrainSchema, long lastUpdate,
-            List<Path> dimensions, List<CubicImportJournal.FileRecord> sources) throws IOException {
+            List<Path> dimensions, List<Path> metadataFiles,
+            List<CubicImportJournal.FileRecord> sources) throws IOException {
         Path journalPath = worldRoot.resolve(CubicImportJournal.FILE_NAME);
         Path temporaryJournal = worldRoot.resolve(CubicImportJournal.TEMP_FILE_NAME);
         Path stagingRoot = worldRoot.resolve(STAGING_DIRECTORY);
@@ -145,7 +165,7 @@ public final class LegacyCubicSaveImporter {
                 CubicImportJournal.State.STAGED);
         journal.writeAtomic(journalPath);
         List<CubicImportJournal.FileRecord> sourcesAfterStaging =
-                CubicImportJournal.captureSources(worldRoot, dimensions);
+                CubicImportJournal.captureSources(worldRoot, dimensions, metadataFiles);
         if (!sources.equals(sourcesAfterStaging)) {
             throw new IOException("Cubic source files changed while staging; no output was committed");
         }
@@ -169,6 +189,7 @@ public final class LegacyCubicSaveImporter {
                     throw new IOException("The save filesystem cannot atomically commit dimension "
                             + name + "; source cubic storage remains untouched", exception);
                 }
+                CubicImportJournal.forceDirectoryBestEffort(dimension.target);
             }
             journal.markDimensionCommitted(name);
             journal.writeAtomic(journalPath);
@@ -194,28 +215,47 @@ public final class LegacyCubicSaveImporter {
 
     private static void verifyCommittedTargets(Path worldRoot, CubicImportJournal journal)
             throws IOException {
+        verifyCommittedTargets(worldRoot, journal, false);
+    }
+
+    static void verifyCommittedTargets(Path worldRoot, CubicImportJournal journal,
+            boolean verifyHashes) throws IOException {
         for (String name : journal.getDimensions()) {
             if (!journal.isDimensionCommitted(name)) {
                 throw new IOException("Committed cubic import journal still marks dimension "
                         + name + " incomplete");
             }
             List<CubicImportJournal.FileRecord> outputs = journal.getDimensionOutputs(name);
-            if (outputs.isEmpty()) {
-                continue;
-            }
             Path dimension = ".".equals(name) ? worldRoot : worldRoot.resolve(name).normalize();
             if (!dimension.startsWith(worldRoot)) {
                 throw new IOException("Committed cubic import journal dimension escapes the world root: "
                         + name);
             }
             Path targetRegion = dimension.resolve("region");
-            if (!Files.isDirectory(targetRegion)) {
+            if (outputs.isEmpty()) {
+                if (verifyHashes && Files.exists(targetRegion)
+                        && !CubicImportJournal.captureOutputs(
+                        dimension, targetRegion).isEmpty()) {
+                    throw new IOException("Committed finite region output is not recorded for "
+                            + name);
+                }
+                continue;
+            }
+            if (!Files.isDirectory(targetRegion) || Files.isSymbolicLink(targetRegion)) {
                 throw new IOException("Committed finite region directory is missing: " + targetRegion);
             }
             for (CubicImportJournal.FileRecord output : outputs) {
                 Path target = dimension.resolve(output.getPath()).normalize();
                 if (!target.startsWith(dimension) || !Files.isRegularFile(target)) {
                     throw new IOException("Committed finite region file is missing: " + target);
+                }
+            }
+            if (verifyHashes) {
+                List<CubicImportJournal.FileRecord> actual =
+                        CubicImportJournal.captureOutputs(dimension, targetRegion);
+                if (!outputs.equals(actual)) {
+                    throw new IOException("Committed finite region files changed before legacy "
+                            + "metadata cleanup for " + name);
                 }
             }
         }
@@ -282,31 +322,16 @@ public final class LegacyCubicSaveImporter {
         }
     }
 
-    private static List<Path> discoverDimensions(Path worldRoot) throws IOException {
-        if (!Files.isDirectory(worldRoot)) {
-            return Collections.emptyList();
+    private static LegacyCubicDimensionMetadata.Result discoverDimensions(Path worldRoot)
+            throws IOException {
+        LegacyCubicDimensionMetadata.Result result =
+                LegacyCubicDimensionMetadata.discoverAndValidate(worldRoot);
+        Path normalizedRoot = worldRoot.toAbsolutePath().normalize();
+        if (!result.getTrueDimensionRoots().contains(normalizedRoot)) {
+            throw new IOException("The Overworld is not marked as a supported -64..320 "
+                    + "CubicChunks dimension in data/cubicChunksData.dat");
         }
-        Set<Path> dimensions = new LinkedHashSet<Path>();
-        try (Stream<Path> stream = Files.walk(worldRoot, 6)) {
-            for (Path path : (Iterable<Path>) stream::iterator) {
-                Path name = path.getFileName();
-                if (name == null || !Files.isDirectory(path)) {
-                    continue;
-                }
-                String text = name.toString();
-                if ("region2d".equals(text) || "region3d".equals(text)) {
-                    Path dimension = path.getParent().toAbsolutePath().normalize();
-                    if (!dimension.startsWith(worldRoot)) {
-                        throw new IOException("Cubic dimension escapes the world root: " + dimension);
-                    }
-                    dimensions.add(dimension);
-                }
-            }
-        }
-        List<Path> ordered = new ArrayList<Path>(dimensions);
-        Collections.sort(ordered, Comparator.comparing(
-                dimension -> relativeDimension(worldRoot, dimension)));
-        return ordered;
+        return result;
     }
 
     private static String relativeDimension(Path worldRoot, Path dimension) {
