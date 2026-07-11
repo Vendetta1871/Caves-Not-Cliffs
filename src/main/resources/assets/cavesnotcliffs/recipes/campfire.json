@@ -1,0 +1,10 @@
+{
+  "type": "forge:ore_shaped",
+  "pattern": [" S ", "SCS", "LLL"],
+  "key": {
+    "L": {"type": "forge:ore_dict", "ore": "logWood"},
+    "S": {"item": "minecraft:stick"},
+    "C": {"type": "forge:ore_dict", "ore": "coal"}
+  },
+  "result": {"item": "cavesnotcliffs:campfire"}
+}

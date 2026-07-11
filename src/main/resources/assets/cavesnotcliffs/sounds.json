@@ -1125,5 +1125,67 @@
       "cavesnotcliffs:step/coral5", "cavesnotcliffs:step/coral6"
     ],
     "subtitle": "subtitles.block.generic.footsteps"
+  },
+  "block.campfire.crackle": {
+    "sounds": [
+      "cavesnotcliffs:block/campfire/crackle1",
+      "cavesnotcliffs:block/campfire/crackle2",
+      "cavesnotcliffs:block/campfire/crackle3",
+      "cavesnotcliffs:block/campfire/crackle4",
+      "cavesnotcliffs:block/campfire/crackle5",
+      "cavesnotcliffs:block/campfire/crackle6"
+    ],
+    "subtitle": "subtitles.block.campfire.crackle"
+  },
+  "block.soul_soil.break": {
+    "sounds": [
+      {"name":"cavesnotcliffs:block/soul_soil/break1","volume":0.8},
+      {"name":"cavesnotcliffs:block/soul_soil/break2","volume":0.8},
+      {"name":"cavesnotcliffs:block/soul_soil/break3","volume":0.8},
+      {"name":"cavesnotcliffs:block/soul_soil/break4","volume":0.8},
+      {"name":"cavesnotcliffs:block/soul_soil/break5","volume":0.8},
+      {"name":"cavesnotcliffs:block/soul_soil/break6","volume":0.8}
+    ],
+    "subtitle": "subtitles.block.generic.break"
+  },
+  "block.soul_soil.fall": {
+    "sounds": [
+      "cavesnotcliffs:block/soul_soil/step1",
+      "cavesnotcliffs:block/soul_soil/step2",
+      "cavesnotcliffs:block/soul_soil/step3",
+      "cavesnotcliffs:block/soul_soil/step4",
+      "cavesnotcliffs:block/soul_soil/step5"
+    ]
+  },
+  "block.soul_soil.hit": {
+    "sounds": [
+      {"name":"cavesnotcliffs:block/soul_soil/step1","volume":0.66},
+      {"name":"cavesnotcliffs:block/soul_soil/step2","volume":0.66},
+      {"name":"cavesnotcliffs:block/soul_soil/step3","volume":0.66},
+      {"name":"cavesnotcliffs:block/soul_soil/step4","volume":0.66},
+      {"name":"cavesnotcliffs:block/soul_soil/step5","volume":0.66}
+    ],
+    "subtitle": "subtitles.block.generic.hit"
+  },
+  "block.soul_soil.place": {
+    "sounds": [
+      {"name":"cavesnotcliffs:block/soul_soil/break1","volume":0.8},
+      {"name":"cavesnotcliffs:block/soul_soil/break2","volume":0.8},
+      {"name":"cavesnotcliffs:block/soul_soil/break3","volume":0.8},
+      {"name":"cavesnotcliffs:block/soul_soil/break4","volume":0.8},
+      {"name":"cavesnotcliffs:block/soul_soil/break5","volume":0.8},
+      {"name":"cavesnotcliffs:block/soul_soil/break6","volume":0.8}
+    ],
+    "subtitle": "subtitles.block.generic.place"
+  },
+  "block.soul_soil.step": {
+    "sounds": [
+      "cavesnotcliffs:block/soul_soil/step1",
+      "cavesnotcliffs:block/soul_soil/step2",
+      "cavesnotcliffs:block/soul_soil/step3",
+      "cavesnotcliffs:block/soul_soil/step4",
+      "cavesnotcliffs:block/soul_soil/step5"
+    ],
+    "subtitle": "subtitles.block.generic.footsteps"
   }
 }

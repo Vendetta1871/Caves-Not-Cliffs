@@ -1,0 +1,13 @@
+{
+  "type": "forge:ore_shaped",
+  "pattern": [" S ", "S#S", "LLL"],
+  "key": {
+    "L": {"type": "forge:ore_dict", "ore": "logWood"},
+    "S": {"item": "minecraft:stick"},
+    "#": [
+      {"item": "minecraft:soul_sand"},
+      {"item": "cavesnotcliffs:soul_soil"}
+    ]
+  },
+  "result": {"item": "cavesnotcliffs:soul_campfire"}
+}

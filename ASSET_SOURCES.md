@@ -152,3 +152,17 @@ position, velocity, and sound contract because the dedicated 1.18 particle type 
 - Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
 - Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
 - Asset base: <https://resources.download.minecraft.net/>
+
+The normal and soul campfire block/item textures, animated flames and lit logs, soul-soil
+texture, six campfire crackles, and eleven soul-soil break/step sounds are unmodified Java 1.18.2
+assets. Campfire geometry, display transforms, rotations, recipes, animation metadata, sound
+definitions, and cooking-item transforms preserve the official values. Resource paths are adapted
+for Java 1.12.2, and waterlogged states add the existing source-water overlay because the target
+runtime has no separate fluid-state renderer. Signal smoke uses the target runtime's large-smoke
+sprite with the official tall-column velocity because its dedicated signal-smoke particle does
+not exist in Java 1.12.2. Nether biome generation is intentionally unchanged by the v2 scope.
+
+- Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
+- Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
+- Asset base: <https://resources.download.minecraft.net/>

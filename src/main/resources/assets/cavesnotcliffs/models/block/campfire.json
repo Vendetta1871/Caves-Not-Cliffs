@@ -1,0 +1,7 @@
+{
+  "parent": "cavesnotcliffs:block/template_campfire",
+  "textures": {
+    "fire": "cavesnotcliffs:blocks/campfire_fire",
+    "lit_log": "cavesnotcliffs:blocks/campfire_log_lit"
+  }
+}
