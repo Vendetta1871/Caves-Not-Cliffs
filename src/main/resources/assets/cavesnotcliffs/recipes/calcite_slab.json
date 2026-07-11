@@ -1,16 +1,15 @@
 {
   "type": "minecraft:crafting_shaped",
-  "group": "waxed_cut_copper_slab",
   "pattern": [
     "###"
   ],
   "key": {
     "#": {
-      "item": "cavesnotcliffs:waxed_cut_copper"
+      "item": "cavesnotcliffs:calcite"
     }
   },
   "result": {
-    "item": "cavesnotcliffs:waxed_cut_copper_slab",
+    "item": "cavesnotcliffs:calcite_slab",
     "data": 0,
     "count": 6
   }

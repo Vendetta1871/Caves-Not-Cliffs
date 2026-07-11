@@ -6,7 +6,8 @@
   ],
   "key": {
     "#": {
-      "item": "cavesnotcliffs:cobbled_deepslate_slab"
+      "item": "cavesnotcliffs:cobbled_deepslate_slab",
+      "data": 0
     }
   },
   "result": {

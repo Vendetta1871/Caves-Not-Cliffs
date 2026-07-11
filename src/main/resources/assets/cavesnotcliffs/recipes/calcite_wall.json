@@ -1,16 +1,16 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
+    "###",
     "###"
   ],
   "key": {
     "#": {
-      "item": "cavesnotcliffs:polished_deepslate"
+      "item": "cavesnotcliffs:calcite"
     }
   },
   "result": {
-    "item": "cavesnotcliffs:polished_deepslate_slab",
-    "data": 0,
+    "item": "cavesnotcliffs:calcite_wall",
     "count": 6
   }
 }

@@ -2,8 +2,8 @@
   "type": "minecraft:crafting_shapeless",
   "group": "waxed_exposed_cut_copper_slab",
   "ingredients": [
-    {"item": "cavesnotcliffs:exposed_cut_copper_slab"},
+    {"item": "cavesnotcliffs:exposed_cut_copper_slab", "data": 0},
     {"item": "cavesnotcliffs:honeycomb"}
   ],
-  "result": {"item": "cavesnotcliffs:waxed_exposed_cut_copper_slab"}
+  "result": {"item": "cavesnotcliffs:waxed_exposed_cut_copper_slab", "data": 0}
 }

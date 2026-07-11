@@ -1,16 +1,17 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
+    "#  ",
+    "## ",
     "###"
   ],
   "key": {
     "#": {
-      "item": "cavesnotcliffs:cut_copper"
+      "item": "cavesnotcliffs:calcite"
     }
   },
   "result": {
-    "item": "cavesnotcliffs:cut_copper_slab",
-    "data": 0,
-    "count": 6
+    "item": "cavesnotcliffs:calcite_stairs",
+    "count": 4
   }
 }

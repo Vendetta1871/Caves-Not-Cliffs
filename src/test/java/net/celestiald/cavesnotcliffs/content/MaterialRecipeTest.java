@@ -30,6 +30,42 @@ public class MaterialRecipeTest {
     }
 
     @Test
+    public void tuffAndCalciteExtrasUseStandardShapeRecipeCounts() {
+        for (String material : new String[]{"tuff", "calcite"}) {
+            assertResult(material + "_slab", material + "_slab", 6);
+            assertResult(material + "_stairs", material + "_stairs", 4);
+            assertResult(material + "_wall", material + "_wall", 6);
+        }
+    }
+
+    @Test
+    public void everySlabRecipeDeclaresForge112SubtypeMetadata() {
+        for (String slab : new String[]{
+                "cobbled_deepslate_slab", "polished_deepslate_slab",
+                "deepslate_brick_slab", "deepslate_tile_slab",
+                "cut_copper_slab", "exposed_cut_copper_slab",
+                "weathered_cut_copper_slab", "oxidized_cut_copper_slab",
+                "waxed_cut_copper_slab", "waxed_exposed_cut_copper_slab",
+                "waxed_weathered_cut_copper_slab", "waxed_oxidized_cut_copper_slab",
+                "tuff_slab", "calcite_slab"}) {
+            JsonObject result = recipe(slab).getAsJsonObject("result");
+            assertEquals(slab, 0, result.get("data").getAsInt());
+        }
+
+        JsonObject chiseledIngredient = recipe("chiseled_deepslate")
+                .getAsJsonObject("key").getAsJsonObject("#");
+        assertEquals(0, chiseledIngredient.get("data").getAsInt());
+
+        for (String stage : new String[]{"", "exposed_", "weathered_", "oxidized_"}) {
+            JsonObject waxing = recipe("waxed_" + stage
+                    + "cut_copper_slab_from_honeycomb");
+            assertEquals(0, waxing.getAsJsonArray("ingredients").get(0)
+                    .getAsJsonObject().get("data").getAsInt());
+            assertEquals(0, waxing.getAsJsonObject("result").get("data").getAsInt());
+        }
+    }
+
+    @Test
     public void deepslateProgressionAndChiseledRecipesMatch1182() {
         assertResult("polished_deepslate", "polished_deepslate", 4);
         assertResult("deepslate_bricks", "deepslate_bricks", 4);
