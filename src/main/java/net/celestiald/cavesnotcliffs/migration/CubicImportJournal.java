@@ -23,6 +23,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /** Durable state machine and file manifest for the one-time CubicChunks save import. */
@@ -30,6 +31,10 @@ final class CubicImportJournal {
     static final String FILE_NAME = ".cavesnotcliffs-cubic-import.nbt";
     static final String TEMP_FILE_NAME = FILE_NAME + ".tmp";
     static final int IMPORTER_VERSION = 1;
+    private static final Pattern OUTPUT_PATH = Pattern.compile(
+            "region/r\\.-?\\d+\\.-?\\d+\\.mca");
+    private static final Pattern DIMENSION_PATH = Pattern.compile("DIM-?\\d+");
+    private static final Pattern SHA256 = Pattern.compile("[0-9a-f]{64}");
 
     enum State {
         DISCOVERED,
@@ -58,6 +63,10 @@ final class CubicImportJournal {
 
         long getSize() {
             return size;
+        }
+
+        long getModified() {
+            return modified;
         }
 
         String getSha256() {
@@ -232,21 +241,95 @@ final class CubicImportJournal {
                     + root.getInteger("importerVersion"));
         }
         getState();
-        if (!root.hasKey("terrainSchema", 99) || !root.hasKey("sources", 9)
-                || !root.hasKey("dimensions", 9)) {
+        if (!root.hasKey("state", 8) || !root.hasKey("terrainSchema", 99)
+                || !root.hasKey("sources", 9) || !root.hasKey("dimensions", 9)) {
             throw new IOException("Cubic import journal is missing required metadata");
         }
         List<FileRecord> sources = getSources();
         if (sources.isEmpty()) {
             throw new IOException("Cubic import journal has no source files");
         }
+        Set<String> sourcePaths = new HashSet<String>();
+        for (FileRecord source : sources) {
+            validateRecord(source, "source", false);
+            if (!sourcePaths.add(source.getPath())) {
+                throw new IOException("Cubic import journal repeats source '"
+                        + source.getPath() + "'");
+            }
+        }
+        NBTTagList dimensionTags = root.getTagList("dimensions", 10);
+        if (dimensionTags.getTagType() != 10 || dimensionTags.tagCount() == 0) {
+            throw new IOException("Cubic import journal has no compound dimensions");
+        }
+        State state = getState();
         Set<String> names = new HashSet<String>();
-        for (String dimension : getDimensions()) {
+        for (int index = 0; index < dimensionTags.tagCount(); index++) {
+            NBTTagCompound tag = dimensionTags.getCompoundTagAt(index);
+            if (!tag.hasKey("path", 8) || !tag.hasKey("committed", 99)
+                    || !tag.hasKey("columns", 99) || !tag.hasKey("cubes", 99)
+                    || !tag.hasKey("outputs", 9)) {
+                throw new IOException("Cubic import journal contains an incomplete dimension");
+            }
+            String dimension = tag.getString("path");
+            if (!(".".equals(dimension) || DIMENSION_PATH.matcher(dimension).matches())) {
+                throw new IOException("Cubic import journal has an unsafe dimension path '"
+                        + dimension + "'");
+            }
             if (!names.add(dimension)) {
                 throw new IOException("Cubic import journal repeats dimension '" + dimension + "'");
             }
-            dimension(dimension);
+            if (tag.getLong("columns") < 0L || tag.getLong("cubes") < 0L) {
+                throw new IOException("Cubic import journal has negative counts for " + dimension);
+            }
+            boolean committed = tag.getBoolean("committed");
+            if (state.ordinal() < State.COMMITTING.ordinal() && committed) {
+                throw new IOException("Cubic import journal marks " + dimension
+                        + " committed before commit began");
+            }
+            if (state == State.COMMITTED && !committed) {
+                throw new IOException("Committed cubic import journal leaves " + dimension
+                        + " incomplete");
+            }
+            NBTTagList outputTags = (NBTTagList) tag.getTag("outputs");
+            if (outputTags.getTagType() != 0 && outputTags.getTagType() != 10) {
+                throw new IOException("Cubic import journal has non-compound outputs for "
+                        + dimension);
+            }
+            List<FileRecord> outputs = recordsFromNbt(outputTags);
+            Set<String> outputPaths = new HashSet<String>();
+            for (FileRecord output : outputs) {
+                validateRecord(output, "output", true);
+                if (!outputPaths.add(output.getPath())) {
+                    throw new IOException("Cubic import journal repeats output '"
+                            + output.getPath() + "' for " + dimension);
+                }
+            }
         }
+    }
+
+    private static void validateRecord(FileRecord record, String kind, boolean output)
+            throws IOException {
+        String path = record.getPath();
+        if (!isNormalizedRelative(path) || record.getSize() < 0L
+                || record.getModified() < 0L || !SHA256.matcher(record.getSha256()).matches()) {
+            throw new IOException("Cubic import journal has an invalid " + kind
+                    + " file record for '" + path + "'");
+        }
+        if (output && (!OUTPUT_PATH.matcher(path).matches() || record.getModified() != 0L)) {
+            throw new IOException("Cubic import journal has an invalid output path '" + path + "'");
+        }
+    }
+
+    private static boolean isNormalizedRelative(String path) {
+        if (path == null || path.isEmpty() || path.startsWith("/") || path.contains("\\")) {
+            return false;
+        }
+        for (String part : path.split("/", -1)) {
+            if (part.isEmpty() || ".".equals(part) || "..".equals(part)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private NBTTagCompound dimension(String path) throws IOException {
@@ -262,10 +345,25 @@ final class CubicImportJournal {
 
     static List<FileRecord> captureSources(Path worldRoot, List<Path> dimensionRoots)
             throws IOException {
+        return captureSources(worldRoot, dimensionRoots, Collections.<Path>emptyList());
+    }
+
+    static List<FileRecord> captureSources(Path worldRoot, List<Path> dimensionRoots,
+            List<Path> metadataFiles) throws IOException {
         List<Path> files = new ArrayList<Path>();
         for (Path dimensionRoot : dimensionRoots) {
             collectFiles(dimensionRoot.resolve("region2d"), files);
             collectFiles(dimensionRoot.resolve("region3d"), files);
+        }
+        Path normalizedRoot = worldRoot.toAbsolutePath().normalize();
+        for (Path metadata : metadataFiles) {
+            Path normalized = metadata.toAbsolutePath().normalize();
+            if (!normalized.startsWith(normalizedRoot) || Files.isSymbolicLink(normalized)
+                    || !Files.isRegularFile(normalized)) {
+                throw new IOException("CubicChunks metadata source is not a regular world file: "
+                        + metadata);
+            }
+            files.add(normalized);
         }
         return fingerprint(worldRoot, files, true);
     }
@@ -355,7 +453,7 @@ final class CubicImportJournal {
         }
     }
 
-    private static void forceDirectoryBestEffort(Path path) {
+    static void forceDirectoryBestEffort(Path path) {
         try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ)) {
             channel.force(true);
         } catch (IOException | UnsupportedOperationException ignored) {

@@ -99,4 +99,22 @@ public class CubicImportJournalTest {
             assertTrue(expected.getMessage().contains("Invalid cubic import journal transition"));
         }
     }
+
+    @Test
+    public void rejectsUnsafePathsAndMalformedFingerprintsOnRead() throws Exception {
+        Path world = temporary.newFolder("invalid-journal").toPath();
+        CubicImportJournal journal = CubicImportJournal.create(2,
+                Collections.singletonList(new CubicImportJournal.FileRecord(
+                        "../region2d/0.0.2dr", 1L, 2L, "00")),
+                Collections.singletonList("../backup"));
+        Path path = world.resolve(CubicImportJournal.FILE_NAME);
+        journal.writeAtomic(path);
+
+        try {
+            CubicImportJournal.read(path);
+            fail("Expected malformed journal rejection");
+        } catch (java.io.IOException expected) {
+            assertTrue(expected.getMessage().contains("invalid source file record"));
+        }
+    }
 }
