@@ -1,0 +1,87 @@
+import java.io.PrintWriter;
+import java.lang.reflect.Field;
+import java.util.*;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.*;
+import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.tags.TagKey;
+import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.world.level.biome.*;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.levelgen.VerticalAnchor;
+import net.minecraft.world.level.levelgen.feature.*;
+import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration;
+import net.minecraft.world.level.levelgen.heightproviders.*;
+import net.minecraft.world.level.levelgen.placement.*;
+import net.minecraft.world.level.levelgen.structure.templatesystem.TagMatchTest;
+
+/** Emits ordinary Overworld ore catalog/order/membership from official mapped 1.18.2. */
+public final class Cnc118OreCatalogOracle {
+  private static final Set<String> IDS = new LinkedHashSet<>(Arrays.asList(
+    "ore_dirt","ore_gravel","ore_granite_upper","ore_granite_lower","ore_diorite_upper","ore_diorite_lower","ore_andesite_upper","ore_andesite_lower","ore_tuff",
+    "ore_coal_upper","ore_coal_lower","ore_iron_upper","ore_iron_middle","ore_iron_small","ore_gold","ore_gold_lower","ore_redstone","ore_redstone_lower",
+    "ore_diamond","ore_diamond_large","ore_diamond_buried","ore_lapis","ore_lapis_buried","ore_copper_large","ore_copper","ore_gold_extra","ore_emerald","ore_infested"));
+
+  public static void main(String[] args) throws Exception {
+    SharedConstants.tryDetectVersion(); Bootstrap.bootStrap(); BuiltinRegistries.bootstrap();
+    PrintWriter out=new PrintWriter(args[0],"UTF-8");
+    out.println("# official Minecraft Java 1.18.2 ordinary Overworld ore catalog");
+    MultiNoiseBiomeSource source=MultiNoiseBiomeSource.Preset.OVERWORLD.biomeSource(BuiltinRegistries.BIOME);
+    List<BiomeSource.StepFeatureData> steps=source.featuresPerStep();
+    Map<PlacedFeature,int[]> locations=new HashMap<>();
+    for(int step=0;step<steps.size();step++) for(int index=0;index<steps.get(step).features().size();index++)
+      locations.put(steps.get(step).features().get(index),new int[]{step,index});
+    for(String id:IDS){
+      PlacedFeature placed=BuiltinRegistries.PLACED_FEATURE.get(new net.minecraft.resources.ResourceLocation(id));
+      int[] location=locations.get(placed);
+      ConfiguredFeature<?,?> configured=placed.feature().value();
+      OreConfiguration config=(OreConfiguration)configured.config();
+      String configuredId=BuiltinRegistries.CONFIGURED_FEATURE.getKey(configured).getPath();
+      String count="",height="";
+      for(PlacementModifier modifier:placed.placement()){
+        if(modifier instanceof CountPlacement){
+          IntProvider provider=(IntProvider)field(CountPlacement.class,"count").get(modifier);
+          count=(provider.getMinValue()==provider.getMaxValue()?"constant":"uniform")+":"+provider.getMinValue()+":"+provider.getMaxValue();
+        } else if(modifier instanceof RarityFilter){
+          int chance=(Integer)field(RarityFilter.class,"chance").get(modifier);
+          count="rarity:"+chance+":"+chance;
+        } else if(modifier instanceof HeightRangePlacement){
+          HeightProvider provider=(HeightProvider)field(HeightRangePlacement.class,"height").get(modifier);
+          if(provider instanceof UniformHeight){
+            height="uniform:"+anchor(field(UniformHeight.class,"minInclusive").get(provider))+":"+anchor(field(UniformHeight.class,"maxInclusive").get(provider))+":0";
+          } else {
+            height="trapezoid:"+anchor(field(TrapezoidHeight.class,"minInclusive").get(provider))+":"+anchor(field(TrapezoidHeight.class,"maxInclusive").get(provider))+":"+field(TrapezoidHeight.class,"plateau").get(provider);
+          }
+        }
+      }
+      StringJoiner targets=new StringJoiner(",");
+      for(OreConfiguration.TargetBlockState target:config.targetStates){
+        TagKey<Block> tag=(TagKey<Block>)field(TagMatchTest.class,"tag").get(target.target);
+        targets.add(tag.location().getPath()+">"+Registry.BLOCK.getKey(target.state.getBlock()).getPath());
+      }
+      out.println("catalog\t"+id+"\t"+configuredId+"\t"+location[0]+"\t"+location[1]+"\t"+config.size+"\t"+Integer.toUnsignedString(Float.floatToRawIntBits(config.discardChanceOnAirExposure))+"\t"+count+"\t"+height+"\t"+targets);
+    }
+    List<Map.Entry<net.minecraft.resources.ResourceKey<Biome>,Biome>> biomes=new ArrayList<>(BuiltinRegistries.BIOME.entrySet());
+    biomes.sort(Comparator.comparing(e->e.getKey().location().toString()));
+    for(Map.Entry<net.minecraft.resources.ResourceKey<Biome>,Biome> entry:biomes){
+      List<String> present=new ArrayList<>();
+      for(String id:IDS){
+        PlacedFeature feature=BuiltinRegistries.PLACED_FEATURE.get(new net.minecraft.resources.ResourceLocation(id));
+        if(entry.getValue().getGenerationSettings().hasFeature(feature))present.add(id);
+      }
+      if(!present.isEmpty())out.println("biome\t"+entry.getKey().location()+"\t"+String.join(",",present));
+    }
+    out.close();
+  }
+
+  private static Field field(Class<?> type,String name)throws Exception{
+    Field result=type.getDeclaredField(name); result.setAccessible(true); return result;
+  }
+
+  private static String anchor(Object value){
+    if(value instanceof VerticalAnchor.Absolute)return "absolute,"+((VerticalAnchor.Absolute)value).y();
+    if(value instanceof VerticalAnchor.AboveBottom)return "above_bottom,"+((VerticalAnchor.AboveBottom)value).offset();
+    return "below_top,"+((VerticalAnchor.BelowTop)value).offset();
+  }
+}

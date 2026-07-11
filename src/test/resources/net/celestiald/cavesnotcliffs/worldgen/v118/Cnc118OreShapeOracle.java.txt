@@ -1,0 +1,81 @@
+import java.io.PrintWriter;
+import java.lang.reflect.*;
+import java.util.*;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.*;
+import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.*;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.*;
+import net.minecraft.world.level.levelgen.*;
+import net.minecraft.world.level.levelgen.feature.*;
+import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration;
+import net.minecraft.world.level.levelgen.structure.templatesystem.BlockMatchTest;
+
+/** Emits ordinary OreFeature shapes from official mapped Java 1.18.2 classes. */
+public final class Cnc118OreShapeOracle {
+  private static final long[] SEEDS={0L,1L,-1L,123456789L,Long.MIN_VALUE,Long.MAX_VALUE};
+  private static final int[][] CHUNKS={{0,0},{-1,0},{0,-1},{-1,-1},{1,-2},{-33,17}};
+  private static final int[][] CASES={{4,1056964608,-64,0},{8,0,-1,15},{9,1056964608,0,0},{10,0,15,15},{12,1060320051,16,0},{17,1065353216,31,15},{20,0,32,0},{33,0,63,15},{64,0,319,8}};
+
+  public static void main(String[] args)throws Exception{
+    SharedConstants.tryDetectVersion(); Bootstrap.bootStrap(); BuiltinRegistries.bootstrap();
+    PrintWriter out=new PrintWriter(args[0],"UTF-8");
+    out.println("# official Minecraft Java 1.18.2 OreFeature shape oracle");
+    for(int seedIndex=0;seedIndex<SEEDS.length;seedIndex++)for(int caseIndex=0;caseIndex<CASES.length;caseIndex++){
+      long seed=SEEDS[seedIndex]; int chunkX=CHUNKS[seedIndex][0],chunkZ=CHUNKS[seedIndex][1];
+      int size=CASES[caseIndex][0],bits=CASES[caseIndex][1],y=CASES[caseIndex][2],local=CASES[caseIndex][3]; float discard=Float.intBitsToFloat(bits);
+      int x=(chunkX<<4)+local,z=(chunkZ<<4)+(15-local);
+      SparseWorld sparse=new SparseWorld(x,y,z);
+      OreConfiguration config=new OreConfiguration(Arrays.asList(
+        OreConfiguration.target(new BlockMatchTest(Blocks.STONE),Blocks.GOLD_ORE.defaultBlockState()),
+        OreConfiguration.target(new BlockMatchTest(Blocks.DEEPSLATE),Blocks.DEEPSLATE_GOLD_ORE.defaultBlockState())),size,discard);
+      WorldgenRandom random=new WorldgenRandom(new XoroshiroRandomSource(0L));
+      long decoration=random.setDecorationSeed(seed,chunkX<<4,chunkZ<<4); random.setFeatureSeed(decoration,caseIndex,6);
+      boolean success=new ConfiguredFeature<>(Feature.ORE,config).place(sparse.level,null,random,new BlockPos(x,y,z));
+      List<String> changed=sparse.changed();
+      out.println("shape\t"+seed+"\t"+chunkX+"\t"+chunkZ+"\t"+caseIndex+"\t"+size+"\t"+Integer.toUnsignedString(bits)+"\t"+x+"\t"+y+"\t"+z+"\t"+(success?1:0)+"\t"+changed.size()+"\t"+String.join(";",changed));
+    }
+    out.close();
+  }
+
+  static final class SparseWorld implements InvocationHandler {
+    final Map<Long,ProtoChunk> chunks=new HashMap<>(); final WorldGenLevel level;
+    final int minX,maxX,minY,maxY,minZ,maxZ;
+    SparseWorld(int x,int y,int z){
+      minX=x-22;maxX=x+22;minY=Math.max(-64,y-22);maxY=Math.min(319,y+22);minZ=z-22;maxZ=z+22;
+      LevelHeightAccessor height=LevelHeightAccessor.create(-64,384);
+      for(int cx=Math.floorDiv(minX,16);cx<=Math.floorDiv(maxX,16);cx++)for(int cz=Math.floorDiv(minZ,16);cz<=Math.floorDiv(maxZ,16);cz++)
+        chunks.put(key(cx,cz),new ProtoChunk(new ChunkPos(cx,cz),UpgradeData.EMPTY,height,BuiltinRegistries.BIOME,null));
+      for(int bx=minX;bx<=maxX;bx++)for(int bz=minZ;bz<=maxZ;bz++)for(int by=minY;by<=maxY;by++){
+        if(cavity(bx,by,bz))continue;
+        state(bx,by,bz,by<0?Blocks.DEEPSLATE.defaultBlockState():Blocks.STONE.defaultBlockState());
+      }
+      level=(WorldGenLevel)Proxy.newProxyInstance(getClass().getClassLoader(),new Class[]{WorldGenLevel.class},this);
+    }
+    public Object invoke(Object proxy,Method method,Object[] args){
+      String name=method.getName();
+      if(name.equals("getMinBuildHeight"))return -64;
+      if(name.equals("getHeight")&&method.getParameterCount()==0)return 384;
+      if(name.equals("getHeight")&&method.getParameterCount()==3)return 319;
+      if(name.equals("getSectionsCount"))return 24;
+      if(name.equals("getSectionIndex"))return ((Integer)args[0]+64)>>4;
+      if(name.equals("getChunk")){
+        if(args[0] instanceof Integer)return chunks.get(key((Integer)args[0],(Integer)args[1]));
+        BlockPos pos=(BlockPos)args[0];return chunks.get(key(Math.floorDiv(pos.getX(),16),Math.floorDiv(pos.getZ(),16)));
+      }
+      if(name.equals("ensureCanWrite")){BlockPos p=(BlockPos)args[0];return p.getY()>=-64&&p.getY()<320&&chunks.containsKey(key(Math.floorDiv(p.getX(),16),Math.floorDiv(p.getZ(),16)));}
+      if(name.equals("getBlockState")){BlockPos p=(BlockPos)args[0];ProtoChunk c=chunks.get(key(Math.floorDiv(p.getX(),16),Math.floorDiv(p.getZ(),16)));return c==null?Blocks.AIR.defaultBlockState():c.getBlockState(p);}
+      if(name.equals("getSeed"))return 0L;
+      if(method.getReturnType()==boolean.class)return false;if(method.getReturnType()==int.class)return 0;if(method.getReturnType()==long.class)return 0L;return null;
+    }
+    void state(int x,int y,int z,BlockState state){chunks.get(key(Math.floorDiv(x,16),Math.floorDiv(z,16))).setBlockState(new BlockPos(x,y,z),state,false);}
+    List<String> changed(){List<String> result=new ArrayList<>();for(int x=minX;x<=maxX;x++)for(int y=minY;y<=maxY;y++)for(int z=minZ;z<=maxZ;z++){BlockState s=(BlockState)invoke(null,methodGetBlock(),new Object[]{new BlockPos(x,y,z)});if(s.is(Blocks.GOLD_ORE)||s.is(Blocks.DEEPSLATE_GOLD_ORE))result.add(x+","+y+","+z+","+Registry.BLOCK.getKey(s.getBlock()).getPath());}return result;}
+    static boolean cavity(int x,int y,int z){long h=(long)x*73428767L^(long)y*912931L^(long)z*42317861L;return (h&63L)==0L;}
+    static long key(int x,int z){return ((long)x<<32)^(z&0xffffffffL);}
+    static Method methodGetBlock(){try{return WorldGenLevel.class.getMethod("getBlockState",BlockPos.class);}catch(Exception e){throw new RuntimeException(e);}}
+  }
+}
