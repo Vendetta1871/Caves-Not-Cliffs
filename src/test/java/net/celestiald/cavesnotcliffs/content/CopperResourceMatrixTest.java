@@ -112,6 +112,16 @@ public class CopperResourceMatrixTest {
             assertEquals(entry.getKey(), entry.getValue(),
                     sha256("textures/blocks/" + entry.getKey() + ".png"));
         }
+        assertEquals("6cdf66f013c8de9dca7f4dbefd4dbab7d1939b8b44897ce1fc92e61448580dc0",
+                sha256("textures/blocks/copper_ore.png"));
+        assertEquals("ba44bf8ab63fbbdb18eb8dbcc9dc5c3359bed63dce1fa93bd149366d9df42fc9",
+                sha256("textures/blocks/deepslate_copper_ore.png"));
+        assertEquals("c271dc6d96287766cf55756d9d7501fd57f76d3f3703ce070478a389d68dd0b6",
+                sha256("textures/blocks/raw_copper_block.png"));
+        assertEquals("50a83d2b6aadbcbc3a73800012a91776a1085f16a9e27726928c52eaaf1a18cf",
+                sha256("textures/items/raw_copper.png"));
+        assertEquals("85835decf03f3cfbf67ad628d528fa22b05857059533952fcc69cb8f3f4fbe80",
+                sha256("textures/items/copper_ingot.png"));
     }
 
     @Test
