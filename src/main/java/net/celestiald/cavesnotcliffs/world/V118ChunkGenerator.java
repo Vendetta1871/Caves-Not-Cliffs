@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.world;
 
 import net.celestiald.cavebiomes.api.ExtendedChunkAPI;
+import net.celestiald.cavebiomes.api.IExtendedPopulationGenerator;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118BiomeDecorationUnion;
@@ -32,7 +33,7 @@ import java.util.Set;
  * the legacy cave carver or legacy deep ores. Native ordinary 1.18 ore/blob and lush-cave
  * features run through isolated decoration bridges after structure population.</p>
  */
-public final class V118ChunkGenerator implements IChunkGenerator {
+public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopulationGenerator {
     private static final int CUBE_SIZE = 16;
     private static final Map<World, WeakReference<V118ChunkGenerator>> ACTIVE_GENERATORS =
         new WeakHashMap<World, WeakReference<V118ChunkGenerator>>();
@@ -96,6 +97,11 @@ public final class V118ChunkGenerator implements IChunkGenerator {
 
     public TerrainProfile getTerrainProfile() {
         return terrainProfile;
+    }
+
+    @Override
+    public int getPopulationRadius() {
+        return 1;
     }
 
     IChunkGenerator getStructureGenerator() {
@@ -241,27 +247,6 @@ public final class V118ChunkGenerator implements IChunkGenerator {
         }
     }
 
-    static PopulationBox fullPopulationRequirements(int cubeY) {
-        if (isGeneratedCube(cubeY)) {
-            // Native features are executed by section Y=0 and can cross one X/Z chunk boundary.
-            // Requiring all nine sources here makes every vertical target complete before it can
-            // be exposed, independent of which target section was requested first.
-            return new PopulationBox(-1, -cubeY, -1, 1, -cubeY, 1);
-        }
-        return PopulationBox.NONE;
-    }
-
-    static PopulationBox populationPregenerationRequirements(int cubeY) {
-        if (cubeY == 0) {
-            return FEATURE_POPULATION_REQUIREMENT;
-        }
-        if (cubeY >= 0 && cubeY < 16) {
-            return new PopulationBox(-1, Math.min(-1, -cubeY), -1,
-                1, Math.max(1, 15 - cubeY), 1);
-        }
-        return PopulationBox.NONE;
-    }
-
     static boolean hasVirtualBiomeY(int blockY) {
         return blockY >= TerrainColumn.MIN_Y && blockY <= TerrainColumn.MAX_Y;
     }
@@ -295,12 +280,6 @@ public final class V118ChunkGenerator implements IChunkGenerator {
         return profile;
     }
 
-    private static boolean isGeneratedCube(int cubeY) {
-        return cubeY >= TerrainColumn.MIN_CUBE_Y && cubeY <= TerrainColumn.MAX_CUBE_Y;
-    }
-
-    private static final PopulationBox FEATURE_POPULATION_REQUIREMENT = new PopulationBox(-1,
-        TerrainColumn.MIN_CUBE_Y, -1, 1, TerrainColumn.MAX_CUBE_Y, 1);
     private static final List<Biome.SpawnListEntry> AXOLOTL_SPAWNS =
         Collections.singletonList(new Biome.SpawnListEntry(
             EntityAxolotl.EntityCustom.class, 10, 4, 6));
