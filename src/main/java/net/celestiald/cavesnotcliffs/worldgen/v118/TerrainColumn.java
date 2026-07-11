@@ -241,6 +241,10 @@ public final class TerrainColumn {
             return this;
         }
 
+        int materialId(int localX, int worldY, int localZ) {
+            return materialIds[blockIndex(localX, worldY, localZ)];
+        }
+
         public Builder fillMaterialIds(int materialId) {
             checkId(materialId, "materialId");
             Arrays.fill(materialIds, (char) materialId);

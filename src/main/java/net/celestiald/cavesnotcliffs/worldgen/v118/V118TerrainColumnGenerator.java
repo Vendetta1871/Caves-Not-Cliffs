@@ -13,21 +13,32 @@ public final class V118TerrainColumnGenerator {
     private final V118NoiseRouter router;
     private final DensityFunction finalDensity;
     private final V118ClimateSampler climateSampler;
+    private final V118BiomeManager biomeManager;
     private final V118OreVeinifier oreVeinifier;
+    private final V118SurfaceSystem surfaceSystem;
+    private final boolean applySurfaceRules;
     private final TerrainColumnCache cache;
 
     public V118TerrainColumnGenerator(long seed, V118NoiseRouterData.Profile profile) {
+        this(seed, profile, true);
+    }
+
+    V118TerrainColumnGenerator(long seed, V118NoiseRouterData.Profile profile,
+            boolean applySurfaceRules) {
+        this.applySurfaceRules = applySurfaceRules;
         settings = V118NoiseSettings.overworld(profile.amplified());
         router = V118NoiseRouterData.create(seed, profile);
         finalDensity = V118DensityInterpolator.realizeFinalDensity(router.finalDensity(),
             settings);
         OverworldBiomeBuilder biomeTable = new OverworldBiomeBuilder();
         climateSampler = new V118ClimateSampler(router, settings, biomeTable);
+        biomeManager = new V118BiomeManager(climateSampler::resolveQuart, seed);
         oreVeinifier = new V118OreVeinifier(
             V118DensityInterpolator.realize(router.veinToggle(), settings),
             V118DensityInterpolator.realize(router.veinRidged(), settings),
             V118DensityInterpolator.realize(router.veinGap(), settings),
             router.oreVeinsPositionalRandomFactory());
+        surfaceSystem = new V118SurfaceSystem(seed);
         cache = new TerrainColumnCache(this::generateUncached);
     }
 
@@ -37,6 +48,11 @@ public final class V118TerrainColumnGenerator {
 
     public TerrainColumnCache cache() {
         return cache;
+    }
+
+    /** Resolves the exact block-space biome after 1.18.2's Voronoi zoom. */
+    public V118Biome biomeAt(int blockX, int blockY, int blockZ) {
+        return biomeManager.getBiome(blockX, blockY, blockZ);
     }
 
     private TerrainColumn generateUncached(int columnX, int columnZ) {
@@ -84,13 +100,19 @@ public final class V118TerrainColumnGenerator {
             }
         }
 
+        if (applySurfaceRules) {
+            MutableSurfaceAccess surfaceAccess = new MutableSurfaceAccess(builder,
+                preliminarySurface, highestNonAir, minBlockX, minBlockZ);
+            surfaceSystem.buildSurface(surfaceAccess, columnX, columnZ);
+        }
+
         for (int localZ = 0; localZ < TerrainColumn.WIDTH; ++localZ) {
             int blockZ = minBlockZ + localZ;
             for (int localX = 0; localX < TerrainColumn.WIDTH; ++localX) {
                 int blockX = minBlockX + localX;
                 int surfaceY = highestNonAir[localZ * TerrainColumn.WIDTH + localX];
                 builder.setSurfaceBiomeId(localX, localZ,
-                    climateSampler.resolveBlock(blockX, surfaceY, blockZ).ordinal());
+                    biomeManager.getBiome(blockX, surfaceY, blockZ).ordinal());
             }
         }
         return builder.build();
@@ -154,6 +176,118 @@ public final class V118TerrainColumnGenerator {
                 return V118Material.LAVA;
             default:
                 throw new AssertionError(material);
+        }
+    }
+
+    private final class MutableSurfaceAccess implements V118SurfaceSystem.SurfaceAccess {
+        private final TerrainColumn.Builder builder;
+        private final V118PreliminarySurface preliminarySurface;
+        private final int[] highestNonAir;
+        private final int minBlockX;
+        private final int minBlockZ;
+
+        private MutableSurfaceAccess(TerrainColumn.Builder builder,
+                V118PreliminarySurface preliminarySurface, int[] highestNonAir,
+                int minBlockX, int minBlockZ) {
+            this.builder = builder;
+            this.preliminarySurface = preliminarySurface;
+            this.highestNonAir = highestNonAir;
+            this.minBlockX = minBlockX;
+            this.minBlockZ = minBlockZ;
+        }
+
+        @Override
+        public int minBuildHeight() {
+            return TerrainColumn.MIN_Y;
+        }
+
+        @Override
+        public int maxBuildHeight() {
+            return TerrainColumn.MAX_Y_EXCLUSIVE;
+        }
+
+        @Override
+        public V118Material getBlock(int blockX, int blockY, int blockZ) {
+            int localX = local(blockX, minBlockX, "blockX");
+            int localZ = local(blockZ, minBlockZ, "blockZ");
+            if (blockY < TerrainColumn.MIN_Y || blockY > TerrainColumn.MAX_Y) {
+                return V118Material.AIR;
+            }
+            return V118Material.fromStorageId(builder.materialId(localX, blockY, localZ));
+        }
+
+        @Override
+        public void setBlock(int blockX, int blockY, int blockZ, V118Material material) {
+            if (material == null) {
+                throw new NullPointerException("material");
+            }
+            int localX = local(blockX, minBlockX, "blockX");
+            int localZ = local(blockZ, minBlockZ, "blockZ");
+            if (blockY < TerrainColumn.MIN_Y || blockY > TerrainColumn.MAX_Y) {
+                return;
+            }
+            V118Material previous = V118Material.fromStorageId(
+                builder.materialId(localX, blockY, localZ));
+            builder.setMaterialId(localX, blockY, localZ, material.storageId());
+            if (material != V118Material.WATER && material != V118Material.LAVA) {
+                builder.setScheduledFluidUpdate(localX, blockY, localZ, false);
+            }
+            int heightIndex = localZ * TerrainColumn.WIDTH + localX;
+            if (material != V118Material.AIR) {
+                highestNonAir[heightIndex] = Math.max(highestNonAir[heightIndex], blockY);
+            } else if (previous != V118Material.AIR
+                    && highestNonAir[heightIndex] == blockY) {
+                highestNonAir[heightIndex] = findHighestNonAir(localX, localZ, blockY - 1);
+            }
+        }
+
+        @Override
+        public int worldSurfaceHeight(int blockX, int blockZ) {
+            int localX = local(blockX, minBlockX, "blockX");
+            int localZ = local(blockZ, minBlockZ, "blockZ");
+            return highestNonAir[localZ * TerrainColumn.WIDTH + localX];
+        }
+
+        @Override
+        public int preliminarySurfaceLevel(int blockX, int blockZ) {
+            return preliminarySurface.preliminarySurfaceLevel(blockX, blockZ);
+        }
+
+        @Override
+        public V118Biome biomeAt(int blockX, int blockY, int blockZ) {
+            return biomeManager.getBiome(blockX, blockY, blockZ);
+        }
+
+        @Override
+        public boolean coldEnoughToSnow(V118Biome biome, int blockX, int blockY, int blockZ) {
+            return V118BiomeTemperature.coldEnoughToSnow(biome, blockX, blockY, blockZ);
+        }
+
+        @Override
+        public boolean shouldMeltFrozenOceanIcebergSlightly(V118Biome biome, int blockX,
+                int blockY, int blockZ) {
+            return V118BiomeTemperature.shouldMeltFrozenOceanIcebergSlightly(biome, blockX,
+                blockY, blockZ);
+        }
+
+        private int findHighestNonAir(int localX, int localZ, int startY) {
+            for (int blockY = startY; blockY >= TerrainColumn.MIN_Y; --blockY) {
+                V118Material material = V118Material.fromStorageId(
+                    builder.materialId(localX, blockY, localZ));
+                if (material != V118Material.AIR) {
+                    return blockY;
+                }
+            }
+            return TerrainColumn.MIN_Y;
+        }
+
+        private int local(int blockCoordinate, int minimum, String name) {
+            int coordinate = blockCoordinate - minimum;
+            if (coordinate < 0 || coordinate >= TerrainColumn.WIDTH) {
+                throw new IllegalArgumentException(name + " is outside generated column: "
+                    + blockCoordinate);
+            }
+            return coordinate;
         }
     }
 }

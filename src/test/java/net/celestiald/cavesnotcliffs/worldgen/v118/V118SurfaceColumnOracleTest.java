@@ -65,7 +65,7 @@ public class V118SurfaceColumnOracleTest {
     private static void verify(OracleCase expected) {
         V118NoiseRouterData.Profile profile = profile(expected.profile);
         V118TerrainColumnGenerator generator = new V118TerrainColumnGenerator(expected.seed,
-            profile);
+            profile, false);
         TerrainColumn raw = generator.column(expected.chunkX, expected.chunkZ);
         MutableSurfaceAccess access = new MutableSurfaceAccess(expected.seed, profile, raw);
         for (ExpectedBlock block : expected.blocks) {
@@ -85,6 +85,20 @@ public class V118SurfaceColumnOracleTest {
             }
         }
         assertEquals(expected.message("final counts"), expected.finalCounts, access.counts());
+
+        TerrainColumn integrated = new V118TerrainColumnGenerator(expected.seed, profile)
+            .column(expected.chunkX, expected.chunkZ);
+        int minX = expected.chunkX << 4;
+        int minZ = expected.chunkZ << 4;
+        for (ExpectedBlock block : expected.blocks) {
+            for (int y = block.startY; y <= block.endY; ++y) {
+                V118Material actual = V118Material.fromStorageId(
+                    integrated.materialId(block.x - minX, y, block.z - minZ));
+                assertEquals(block.message("integrated surface", y), block.result, actual);
+            }
+        }
+        assertEquals(expected.message("integrated final counts"), expected.finalCounts,
+            counts(integrated));
     }
 
     private static V118NoiseRouterData.Profile profile(String name) {
@@ -263,6 +277,21 @@ public class V118SurfaceColumnOracleTest {
             int separator = entry.lastIndexOf('=');
             result.put(material(entry.substring(0, separator)),
                 Integer.parseInt(entry.substring(separator + 1)));
+        }
+        return result;
+    }
+
+    private static Map<V118Material, Integer> counts(TerrainColumn column) {
+        Map<V118Material, Integer> result = new HashMap<V118Material, Integer>();
+        for (int y = TerrainColumn.MIN_Y; y <= TerrainColumn.MAX_Y; ++y) {
+            for (int z = 0; z < TerrainColumn.WIDTH; ++z) {
+                for (int x = 0; x < TerrainColumn.WIDTH; ++x) {
+                    V118Material material = V118Material.fromStorageId(
+                        column.materialId(x, y, z));
+                    Integer count = result.get(material);
+                    result.put(material, count == null ? 1 : count + 1);
+                }
+            }
         }
         return result;
     }

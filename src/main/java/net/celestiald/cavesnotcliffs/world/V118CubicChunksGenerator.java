@@ -33,7 +33,6 @@ import java.util.WeakHashMap;
  */
 public final class V118CubicChunksGenerator implements ICubeGenerator {
     private static final int CUBE_SIZE = 16;
-    private static final V118Biome[] V118_BIOMES = V118Biome.values();
     private static final Map<World, WeakReference<V118CubicChunksGenerator>> ACTIVE_GENERATORS =
         new WeakHashMap<World, WeakReference<V118CubicChunksGenerator>>();
 
@@ -92,16 +91,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         if (!hasVirtualBiomeY(blockY)) {
             throw new IllegalArgumentException("Virtual biome Y is outside -64..319: " + blockY);
         }
-        int columnX = Math.floorDiv(blockX, TerrainColumn.WIDTH);
-        int columnZ = Math.floorDiv(blockZ, TerrainColumn.WIDTH);
-        int localX = Math.floorMod(blockX, TerrainColumn.WIDTH);
-        int localZ = Math.floorMod(blockZ, TerrainColumn.WIDTH);
-        int biomeId = columns.column(columnX, columnZ)
-            .virtualBiomeId(localX, blockY, localZ);
-        if (biomeId < 0 || biomeId >= V118_BIOMES.length) {
-            throw new IllegalStateException("Generated an unknown virtual biome id: " + biomeId);
-        }
-        return V118_BIOMES[biomeId];
+        return columns.biomeAt(blockX, blockY, blockZ);
     }
 
     public static V118CubicChunksGenerator forWorld(World world) {
