@@ -1,6 +1,5 @@
 package net.celestiald.cavesnotcliffs.world;
 
-import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorldType;
 import net.minecraft.world.WorldType;
 
 import java.util.ArrayList;
@@ -17,6 +16,8 @@ import java.util.Set;
 
 /** Incrementally registers and resolves hidden schema-2 wrappers with stable names. */
 public final class CavesNotCliffsWorldTypes {
+    private static final String EXTERNAL_CUBIC_WORLD_TYPE =
+            "io.github.opencubicchunks.cubicchunks.api.world.ICubicWorldType";
     private static final Map<WorldType, CavesNotCliffsWorldTypeWrapper> WRAPPERS =
             new IdentityHashMap<>();
     private static final Map<String, WorldType> BASE_TYPES_BY_NAME = new LinkedHashMap<>();
@@ -49,8 +50,9 @@ public final class CavesNotCliffsWorldTypes {
 
         List<WorldType> moddedTypes = new ArrayList<>();
         for (WorldType type : snapshot) {
-            if (!vanillaOrder.contains(type) && !(type instanceof ICubicWorldType)
-                    && !WRAPPERS.containsKey(type)) {
+            if (!vanillaOrder.contains(type)
+                    && !(type instanceof CavesNotCliffsFiniteWorldType)
+                    && !isExternalCubicWorldType(type) && !WRAPPERS.containsKey(type)) {
                 moddedTypes.add(type);
             }
         }
@@ -83,6 +85,20 @@ public final class CavesNotCliffsWorldTypes {
 
     public static boolean isWrapper(WorldType type) {
         return type instanceof CavesNotCliffsWorldTypeWrapper;
+    }
+
+    /** Keeps optional CubicChunks world types authoritative without linking its API at startup. */
+    static boolean isExternalCubicWorldType(WorldType type) {
+        if (type == null) {
+            return false;
+        }
+        try {
+            Class<?> marker = Class.forName(EXTERNAL_CUBIC_WORLD_TYPE, false,
+                    CavesNotCliffsWorldTypes.class.getClassLoader());
+            return marker.isInstance(type);
+        } catch (ClassNotFoundException | LinkageError | SecurityException ignored) {
+            return false;
+        }
     }
 
     private static void register(WorldType baseType, String wrapperName, TerrainProfile profile,

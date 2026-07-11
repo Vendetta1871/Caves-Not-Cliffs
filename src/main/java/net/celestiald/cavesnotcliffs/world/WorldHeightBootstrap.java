@@ -1,6 +1,6 @@
 package net.celestiald.cavesnotcliffs.world;
 
-import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorldType;
+import net.celestiald.cavebiomes.api.ExtendedChunkAPI;
 import net.celestiald.cavesnotcliffs.CavesNotCliffs;
 import net.celestiald.cavesnotcliffs.config.CavesNotCliffsConfig;
 import net.minecraft.world.World;
@@ -8,27 +8,16 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.WorldServerMulti;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.storage.WorldInfo;
-import net.minecraft.world.storage.MapStorage;
-import net.minecraft.world.storage.WorldSavedData;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-
 /**
- * Chooses the immutable world-format contract and seeds Cubic Chunks' per-world metadata before
- * its normal-priority capability handler runs. This uses reflection only for Cubic Chunks'
- * persistence class; the supported generation API is used everywhere else.
+ * Chooses the immutable world-format contract before the Overworld creates its chunk generator.
  */
 public final class WorldHeightBootstrap {
-    private static final String DATA_NAME = "cubicChunksData";
-    private static final String DATA_CLASS =
-            "io.github.opencubicchunks.cubicchunks.core.world.WorldSavedCubicChunksData";
-
     @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public void beforeCubicChunksInitialization(AttachCapabilitiesEvent<World> event) {
+    public void chooseWorldFormat(AttachCapabilitiesEvent<World> event) {
         World world = event.getObject();
         // Every secondary dimension shares the Overworld's WorldInfo, so WorldServerMulti is the
         // essential gate: only the primary Overworld may choose or persist the terrain contract.
@@ -46,8 +35,8 @@ public final class WorldHeightBootstrap {
         if (!CavesNotCliffsWorldType.isCavesNotCliffs(world)) {
             return;
         }
-
-        seedCubicChunksHeight(world);
+        ExtendedChunkAPI.requireRange("Caves Not Cliffs",
+                CavesNotCliffsWorldType.MIN_HEIGHT, CavesNotCliffsWorldType.MAX_HEIGHT);
     }
 
     private void applyWorldFormatDecision(World world, boolean existingWorld, boolean enabled) {
@@ -154,45 +143,9 @@ public final class WorldHeightBootstrap {
         if (selected instanceof CavesNotCliffsWorldTypeWrapper) {
             return WorldActivationPolicy.SelectedKind.WRAPPER;
         }
-        if (selected instanceof ICubicWorldType) {
+        if (CavesNotCliffsWorldTypes.isExternalCubicWorldType(selected)) {
             return WorldActivationPolicy.SelectedKind.OTHER_CUBIC;
         }
         return WorldActivationPolicy.SelectedKind.COMPATIBLE_TWO_DIMENSIONAL;
-    }
-
-    private void seedCubicChunksHeight(World world) {
-
-        try {
-            Class<?> rawClass = Class.forName(DATA_CLASS);
-            @SuppressWarnings("unchecked")
-            Class<? extends WorldSavedData> dataClass =
-                    (Class<? extends WorldSavedData>) rawClass.asSubclass(WorldSavedData.class);
-            MapStorage storage = world.getPerWorldStorage();
-            WorldSavedData data = storage.getOrLoadData(dataClass, DATA_NAME);
-
-            if (data == null) {
-                Constructor<? extends WorldSavedData> constructor =
-                        dataClass.getConstructor(String.class, boolean.class, int.class, int.class);
-                data = constructor.newInstance(DATA_NAME, true,
-                        CavesNotCliffsWorldType.MIN_HEIGHT, CavesNotCliffsWorldType.MAX_HEIGHT);
-                storage.setData(DATA_NAME, data);
-            } else {
-                // The world type did not exist before v2, but keep its contract self-healing if a
-                // prerelease wrote Cubic Chunks' unbounded defaults into the save.
-                setField(rawClass, data, "isCubicChunks", true);
-                setField(rawClass, data, "minHeight", CavesNotCliffsWorldType.MIN_HEIGHT);
-                setField(rawClass, data, "maxHeight", CavesNotCliffsWorldType.MAX_HEIGHT);
-            }
-            data.markDirty();
-        } catch (ReflectiveOperationException exception) {
-            throw new IllegalStateException("Caves Not Cliffs v2 requires a compatible Cubic Chunks "
-                    + "1.12.2 build; unable to create the -64..319 world-height record", exception);
-        }
-    }
-
-    private static void setField(Class<?> owner, Object target, String name, Object value)
-            throws ReflectiveOperationException {
-        Field field = owner.getField(name);
-        field.set(target, value);
     }
 }

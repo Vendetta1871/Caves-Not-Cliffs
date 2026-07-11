@@ -3,6 +3,10 @@ package net.celestiald.cavesnotcliffs.world;
 import net.minecraft.world.WorldType;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -11,10 +15,41 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class CavesNotCliffsWorldTypesTest {
+    @Test
+    public void finiteWorldTypeLayerHasNoStaticCubicChunksApiLinks() throws IOException {
+        assertEquals(0, CavesNotCliffsFiniteWorldType.class.getInterfaces().length);
+        assertTrue(CavesNotCliffsFiniteWorldType.class.isAssignableFrom(
+                CavesNotCliffsWorldType.class));
+        assertTrue(CavesNotCliffsFiniteWorldType.class.isAssignableFrom(
+                CavesNotCliffsWorldTypeWrapper.class));
+
+        for (Class<?> type : Arrays.asList(
+                CavesNotCliffsFiniteWorldType.class,
+                CavesNotCliffsWorldType.class,
+                CavesNotCliffsWorldTypeWrapper.class,
+                CavesNotCliffsWorldTypes.class,
+                WorldHeightBootstrap.class)) {
+            String resource = "/" + type.getName().replace('.', '/') + ".class";
+            try (InputStream input = type.getResourceAsStream(resource)) {
+                assertNotNull(resource, input);
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                byte[] buffer = new byte[1024];
+                int read;
+                while ((read = input.read(buffer)) >= 0) {
+                    bytes.write(buffer, 0, read);
+                }
+                String constants = new String(bytes.toByteArray(), StandardCharsets.ISO_8859_1);
+                assertFalse(type.getName() + " has a static CubicChunks class reference",
+                        constants.contains("io/github/opencubicchunks"));
+            }
+        }
+    }
+
     @Test
     public void registersVanillaThenModdedWrappersWithStableHiddenContracts() {
         WorldType modded = new TestWorldType("test_twod");
@@ -36,6 +71,7 @@ public class CavesNotCliffsWorldTypesTest {
                     CavesNotCliffsWorldTypes.wrapperForBase(base);
             assertNotNull(wrapper);
             assertSame(base, wrapper.getBaseType());
+            assertTrue(wrapper instanceof CavesNotCliffsFiniteWorldType);
             assertFalse(wrapper.canBeCreated());
             assertTrue(wrapper.getName().length() <= WorldTypeNaming.MAX_WORLD_TYPE_NAME_LENGTH);
             assertTrue("wrapper names must be unique", names.add(wrapper.getName()));
@@ -75,6 +111,10 @@ public class CavesNotCliffsWorldTypesTest {
         CavesNotCliffsWorldTypes.registerWrappers();
         assertSame("refreshing an already covered type must be idempotent", lateWrapper,
                 CavesNotCliffsWorldTypes.wrapperForBase(late));
+        assertNull("finite wrappers must never be wrapped recursively",
+                CavesNotCliffsWorldTypes.wrapperForBase(lateWrapper));
+        assertFalse("an ordinary 2D type must not be mistaken for an optional CubicChunks type",
+                CavesNotCliffsWorldTypes.isExternalCubicWorldType(modded));
     }
 
     private static final class TestWorldType extends WorldType {

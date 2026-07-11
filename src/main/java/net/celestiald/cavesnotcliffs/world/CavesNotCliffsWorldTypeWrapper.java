@@ -1,11 +1,9 @@
 package net.celestiald.cavesnotcliffs.world;
 
-import io.github.opencubicchunks.cubicchunks.api.util.IntRange;
-import io.github.opencubicchunks.cubicchunks.api.worldgen.ICubeGenerator;
+import net.celestiald.cavebiomes.api.ExtendedChunkAPI;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
-import net.minecraft.world.WorldServerMulti;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.biome.BiomeProvider;
 import net.minecraft.world.gen.IChunkGenerator;
@@ -15,9 +13,9 @@ import net.minecraft.world.gen.layer.GenLayer;
 import java.util.Random;
 import java.util.function.Supplier;
 
-/** Hidden ICubicWorldType which preserves a selected two-dimensional generator as its base. */
+/** Hidden finite-world type which preserves a selected two-dimensional generator as its base. */
 public final class CavesNotCliffsWorldTypeWrapper extends WorldType
-        implements CavesNotCliffsCubicWorldType {
+        implements CavesNotCliffsFiniteWorldType {
     private final WorldType baseType;
     private final TerrainProfile terrainProfile;
 
@@ -42,12 +40,14 @@ public final class CavesNotCliffsWorldTypeWrapper extends WorldType
     }
 
     @Override
-    public ICubeGenerator createCubeGenerator(World world) {
+    public IChunkGenerator getChunkGenerator(World world, String generatorOptions) {
         CavesNotCliffsWorldData data = CavesNotCliffsWorldData.read(world.getWorldInfo());
         if (data == null) {
             throw new IllegalStateException("Schema-2 Caves Not Cliffs world has no persisted generator data");
         }
         data.validateGeneratorContract(getTerrainSchema(), baseType, terrainProfile);
+        ExtendedChunkAPI.requireRange("Caves Not Cliffs",
+                CavesNotCliffsWorldType.MIN_HEIGHT, CavesNotCliffsWorldType.MAX_HEIGHT);
         TerrainProfile persistedProfile = data.getTerrainProfile();
         String options = data.getGeneratorOptions();
         IChunkGenerator baseGenerator = delegate(world,
@@ -56,16 +56,6 @@ public final class CavesNotCliffsWorldTypeWrapper extends WorldType
             return new V118CubicChunksGenerator(world, persistedProfile, baseGenerator);
         }
         return new CavesNotCliffsCubeGenerator(world, baseGenerator, persistedProfile);
-    }
-
-    @Override
-    public IntRange calculateGenerationHeightRange(WorldServer world) {
-        return new IntRange(CavesNotCliffsWorldType.MIN_HEIGHT, CavesNotCliffsWorldType.MAX_HEIGHT);
-    }
-
-    @Override
-    public boolean hasCubicGeneratorForWorld(World world) {
-        return !(world instanceof WorldServerMulti) && world.provider.getDimension() == 0;
     }
 
     @Override
@@ -81,11 +71,6 @@ public final class CavesNotCliffsWorldTypeWrapper extends WorldType
     @Override
     public BiomeProvider getBiomeProvider(World world) {
         return delegate(world, () -> baseType.getBiomeProvider(world));
-    }
-
-    @Override
-    public IChunkGenerator getChunkGenerator(World world, String generatorOptions) {
-        return delegate(world, () -> baseType.getChunkGenerator(world, generatorOptions));
     }
 
     @Override
