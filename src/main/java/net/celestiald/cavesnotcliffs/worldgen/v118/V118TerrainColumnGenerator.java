@@ -15,7 +15,8 @@ public final class V118TerrainColumnGenerator {
     public V118TerrainColumnGenerator(long seed, V118NoiseRouterData.Profile profile) {
         settings = V118NoiseSettings.overworld(profile.amplified());
         router = V118NoiseRouterData.create(seed, profile);
-        finalDensity = V118DensityInterpolator.realize(router.finalDensity(), settings);
+        finalDensity = V118DensityInterpolator.realizeFinalDensity(router.finalDensity(),
+            settings);
         OverworldBiomeBuilder biomeTable = new OverworldBiomeBuilder();
         climateSampler = new V118ClimateSampler(router, settings, biomeTable);
         oreVeinifier = new V118OreVeinifier(
