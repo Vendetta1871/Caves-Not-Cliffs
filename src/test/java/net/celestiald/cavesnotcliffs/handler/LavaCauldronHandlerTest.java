@@ -1,5 +1,6 @@
 package net.celestiald.cavesnotcliffs.handler;
 
+import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.minecraft.block.BlockCauldron;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -77,6 +78,38 @@ public class LavaCauldronHandlerTest {
         assertTrue(conversions.contains(key(minX + 1, minY + 1, minZ + 1)));
         assertFalse("a third-party BlockCauldron subclass is not vanilla",
                 conversions.contains(key(minX + 1, minY, minZ)));
+    }
+
+    @Test
+    public void extendedColumnScanIncludesBottomAndTopBuildHeights() {
+        final Set<Integer> reads = new HashSet<>();
+        final Set<Integer> conversions = new HashSet<>();
+
+        int converted = LavaCauldronHandler.bridgeVolume(
+                0, TerrainColumn.MIN_Y, 0, 1, TerrainColumn.HEIGHT, 1,
+                new LavaCauldronHandler.Volume() {
+                    @Override
+                    public IBlockState stateAt(int x, int y, int z) {
+                        reads.add(y);
+                        return y == TerrainColumn.MIN_Y || y == TerrainColumn.MAX_Y
+                                ? Blocks.CAULDRON.getDefaultState()
+                                : Blocks.AIR.getDefaultState();
+                    }
+
+                    @Override
+                    public boolean bridgeAt(int x, int y, int z) {
+                        conversions.add(y);
+                        return true;
+                    }
+                });
+
+        assertEquals(TerrainColumn.HEIGHT, reads.size());
+        assertTrue(reads.contains(TerrainColumn.MIN_Y));
+        assertTrue(reads.contains(TerrainColumn.MAX_Y));
+        assertFalse(reads.contains(TerrainColumn.MIN_Y - 1));
+        assertFalse(reads.contains(TerrainColumn.MAX_Y_EXCLUSIVE));
+        assertEquals(2, converted);
+        assertEquals(2, conversions.size());
     }
 
     @Test

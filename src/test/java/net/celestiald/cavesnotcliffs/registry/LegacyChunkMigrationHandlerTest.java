@@ -1,64 +1,45 @@
 package net.celestiald.cavesnotcliffs.registry;
 
 import net.celestiald.cavesnotcliffs.content.LushCaveMechanics;
+import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.minecraft.nbt.NBTTagCompound;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class LegacyChunkMigrationHandlerTest {
     @Test
-    public void upperCubeLoadAutomaticallyRetriesPendingLowerCubeWithoutGeneration() {
+    public void chunkBoundsCoverEveryExtendedSection() {
+        LegacyChunkMigration.Bounds bounds =
+                LegacyChunkMigrationHandler.columnBounds(-2, 3);
+
+        assertEquals(-32, bounds.minX);
+        assertEquals(TerrainColumn.MIN_Y, bounds.minY);
+        assertEquals(48, bounds.minZ);
+        assertEquals(16, bounds.sizeX);
+        assertEquals(TerrainColumn.HEIGHT, bounds.sizeY);
+        assertEquals(16, bounds.sizeZ);
+        assertEquals(TerrainColumn.MAX_Y_EXCLUSIVE, bounds.minY + bounds.sizeY);
+    }
+
+    @Test
+    public void extendedColumnMigratesAcrossSectionBoundaryInOnePass() {
         Map<String, State> blocks = new HashMap<>();
         blocks.put(key(0, 31, 0), new State("baby_dripleaf", 0));
-        Set<Integer> loadedCubeYs = new HashSet<>();
-        loadedCubeYs.add(1);
-        HaloVolume volume = new HaloVolume(blocks, loadedCubeYs);
+        ColumnVolume volume = new ColumnVolume(blocks);
+        TestStorage storage = new TestStorage();
+        LegacyChunkMigration.Bounds bounds = new LegacyChunkMigration.Bounds(
+                0, TerrainColumn.MIN_Y, 0, 1, TerrainColumn.HEIGHT, 1);
 
-        TestStorage lowerStorage = new TestStorage();
-        Access lower = new Access(lowerStorage,
-                new LegacyChunkMigration.Bounds(0, 16, 0, 1, 16, 1), volume);
-        Map<Integer, LegacyChunkMigrationHandler.CubeMigrationAccess> loaded = new HashMap<>();
-        loaded.put(1, lower);
-        List<Integer> lookups = new ArrayList<>();
-
-        NBTTagCompound lowerData = new NBTTagCompound();
-        ContentMigrationVersion.write(lowerData,
+        NBTTagCompound data = new NBTTagCompound();
+        ContentMigrationVersion.write(data,
                 CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION);
-        LegacyChunkMigrationHandler.migrateLoadedCube(lowerData, 0L, lower,
-                offset -> {
-                    lookups.add(offset);
-                    return loaded.get(1 + offset);
-                });
-
-        assertEquals("baby_dripleaf", volume.pathAt(0, 31, 0));
-        assertEquals(CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION,
-                ContentMigrationVersion.read(lowerData));
-        NBTTagCompound deferredSave = new NBTTagCompound();
-        LegacyChunkMigrationHandler.writeCompletedVersion(deferredSave,
-                lower.bounds(), lower.volume(), lower.storage());
-        assertEquals(CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION,
-                ContentMigrationVersion.read(deferredSave));
-
-        loadedCubeYs.add(2);
-        TestStorage upperStorage = new TestStorage();
-        Access upper = new Access(upperStorage,
-                new LegacyChunkMigration.Bounds(0, 32, 0, 1, 16, 1), volume);
-        loaded.put(2, upper);
-        NBTTagCompound upperData = new NBTTagCompound();
-        LegacyChunkMigrationHandler.migrateLoadedCube(upperData, 0L, upper,
-                offset -> {
-                    lookups.add(offset);
-                    return loaded.get(2 + offset);
-                });
+        LegacyChunkMigrationHandler.migrateLoaded(
+                data, 0L, bounds, volume, storage);
 
         assertEquals("small_dripleaf", volume.pathAt(0, 31, 0));
         assertEquals(LushCaveMechanics.smallDripleafMeta(2, false, false),
@@ -66,12 +47,13 @@ public class LegacyChunkMigrationHandlerTest {
         assertEquals("small_dripleaf", volume.pathAt(0, 32, 0));
         assertEquals(LushCaveMechanics.smallDripleafMeta(2, true, false),
                 volume.metadataAt(0, 32, 0));
-        assertTrue(lowerStorage.dirtyCount > 0);
-        assertEquals(java.util.Arrays.asList(-1, 1, -1, 1), lookups);
+        assertTrue(storage.dirtyCount > 0);
+        assertEquals(CncDataVersions.CURRENT_CONTENT_VERSION,
+                ContentMigrationVersion.read(data));
 
         NBTTagCompound completedSave = new NBTTagCompound();
         LegacyChunkMigrationHandler.writeCompletedVersion(completedSave,
-                lower.bounds(), lower.volume(), lower.storage());
+                bounds, volume, storage.identity());
         assertEquals(CncDataVersions.CURRENT_CONTENT_VERSION,
                 ContentMigrationVersion.read(completedSave));
     }
@@ -80,30 +62,29 @@ public class LegacyChunkMigrationHandlerTest {
     public void absoluteTopDripleafIsPreservedWithoutEnteringPendingRetryQueue() {
         Map<String, State> blocks = new HashMap<>();
         blocks.put(key(0, 319, 0), new State("baby_dripleaf", 0));
-        Set<Integer> loadedCubeYs = new HashSet<>();
-        loadedCubeYs.add(19);
-        HaloVolume volume = new HaloVolume(blocks, loadedCubeYs);
+        ColumnVolume volume = new ColumnVolume(blocks);
         TestStorage storage = new TestStorage();
-        Access access = new Access(storage,
-                new LegacyChunkMigration.Bounds(0, 304, 0, 1, 16, 1), volume);
+        LegacyChunkMigration.Bounds bounds = new LegacyChunkMigration.Bounds(
+                0, TerrainColumn.MIN_Y, 0, 1, TerrainColumn.HEIGHT, 1);
         NBTTagCompound data = new NBTTagCompound();
         ContentMigrationVersion.write(data,
                 CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION);
 
-        LegacyChunkMigrationHandler.migrateLoadedCube(data, 0L, access, offset -> null);
+        LegacyChunkMigrationHandler.migrateLoaded(data, 0L, bounds, volume, storage);
         assertEquals("baby_dripleaf", volume.pathAt(0, 319, 0));
         assertEquals(0, storage.dirtyCount);
 
         NBTTagCompound firstSave = new NBTTagCompound();
         LegacyChunkMigrationHandler.writeCompletedVersion(firstSave,
-                access.bounds(), access.volume(), access.storage());
+                bounds, volume, storage.identity());
         assertEquals(CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION,
                 ContentMigrationVersion.read(firstSave));
 
-        LegacyChunkMigrationHandler.migrateLoadedCube(firstSave, 0L, access, offset -> null);
+        LegacyChunkMigrationHandler.migrateLoaded(
+                firstSave, 0L, bounds, volume, storage);
         NBTTagCompound secondSave = new NBTTagCompound();
         LegacyChunkMigrationHandler.writeCompletedVersion(secondSave,
-                access.bounds(), access.volume(), access.storage());
+                bounds, volume, storage.identity());
         assertEquals(CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION,
                 ContentMigrationVersion.read(secondSave));
         assertEquals("baby_dripleaf", volume.pathAt(0, 319, 0));
@@ -115,29 +96,26 @@ public class LegacyChunkMigrationHandlerTest {
         Map<String, State> blocks = new HashMap<>();
         blocks.put(key(0, 31, 0), new State("baby_dripleaf", 0));
         blocks.put(key(0, 32, 0), new State("stone", 0));
-        Set<Integer> loadedCubeYs = new HashSet<>();
-        loadedCubeYs.add(1);
-        loadedCubeYs.add(2);
-        HaloVolume volume = new HaloVolume(blocks, loadedCubeYs);
+        ColumnVolume volume = new ColumnVolume(blocks);
         TestStorage storage = new TestStorage();
-        Access access = new Access(storage,
-                new LegacyChunkMigration.Bounds(0, 16, 0, 1, 16, 1), volume);
+        LegacyChunkMigration.Bounds bounds = new LegacyChunkMigration.Bounds(
+                0, TerrainColumn.MIN_Y, 0, 1, TerrainColumn.HEIGHT, 1);
         NBTTagCompound data = new NBTTagCompound();
         ContentMigrationVersion.write(data,
                 CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION);
 
-        LegacyChunkMigrationHandler.migrateLoadedCube(data, 0L, access, offset -> null);
+        LegacyChunkMigrationHandler.migrateLoaded(data, 0L, bounds, volume, storage);
         assertEquals("baby_dripleaf", volume.pathAt(0, 31, 0));
         assertEquals("stone", volume.pathAt(0, 32, 0));
         assertEquals(0, storage.dirtyCount);
 
         NBTTagCompound blockedSave = new NBTTagCompound();
         LegacyChunkMigrationHandler.writeCompletedVersion(blockedSave,
-                access.bounds(), access.volume(), access.storage());
+                bounds, volume, storage.identity());
         assertEquals(CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION,
                 ContentMigrationVersion.read(blockedSave));
-        LegacyChunkMigrationHandler.migrateLoadedCube(
-                blockedSave, 0L, access, offset -> null);
+        LegacyChunkMigrationHandler.migrateLoaded(
+                blockedSave, 0L, bounds, volume, storage);
         assertEquals("baby_dripleaf", volume.pathAt(0, 31, 0));
         assertEquals("stone", volume.pathAt(0, 32, 0));
         assertEquals(0, storage.dirtyCount);
@@ -145,66 +123,42 @@ public class LegacyChunkMigrationHandlerTest {
         blocks.remove(key(0, 32, 0));
         NBTTagCompound unblockedSave = new NBTTagCompound();
         LegacyChunkMigrationHandler.writeCompletedVersion(unblockedSave,
-                access.bounds(), access.volume(), access.storage());
+                bounds, volume, storage.identity());
         assertEquals(CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION,
                 ContentMigrationVersion.read(unblockedSave));
-        LegacyChunkMigrationHandler.migrateLoadedCube(
-                unblockedSave, 0L, access, offset -> null);
+        LegacyChunkMigrationHandler.migrateLoaded(
+                unblockedSave, 0L, bounds, volume, storage);
 
         assertEquals("small_dripleaf", volume.pathAt(0, 31, 0));
         assertEquals("small_dripleaf", volume.pathAt(0, 32, 0));
         assertTrue(storage.dirtyCount > 0);
         NBTTagCompound completedSave = new NBTTagCompound();
         LegacyChunkMigrationHandler.writeCompletedVersion(completedSave,
-                access.bounds(), access.volume(), access.storage());
+                bounds, volume, storage.identity());
         assertEquals(CncDataVersions.CURRENT_CONTENT_VERSION,
                 ContentMigrationVersion.read(completedSave));
     }
 
-    public static final class TestStorage {
+    public static final class TestStorage
+            implements LegacyChunkMigrationHandler.MigrationStorage {
         private int dirtyCount;
 
+        @Override
+        public Object identity() {
+            return this;
+        }
+
+        @Override
         public void markDirty() {
             dirtyCount++;
         }
     }
 
-    private static final class Access
-            implements LegacyChunkMigrationHandler.CubeMigrationAccess {
-        private final TestStorage storage;
-        private final LegacyChunkMigration.Bounds bounds;
-        private final LegacyChunkMigration.Volume volume;
-
-        private Access(TestStorage storage, LegacyChunkMigration.Bounds bounds,
-                LegacyChunkMigration.Volume volume) {
-            this.storage = storage;
-            this.bounds = bounds;
-            this.volume = volume;
-        }
-
-        @Override
-        public Object storage() {
-            return storage;
-        }
-
-        @Override
-        public LegacyChunkMigration.Bounds bounds() {
-            return bounds;
-        }
-
-        @Override
-        public LegacyChunkMigration.Volume volume() {
-            return volume;
-        }
-    }
-
-    private static final class HaloVolume implements LegacyChunkMigration.Volume {
+    private static final class ColumnVolume implements LegacyChunkMigration.Volume {
         private final Map<String, State> blocks;
-        private final Set<Integer> loadedCubeYs;
 
-        private HaloVolume(Map<String, State> blocks, Set<Integer> loadedCubeYs) {
+        private ColumnVolume(Map<String, State> blocks) {
             this.blocks = blocks;
-            this.loadedCubeYs = loadedCubeYs;
         }
 
         @Override
@@ -229,12 +183,12 @@ public class LegacyChunkMigrationHandlerTest {
 
         @Override
         public boolean isPositionAvailable(int x, int y, int z) {
-            return y < -64 || y >= 320 || loadedCubeYs.contains(y >> 4);
+            return true;
         }
 
         @Override
         public boolean canStoreAt(int x, int y, int z) {
-            return y >= -64 && y < 320;
+            return y >= TerrainColumn.MIN_Y && y < TerrainColumn.MAX_Y_EXCLUSIVE;
         }
 
         @Override
@@ -263,6 +217,8 @@ public class LegacyChunkMigrationHandlerTest {
                 String secondTarget, int secondMetadata) {
             if (!isPositionAvailable(firstX, firstY, firstZ)
                     || !isPositionAvailable(secondX, secondY, secondZ)
+                    || !canStoreAt(firstX, firstY, firstZ)
+                    || !canStoreAt(secondX, secondY, secondZ)
                     || !hasTarget(firstTarget) || !hasTarget(secondTarget)) {
                 return false;
             }

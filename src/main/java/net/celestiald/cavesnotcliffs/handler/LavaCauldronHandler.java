@@ -1,10 +1,5 @@
 package net.celestiald.cavesnotcliffs.handler;
 
-import io.github.opencubicchunks.cubicchunks.api.world.CubeDataEvent;
-import io.github.opencubicchunks.cubicchunks.api.world.CubeEvent;
-import io.github.opencubicchunks.cubicchunks.api.world.ICube;
-import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld;
-import io.github.opencubicchunks.cubicchunks.api.worldgen.populator.event.PopulateCubeEvent;
 import net.celestiald.cavesnotcliffs.block.BlockLavaCauldron;
 import net.celestiald.cavesnotcliffs.dripstone.CauldronStateBridge;
 import net.minecraft.block.state.IBlockState;
@@ -26,8 +21,6 @@ import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -42,10 +35,10 @@ public final class LavaCauldronHandler {
     static final String BRIDGE_VERSION_KEY = "CavesNotCliffsCauldronBridge";
     static final int BRIDGE_VERSION = 1;
 
-    private static final Set<Object> SKIP_SCAN =
-            Collections.newSetFromMap(new WeakHashMap<Object, Boolean>());
-    private static final Set<Object> COMPLETED =
-            Collections.newSetFromMap(new WeakHashMap<Object, Boolean>());
+    private static final Set<Chunk> SKIP_SCAN =
+            Collections.newSetFromMap(new WeakHashMap<Chunk, Boolean>());
+    private static final Set<Chunk> COMPLETED =
+            Collections.newSetFromMap(new WeakHashMap<Chunk, Boolean>());
 
     private LavaCauldronHandler() {
     }
@@ -108,8 +101,7 @@ public final class LavaCauldronHandler {
 
     @SubscribeEvent
     public void onChunkDataLoad(ChunkDataEvent.Load event) {
-        if (!event.getWorld().isRemote && !isCubic(event.getWorld())
-                && hasCurrentVersion(event.getData())) {
+        if (!event.getWorld().isRemote && hasCurrentVersion(event.getData())) {
             rememberSkip(event.getChunk());
         }
     }
@@ -117,7 +109,7 @@ public final class LavaCauldronHandler {
     @SubscribeEvent
     public void onChunkLoad(ChunkEvent.Load event) {
         World world = event.getWorld();
-        if (world.isRemote || isCubic(world)) {
+        if (world.isRemote) {
             return;
         }
         if (consumeSkip(event.getChunk())) {
@@ -129,37 +121,7 @@ public final class LavaCauldronHandler {
 
     @SubscribeEvent
     public void onChunkDataSave(ChunkDataEvent.Save event) {
-        if (!event.getWorld().isRemote && !isCubic(event.getWorld())
-                && isCompleted(event.getChunk())) {
-            writeCurrentVersion(event.getData());
-        }
-    }
-
-    @SubscribeEvent
-    public void onCubeDataLoad(CubeDataEvent.Load event) {
-        if (!event.getWorld().isRemote && isCubic(event.getWorld())
-                && hasCurrentVersion(event.getData())) {
-            rememberSkip(event.getCube());
-        }
-    }
-
-    @SubscribeEvent
-    public void onCubeLoad(CubeEvent.Load event) {
-        World world = event.getWorld();
-        if (world.isRemote || !isCubic(world)) {
-            return;
-        }
-        if (consumeSkip(event.getCube())) {
-            rememberCompleted(event.getCube());
-            return;
-        }
-        bridgeCube(world, event.getCube());
-    }
-
-    @SubscribeEvent
-    public void onCubeDataSave(CubeDataEvent.Save event) {
-        if (!event.getWorld().isRemote && isCubic(event.getWorld())
-                && isCompleted(event.getCube())) {
+        if (!event.getWorld().isRemote && isCompleted(event.getChunk())) {
             writeCurrentVersion(event.getData());
         }
     }
@@ -168,23 +130,9 @@ public final class LavaCauldronHandler {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onChunkPopulated(PopulateChunkEvent.Post event) {
         World world = event.getWorld();
-        if (!world.isRemote && !isCubic(world)) {
+        if (!world.isRemote) {
             bridgeChunk(world,
                     world.getChunkFromChunkCoords(event.getChunkX(), event.getChunkZ()));
-        }
-    }
-
-    /** Catches retained 1.12 structure cauldrons added during CubicChunks population. */
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void onCubePopulated(PopulateCubeEvent.Post event) {
-        World world = event.getWorld();
-        if (world.isRemote || !isCubic(world)) {
-            return;
-        }
-        ICube cube = ((ICubicWorld) world).getCubeCache().getLoadedCube(
-                event.getCubeX(), event.getCubeY(), event.getCubeZ());
-        if (cube != null) {
-            bridgeCube(world, cube);
         }
     }
 
@@ -217,31 +165,6 @@ public final class LavaCauldronHandler {
         chunk.markDirty();
     }
 
-    private static void bridgeCube(final World world, final ICube cube) {
-        if (BlockLavaCauldron.block == null) {
-            return;
-        }
-        final int minX = cube.getCoords().getMinBlockX();
-        final int minY = cube.getCoords().getMinBlockY();
-        final int minZ = cube.getCoords().getMinBlockZ();
-        if (!cube.isEmpty()) {
-            bridgeVolume(minX, minY, minZ, 16, 16, 16, new Volume() {
-                @Override
-                public IBlockState stateAt(int x, int y, int z) {
-                    return cube.getBlockState(new BlockPos(x, y, z));
-                }
-
-                @Override
-                public boolean bridgeAt(int x, int y, int z) {
-                    return CauldronStateBridge.bridgeVanillaAt(
-                            world, new BlockPos(x, y, z));
-                }
-            });
-        }
-        rememberCompleted(cube);
-        markDirty(cube);
-    }
-
     static int bridgeVolume(int minX, int minY, int minZ,
             int sizeX, int sizeY, int sizeZ, Volume volume) {
         if (sizeX < 0 || sizeY < 0 || sizeZ < 0 || volume == null) {
@@ -267,47 +190,33 @@ public final class LavaCauldronHandler {
 
     static void writeCurrentVersion(NBTTagCompound data) {
         if (data == null) {
-            throw new IllegalArgumentException("Chunk or cube data is required");
+            throw new IllegalArgumentException("Chunk data is required");
         }
         data.setInteger(BRIDGE_VERSION_KEY, BRIDGE_VERSION);
     }
 
-    private static boolean isCubic(World world) {
-        return world instanceof ICubicWorld && ((ICubicWorld) world).isCubicWorld();
-    }
-
-    private static void rememberSkip(Object storage) {
+    private static void rememberSkip(Chunk storage) {
         synchronized (SKIP_SCAN) {
             SKIP_SCAN.add(storage);
         }
     }
 
-    private static boolean consumeSkip(Object storage) {
+    private static boolean consumeSkip(Chunk storage) {
         synchronized (SKIP_SCAN) {
             return SKIP_SCAN.remove(storage);
         }
     }
 
-    private static void rememberCompleted(Object storage) {
+    private static void rememberCompleted(Chunk storage) {
         synchronized (COMPLETED) {
             COMPLETED.add(storage);
         }
     }
 
-    private static boolean isCompleted(Object storage) {
+    private static boolean isCompleted(Chunk storage) {
         synchronized (COMPLETED) {
             return COMPLETED.contains(storage);
         }
     }
 
-    private static void markDirty(Object storage) {
-        try {
-            Method markDirty = storage.getClass().getMethod("markDirty");
-            markDirty.invoke(storage);
-        } catch (NoSuchMethodException | IllegalAccessException
-                | InvocationTargetException error) {
-            throw new IllegalStateException("Loaded CubicChunks cube cannot be marked dirty: "
-                    + storage.getClass().getName(), error);
-        }
-    }
 }
