@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 /** Exact Java 1.18.2 placement chains for the seven lush-cave vegetation features. */
 public final class V118LushCavePlacements {
@@ -12,6 +13,54 @@ public final class V118LushCavePlacements {
     public static final int ENVIRONMENT_SCAN_STEPS = 12;
 
     private V118LushCavePlacements() {
+    }
+
+    /**
+     * Runs the complete Java 1.18.2 lush-cave vegetal-decoration step.
+     *
+     * <p>Configured-feature placement is intentionally interleaved with placement-modifier
+     * sampling. Both consume the same feature-seeded random stream in vanilla; collecting all
+     * origins before placing them would therefore change every origin after the first successful
+     * feature.</p>
+     */
+    public static DecorationResult decorate(V118LushCaveFeature.WorldAccess world,
+            long worldSeed, int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        if (world == null || regionBiomes == null) {
+            throw new NullPointerException("world and regionBiomes are required");
+        }
+        V118WorldgenRandom random = new V118WorldgenRandom(0L);
+        long decorationSeed = random.setDecorationSeed(worldSeed, chunkX << 4, chunkZ << 4);
+        if (!regionBiomes.contains(V118Biome.LUSH_CAVES)) {
+            return new DecorationResult(decorationSeed, 0, 0);
+        }
+
+        int attempts = 0;
+        int placed = 0;
+        int originX = chunkX << 4;
+        int originZ = chunkZ << 4;
+        for (PlacedFeature feature : PlacedFeature.values()) {
+            random.setFeatureSeed(decorationSeed, feature.globalIndex,
+                VEGETAL_DECORATION_STEP);
+            int count = randomBetweenInclusive(random, feature.minimumCount,
+                feature.maximumCount);
+            attempts += count;
+            for (int attempt = 0; attempt < count; ++attempt) {
+                int blockX = originX + random.nextInt(16);
+                int blockZ = originZ + random.nextInt(16);
+                int blockY = randomBetweenInclusive(random, world.minBuildHeight(),
+                    MAX_TERRAIN_Y);
+                Position position = scan(feature, world, blockX, blockY, blockZ);
+                if (position == null || world.biomeAt(position.x, position.y, position.z)
+                        != V118Biome.LUSH_CAVES) {
+                    continue;
+                }
+                if (V118LushCaveFeature.place(feature, world, random,
+                        position.x, position.y, position.z)) {
+                    ++placed;
+                }
+            }
+        }
+        return new DecorationResult(decorationSeed, attempts, placed);
     }
 
     public enum PlacedFeature {
@@ -194,6 +243,30 @@ public final class V118LushCavePlacements {
 
         public int z() {
             return z;
+        }
+    }
+
+    public static final class DecorationResult {
+        private final long decorationSeed;
+        private final int attempts;
+        private final int placed;
+
+        private DecorationResult(long decorationSeed, int attempts, int placed) {
+            this.decorationSeed = decorationSeed;
+            this.attempts = attempts;
+            this.placed = placed;
+        }
+
+        public long decorationSeed() {
+            return decorationSeed;
+        }
+
+        public int attempts() {
+            return attempts;
+        }
+
+        public int placed() {
+            return placed;
         }
     }
 }
