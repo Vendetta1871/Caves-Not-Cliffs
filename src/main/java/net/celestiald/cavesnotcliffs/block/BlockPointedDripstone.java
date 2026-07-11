@@ -6,6 +6,7 @@ import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.DripFluid;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Neighbor;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness;
+import net.celestiald.cavesnotcliffs.entity.EntityFallingPointedDripstone;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.EnumPushReaction;
@@ -18,7 +19,6 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.item.EntityFallingBlock;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
@@ -43,7 +43,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.Explosion;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -138,7 +137,7 @@ public final class BlockPointedDripstone extends Block {
         boolean merge = !(placer instanceof EntityPlayer)
                 || !((EntityPlayer) placer).isSneaking();
         Thickness thickness = calculateThickness(world, pos, direction, merge);
-        BlockPointedDripstone target = sourceWater(world.getBlockState(pos))
+        BlockPointedDripstone target = waterFluid(world.getBlockState(pos))
                 ? waterloggedBlock() : dryBlock();
         if (target == null) {
             target = this;
@@ -427,7 +426,9 @@ public final class BlockPointedDripstone extends Block {
         DripFluid fluid = cauldronFillFluid(world, pos);
         if (roll < 0.02F || fluid != null) {
             Vec3d offset = getOffset(state, world, pos);
-            world.spawnParticle(fluid == DripFluid.LAVA
+            boolean lavaParticle = fluid == DripFluid.LAVA
+                    || fluid == null && world.provider.doesWaterVaporize();
+            world.spawnParticle(lavaParticle
                             ? EnumParticleTypes.DRIP_LAVA : EnumParticleTypes.DRIP_WATER,
                     pos.getX() + 0.5D + offset.x,
                     pos.getY() + 0.25D,
@@ -485,21 +486,19 @@ public final class BlockPointedDripstone extends Block {
         BlockPos cursor = root;
         IBlockState state = rootState;
         while (pointedInDirection(state, EnumFacing.DOWN)) {
-            EntityFallingBlock falling = new EntityFallingBlock(world,
-                    cursor.getX() + 0.5D, cursor.getY(), cursor.getZ() + 0.5D, state);
+            float damageFactor = isTip(state, true)
+                    ? PointedDripstoneMechanics.fallingDamagePerDistance(
+                            root.getY(), cursor.getY()) : 0.0F;
+            EntityFallingPointedDripstone.EntityCustom falling =
+                    new EntityFallingPointedDripstone.EntityCustom(world,
+                            cursor.getX() + 0.5D, cursor.getY(), cursor.getZ() + 0.5D,
+                            state, damageFactor);
             world.spawnEntity(falling);
             // Modern FallingBlockEntity removes the source synchronously. Advancing the legacy
             // entity once gives the same ordering and lets us restore a retained source fluid.
             falling.onUpdate();
             restoreWaterAfterRemoval(world, cursor, state);
             if (isTip(state, true)) {
-                falling.setHurtEntities(true);
-                ObfuscationReflectionHelper.setPrivateValue(EntityFallingBlock.class, falling,
-                        PointedDripstoneMechanics.fallingDamagePerDistance(
-                                root.getY(), cursor.getY()), "field_145816_i");
-                ObfuscationReflectionHelper.setPrivateValue(EntityFallingBlock.class, falling,
-                        PointedDripstoneMechanics.FALLING_STALACTITE_MAX_DAMAGE,
-                        "field_145815_h");
                 break;
             }
             cursor = cursor.down();
@@ -530,10 +529,6 @@ public final class BlockPointedDripstone extends Block {
         if (cauldron == null) {
             return;
         }
-        world.playSound(null, tip,
-                fluid == DripFluid.LAVA
-                        ? DripstoneSoundEvents.DRIP_LAVA : DripstoneSoundEvents.DRIP_WATER,
-                SoundCategory.BLOCKS, 1.0F, 1.0F);
         IBlockState cauldronState = world.getBlockState(cauldron);
         world.scheduleUpdate(cauldron, cauldronState.getBlock(),
                 PointedDripstoneMechanics.cauldronDelay(tip.getY(), cauldron.getY()));
@@ -693,7 +688,9 @@ public final class BlockPointedDripstone extends Block {
     private static boolean canTipGrow(IBlockState state, World world, BlockPos pos) {
         EnumFacing direction = state.getValue(TIP_DIRECTION);
         IBlockState forward = world.getBlockState(pos.offset(direction));
-        if (forward.getMaterial().isLiquid()) {
+        if (forward.getMaterial().isLiquid()
+                || forward.getBlock() instanceof BlockPointedDripstone
+                && ((BlockPointedDripstone) forward.getBlock()).waterloggedStorage) {
             return false;
         }
         return forward.getMaterial() == Material.AIR
@@ -734,7 +731,7 @@ public final class BlockPointedDripstone extends Block {
                 && targetState.getValue(TIP_DIRECTION) == direction.getOpposite()) {
             createMergedTips(world, target, targetState);
         } else if (targetState.getMaterial() == Material.AIR
-                || targetState.getBlock() == Blocks.WATER) {
+                || targetState.getMaterial() == Material.WATER) {
             createDripstone(world, target, direction, Thickness.TIP);
         }
     }
@@ -756,7 +753,7 @@ public final class BlockPointedDripstone extends Block {
 
     public static void createDripstone(World world, BlockPos pos, EnumFacing direction,
             Thickness thickness) {
-        BlockPointedDripstone target = sourceWater(world.getBlockState(pos))
+        BlockPointedDripstone target = waterFluid(world.getBlockState(pos))
                 ? waterloggedBlock() : dryBlock();
         if (target != null) {
             world.setBlockState(pos, target.getDefaultState()
@@ -766,8 +763,12 @@ public final class BlockPointedDripstone extends Block {
     }
 
     private static boolean sourceWater(IBlockState state) {
-        return state.getBlock() == Blocks.WATER
+        return (state.getBlock() == Blocks.WATER || state.getBlock() == Blocks.FLOWING_WATER)
                 && state.getValue(BlockLiquid.LEVEL) == 0;
+    }
+
+    private static boolean waterFluid(IBlockState state) {
+        return state.getMaterial() == Material.WATER;
     }
 
     private static BlockPointedDripstone dryBlock() {

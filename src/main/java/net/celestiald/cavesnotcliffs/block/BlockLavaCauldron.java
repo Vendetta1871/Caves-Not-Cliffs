@@ -120,8 +120,7 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
                 EntityPlayer player, EnumHand hand, EnumFacing facing,
                 float hitX, float hitY, float hitZ) {
             ItemStack held = player.getHeldItem(hand);
-            if (held.isEmpty() || !world.isBlockModifiable(player, pos)
-                    || !player.canPlayerEdit(pos, facing, held)) {
+            if (held.isEmpty()) {
                 return false;
             }
 

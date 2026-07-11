@@ -80,12 +80,14 @@ processResources {
 // Finding one on a net.minecraft owner in the distributable proves that reobfuscation was skipped
 // or incomplete (Material.ROCK was the original release-blocking example).
 def forbiddenMcpFields = [
-    'AIR', 'ARMOR_CLEANED', 'BANNER_CLEANED', 'BEDROCK',
+    'ADOBE', 'AIR', 'ARMOR_CLEANED', 'BANNER_CLEANED', 'BEDROCK',
     'BUCKET', 'BUILDING_BLOCKS', 'CAULDRON', 'CAULDRON_FILLED', 'CAULDRON_USED',
     'CLAY', 'GLASS', 'GLASS_BOTTLE', 'GRASS', 'IRON',
-    'ITEM_BOTTLE_EMPTY', 'ITEM_BOTTLE_FILL', 'ITEM_BUCKET_EMPTY', 'ITEM_BUCKET_FILL',
+    'FLOWING_WATER', 'ITEM_BOTTLE_EMPTY', 'ITEM_BOTTLE_FILL',
+    'ITEM_BUCKET_EMPTY', 'ITEM_BUCKET_EMPTY_LAVA', 'ITEM_BUCKET_FILL',
+    'ITEM_BUCKET_FILL_LAVA',
     'LAVA', 'LAVA_BUCKET', 'MAX_HEALTH', 'METAL', 'MOVEMENT_SPEED',
-    'PLANT', 'POTIONITEM', 'ROCK', 'STONE', 'VINE', 'WATER',
+    'PLANT', 'POTIONITEM', 'PURPLE_SHULKER_BOX', 'ROCK', 'STONE', 'VINE', 'WATER',
     'WATER_BUCKET'
 ] as Set
 

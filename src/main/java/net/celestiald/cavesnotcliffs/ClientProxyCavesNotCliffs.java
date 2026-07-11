@@ -8,6 +8,8 @@ import net.minecraftforge.client.model.obj.OBJLoader;
 import net.minecraftforge.fml.client.registry.RenderingRegistry;
 import net.celestiald.cavesnotcliffs.client.RenderAxolotl;
 import net.celestiald.cavesnotcliffs.entity.EntityAxolotl;
+import net.celestiald.cavesnotcliffs.entity.EntityFallingPointedDripstone;
+import net.minecraft.client.renderer.entity.RenderFallingBlock;
 
 public class ClientProxyCavesNotCliffs implements IProxyCavesNotCliffs {
 	@Override
@@ -19,6 +21,8 @@ public class ClientProxyCavesNotCliffs implements IProxyCavesNotCliffs {
 		OBJLoader.INSTANCE.addDomain("cavesnotcliffs");
 		RenderingRegistry.registerEntityRenderingHandler(EntityAxolotl.EntityCustom.class,
 				RenderAxolotl::new);
+		RenderingRegistry.registerEntityRenderingHandler(
+				EntityFallingPointedDripstone.EntityCustom.class, RenderFallingBlock::new);
 	}
 
 	@Override

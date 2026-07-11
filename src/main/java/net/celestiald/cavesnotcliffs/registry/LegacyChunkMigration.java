@@ -167,7 +167,7 @@ public final class LegacyChunkMigration {
                     String path = volume.blockPathAt(x, y, z);
                     if (isLegacyPointedDripstone(path)) {
                         conversions.add(new Conversion(x, y, z,
-                                metadataForLegacySegment(path, x, y, z, volume)));
+                                metadataForLegacySegment(path, x, y, z, bounds, volume)));
                     }
                 }
             }
@@ -177,6 +177,11 @@ public final class LegacyChunkMigration {
 
     public static int metadataForLegacySegment(String path, int x, int y, int z,
             Volume volume) {
+        return metadataForLegacySegment(path, x, y, z, null, volume);
+    }
+
+    private static int metadataForLegacySegment(String path, int x, int y, int z,
+            Bounds bounds, Volume volume) {
         if ("stalactite".equals(path) || "top_stalactite".equals(path)) {
             return PointedDripstoneMechanics.metadata(false, Thickness.TIP);
         }
@@ -184,7 +189,8 @@ public final class LegacyChunkMigration {
             return PointedDripstoneMechanics.metadata(false, Thickness.MIDDLE);
         }
         if ("bottom_stalactite".equals(path)) {
-            String forward = volume.blockPathAt(x, y - 1, z);
+            String forward = inside(bounds, x, y - 1, z)
+                    ? volume.blockPathAt(x, y - 1, z) : null;
             Thickness thickness = "top_stalactite".equals(forward)
                     || "stalactite".equals(forward) ? Thickness.FRUSTUM : Thickness.BASE;
             return PointedDripstoneMechanics.metadata(false, thickness);
@@ -196,12 +202,19 @@ public final class LegacyChunkMigration {
             return PointedDripstoneMechanics.metadata(true, Thickness.MIDDLE);
         }
         if ("bottom_stalagmite".equals(path)) {
-            String forward = volume.blockPathAt(x, y + 1, z);
+            String forward = inside(bounds, x, y + 1, z)
+                    ? volume.blockPathAt(x, y + 1, z) : null;
             Thickness thickness = "top_stalagmite".equals(forward)
                     || "stalagmite".equals(forward) ? Thickness.FRUSTUM : Thickness.BASE;
             return PointedDripstoneMechanics.metadata(true, thickness);
         }
         throw new IllegalArgumentException("Not a legacy pointed-dripstone segment: " + path);
+    }
+
+    private static boolean inside(Bounds bounds, int x, int y, int z) {
+        return bounds == null || x >= bounds.minX && x < bounds.minX + bounds.sizeX
+                && y >= bounds.minY && y < bounds.minY + bounds.sizeY
+                && z >= bounds.minZ && z < bounds.minZ + bounds.sizeZ;
     }
 
     public static boolean isLegacyPointedDripstone(String path) {
