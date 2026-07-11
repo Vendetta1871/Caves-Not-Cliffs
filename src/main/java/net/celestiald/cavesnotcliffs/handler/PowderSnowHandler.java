@@ -1,8 +1,6 @@
 package net.celestiald.cavesnotcliffs.handler;
 
 import net.celestiald.cavesnotcliffs.block.BlockPowderSnow;
-import net.celestiald.cavesnotcliffs.block.BlockLavaCauldron;
-import net.celestiald.cavesnotcliffs.block.BlockPowderSnowCauldron;
 import net.celestiald.cavesnotcliffs.powdersnow.PowderSnowMechanics;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
@@ -79,37 +77,6 @@ public final class PowderSnowHandler {
         if (useBucket != null) {
             player.addStat(useBucket);
         }
-        syncInventory(player);
-    }
-
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public void onPowderSnowBucketUsedOnCauldron(PlayerInteractEvent.RightClickBlock event) {
-        World world = event.getWorld();
-        BlockPos pos = event.getPos();
-        EntityPlayer player = event.getEntityPlayer();
-        ItemStack held = player.getHeldItem(event.getHand());
-        net.minecraft.block.Block target = world.getBlockState(pos).getBlock();
-        boolean cauldron = target == net.minecraft.init.Blocks.CAULDRON
-            || target == BlockLavaCauldron.block
-            || target == BlockPowderSnowCauldron.block;
-        if (!cauldron || BlockPowderSnow.bucket == null
-                || BlockPowderSnowCauldron.block == null || held.isEmpty()
-                || held.getItem() != BlockPowderSnow.bucket
-                || !world.isBlockModifiable(player, pos)) {
-            return;
-        }
-
-        event.setCancellationResult(EnumActionResult.SUCCESS);
-        event.setCanceled(true);
-        if (world.isRemote) {
-            return;
-        }
-        world.setBlockState(pos, BlockPowderSnowCauldron.block.getDefaultState()
-            .withProperty(net.minecraft.block.BlockCauldron.LEVEL, 3), 3);
-        replaceFilledBucket(player, event.getHand(), held);
-        player.addStat(StatList.CAULDRON_FILLED);
-        world.playSound(null, pos, BlockPowderSnow.BUCKET_EMPTY_SOUND,
-            SoundCategory.BLOCKS, 1.0F, 1.0F);
         syncInventory(player);
     }
 
@@ -222,24 +189,6 @@ public final class PowderSnowHandler {
             player.setHeldItem(hand, filled);
         } else if (!player.inventory.addItemStackToInventory(filled)) {
             player.dropItem(filled, false);
-        }
-    }
-
-    private void replaceFilledBucket(EntityPlayer player, net.minecraft.util.EnumHand hand,
-            ItemStack filledBucket) {
-        if (player.capabilities.isCreativeMode) {
-            ItemStack empty = new ItemStack(Items.BUCKET);
-            if (!player.inventory.hasItemStack(empty)) {
-                player.inventory.addItemStackToInventory(empty);
-            }
-            return;
-        }
-        filledBucket.shrink(1);
-        ItemStack empty = new ItemStack(Items.BUCKET);
-        if (filledBucket.isEmpty()) {
-            player.setHeldItem(hand, empty);
-        } else if (!player.inventory.addItemStackToInventory(empty)) {
-            player.dropItem(empty, false);
         }
     }
 

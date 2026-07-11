@@ -152,10 +152,11 @@ public final class BlockPowderSnowCauldron extends ElementsCavesNotCliffs.ModEle
             float temperature = world.getBiome(pos).getTemperature(pos);
             boolean snowing = world.getBiomeProvider()
                 .getTemperatureAtHeight(temperature, pos.getY()) < 0.15F;
-            int next = PowderSnowMechanics.nextPowderSnowCauldronLevel(
-                level, snowing, world.rand.nextFloat());
-            if (next != level) {
-                setContents(world, pos, CauldronMechanics.powderSnow(next));
+            State contents = CauldronMechanics.powderSnow(level);
+            State next = CauldronMechanics.precipitation(
+                contents, snowing, world.rand.nextFloat());
+            if (!next.equals(contents)) {
+                setContents(world, pos, next);
             }
         }
 
