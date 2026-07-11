@@ -45,6 +45,7 @@ import net.minecraft.block.Block;
 import net.celestiald.cavesnotcliffs.command.CommandCaveBiome;
 import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
 import net.celestiald.cavesnotcliffs.handler.LavaCauldronHandler;
+import net.celestiald.cavesnotcliffs.migration.LegacyCubicSaveImporter;
 import net.celestiald.cavesnotcliffs.stonecutter.CncGuiHandler;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldTypes;
@@ -116,6 +117,7 @@ public class CavesNotCliffs {
 		// Forge fires this immediately before loadAllWorlds, so every persisted wrapper name must
 		// be registered before WorldInfo parses level.dat.
 		CavesNotCliffsWorldTypes.registerWrappers();
+		LegacyCubicSaveImporter.prepareForServer(event.getServer());
 	}
 
 	@SubscribeEvent

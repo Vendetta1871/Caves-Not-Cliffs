@@ -81,7 +81,7 @@ public class CubicDimensionStagerTest {
         }
     }
 
-    private static NBTTagCompound column(int x, int z) throws IOException {
+    static NBTTagCompound column(int x, int z) throws IOException {
         NBTTagCompound root = new NBTTagCompound();
         root.setInteger("DataVersion", 0);
         NBTTagCompound forge = new NBTTagCompound();
@@ -106,7 +106,7 @@ public class CubicDimensionStagerTest {
         return root;
     }
 
-    private static NBTTagCompound cube(int x, int y, int z,
+    static NBTTagCompound cube(int x, int y, int z,
             boolean populated, boolean withSection) {
         NBTTagCompound root = new NBTTagCompound();
         root.setInteger("DataVersion", 0);
@@ -146,7 +146,7 @@ public class CubicDimensionStagerTest {
         return root;
     }
 
-    private static void writeCube(Path source, int x, int y, int z,
+    static void writeCube(Path source, int x, int y, int z,
             NBTTagCompound root) throws IOException {
         int regionX = x >> 4;
         int regionY = y >> 4;
@@ -157,7 +157,7 @@ public class CubicDimensionStagerTest {
         writeExtension(extension, entryId, root);
     }
 
-    private static void writeExtension(Path directory, int entryId, NBTTagCompound root)
+    static void writeExtension(Path directory, int entryId, NBTTagCompound root)
             throws IOException {
         Files.createDirectories(directory);
         ByteArrayOutputStream output = new ByteArrayOutputStream();
