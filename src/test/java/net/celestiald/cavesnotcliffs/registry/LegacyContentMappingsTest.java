@@ -21,6 +21,14 @@ public class LegacyContentMappingsTest {
     }
 
     @Test
+    public void preservesLegacyGeodeBlockMarkerButCanonicalizesItsItem() {
+        assertEquals("amethyst_geode",
+                LegacyContentMappings.canonicalBlockPath("amethyst_geode"));
+        assertEquals("amethyst_block",
+                LegacyContentMappings.canonicalItemPath("amethyst_geode"));
+    }
+
+    @Test
     public void doesNotRewriteAnotherNamespace() {
         ResourceLocation other = new ResourceLocation("example", "dark_stone");
         assertEquals(other, LegacyContentMappings.canonicalLocation(other));

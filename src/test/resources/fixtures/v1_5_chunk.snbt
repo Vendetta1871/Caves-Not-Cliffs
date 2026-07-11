@@ -1,0 +1,17 @@
+{
+  fixture: "v1.5",
+  seed: 0L,
+  minX: 0,
+  minY: 0,
+  minZ: 0,
+  sizeX: 4,
+  sizeY: 2,
+  sizeZ: 2,
+  cavesnotcliffs: { preserved: 15 },
+  blocks: [
+    { x: 0, y: 0, z: 0, id: "cavesnotcliffs:amethyst_geode" },
+    { x: 1, y: 0, z: 0, id: "cavesnotcliffs:amethyst_geode" },
+    { x: 2, y: 0, z: 0, id: "cavesnotcliffs:amethyst_geode" },
+    { x: 3, y: 0, z: 0, id: "minecraft:stone" }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  fixture: "draft-v2",
+  seed: -1L,
+  minX: -16,
+  minY: -64,
+  minZ: 16,
+  sizeX: 4,
+  sizeY: 2,
+  sizeZ: 2,
+  blocks: [
+    { x: -16, y: -64, z: 16, id: "cavesnotcliffs:amethyst_geode" },
+    { x: -15, y: -64, z: 16, id: "cavesnotcliffs:amethyst_block" },
+    { x: -14, y: -64, z: 16, id: "cavesnotcliffs:dripleaf_stem" },
+    { x: -13, y: -64, z: 16, id: "cavesnotcliffs:pointed_dripstone" }
+  ]
+}

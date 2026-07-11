@@ -15,49 +15,55 @@ import java.util.Map;
  * internal IDs until the chunk converter can preserve their semantic state.</p>
  */
 public final class LegacyContentMappings {
-    private static final Map<String, String> PATHS;
+    private static final Map<String, String> BLOCK_PATHS;
+    private static final Map<String, String> ITEM_PATHS;
 
     static {
-        Map<String, String> paths = new LinkedHashMap<>();
-        map(paths, "unnamed_stone", "deepslate");
-        map(paths, "dark_stone", "tuff");
-        map(paths, "dark_stone_slab", "tuff_slab");
-        map(paths, "dark_stone_slab_double", "tuff_slab_double");
-        map(paths, "dark_stone_stairs", "tuff_stairs");
-        map(paths, "dark_stone_walls", "tuff_wall");
-        map(paths, "unknown_stone", "calcite");
-        map(paths, "unknown_stone_slab", "calcite_slab");
-        map(paths, "unknown_stone_slab_double", "calcite_slab_double");
-        map(paths, "unknown_stone_stairs", "calcite_stairs");
-        map(paths, "unknown_stone_wall", "calcite_wall");
-        map(paths, "moss", "moss_block");
-        map(paths, "moss_layer", "moss_carpet");
-        map(paths, "dripstone", "dripstone_block");
-        map(paths, "stalactite", "pointed_dripstone");
-        map(paths, "amethyst_geode", "amethyst_block");
-        map(paths, "geode_casing", "smooth_basalt");
-        map(paths, "amethyst_crystal_stage_1", "small_amethyst_bud");
-        map(paths, "amethyst_crystal_stage_2", "medium_amethyst_bud");
-        map(paths, "amethyst_crystal", "amethyst_cluster");
-        map(paths, "baby_azalea_tree", "azalea");
-        map(paths, "blooming_baby_azalea_tree", "flowering_azalea");
-        map(paths, "baby_dripleaf", "small_dripleaf");
-        map(paths, "copper_block_stage1", "exposed_copper");
-        map(paths, "copper_block_stage2", "weathered_copper");
-        map(paths, "copper_block_stage3", "oxidized_copper");
-        map(paths, "copper_stairs", "cut_copper_stairs");
-        map(paths, "copper_stairs_stage1", "exposed_cut_copper_stairs");
-        map(paths, "copper_stairs_stage2", "weathered_cut_copper_stairs");
-        map(paths, "copper_stairs_stage3", "oxidized_cut_copper_stairs");
-        map(paths, "copper_slab", "cut_copper_slab");
-        map(paths, "copper_slab_double", "cut_copper_slab_double");
-        map(paths, "copper_slab_stage1", "exposed_cut_copper_slab");
-        map(paths, "copper_slab_stage1_double", "exposed_cut_copper_slab_double");
-        map(paths, "copper_slab_stage2", "weathered_cut_copper_slab");
-        map(paths, "copper_slab_stage2_double", "weathered_cut_copper_slab_double");
-        map(paths, "copper_slab_stage3", "oxidized_cut_copper_slab");
-        map(paths, "copper_slab_stage3_double", "oxidized_cut_copper_slab_double");
-        PATHS = Collections.unmodifiableMap(paths);
+        Map<String, String> blocks = new LinkedHashMap<>();
+        map(blocks, "unnamed_stone", "deepslate");
+        map(blocks, "dark_stone", "tuff");
+        map(blocks, "dark_stone_slab", "tuff_slab");
+        map(blocks, "dark_stone_slab_double", "tuff_slab_double");
+        map(blocks, "dark_stone_stairs", "tuff_stairs");
+        map(blocks, "dark_stone_walls", "tuff_wall");
+        map(blocks, "unknown_stone", "calcite");
+        map(blocks, "unknown_stone_slab", "calcite_slab");
+        map(blocks, "unknown_stone_slab_double", "calcite_slab_double");
+        map(blocks, "unknown_stone_stairs", "calcite_stairs");
+        map(blocks, "unknown_stone_wall", "calcite_wall");
+        map(blocks, "moss", "moss_block");
+        map(blocks, "moss_layer", "moss_carpet");
+        map(blocks, "dripstone", "dripstone_block");
+        map(blocks, "stalactite", "pointed_dripstone");
+        // amethyst_geode remains registered as a hidden marker until its chunk conversion runs.
+        map(blocks, "geode_casing", "smooth_basalt");
+        map(blocks, "amethyst_crystal_stage_1", "small_amethyst_bud");
+        map(blocks, "amethyst_crystal_stage_2", "medium_amethyst_bud");
+        map(blocks, "amethyst_crystal", "amethyst_cluster");
+        map(blocks, "baby_azalea_tree", "azalea");
+        map(blocks, "blooming_baby_azalea_tree", "flowering_azalea");
+        map(blocks, "baby_dripleaf", "small_dripleaf");
+        map(blocks, "copper_block_stage1", "exposed_copper");
+        map(blocks, "copper_block_stage2", "weathered_copper");
+        map(blocks, "copper_block_stage3", "oxidized_copper");
+        map(blocks, "copper_stairs", "cut_copper_stairs");
+        map(blocks, "copper_stairs_stage1", "exposed_cut_copper_stairs");
+        map(blocks, "copper_stairs_stage2", "weathered_cut_copper_stairs");
+        map(blocks, "copper_stairs_stage3", "oxidized_cut_copper_stairs");
+        map(blocks, "copper_slab", "cut_copper_slab");
+        map(blocks, "copper_slab_double", "cut_copper_slab_double");
+        map(blocks, "copper_slab_stage1", "exposed_cut_copper_slab");
+        map(blocks, "copper_slab_stage1_double", "exposed_cut_copper_slab_double");
+        map(blocks, "copper_slab_stage2", "weathered_cut_copper_slab");
+        map(blocks, "copper_slab_stage2_double", "weathered_cut_copper_slab_double");
+        map(blocks, "copper_slab_stage3", "oxidized_cut_copper_slab");
+        map(blocks, "copper_slab_stage3_double", "oxidized_cut_copper_slab_double");
+        BLOCK_PATHS = Collections.unmodifiableMap(blocks);
+
+        Map<String, String> items = new LinkedHashMap<>(blocks);
+        // The old block identity is retained for chunk recognition, but its obtainable item is not.
+        map(items, "amethyst_geode", "amethyst_block");
+        ITEM_PATHS = Collections.unmodifiableMap(items);
     }
 
     private LegacyContentMappings() {
@@ -70,19 +76,48 @@ public final class LegacyContentMappings {
     }
 
     public static String canonicalPath(String path) {
-        String canonical = PATHS.get(path);
+        return canonicalBlockPath(path);
+    }
+
+    public static String canonicalBlockPath(String path) {
+        String canonical = BLOCK_PATHS.get(path);
+        return canonical == null ? path : canonical;
+    }
+
+    public static String canonicalItemPath(String path) {
+        String canonical = ITEM_PATHS.get(path);
         return canonical == null ? path : canonical;
     }
 
     public static ResourceLocation canonicalLocation(ResourceLocation location) {
+        return canonicalBlockLocation(location);
+    }
+
+    public static ResourceLocation canonicalBlockLocation(ResourceLocation location) {
         if (!CavesNotCliffs.MODID.equals(location.getResourceDomain())) {
             return location;
         }
         return new ResourceLocation(CavesNotCliffs.MODID,
-                canonicalPath(location.getResourcePath()));
+                canonicalBlockPath(location.getResourcePath()));
+    }
+
+    public static ResourceLocation canonicalItemLocation(ResourceLocation location) {
+        if (!CavesNotCliffs.MODID.equals(location.getResourceDomain())) {
+            return location;
+        }
+        return new ResourceLocation(CavesNotCliffs.MODID,
+                canonicalItemPath(location.getResourcePath()));
     }
 
     public static Map<String, String> paths() {
-        return PATHS;
+        return BLOCK_PATHS;
+    }
+
+    public static Map<String, String> blockPaths() {
+        return BLOCK_PATHS;
+    }
+
+    public static Map<String, String> itemPaths() {
+        return ITEM_PATHS;
     }
 }

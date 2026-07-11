@@ -22,7 +22,7 @@ public final class LegacyRegistryRemapper {
     @SubscribeEvent
     public static void remapBlocks(RegistryEvent.MissingMappings<Block> event) {
         for (RegistryEvent.MissingMappings.Mapping<Block> mapping : event.getMappings()) {
-            ResourceLocation targetName = LegacyContentMappings.canonicalLocation(mapping.key);
+            ResourceLocation targetName = LegacyContentMappings.canonicalBlockLocation(mapping.key);
             if (targetName.equals(mapping.key)) {
                 continue;
             }
@@ -40,7 +40,7 @@ public final class LegacyRegistryRemapper {
     @SubscribeEvent
     public static void remapItems(RegistryEvent.MissingMappings<Item> event) {
         for (RegistryEvent.MissingMappings.Mapping<Item> mapping : event.getMappings()) {
-            ResourceLocation targetName = LegacyContentMappings.canonicalLocation(mapping.key);
+            ResourceLocation targetName = LegacyContentMappings.canonicalItemLocation(mapping.key);
             if (targetName.equals(mapping.key)) {
                 continue;
             }
