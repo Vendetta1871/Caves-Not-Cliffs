@@ -1,8 +1,8 @@
 # Caves Not Cliffs [Backported]
 
 Caves Not Cliffs 2.0.0 backports Java 1.18.2 Overworld terrain and its represented Caves & Cliffs
-content to Minecraft 1.12.2. New Overworlds use a default-on, finite CubicChunks schema from Y=-64
-through Y=319, while existing worlds keep their saved generator contract.
+content to Minecraft 1.12.2. New Overworlds use a default-on, finite CaveBiomesAPI-backed schema
+from Y=-64 through Y=319, while existing worlds keep their saved generator contract.
 
 ![Caves not Cliffs](https://github.com/user-attachments/assets/b3210380-8264-4887-99dc-03522af9a10f)
 
@@ -116,15 +116,16 @@ Use `/cncbiome` in-game to identify the cave-biome region at your current positi
 - Existing schema-1 draft-v2 saves intentionally retain their original vanilla surface, deep worm
   caves, and upper headroom to prevent chunk seams.
 - Nether and End generation remain unchanged.
-- The tested CubicChunks 0.0.1301 snapshot logs a nonfatal missing optional `MixinItemMap` warning;
-  dedicated-server generation, commands, saving, and clean shutdown still complete normally.
+- CaveBiomesAPI owns the process-wide finite chunk height. Client and server must use the same
+  API build; the server synchronizes its authoritative range when a player joins.
 
 ## Requirements
 
 Caves Not Cliffs 2.0.0 targets Minecraft 1.12.2 and requires:
 
 - [Minecraft Forge 14.23.5.2860 or newer](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.12.2.html)
-- [CubicChunks `1.12.2-0.0.1301.0-SNAPSHOT` or newer](https://maven.daporkchop.net/snapshot/io/github/opencubicchunks/cubicchunks/)
+- [CaveBiomesAPI 1.1.0 or newer](https://github.com/Vendetta1871/CaveBiomesAPI/pull/1)
+- [MixinBootstrap 1.1.0](https://github.com/LXGaming/MixinBootstrap/releases/tag/v1.1.0)
 
 ## Building 2.0.0
 
@@ -136,7 +137,8 @@ Use a Java 8 JDK and the checked-in wrapper; no system Gradle installation is ne
 
 On Windows, run `gradlew.bat clean test build verifyReleaseJar`. The release artifact is
 `build/libs/cavesnotcliffs-2.0.0.jar`. The build fails if that jar is not reobfuscated, if its
-release metadata is wrong, or if CubicChunks API classes were accidentally bundled.
+release metadata is wrong, if CaveBiomesAPI classes were accidentally bundled, or if static
+CubicChunks linkage remains.
 
 The Java 8/ForgeGradle 2.3 development toolchain compiles against Forge 14.23.5.2847, the newest
 Forge release that still publishes the legacy `userdev` artifact. The produced mod declares and

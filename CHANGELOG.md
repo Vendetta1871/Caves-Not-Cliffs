@@ -11,8 +11,9 @@
 - Port the Java 1.18.2 positional RNG, noise registry, spline terrain shaper, six-parameter climate
   table, density router, cheese/spaghetti/noodle caves, aquifers, carvers, surface rules, bedrock,
   and deepslate transition.
-- Generate deterministic Y=-64..319 terrain columns for Default, Large Biomes, and Amplified and
-  slice them into CubicChunks through a bounded weighted LRU.
+- Generate deterministic Y=-64..319 terrain columns for Default, Large Biomes, and Amplified,
+  then write their signed sections into finite CaveBiomesAPI chunks through a bounded weighted
+  LRU.
 - Add a virtual 3D biome resolver and `/cncbiome`, including Meadow, Grove, Snowy Slopes, Jagged
   Peaks, Frozen Peaks, Stony Peaks, Lush Caves, and Dripstone Caves.
 - Retain the six available Minecraft 1.12 structure families through a structure-only bridge
@@ -50,4 +51,4 @@
   calcite slab, stair, and wall recipes.
 - Add exhaustive official-oracle, registry, mechanics, migration, asset-graph, dedicated-server
   linkage, reobfuscation, and release-jar verification.
-- Require Forge 14.23.5.2860+ and CubicChunks 1.12.2-0.0.1301.0-SNAPSHOT+ at runtime.
+- Require Forge 14.23.5.2860+, CaveBiomesAPI 1.1.0+, and MixinBootstrap 1.1.0 at runtime.
