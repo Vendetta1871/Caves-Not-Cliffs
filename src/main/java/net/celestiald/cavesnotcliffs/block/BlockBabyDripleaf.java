@@ -21,14 +21,14 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockBabyDripleaf extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:baby_dripleaf")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:small_dripleaf")
     public static final Block block = null;
 
     public BlockBabyDripleaf(ElementsCavesNotCliffs instance) { super(instance, 42); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("baby_dripleaf"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("small_dripleaf"));
         elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
     }
 
@@ -44,7 +44,7 @@ public class BlockBabyDripleaf extends ElementsCavesNotCliffs.ModElement {
 
         public BlockCustom() {
             super(Material.PLANTS);
-            setUnlocalizedName("baby_dripleaf");
+            setUnlocalizedName("small_dripleaf");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.PLANT);
             setHardness(0.0f);

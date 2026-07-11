@@ -29,16 +29,16 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockAmethystCrystalStage1 extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:amethyst_crystal_stage_1")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:small_amethyst_bud")
     public static final Block block = null;
 
     public BlockAmethystCrystalStage1(ElementsCavesNotCliffs instance) { super(instance, 32); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("cavesnotcliffs", "amethyst_crystal_stage_1"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("cavesnotcliffs", "small_amethyst_bud"));
         elements.items.add(() -> {
-            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal_stage_1"));
+            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "small_amethyst_bud"));
             return new ItemBlock(b).setRegistryName(b.getRegistryName());
         });
     }
@@ -46,7 +46,7 @@ public class BlockAmethystCrystalStage1 extends ElementsCavesNotCliffs.ModElemen
     @SideOnly(Side.CLIENT)
     @Override
     public void registerModels(ModelRegistryEvent event) {
-        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal_stage_1"));
+        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("cavesnotcliffs", "small_amethyst_bud"));
         if (item != null)
             ModelLoader.setCustomModelResourceLocation(item, 0,
                 new ModelResourceLocation("cavesnotcliffs:amethyst_crystal_stage_1", "inventory"));
@@ -58,7 +58,7 @@ public class BlockAmethystCrystalStage1 extends ElementsCavesNotCliffs.ModElemen
 
         public BlockCustom() {
             super(Material.ROCK);
-            setUnlocalizedName("amethyst_crystal_stage_1");
+            setUnlocalizedName("small_amethyst_bud");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.GLASS);
             setHardness(1.5f);
@@ -94,7 +94,7 @@ public class BlockAmethystCrystalStage1 extends ElementsCavesNotCliffs.ModElemen
 
         @Override
         public Item getItemDropped(IBlockState state, Random rand, int fortune) {
-            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal"));
+            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_cluster"));
             return b != null ? Item.getItemFromBlock(b) : net.minecraft.init.Items.AIR;
         }
 
@@ -114,9 +114,9 @@ public class BlockAmethystCrystalStage1 extends ElementsCavesNotCliffs.ModElemen
             if (!worldIn.isRemote && rand.nextInt(5) == 0) {
                 EnumFacing facing = state.getValue(FACING);
                 Block support = worldIn.getBlockState(pos.offset(facing.getOpposite())).getBlock();
-                Block geode = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_geode"));
-                Block casing = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "geode_casing"));
-                Block stage2 = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal_stage_2"));
+                Block geode = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_block"));
+                Block casing = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "smooth_basalt"));
+                Block stage2 = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "medium_amethyst_bud"));
                 if (stage2 != null && (support == geode || support == casing)) {
                     worldIn.setBlockState(pos, stage2.getDefaultState()
                         .withProperty(BlockAmethystCrystalStage2.BlockCustom.FACING, facing));

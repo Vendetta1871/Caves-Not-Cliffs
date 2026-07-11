@@ -24,18 +24,18 @@ import java.util.Random;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDarkStoneSlab extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:dark_stone_slab")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:tuff_slab")
     public static final Block block = null;
 
-    @GameRegistry.ObjectHolder("cavesnotcliffs:dark_stone_slab_double")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:tuff_slab_double")
     public static final Block block_slab_double = null;
 
     public BlockDarkStoneSlab(ElementsCavesNotCliffs instance) { super(instance, 59); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("dark_stone_slab"));
-        elements.blocks.add(() -> new BlockCustom.Double().setRegistryName("dark_stone_slab_double"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("tuff_slab"));
+        elements.blocks.add(() -> new BlockCustom.Double().setRegistryName("tuff_slab_double"));
         elements.items.add(() -> new ItemSlab(block, (BlockSlab) block, (BlockSlab) block_slab_double)
             .setRegistryName(block.getRegistryName()));
     }
@@ -52,7 +52,7 @@ public class BlockDarkStoneSlab extends ElementsCavesNotCliffs.ModElement {
 
         public BlockCustom() {
             super(Material.ROCK);
-            setUnlocalizedName("dark_stone_slab");
+            setUnlocalizedName("tuff_slab");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHarvestLevel("pickaxe", 1);

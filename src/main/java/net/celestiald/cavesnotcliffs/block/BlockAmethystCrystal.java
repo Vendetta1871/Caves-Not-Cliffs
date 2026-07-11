@@ -29,16 +29,16 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockAmethystCrystal extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:amethyst_crystal")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:amethyst_cluster")
     public static final Block block = null;
 
     public BlockAmethystCrystal(ElementsCavesNotCliffs instance) { super(instance, 31); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("cavesnotcliffs", "amethyst_crystal"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("cavesnotcliffs", "amethyst_cluster"));
         elements.items.add(() -> {
-            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal"));
+            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_cluster"));
             return new ItemBlock(b).setRegistryName(b.getRegistryName());
         });
     }
@@ -46,7 +46,7 @@ public class BlockAmethystCrystal extends ElementsCavesNotCliffs.ModElement {
     @SideOnly(Side.CLIENT)
     @Override
     public void registerModels(ModelRegistryEvent event) {
-        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal"));
+        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_cluster"));
         if (item != null)
             ModelLoader.setCustomModelResourceLocation(item, 0,
                 new ModelResourceLocation("cavesnotcliffs:amethyst_crystal", "inventory"));
@@ -58,7 +58,7 @@ public class BlockAmethystCrystal extends ElementsCavesNotCliffs.ModElement {
 
         public BlockCustom() {
             super(Material.ROCK);
-            setUnlocalizedName("amethyst_crystal");
+            setUnlocalizedName("amethyst_cluster");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.GLASS);
             setHardness(1.5f);

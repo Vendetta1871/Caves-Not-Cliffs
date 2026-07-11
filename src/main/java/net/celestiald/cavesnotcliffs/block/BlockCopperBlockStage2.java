@@ -20,14 +20,14 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockCopperBlockStage2 extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:copper_block_stage2")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:weathered_copper")
     public static final Block block = null;
 
     public BlockCopperBlockStage2(ElementsCavesNotCliffs instance) { super(instance, 47); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("copper_block_stage2"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("weathered_copper"));
         elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
     }
 
@@ -41,7 +41,7 @@ public class BlockCopperBlockStage2 extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.IRON);
-            setUnlocalizedName("copper_block_stage2");
+            setUnlocalizedName("weathered_copper");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.METAL);
             setHardness(3.0f);

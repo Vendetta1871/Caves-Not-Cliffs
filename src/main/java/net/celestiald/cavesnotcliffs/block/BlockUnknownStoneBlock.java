@@ -19,16 +19,16 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockUnknownStoneBlock extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:unknown_stone")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:calcite")
     public static final Block block = null;
 
     public BlockUnknownStoneBlock(ElementsCavesNotCliffs instance) { super(instance, 34); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("cavesnotcliffs", "unknown_stone"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("cavesnotcliffs", "calcite"));
         elements.items.add(() -> {
-            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "unknown_stone"));
+            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "calcite"));
             return new ItemBlock(b).setRegistryName(b.getRegistryName());
         });
     }
@@ -36,7 +36,7 @@ public class BlockUnknownStoneBlock extends ElementsCavesNotCliffs.ModElement {
     @SideOnly(Side.CLIENT)
     @Override
     public void registerModels(ModelRegistryEvent event) {
-        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("cavesnotcliffs", "unknown_stone"));
+        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("cavesnotcliffs", "calcite"));
         if (item != null)
             ModelLoader.setCustomModelResourceLocation(item, 0,
                 new ModelResourceLocation("cavesnotcliffs:unknown_stone", "inventory"));
@@ -45,7 +45,7 @@ public class BlockUnknownStoneBlock extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.ROCK);
-            setUnlocalizedName("unknown_stone");
+            setUnlocalizedName("calcite");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(1.5f);

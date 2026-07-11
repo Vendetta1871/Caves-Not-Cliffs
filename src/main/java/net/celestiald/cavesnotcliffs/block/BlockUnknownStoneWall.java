@@ -22,14 +22,14 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockUnknownStoneWall extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:unknown_stone_wall")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:calcite_wall")
     public static final Block block = null;
 
     public BlockUnknownStoneWall(ElementsCavesNotCliffs instance) { super(instance, 65); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("unknown_stone_wall"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("calcite_wall"));
         elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
     }
 
@@ -45,7 +45,7 @@ public class BlockUnknownStoneWall extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends BlockWall {
         public BlockCustom() {
             super(new Block(Material.ROCK));
-            setUnlocalizedName("unknown_stone_wall");
+            setUnlocalizedName("calcite_wall");
             setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHarvestLevel("pickaxe", 1);

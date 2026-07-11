@@ -22,14 +22,14 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDarkStoneWalls extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:dark_stone_walls")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:tuff_wall")
     public static final Block block = null;
 
     public BlockDarkStoneWalls(ElementsCavesNotCliffs instance) { super(instance, 61); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("dark_stone_walls"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("tuff_wall"));
         elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
     }
 
@@ -45,7 +45,7 @@ public class BlockDarkStoneWalls extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends BlockWall {
         public BlockCustom() {
             super(new Block(Material.ROCK));
-            setUnlocalizedName("dark_stone_walls");
+            setUnlocalizedName("tuff_wall");
             setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHarvestLevel("pickaxe", 1);

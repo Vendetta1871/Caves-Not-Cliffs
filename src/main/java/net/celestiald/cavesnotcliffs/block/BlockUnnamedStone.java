@@ -17,14 +17,14 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockUnnamedStone extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:unnamed_stone")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:deepslate")
     public static final Block block = null;
 
     public BlockUnnamedStone(ElementsCavesNotCliffs instance) { super(instance, 66); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("unnamed_stone"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("deepslate"));
         elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
     }
 
@@ -38,7 +38,7 @@ public class BlockUnnamedStone extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.ROCK);
-            setUnlocalizedName("unnamed_stone");
+            setUnlocalizedName("deepslate");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(1.5f);

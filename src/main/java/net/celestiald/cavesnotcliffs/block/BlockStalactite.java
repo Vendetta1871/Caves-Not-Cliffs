@@ -25,14 +25,14 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockStalactite extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:stalactite")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:pointed_dripstone")
     public static final Block block = null;
 
     public BlockStalactite(ElementsCavesNotCliffs instance) { super(instance, 27); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("stalactite"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("pointed_dripstone"));
         elements.items.add(() -> new ItemPointedDripstoneBlock(block).setRegistryName(block.getRegistryName()).setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS));
     }
 
@@ -46,7 +46,7 @@ public class BlockStalactite extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.ROCK);
-            setUnlocalizedName("stalactite");
+            setUnlocalizedName("pointed_dripstone");
             setSoundType(SoundType.STONE);
             setHardness(1.5f);
             setResistance(6.0f);

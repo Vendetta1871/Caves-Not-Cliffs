@@ -16,14 +16,14 @@ import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
 public class BlockUnknownStoneDecor extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:unknown_stone")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:calcite")
     public static final Block block = null;
 
     public BlockUnknownStoneDecor(ElementsCavesNotCliffs instance) { super(instance, 62); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("unknown_stone"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("calcite"));
         elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
     }
 
@@ -37,7 +37,7 @@ public class BlockUnknownStoneDecor extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.ROCK);
-            setUnlocalizedName("unknown_stone");
+            setUnlocalizedName("calcite");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(1.5f);

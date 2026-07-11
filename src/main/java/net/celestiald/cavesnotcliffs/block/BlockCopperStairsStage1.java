@@ -18,14 +18,14 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockCopperStairsStage1 extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:copper_stairs_stage1")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:exposed_cut_copper_stairs")
     public static final Block block = null;
 
     public BlockCopperStairsStage1(ElementsCavesNotCliffs instance) { super(instance, 55); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("copper_stairs_stage1"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("exposed_cut_copper_stairs"));
         elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
     }
 
@@ -39,7 +39,7 @@ public class BlockCopperStairsStage1 extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends BlockStairs {
         public BlockCustom() {
             super(new Block(Material.IRON).getDefaultState());
-            setUnlocalizedName("copper_stairs_stage1");
+            setUnlocalizedName("exposed_cut_copper_stairs");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.METAL);
             setHarvestLevel("pickaxe", 1);

@@ -24,18 +24,18 @@ import java.util.Random;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockCopperSlabStage3 extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:copper_slab_stage3")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:oxidized_cut_copper_slab")
     public static final Block block = null;
 
-    @GameRegistry.ObjectHolder("cavesnotcliffs:copper_slab_stage3_double")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:oxidized_cut_copper_slab_double")
     public static final Block block_slab_double = null;
 
     public BlockCopperSlabStage3(ElementsCavesNotCliffs instance) { super(instance, 53); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("copper_slab_stage3"));
-        elements.blocks.add(() -> new BlockCustom.Double().setRegistryName("copper_slab_stage3_double"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("oxidized_cut_copper_slab"));
+        elements.blocks.add(() -> new BlockCustom.Double().setRegistryName("oxidized_cut_copper_slab_double"));
         elements.items.add(() -> new ItemSlab(block, (BlockSlab) block, (BlockSlab) block_slab_double)
             .setRegistryName(block.getRegistryName()));
     }
@@ -52,7 +52,7 @@ public class BlockCopperSlabStage3 extends ElementsCavesNotCliffs.ModElement {
 
         public BlockCustom() {
             super(Material.IRON);
-            setUnlocalizedName("copper_slab_stage3");
+            setUnlocalizedName("oxidized_cut_copper_slab");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.METAL);
             setHarvestLevel("pickaxe", 1);

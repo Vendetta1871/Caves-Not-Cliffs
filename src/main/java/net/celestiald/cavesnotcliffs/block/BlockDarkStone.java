@@ -17,14 +17,14 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDarkStone extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:dark_stone")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:tuff")
     public static final Block block = null;
 
     public BlockDarkStone(ElementsCavesNotCliffs instance) { super(instance, 58); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("dark_stone"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("tuff"));
         elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
     }
 
@@ -38,7 +38,7 @@ public class BlockDarkStone extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.ROCK);
-            setUnlocalizedName("dark_stone");
+            setUnlocalizedName("tuff");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(1.5f);

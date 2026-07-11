@@ -18,14 +18,14 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDarkStoneStairs extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:dark_stone_stairs")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:tuff_stairs")
     public static final Block block = null;
 
     public BlockDarkStoneStairs(ElementsCavesNotCliffs instance) { super(instance, 60); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("dark_stone_stairs"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("tuff_stairs"));
         elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
     }
 
@@ -39,7 +39,7 @@ public class BlockDarkStoneStairs extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends BlockStairs {
         public BlockCustom() {
             super(new Block(Material.ROCK).getDefaultState());
-            setUnlocalizedName("dark_stone_stairs");
+            setUnlocalizedName("tuff_stairs");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHarvestLevel("pickaxe", 1);
