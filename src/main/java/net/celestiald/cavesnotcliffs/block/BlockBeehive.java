@@ -5,8 +5,10 @@ import net.celestiald.cavesnotcliffs.content.BeeMechanics;
 import net.celestiald.cavesnotcliffs.content.BeeSoundEvents;
 import net.celestiald.cavesnotcliffs.content.BeehiveHarvestHooks;
 import net.celestiald.cavesnotcliffs.content.BeehiveDispenserBehavior;
+import net.celestiald.cavesnotcliffs.content.HoneycombDispenserBehavior;
 import net.celestiald.cavesnotcliffs.entity.EntityBee;
 import net.celestiald.cavesnotcliffs.item.ItemBlockBeehive;
+import net.celestiald.cavesnotcliffs.item.ItemHoneycomb;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.celestiald.cavesnotcliffs.tile.TileEntityBeehive;
 import net.celestiald.cavesnotcliffs.world.BeeSaplingNestHandler;
@@ -85,7 +87,7 @@ public final class BlockBeehive extends ElementsCavesNotCliffs.ModElement {
                 .setRegistryName(CncRegistryIds.BEE_NEST));
         elements.items.add(() -> new ItemBlockBeehive(beehive)
                 .setRegistryName(CncRegistryIds.BEEHIVE));
-        elements.items.add(() -> new Item()
+        elements.items.add(() -> new ItemHoneycomb()
                 .setRegistryName(CncRegistryIds.HONEYCOMB)
                 .setUnlocalizedName("honeycomb")
                 .setCreativeTab(CreativeTabs.MATERIALS));
@@ -105,6 +107,8 @@ public final class BlockBeehive extends ElementsCavesNotCliffs.ModElement {
     public void init(FMLInitializationEvent event) {
         net.minecraft.block.BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(
                 Items.SHEARS, new BeehiveDispenserBehavior());
+        net.minecraft.block.BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(
+                honeycomb, new HoneycombDispenserBehavior());
     }
 
     @SideOnly(Side.CLIENT)

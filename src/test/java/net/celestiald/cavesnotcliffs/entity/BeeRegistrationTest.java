@@ -3,6 +3,7 @@ package net.celestiald.cavesnotcliffs.entity;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.block.BlockBeehive;
 import net.celestiald.cavesnotcliffs.item.ItemBlockBeehive;
+import net.celestiald.cavesnotcliffs.item.ItemHoneycomb;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.minecraft.block.Block;
 import net.minecraft.entity.passive.EntityAnimal;
@@ -50,6 +51,7 @@ public class BeeRegistrationTest {
         assertEquals(CncRegistryIds.BEEHIVE, hive.getRegistryName());
         assertEquals(CncRegistryIds.BEE_NEST_HONEY, nestHoney.getRegistryName());
         assertEquals(CncRegistryIds.BEEHIVE_HONEY, hiveHoney.getRegistryName());
+        assertTrue(elements.items.get(2).get() instanceof ItemHoneycomb);
         assertTrue(elements.items.get(0).get() instanceof ItemBlockBeehive);
         assertTrue(elements.items.get(1).get() instanceof ItemBlockBeehive);
         Item comb = elements.items.get(2).get();

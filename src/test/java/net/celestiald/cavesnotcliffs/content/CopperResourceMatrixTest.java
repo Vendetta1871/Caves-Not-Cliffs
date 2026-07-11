@@ -105,6 +105,32 @@ public class CopperResourceMatrixTest {
     }
 
     @Test
+    public void everyPublicCopperShapeHasTheOfficialHoneycombWaxingRecipe() {
+        for (CopperWeathering.Stage stage : CopperWeathering.Stage.values()) {
+            for (CopperWeathering.Shape shape : new CopperWeathering.Shape[]{
+                    CopperWeathering.Shape.BLOCK, CopperWeathering.Shape.CUT,
+                    CopperWeathering.Shape.STAIRS, CopperWeathering.Shape.SLAB}) {
+                String source = CopperWeathering.path(stage, shape, false);
+                String target = CopperWeathering.path(stage, shape, true);
+                JsonObject recipe = json("recipes/" + target
+                        + "_from_honeycomb.json");
+                assertEquals("minecraft:crafting_shapeless",
+                        recipe.get("type").getAsString());
+                assertEquals(target, recipe.get("group").getAsString());
+                assertEquals(2, recipe.getAsJsonArray("ingredients").size());
+                assertEquals("cavesnotcliffs:" + source,
+                        recipe.getAsJsonArray("ingredients").get(0)
+                                .getAsJsonObject().get("item").getAsString());
+                assertEquals("cavesnotcliffs:honeycomb",
+                        recipe.getAsJsonArray("ingredients").get(1)
+                                .getAsJsonObject().get("item").getAsString());
+                assertEquals("cavesnotcliffs:" + target,
+                        recipe.getAsJsonObject("result").get("item").getAsString());
+            }
+        }
+    }
+
+    @Test
     public void copiedTextureBytesMatchTheOfficial1182Client() throws Exception {
         Map<String, String> hashes = new LinkedHashMap<>();
         hashes.put("copper_block", "f2a4e847dbf7ffee41cda7a1695661e637fc11e53b0d7a28d7cdee76fb41981d");

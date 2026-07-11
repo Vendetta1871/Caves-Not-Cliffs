@@ -36,8 +36,7 @@ public final class CopperInteractionHandler {
         }
 
         EntityPlayer player = event.getEntityPlayer();
-        if (!player.canPlayerEdit(event.getPos(), event.getFace(), held)
-                || player.getCooldownTracker().hasCooldown(held.getItem())) {
+        if (!player.canPlayerEdit(event.getPos(), event.getFace(), held)) {
             return;
         }
 
