@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["SS", "SS"],
+  "key": {"S": {"item": "cavesnotcliffs:amethyst_shard"}},
+  "result": {"item": "cavesnotcliffs:amethyst_block"}
+}

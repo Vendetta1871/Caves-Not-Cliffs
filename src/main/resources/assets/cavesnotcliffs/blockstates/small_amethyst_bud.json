@@ -1,10 +1,10 @@
 {
   "variants": {
-    "facing=up":    {"model": "cavesnotcliffs:amethyst_crystal_stage_1"},
-    "facing=down":  {"model": "cavesnotcliffs:amethyst_crystal_stage_1", "x": 180},
-    "facing=north": {"model": "cavesnotcliffs:amethyst_crystal_stage_1", "x": 270, "y": 180},
-    "facing=south": {"model": "cavesnotcliffs:amethyst_crystal_stage_1", "x": 270},
-    "facing=east":  {"model": "cavesnotcliffs:amethyst_crystal_stage_1", "x": 270, "y": 270},
-    "facing=west":  {"model": "cavesnotcliffs:amethyst_crystal_stage_1", "x": 270, "y": 90}
+    "facing=up":    {"model": "cavesnotcliffs:small_amethyst_bud"},
+    "facing=down":  {"model": "cavesnotcliffs:small_amethyst_bud", "x": 180},
+    "facing=north": {"model": "cavesnotcliffs:small_amethyst_bud", "x": 270, "y": 180},
+    "facing=south": {"model": "cavesnotcliffs:small_amethyst_bud", "x": 270},
+    "facing=east":  {"model": "cavesnotcliffs:small_amethyst_bud", "x": 270, "y": 270},
+    "facing=west":  {"model": "cavesnotcliffs:small_amethyst_bud", "x": 270, "y": 90}
   }
 }

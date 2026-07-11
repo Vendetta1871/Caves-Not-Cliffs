@@ -39,7 +39,7 @@ public class BlockGeodeCasing extends ElementsCavesNotCliffs.ModElement {
         Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("cavesnotcliffs", "smooth_basalt"));
         if (item != null)
             ModelLoader.setCustomModelResourceLocation(item, 0,
-                new ModelResourceLocation("cavesnotcliffs:geode_casing", "inventory"));
+                new ModelResourceLocation("cavesnotcliffs:smooth_basalt", "inventory"));
     }
 
     private static class BlockCustom extends Block {
@@ -48,8 +48,10 @@ public class BlockGeodeCasing extends ElementsCavesNotCliffs.ModElement {
             setUnlocalizedName("smooth_basalt");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
-            setHardness(1.5f);
-            setResistance(6.0f);
+            setHardness(1.25f);
+            // Modern blast resistance 4.2 translated through 1.12's 3/5 scaling.
+            setResistance(7.0f);
+            setHarvestLevel("pickaxe", 0);
         }
     }
 }

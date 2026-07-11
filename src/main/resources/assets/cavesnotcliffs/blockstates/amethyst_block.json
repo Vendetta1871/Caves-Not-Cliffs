@@ -1,5 +1,1 @@
-{
-  "variants": {
-    "normal": { "model": "cavesnotcliffs:amethyst_geode" }
-  }
-}
+{"variants":{"normal":{"model":"cavesnotcliffs:amethyst_block"}}}
