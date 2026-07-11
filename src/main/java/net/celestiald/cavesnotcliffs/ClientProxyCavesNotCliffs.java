@@ -18,6 +18,10 @@ import net.celestiald.cavesnotcliffs.entity.EntityBee;
 import net.celestiald.cavesnotcliffs.tile.TileEntityCampfire;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.World;
+
+import java.util.function.Consumer;
 
 public class ClientProxyCavesNotCliffs implements IProxyCavesNotCliffs {
 	@Override
@@ -45,5 +49,15 @@ public class ClientProxyCavesNotCliffs implements IProxyCavesNotCliffs {
 
 	@Override
 	public void serverLoad(FMLServerStartingEvent event) {
+	}
+
+	@Override
+	public void scheduleClientWorldTask(Consumer<World> task) {
+		Minecraft.getMinecraft().addScheduledTask(() -> {
+			World world = Minecraft.getMinecraft().world;
+			if (world != null) {
+				task.accept(world);
+			}
+		});
 	}
 }
