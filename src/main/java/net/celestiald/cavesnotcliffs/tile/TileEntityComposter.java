@@ -2,6 +2,7 @@ package net.celestiald.cavesnotcliffs.tile;
 
 import net.celestiald.cavesnotcliffs.block.BlockComposter;
 import net.celestiald.cavesnotcliffs.content.ComposterCompostables;
+import net.celestiald.cavesnotcliffs.content.ComposterAutomation;
 import net.celestiald.cavesnotcliffs.content.ComposterMechanics;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
@@ -53,8 +54,10 @@ public final class TileEntityComposter extends TileEntity implements ISidedInven
         // TileEntityHopper restores the source slot with its pre-extraction copy when the
         // destination rejects an item. Reconstitute the ready level so a failed pull cannot
         // delete the bone meal or empty the composter.
-        if (isBoneMeal(stack) && state.getBlock() instanceof BlockComposter.BlockCustom
-                && state.getValue(BlockComposter.BlockCustom.LEVEL) == 0) {
+        int level = state.getBlock() instanceof BlockComposter.BlockCustom
+            ? state.getValue(BlockComposter.BlockCustom.LEVEL) : 0;
+        if (state.getBlock() instanceof BlockComposter.BlockCustom
+                && ComposterAutomation.restoresReadyOutput(level, isBoneMeal(stack))) {
             world.setBlockState(pos, state.withProperty(BlockComposter.BlockCustom.LEVEL,
                 ComposterMechanics.READY_LEVEL), 3);
             return;
@@ -96,26 +99,20 @@ public final class TileEntityComposter extends TileEntity implements ISidedInven
 
     @Override
     public int[] getSlotsForFace(EnumFacing side) {
-        int level = level();
-        if (side == EnumFacing.UP && level < ComposterMechanics.MAX_FILL_LEVEL) {
-            return SLOT;
-        }
-        if (side == EnumFacing.DOWN && level == ComposterMechanics.READY_LEVEL) {
-            return SLOT;
-        }
-        return NO_SLOTS;
+        return ComposterAutomation.slots(level(), side) == ComposterAutomation.SlotMode.NONE
+            ? NO_SLOTS : SLOT;
     }
 
     @Override
     public boolean canInsertItem(int index, ItemStack stack, EnumFacing direction) {
-        return direction == EnumFacing.UP && isItemValidForSlot(index, stack);
+        return index == 0 && ComposterAutomation.canInsert(level(),
+            ComposterCompostables.chance(stack), direction);
     }
 
     @Override
     public boolean canExtractItem(int index, ItemStack stack, EnumFacing direction) {
-        return index == 0 && direction == EnumFacing.DOWN
-            && level() == ComposterMechanics.READY_LEVEL
-            && isBoneMeal(stack);
+        return index == 0 && ComposterAutomation.canExtract(level(),
+            isBoneMeal(stack), direction);
     }
 
     @Override
