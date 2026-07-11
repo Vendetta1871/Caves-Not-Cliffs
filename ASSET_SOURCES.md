@@ -1,7 +1,7 @@
 # Asset sources
 
-The seven `deepslate_*_ore.png` textures and `axolotl_lucy.png` texture added for v2.0.0
-are unmodified Minecraft 1.17.1 textures extracted from Mojang's official client artifact:
+The seven `deepslate_*_ore.png` textures added for v2.0.0 are unmodified Minecraft 1.17.1
+textures extracted from Mojang's official client artifact:
 
 - Version: `1.17.1`
 - Client SHA-1: `8d9b65467c7913fcf6f5b2e729d44a1e00fde150`
@@ -97,4 +97,16 @@ syntax adapted for Java 1.12.2. The selection event delegates to the target runt
 - Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
 - Result sound object SHA-1s: `f9c33914acfd606ea5c624f25d33cccc60663e22`,
   `34eec70d1a60aba94b92065274fd456a97b1e036`
+- Asset base: <https://resources.download.minecraft.net/>
+
+The five axolotl variant textures, axolotl-bucket and tropical-fish-bucket item textures, and all
+36 axolotl, dolphin-derived swim/splash, fish-swim, and bucket Ogg Vorbis files are unmodified
+Minecraft Java 1.18.2 assets. The entity model preserves the official 64x64 geometry while adapting
+the hierarchical parts to Java 1.12.2's flat `ModelRenderer` API. Sound definitions preserve the
+official per-entry pitch and volume values. The tropical-fish bucket is the documented narrow
+1.12 clownfish bridge; its artwork is still the canonical 1.18.2 item texture.
+
+- Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
+- Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
 - Asset base: <https://resources.download.minecraft.net/>
