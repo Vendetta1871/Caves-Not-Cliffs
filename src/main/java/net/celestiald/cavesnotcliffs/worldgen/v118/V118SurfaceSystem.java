@@ -328,10 +328,15 @@ public final class V118SurfaceSystem {
 
         V118Biome biomeAt(int blockX, int blockY, int blockZ);
 
-        boolean coldEnoughToSnow(V118Biome biome, int blockX, int blockY, int blockZ);
+        default boolean coldEnoughToSnow(V118Biome biome, int blockX, int blockY, int blockZ) {
+            return V118BiomeTemperature.coldEnoughToSnow(biome, blockX, blockY, blockZ);
+        }
 
-        boolean shouldMeltFrozenOceanIcebergSlightly(V118Biome biome, int blockX, int blockY,
-            int blockZ);
+        default boolean shouldMeltFrozenOceanIcebergSlightly(V118Biome biome, int blockX,
+                int blockY, int blockZ) {
+            return V118BiomeTemperature.shouldMeltFrozenOceanIcebergSlightly(biome, blockX,
+                blockY, blockZ);
+        }
 
         /** Mirrors NoiseBasedChunkGenerator's legacy-random-source biome lookup switch. */
         default boolean useLegacyRandomSource() {

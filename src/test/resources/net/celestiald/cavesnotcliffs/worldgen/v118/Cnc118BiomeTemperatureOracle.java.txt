@@ -1,0 +1,41 @@
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Map;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
+import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.biome.Biome;
+
+/** Emits exact biome-temperature results from Mojang's mapped official 1.18.2 server. */
+public final class Cnc118BiomeTemperatureOracle {
+    public static void main(String[] args) throws Exception {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        BuiltinRegistries.bootstrap();
+        Field climate = Biome.class.getDeclaredField("climateSettings");
+        climate.setAccessible(true);
+        Class<?> climateSettings = Class.forName(
+            "net.minecraft.world.level.biome.Biome$ClimateSettings");
+        Field modifier = climateSettings.getDeclaredField("temperatureModifier");
+        modifier.setAccessible(true);
+        Method temperature = Biome.class.getDeclaredMethod("getTemperature", BlockPos.class);
+        temperature.setAccessible(true);
+        for (Map.Entry<net.minecraft.resources.ResourceKey<Biome>, Biome> entry
+                : BuiltinRegistries.BIOME.entrySet()) {
+            Biome biome = entry.getValue();
+            System.out.print(entry.getKey().location() + "\t"
+                + Integer.toUnsignedString(Float.floatToRawIntBits(biome.getBaseTemperature()))
+                + "\t" + modifier.get(climate.get(biome)));
+            for (int[] point : new int[][] {{0, 63, 0}, {0, 320, 0}, {-33, 97, 15},
+                    {1024, 256, -2048}, {33554431, 319, -33554433}}) {
+                BlockPos position = new BlockPos(point[0], point[1], point[2]);
+                float value = (Float) temperature.invoke(biome, position);
+                System.out.print("\t" + Integer.toUnsignedString(Float.floatToRawIntBits(value))
+                    + "\t" + (biome.coldEnoughToSnow(position) ? 1 : 0)
+                    + "\t" + (biome.shouldMeltFrozenOceanIcebergSlightly(position) ? 1 : 0));
+            }
+            System.out.println();
+        }
+    }
+}

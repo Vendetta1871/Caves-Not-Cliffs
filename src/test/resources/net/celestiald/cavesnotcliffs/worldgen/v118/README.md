@@ -55,6 +55,38 @@ Compile the harness with Java 17 against the mapped official server jar and its 
 libraries. It bootstraps the official registries, then reflectively invokes only the protected
 surface methods; production code is not present on its classpath.
 
+## Complete Overworld surface columns and material matrix
+
+`surface-columns-oracle-1.18.2.tsv` fills official raw terrain columns and invokes Mojang's
+`SurfaceSystem` for default, large-biomes, and amplified settings. Its 18 cases cover every edge
+seed, negative chunks, chunk/cube/build-height boundaries, sampled raw and final blocks, complete
+material counts, bedrock, and the 0-through-8 deepslate gradient. Sample columns are stored as
+lossless vertical runs to keep the fixture compact. The independent harness is
+`Cnc118SurfaceColumnOracle.java.txt`.
+
+`surface-materials-oracle-1.18.2.tsv` uses a deterministic terrain scaffold to execute every
+1.18.2 Overworld biome at eight seeded coordinate sets. The 400 complete-chunk hashes and material
+histograms exercise all 27 raw/rule outputs, including calcite's narrow band, badlands clay bands
+and pillars, frozen-ocean icebergs, powder snow, sandstone ceiling selection, and temperature
+branches. Its harness is `Cnc118SurfaceMaterialOracle.java.txt`.
+
+`biome-temperature-oracle-1.18.2.tsv` records raw base/adjusted float bits and both surface
+temperature predicates for every built-in biome at five ordinary, negative, high-altitude, and
+large-coordinate points. Its harness is `Cnc118BiomeTemperatureOracle.java.txt`.
+
+- Full-column harness SHA-256:
+  `d0c5ecdde30df89c7601b0aa87be9912e2436b9ac67cbdf9d9836d29e38695e4`
+- Full-column TSV SHA-256:
+  `3cfbbbb1d36e22eac3809f655f85f4821910ec32979c37b4a0b2458c052d9039`
+- Material-matrix harness SHA-256:
+  `b47b56c0d42ae6088e4e603e9557f2108ccd858b23011935bca3ccc29452668a`
+- Material-matrix TSV SHA-256:
+  `1c00048a9ca1f095178834335460c33e2a28d6679675b1e545f9768334500bec`
+- Biome-temperature harness SHA-256:
+  `890d0b582e8efca4d3f56f0f20447cfa8639794000e5336c7c6cf69d859ec54b`
+- Biome-temperature TSV SHA-256:
+  `ec62a4216729d8a186c040f63a6330dacc198fece10c39481f57a8a04057054c`
+
 ## Built-in noise registry and blended base density
 
 `noise-parameters-oracle-1.18.2.tsv` enumerates all 60 entries in Mojang's built-in noise
