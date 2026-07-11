@@ -7,6 +7,7 @@ import net.minecraft.block.BlockStairs;
 import net.minecraft.block.BlockWall;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.properties.PropertyEnum;
 import net.minecraft.block.state.BlockStateContainer;
@@ -63,9 +64,9 @@ public final class CncMaterialContent {
         register(event, rock("deepslate_tiles", 3.5F, 6.0F, 0));
         register(event, rock("cracked_deepslate_tiles", 3.5F, 6.0F, 0));
         register(event, rock("chiseled_deepslate", 3.5F, 6.0F, 0));
-        register(event, metal("raw_copper_block", 5.0F, 6.0F, 1));
-        register(event, metal("raw_iron_block", 5.0F, 6.0F, 1));
-        register(event, metal("raw_gold_block", 5.0F, 6.0F, 2));
+        register(event, metal("raw_copper_block", MapColor.ADOBE, 5.0F, 6.0F, 1));
+        register(event, metal("raw_iron_block", CncBlockProperties.RAW_IRON, 5.0F, 6.0F, 1));
+        register(event, metal("raw_gold_block", MapColor.GOLD, 5.0F, 6.0F, 2));
 
         for (Map.Entry<String, String> shape : DEEPSLATE_SHAPES.entrySet()) {
             Block base = CREATED_BLOCKS.get(shape.getKey());
@@ -126,12 +127,14 @@ public final class CncMaterialContent {
     }
 
     private static Block rock(String name, float hardness, float resistance, int harvestLevel) {
-        return new BasicMaterialBlock(name, Material.ROCK, SoundType.STONE,
+        return new BasicMaterialBlock(name, Material.ROCK, CncBlockProperties.DEEPSLATE,
+                SoundType.STONE,
                 hardness, resistance, harvestLevel);
     }
 
-    private static Block metal(String name, float hardness, float resistance, int harvestLevel) {
-        return new BasicMaterialBlock(name, Material.IRON, SoundType.METAL,
+    private static Block metal(String name, MapColor color, float hardness, float resistance,
+            int harvestLevel) {
+        return new BasicMaterialBlock(name, Material.IRON, color, SoundType.METAL,
                 hardness, resistance, harvestLevel);
     }
 
@@ -184,15 +187,15 @@ public final class CncMaterialContent {
     }
 
     private static class BasicMaterialBlock extends Block {
-        BasicMaterialBlock(String name, Material material, SoundType sound,
+        BasicMaterialBlock(String name, Material material, MapColor color, SoundType sound,
                 float hardness, float resistance, int harvestLevel) {
-            super(material);
+            super(material, color);
             setRegistryName(id(name));
             setUnlocalizedName(name);
             setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
             setSoundType(sound);
             setHardness(hardness);
-            setResistance(resistance);
+            setResistance(CncBlockProperties.legacyResistance(resistance));
             setHarvestLevel("pickaxe", harvestLevel);
         }
     }
@@ -204,7 +207,7 @@ public final class CncMaterialContent {
             setUnlocalizedName(name);
             setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
             setHardness(3.5F);
-            setResistance(6.0F);
+            setResistance(CncBlockProperties.legacyResistance(6.0F));
             setHarvestLevel("pickaxe", 0);
         }
     }
@@ -216,7 +219,7 @@ public final class CncMaterialContent {
             setUnlocalizedName(name);
             setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
             setHardness(3.5F);
-            setResistance(6.0F);
+            setResistance(CncBlockProperties.legacyResistance(6.0F));
             setHarvestLevel("pickaxe", 0);
         }
     }
@@ -226,12 +229,12 @@ public final class CncMaterialContent {
                 PropertyEnum.create("variant", Variant.class);
 
         MaterialSlab(String name) {
-            super(Material.ROCK);
+            super(Material.ROCK, CncBlockProperties.DEEPSLATE);
             setUnlocalizedName(name);
             setCreativeTab(isDouble() ? null : CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(3.5F);
-            setResistance(6.0F);
+            setResistance(CncBlockProperties.legacyResistance(6.0F));
             setHarvestLevel("pickaxe", 0);
             IBlockState state = blockState.getBaseState().withProperty(VARIANT, Variant.DEFAULT);
             if (!isDouble()) {

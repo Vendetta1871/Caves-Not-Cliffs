@@ -16,6 +16,7 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
 import java.util.Random;
 
 @ElementsCavesNotCliffs.ModElement.Tag
@@ -40,12 +41,12 @@ public class BlockUnnamedStone extends ElementsCavesNotCliffs.ModElement {
 
     private static class BlockCustom extends BlockRotatedPillar {
         public BlockCustom() {
-            super(Material.ROCK);
+            super(Material.ROCK, CncBlockProperties.DEEPSLATE);
             setUnlocalizedName("deepslate");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(3.0f);
-            setResistance(6.0f);
+            setResistance(CncBlockProperties.legacyResistance(6.0F));
             setHarvestLevel("pickaxe", 0);
         }
 

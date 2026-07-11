@@ -2,6 +2,7 @@ package net.celestiald.cavesnotcliffs.block;
 
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
 import net.celestiald.cavesnotcliffs.content.OreDropLogic;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
@@ -119,13 +120,13 @@ public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement 
         private final Drop drop;
 
         DeepslateOreBlock(String name, Drop drop, int harvestLevel) {
-            super(Material.ROCK);
+            super(Material.ROCK, CncBlockProperties.DEEPSLATE);
             this.drop = drop;
             setUnlocalizedName(name);
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(4.5F);
-            setResistance(3.0F);
+            setResistance(CncBlockProperties.legacyResistance(3.0F));
             setHarvestLevel("pickaxe", harvestLevel);
         }
 

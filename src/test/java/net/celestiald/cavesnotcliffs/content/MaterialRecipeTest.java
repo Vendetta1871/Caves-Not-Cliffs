@@ -7,6 +7,9 @@ import org.junit.Test;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -64,6 +67,24 @@ public class MaterialRecipeTest {
         }
     }
 
+    @Test
+    public void everyMaterialItemModelResolvesItsCompleteParentAndTextureTree() {
+        Set<String> models = new HashSet<>();
+        for (String item : new String[]{
+                "raw_copper", "copper_ingot", "raw_iron", "raw_gold", "amethyst_shard",
+                "deepslate", "cobbled_deepslate", "polished_deepslate", "deepslate_bricks",
+                "cracked_deepslate_bricks", "deepslate_tiles", "cracked_deepslate_tiles",
+                "chiseled_deepslate", "raw_copper_block", "raw_iron_block", "raw_gold_block",
+                "deepslate_copper_ore", "cobbled_deepslate_slab",
+                "cobbled_deepslate_stairs", "cobbled_deepslate_wall",
+                "polished_deepslate_slab", "polished_deepslate_stairs",
+                "polished_deepslate_wall", "deepslate_brick_slab",
+                "deepslate_brick_stairs", "deepslate_brick_wall", "deepslate_tile_slab",
+                "deepslate_tile_stairs", "deepslate_tile_wall"}) {
+            assertModelTree("item/" + item, models);
+        }
+    }
+
     private static void assertResult(String recipeName, String expectedPath, int expectedCount) {
         JsonObject result = recipe(recipeName).getAsJsonObject("result");
         assertEquals("cavesnotcliffs:" + expectedPath, result.get("item").getAsString());
@@ -76,5 +97,37 @@ public class MaterialRecipeTest {
         assertNotNull(path, stream);
         return new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8))
                 .getAsJsonObject();
+    }
+
+    private static void assertModelTree(String model, Set<String> visited) {
+        if (!visited.add(model)) {
+            return;
+        }
+        String path = "assets/cavesnotcliffs/models/" + model + ".json";
+        InputStream stream = MaterialRecipeTest.class.getClassLoader().getResourceAsStream(path);
+        assertNotNull(path, stream);
+        JsonObject json = new JsonParser().parse(
+                new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+
+        if (json.has("parent")) {
+            String parent = json.get("parent").getAsString();
+            String prefix = "cavesnotcliffs:";
+            if (parent.startsWith(prefix)) {
+                assertModelTree(parent.substring(prefix.length()), visited);
+            }
+        }
+
+        if (json.has("textures")) {
+            for (Map.Entry<String, com.google.gson.JsonElement> texture
+                    : json.getAsJsonObject("textures").entrySet()) {
+                String value = texture.getValue().getAsString();
+                if (value.startsWith("cavesnotcliffs:") && !value.startsWith("#")) {
+                    String texturePath = "assets/cavesnotcliffs/textures/"
+                            + value.substring("cavesnotcliffs:".length()) + ".png";
+                    assertNotNull(texturePath, MaterialRecipeTest.class.getClassLoader()
+                            .getResource(texturePath));
+                }
+            }
+        }
     }
 }

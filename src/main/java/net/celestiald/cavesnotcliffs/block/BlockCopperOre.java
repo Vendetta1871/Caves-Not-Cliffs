@@ -15,6 +15,7 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
 import net.celestiald.cavesnotcliffs.content.OreDropLogic;
 import java.util.Random;
 
@@ -45,7 +46,7 @@ public class BlockCopperOre extends ElementsCavesNotCliffs.ModElement {
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(3.0f);
-            setResistance(3.0f);
+            setResistance(CncBlockProperties.legacyResistance(3.0F));
             setHarvestLevel("pickaxe", 1);
         }
 
