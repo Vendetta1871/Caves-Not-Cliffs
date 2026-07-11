@@ -8,6 +8,7 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.init.Bootstrap;
 import net.minecraft.item.Item;
+import net.minecraft.nbt.NBTTagCompound;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -57,5 +58,25 @@ public class BeeRegistrationTest {
             String id = item.get().getRegistryName().toString();
             assertFalse(id.endsWith("_honey"));
         }
+    }
+
+    @Test
+    public void facingMetadataAndCanonicalHoneyPropertyRoundTrip() {
+        ElementsCavesNotCliffs elements = new ElementsCavesNotCliffs();
+        new BlockBeehive(elements).initElements();
+        for (java.util.function.Supplier<Block> supplier : elements.blocks) {
+            Block block = supplier.get();
+            for (int meta = 0; meta < 4; meta++) {
+                assertEquals(meta, block.getMetaFromState(block.getStateFromMeta(meta)));
+            }
+        }
+        NBTTagCompound canonical = new NBTTagCompound();
+        canonical.setString("honey_level", "5");
+        assertEquals(5, ItemBlockBeehive.readHoneyLevel(canonical));
+        NBTTagCompound legacyDraft = new NBTTagCompound();
+        legacyDraft.setInteger("honey_level", 4);
+        assertEquals(4, ItemBlockBeehive.readHoneyLevel(legacyDraft));
+        canonical.setString("honey_level", "invalid");
+        assertEquals(0, ItemBlockBeehive.readHoneyLevel(canonical));
     }
 }

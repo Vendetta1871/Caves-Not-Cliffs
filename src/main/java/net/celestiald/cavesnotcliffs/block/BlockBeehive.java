@@ -296,7 +296,9 @@ public final class BlockBeehive extends ElementsCavesNotCliffs.ModElement {
                 root.setTag("BlockEntityTag", blockEntity);
             }
             NBTTagCompound blockState = new NBTTagCompound();
-            blockState.setInteger("honey_level", hive.getHoneyLevel());
+            // BlockItem's 1.18 BlockStateTag codec writes serialized property strings.
+            blockState.setString("honey_level",
+                    Integer.toString(hive.getHoneyLevel()));
             root.setTag("BlockStateTag", blockState);
             stack.setTagCompound(root);
             return stack;
@@ -355,6 +357,16 @@ public final class BlockBeehive extends ElementsCavesNotCliffs.ModElement {
         @Override
         public int quantityDropped(Random random) {
             return 0;
+        }
+
+        @Override
+        public void getDrops(NonNullList<ItemStack> drops, IBlockAccess world,
+                BlockPos pos, IBlockState state, int fortune) {
+            // Player harvesting is manual so it can preserve tile NBT. This path serves
+            // explosions and other non-player destruction, where only crafted hives drop.
+            if (!nest && beehive != null) {
+                drops.add(new ItemStack(beehive));
+            }
         }
 
         @Override

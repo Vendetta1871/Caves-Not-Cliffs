@@ -31,9 +31,21 @@ public final class ItemBlockBeehive extends ItemBlock {
         if (tile instanceof TileEntityBeehive && root != null
                 && root.hasKey("BlockStateTag", 10)) {
             NBTTagCompound state = root.getCompoundTag("BlockStateTag");
-            int level = state.getInteger("honey_level");
+            int level = readHoneyLevel(state);
             ((TileEntityBeehive) tile).setHoneyLevel(Math.max(0, Math.min(5, level)));
         }
         return true;
+    }
+
+    /** Parses both canonical string properties and early draft numeric payloads. */
+    public static int readHoneyLevel(NBTTagCompound blockStateTag) {
+        if (blockStateTag.hasKey("honey_level", 8)) {
+            try {
+                return Integer.parseInt(blockStateTag.getString("honey_level"));
+            } catch (NumberFormatException ignored) {
+                return 0;
+            }
+        }
+        return blockStateTag.getInteger("honey_level");
     }
 }
