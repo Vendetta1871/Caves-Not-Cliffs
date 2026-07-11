@@ -1,8 +1,8 @@
 # Caves Not Cliffs [Backported]
 
-Caves Not Cliffs backports the underground half of Minecraft's Caves & Cliffs update to 1.12.2.
-Version 2.0.0 adds a default-on finite-height CubicChunks world format, true 3D cave-biome regions,
-and the complete deepslate ore family.
+Caves Not Cliffs 2.0.0 backports Java 1.18.2 Overworld terrain and its represented Caves & Cliffs
+content to Minecraft 1.12.2. New Overworlds use a default-on, finite CubicChunks schema from Y=-64
+through Y=319, while existing worlds keep their saved generator contract.
 
 ![Caves not Cliffs](https://github.com/user-attachments/assets/b3210380-8264-4887-99dc-03522af9a10f)
 
@@ -10,41 +10,80 @@ and the complete deepslate ore family.
 
 ## Key features
 
-1. **Lush and dripstone cave biomes**
+### Native Java 1.18.2 Overworld generation
+
+- Default, Large Biomes, and Amplified profiles backed by the ported positional RNG, noise,
+  spline, climate, density-cave, aquifer, carver, and surface-rule stacks
+- Complete deterministic `16×384×16` columns with bedrock, the Y=0..8 deepslate transition,
+  ore veins, fluid scheduling, and a bounded weighted cache
+- A virtual 3D biome resolver with a legacy surface-biome projection for Minecraft 1.12
+  spawning, colors, and chunk storage
+- The six available Minecraft 1.12 structure families retained through a structure-only bridge
+- `/cncbiome` for querying the resolved biome at any position
+
+### Caves, mountains, and native features
 
 ![Lush cave](https://github.com/user-attachments/assets/1c13ec5a-a13a-42a5-b899-7979f2e197d5)
 
 ![Dripstone cave](https://github.com/user-attachments/assets/8cd7017a-ca13-473c-bebf-62a6c4bf0a85)
 
-2. **Amethyst geodes**
+- Lush and dripstone cave biomes with Java 1.18.2 feature ordering
+- Meadow, Grove, Snowy Slopes, Jagged Peaks, Frozen Peaks, and Stony Peaks
+- Exact ordinary ore bands and exposure reduction, large copper and iron veins, soft disks,
+  underwater magma, tuff placement, and amethyst geodes
+- Functional terrain-generated powder snow, buckets, dispensers, layered cauldrons, sinking,
+  freezing, and leather protection
+
+### Faithful block and crafting families
 
 ![Amethyst geode](https://github.com/user-attachments/assets/8cd2237e-d1c0-4ca0-be9d-f6f156b3baff)
 
-3. **Cauldron and dripstone lava farming**
+- The complete deepslate family, all eight deepslate ores, raw copper/iron/gold and their blocks,
+  smelting, crafting, and stonecutting
+- Later-vanilla tuff shape variants and the retained custom calcite decorative set
+- Every copper oxidation and waxed stage across blocks, cut blocks, stairs, and slabs, with
+  radius-four aging, axe scraping/unwaxing, lightning cleaning, and lightning rods
+- Budding amethyst and all four growth stages, canonical shard drops and sounds, tinted glass,
+  and a functional spyglass
+- Functional stonecutter and composter systems
+
+### Living caves and dripstone mechanics
 
 ![Filling cauldron by different liquids](https://github.com/user-attachments/assets/267a7270-f19b-4f32-b720-94ae56d7c91d)
 
+- Glow berries as the edible cave-vine planting item, with no invented seed item
+- Azaleas and flowering azaleas, both leaf types, rooted dirt, hanging roots, moss spreading,
+  small and big dripleaf, spore blossoms, potting, composting, and azalea-tree growth
+- One canonical pointed-dripstone family with growth, thickness recalculation, falling
+  stalactites, stalagmite damage, trident breaking, water retention, and faithful water/lava
+  cauldron behavior
 
-4. **The v2 world format**
+### Axolotls, bees, and honey
 
-   - Config-driven Overworld format with buildable space from Y=-64 through Y=319
-   - Deepslate and tuff below Y=0, with all seven vanilla deepslate ores
-   - Deterministic 3D normal, lush, and dripstone cave regions
-   - Seed-stable deep caves and decorations
-   - Vanilla surface terrain and structures preserved from Y=0 through Y=255
-   - Overworld-only custom terrain; the Nether uses bounded CubicChunks compatibility and the End stays vanilla
+- Five axolotl variants, breeding and blue mutation odds, bucket/NBT round trips, aging,
+  dehydration, play-dead behavior, combat support, and lush-cave spawning
+- Bee pollination, breeding, anger, stinging, hive routing, crop growth, sounds, animation, and
+  persistent NBT
+- Generated and sapling-grown bee nests, three-occupant nests and hives, honey production,
+  smoke-safe harvesting, Silk Touch occupant preservation, comparators, and dispensers
+- Honeycomb waxing through interaction, crafting, and dispensers, plus honey-block movement and
+  piston adhesion including honey/slime incompatibility
 
-5. **Backported mobs and mechanics**
+### World and save compatibility
 
-   - Swimming, rendered axolotls
-   - Big dripleaf tilt and reset behavior
-   - Pointed-dripstone cauldrons that support stalactites of any valid length
+- `world.enableForNewOverworlds=true` applies only when an Overworld is first created
+- Terrain schema, base world type, generator options, and terrain profile are persisted so later
+  config changes cannot convert an existing world
+- Released placeholder IDs and state-split blocks are remapped or migrated to canonical content
+  while preserving inventories and block/entity NBT
 
 ## Creating a v2 world
 
 Install the requirements below and create a world normally. Caves Not Cliffs applies its v2 format
-to newly created Overworlds by default while preserving the selected surface-generator family and
-its options. No `level-type` change is required on a dedicated server.
+to newly created Overworlds by default while preserving the selected base world type and its
+options. Default, Large Biomes, and Amplified receive native Java 1.18.2 terrain profiles; other
+compatible 2D types retain their selected generator through the finite delegated bridge. No
+`level-type` change is required on a dedicated server.
 
 The setting is written to `config/cavesnotcliffs.cfg` as
 `world.enableForNewOverworlds=true`. Set it to `false` before creating a world to leave that new
@@ -56,20 +95,23 @@ and still obeys this config.
 Use `/cncbiome` in-game to identify the cave-biome region at your current position, or
 `/cncbiome <x> <y> <z>` to inspect another coordinate.
 
-## Roadmap
-
-- v0.0.1 base mod mechanics - lush and dripstone caves, amethyst geode, cauldron can store lava and filled by pointed dripstone
-- v1.5.0 remove dependency from other project, improve code structure
-- v2.0.0 **[current]** increase world height (change bounds to -64 +320) and make new cave biomes, not just modifications of vanilla caves
-- v3.0.0 add new mountains, powdered snow etc.
-- v4.0.0 implement all the missing crafts and features 
-
 ## Known limitations
 
-- Amethyst buds are generated with geodes but do not yet grow through all vanilla 1.17 stages.
-- Terrain above Y=255 is intentionally left as v3 mountain headroom.
-- v2 uses seed-stable worm caves below Y=0; the noise-cave rewrite remains planned for v3.
-- CubicChunks 1301 logs a non-fatal missing `MixinItemMap` warning from its optional fixes config.
+- Native Java 1.18.2 terrain is supplied for Default, Large Biomes, and Amplified. Flat,
+  Customized, Default 1.1, debug, and compatible third-party 2D types retain their selected
+  generator and options through the finite delegated bridge. Existing third-party cubic types
+  remain authoritative and are not wrapped.
+- Schema-2 worlds retain only Minecraft 1.12's mineshaft, village, stronghold, temple,
+  ocean-monument, and woodland-mansion structure families. Post-1.12 structures are not
+  backported.
+- Goats, foxes, and glow squids are not backported. Tropical fish are represented only by the
+  narrow clownfish-based bucket bridge used by axolotl breeding.
+- Same-seed fidelity covers native terrain density, climate, caves, aquifers, surfaces, and the
+  ported feature pipelines. Whole-chunk parity is not claimed around retained 1.12 structures or
+  omitted modern ecosystems.
+- Existing schema-1 draft-v2 saves intentionally retain their original vanilla surface, deep worm
+  caves, and upper headroom to prevent chunk seams.
+- Nether and End generation remain unchanged.
 
 ## Requirements
 
