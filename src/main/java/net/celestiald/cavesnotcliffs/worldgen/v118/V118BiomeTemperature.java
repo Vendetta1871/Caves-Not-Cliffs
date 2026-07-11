@@ -43,6 +43,11 @@ public final class V118BiomeTemperature {
         return temperature(biome, blockX, blockY, blockZ) > 0.1F;
     }
 
+    /** Static Java 1.18.2 biome-info simplex used by vegetation count placement. */
+    public static double biomeInfoNoise(double x, double z) {
+        return BIOME_INFO_NOISE.getValue(x, z);
+    }
+
     /** Minimal legacy 48-bit random stream used by vanilla's static simplex samplers. */
     private static final class LegacyRandom {
         private static final long MASK = (1L << 48) - 1L;

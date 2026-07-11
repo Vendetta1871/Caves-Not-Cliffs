@@ -52,6 +52,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
     private final V118DripstoneWorldBridge dripstones;
     private final V118OreWorldBridge ordinaryOres;
     private final V118LushCaveWorldBridge lushCaves;
+    private final V118BeeTreeWorldBridge beeTrees;
     private ChunkPrimer cachedStructureColumn;
     private int cachedStructureX;
     private int cachedStructureZ;
@@ -90,6 +91,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         dripstones = new V118DripstoneWorldBridge(world, this, oreBlocks);
         ordinaryOres = new V118OreWorldBridge(world, this, oreBlocks);
         lushCaves = new V118LushCaveWorldBridge(world, this);
+        beeTrees = new V118BeeTreeWorldBridge(world, this);
         registerActiveGenerator(world, this);
     }
 
@@ -162,7 +164,9 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
             geodes.populate(cube.getX(), cube.getZ());
             dripstones.populateLarge(cube.getX(), cube.getZ(), decorationBiomes);
             ordinaryOres.populate(cube.getX(), cube.getZ(), decorationBiomes, dripstones);
+            beeTrees.populateBeforeLush(cube.getX(), cube.getZ(), decorationBiomes);
             lushCaves.populate(cube.getX(), cube.getZ(), decorationBiomes);
+            beeTrees.populateAfterLush(cube.getX(), cube.getZ(), decorationBiomes);
         }
         TerrainColumn column = columns.column(cube.getX(), cube.getZ());
 

@@ -12,6 +12,7 @@ import net.minecraft.world.World;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
@@ -63,8 +64,10 @@ public final class BeeNestDecorator {
         if (candidates.isEmpty()) {
             return PlacementResult.notPlaced();
         }
-        // This apparently unusual no-Random overload is what the 1.18.2 bytecode calls.
-        Collections.shuffle(candidates);
+        // Java 1.18.2 accidentally uses Collections' process-global shuffle here. A stable
+        // side-stream preserves its zero consumption of the feature RNG while making generated
+        // nests independent of chunk request order and unrelated JVM activity.
+        shuffleDeterministically(candidates);
         BlockPos nest = null;
         for (BlockPos candidate : candidates) {
             if (world.isAir(candidate)
@@ -83,6 +86,17 @@ public final class BeeNestDecorator {
             world.storeBee(nest, data, random.nextInt(599), false);
         }
         return new PlacementResult(true, nest, bees);
+    }
+
+    private static void shuffleDeterministically(List<BlockPos> candidates) {
+        candidates.sort(Comparator.comparingLong(BlockPos::toLong));
+        long seed = 0x9E3779B97F4A7C15L;
+        for (BlockPos candidate : candidates) {
+            seed ^= candidate.toLong() + 0x9E3779B97F4A7C15L + (seed << 6) + (seed >>> 2);
+        }
+        seed = (seed ^ seed >>> 30) * 0xBF58476D1CE4E5B9L;
+        seed = (seed ^ seed >>> 27) * 0x94D049BB133111EBL;
+        Collections.shuffle(candidates, new Random(seed ^ seed >>> 31));
     }
 
     public static PlacementResult placeInWorld(World world, Random random,

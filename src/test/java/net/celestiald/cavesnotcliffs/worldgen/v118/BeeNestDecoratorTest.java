@@ -82,6 +82,45 @@ public class BeeNestDecoratorTest {
         assertEquals(2, result.occupants());
     }
 
+    @Test
+    public void candidateShuffleIsStableAcrossInputOrderAndUnrelatedJvmShuffles() {
+        List<BlockPos> trunks = Arrays.asList(new BlockPos(0, 1, 0),
+                new BlockPos(0, 2, 0), new BlockPos(1, 2, 0));
+        List<BlockPos> foliage = Collections.singletonList(new BlockPos(0, 3, 0));
+        FakeWorld first = allCandidateSidesAir(trunks, 2);
+        BeeNestDecorator.PlacementResult firstResult = BeeNestDecorator.place(
+                first, new Random(42L), 1.0F, trunks, foliage);
+
+        List<Integer> unrelated = new ArrayList<>(Arrays.asList(1, 2, 3, 4, 5));
+        Collections.shuffle(unrelated);
+        List<BlockPos> reversed = Arrays.asList(trunks.get(0), trunks.get(2),
+                trunks.get(1));
+        FakeWorld second = allCandidateSidesAir(reversed, 2);
+        BeeNestDecorator.PlacementResult secondResult = BeeNestDecorator.place(
+                second, new Random(42L), 1.0F, reversed, foliage);
+
+        assertTrue(firstResult.placed());
+        assertTrue(secondResult.placed());
+        assertEquals(firstResult.pos(), secondResult.pos());
+        assertEquals(firstResult.occupants(), secondResult.occupants());
+    }
+
+    private static FakeWorld allCandidateSidesAir(List<BlockPos> trunks, int targetY) {
+        FakeWorld world = new FakeWorld();
+        for (BlockPos trunk : trunks) {
+            if (trunk.getY() != targetY) {
+                continue;
+            }
+            for (EnumFacing facing : Arrays.asList(EnumFacing.EAST,
+                    EnumFacing.SOUTH, EnumFacing.WEST)) {
+                BlockPos candidate = trunk.offset(facing);
+                world.air.add(candidate);
+                world.air.add(candidate.south());
+            }
+        }
+        return world;
+    }
+
     private static final class FakeWorld implements BeeNestDecorator.WorldAccess {
         final Set<BlockPos> air = new HashSet<>();
         final List<NBTTagCompound> bees = new ArrayList<>();
