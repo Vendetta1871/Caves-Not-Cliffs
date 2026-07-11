@@ -37,3 +37,39 @@ java -cp .:<unsigned-inner-server.jar>:<extracted-libraries/*> \
 ```
 
 The production sources and tests remain Java 8 and have no dependency on the oracle jars.
+
+## Built-in noise registry and blended base density
+
+`noise-parameters-oracle-1.18.2.tsv` enumerates all 60 entries in Mojang's built-in noise
+registry, including every first octave and amplitude as raw IEEE-754 bits. It also instantiates
+every entry through the official resource-key hashing path for all six required seeds and samples
+both ordinary and Perlin-wrap-boundary coordinates. The independent harness is
+`Cnc118NoiseRegistryOracle.java.txt`.
+
+`blended-noise-oracle-1.18.2.tsv` samples the official legacy three-Perlin `BlendedNoise` used by
+the normal 1.18.2 Overworld. Its 150 samples cover negative floor division, 4x8x4 density cells,
+16-block cube boundaries, the full `-64..319` build range, large coordinates, and the same seed
+matrix. The independent harness is `Cnc118BlendedNoiseOracle.java.txt`.
+
+Reference hashes:
+
+- Noise-registry harness SHA-256:
+  `3bf8a26890a47b5b96c5b68cbb7ea35d80425a857e0f764b271e1a849844730b`
+- Noise-registry TSV SHA-256:
+  `65b77530391ce929b8b34d1b6cb23cede251c261c7513cc1050154046f88ed86`
+- Blended-noise harness SHA-256:
+  `64c8f5d36240606e2ebf7aeb21809740193e3016583a10c74318415b86e0738b`
+- Blended-noise TSV SHA-256:
+  `5c6d589e54eb83df87b52b64fde4692dd4ef611c0ea69309a12639f207148f28`
+
+Regenerate either fixture with Java 17 using the same unsigned official server and extracted
+libraries described above:
+
+```text
+javac -cp <unsigned-inner-server.jar>:<extracted-libraries/*> \
+  Cnc118NoiseRegistryOracle.java Cnc118BlendedNoiseOracle.java
+java -cp .:<unsigned-inner-server.jar>:<extracted-libraries/*> \
+  Cnc118NoiseRegistryOracle noise-parameters-oracle-1.18.2.tsv
+java -cp .:<unsigned-inner-server.jar>:<extracted-libraries/*> \
+  Cnc118BlendedNoiseOracle blended-noise-oracle-1.18.2.tsv
+```
