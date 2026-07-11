@@ -165,7 +165,7 @@ public final class LavaCauldronHandler {
     }
 
     /** Catches vanilla structure cauldrons added after a newly generated chunk's load event. */
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onChunkPopulated(PopulateChunkEvent.Post event) {
         World world = event.getWorld();
         if (!world.isRemote && !isCubic(world)) {
@@ -175,7 +175,7 @@ public final class LavaCauldronHandler {
     }
 
     /** Catches retained 1.12 structure cauldrons added during CubicChunks population. */
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onCubePopulated(PopulateCubeEvent.Post event) {
         World world = event.getWorld();
         if (world.isRemote || !isCubic(world)) {
