@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.block;
 
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.powdersnow.PowderSnowMechanics;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockCauldron;
 import net.minecraft.block.BlockLiquid;
@@ -321,11 +322,22 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
         public void fillWithRain(World world, BlockPos pos) {
             IBlockState state = world.getBlockState(pos);
             int level = state.getValue(LEVEL);
-            if (!state.getValue(IS_LAVA) && level < 3 && world.rand.nextInt(20) == 1) {
-                float temperature = world.getBiome(pos).getTemperature(pos);
-                if (world.getBiomeProvider().getTemperatureAtHeight(temperature, pos.getY()) >= 0.15F) {
-                    setWaterLevel(world, pos, state, level + 1);
+            if (state.getValue(IS_LAVA) || level >= 3) {
+                return;
+            }
+            float temperature = world.getBiome(pos).getTemperature(pos);
+            float adjusted = world.getBiomeProvider()
+                    .getTemperatureAtHeight(temperature, pos.getY());
+            float precipitationRoll = world.rand.nextFloat();
+            if (adjusted < 0.15F) {
+                if (level == 0 && BlockPowderSnowCauldron.block != null
+                        && PowderSnowMechanics.shouldFillFromSnow(precipitationRoll)) {
+                    world.setBlockState(pos, BlockPowderSnowCauldron.block.getDefaultState()
+                            .withProperty(LEVEL, 1), 2);
+                    world.updateComparatorOutputLevel(pos, BlockPowderSnowCauldron.block);
                 }
+            } else if (precipitationRoll < 0.05F) {
+                    setWaterLevel(world, pos, state, level + 1);
             }
         }
 
