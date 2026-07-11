@@ -58,6 +58,11 @@ public final class CandleMechanics {
             return dyeMetadata;
         }
 
+        /** 1.12 dye-item damage is the reverse of wool/block metadata. */
+        public int getDyeDamage() {
+            return dyeMetadata < 0 ? -1 : 15 - dyeMetadata;
+        }
+
         public boolean isDyed() {
             return dyeMetadata >= 0;
         }

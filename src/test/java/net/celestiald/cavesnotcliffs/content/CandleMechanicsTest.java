@@ -18,6 +18,7 @@ public class CandleMechanicsTest {
         assertEquals("candle", colors.get(0).getCandlePath());
         assertEquals("candle_cake", colors.get(0).getCandleCakePath());
         assertEquals(-1, colors.get(0).getDyeMetadata());
+        assertEquals(-1, colors.get(0).getDyeDamage());
         assertFalse(colors.get(0).isDyed());
 
         Set<String> candles = new HashSet<>();
@@ -29,6 +30,7 @@ public class CandleMechanicsTest {
             if (i > 0) {
                 assertTrue(color.isDyed());
                 assertEquals(i - 1, color.getDyeMetadata());
+                assertEquals(16 - i, color.getDyeDamage());
             }
         }
         assertEquals("light_blue_candle", colors.get(4).getCandlePath());

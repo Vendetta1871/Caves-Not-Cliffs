@@ -1,0 +1,10 @@
+{
+  "parent": "cavesnotcliffs:block/template_cake_with_candle",
+  "textures": {
+    "candle": "cavesnotcliffs:blocks/pink_candle_lit",
+    "bottom": "minecraft:blocks/cake_bottom",
+    "side": "minecraft:blocks/cake_side",
+    "top": "minecraft:blocks/cake_top",
+    "particle": "minecraft:blocks/cake_side"
+  }
+}

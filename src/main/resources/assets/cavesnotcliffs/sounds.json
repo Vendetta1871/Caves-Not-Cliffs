@@ -1187,5 +1187,309 @@
       "cavesnotcliffs:block/soul_soil/step5"
     ],
     "subtitle": "subtitles.block.generic.footsteps"
+  },
+  "block.cake.add_candle": {
+    "sounds": [
+      "cavesnotcliffs:block/cake/add_candle1",
+      "cavesnotcliffs:block/cake/add_candle2",
+      "cavesnotcliffs:block/cake/add_candle3"
+    ],
+    "subtitle": "subtitles.block.cake.add_candle"
+  },
+  "block.candle.ambient": {
+    "sounds": [
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient1"
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient1",
+        "pitch": 0.8,
+        "volume": 0.7
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient1",
+        "pitch": 0.9,
+        "volume": 0.8
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient2"
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient2",
+        "pitch": 0.8,
+        "volume": 0.7
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient2",
+        "pitch": 0.9,
+        "volume": 0.8
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient3"
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient3",
+        "pitch": 0.8,
+        "volume": 0.7
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient3",
+        "pitch": 0.9,
+        "volume": 0.8
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient4"
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient4",
+        "pitch": 0.8,
+        "volume": 0.7
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient4",
+        "pitch": 0.9,
+        "volume": 0.8
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient5"
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient5",
+        "pitch": 0.8,
+        "volume": 0.7
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient5",
+        "pitch": 0.9,
+        "volume": 0.8
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient6"
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient6",
+        "pitch": 0.8,
+        "volume": 0.7
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient6",
+        "pitch": 0.9,
+        "volume": 0.8
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient7"
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient7",
+        "pitch": 0.8,
+        "volume": 0.7
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient7",
+        "pitch": 0.9,
+        "volume": 0.8
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient8"
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient8",
+        "pitch": 0.8,
+        "volume": 0.7
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient8",
+        "pitch": 0.9,
+        "volume": 0.8
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient9"
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient9",
+        "pitch": 0.8,
+        "volume": 0.7
+      },
+      {
+        "attenuation_distance": 3,
+        "name": "cavesnotcliffs:block/candle/ambient9",
+        "pitch": 0.9,
+        "volume": 0.8
+      }
+    ],
+    "subtitle": "subtitles.block.candle.crackle"
+  },
+  "block.candle.break": {
+    "sounds": [
+      "cavesnotcliffs:block/candle/break1",
+      "cavesnotcliffs:block/candle/break2",
+      "cavesnotcliffs:block/candle/break3",
+      "cavesnotcliffs:block/candle/break4",
+      "cavesnotcliffs:block/candle/break5"
+    ],
+    "subtitle": "subtitles.block.generic.break"
+  },
+  "block.candle.extinguish": {
+    "sounds": [
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish1"
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish1",
+        "volume": 0.9
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish1",
+        "pitch": 0.9
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish1",
+        "pitch": 0.9,
+        "volume": 0.9
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish1",
+        "pitch": 1.1
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish1",
+        "pitch": 1.1,
+        "volume": 0.9
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish2"
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish2",
+        "volume": 0.9
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish2",
+        "pitch": 0.9
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish2",
+        "pitch": 0.9,
+        "volume": 0.9
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish2",
+        "pitch": 1.1
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish2",
+        "pitch": 1.1,
+        "volume": 0.9
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish3"
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish3",
+        "volume": 0.9
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish3",
+        "pitch": 0.9
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish3",
+        "pitch": 0.9,
+        "volume": 0.9
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish3",
+        "pitch": 1.1
+      },
+      {
+        "attenuation_distance": 8,
+        "name": "cavesnotcliffs:block/candle/extinguish3",
+        "pitch": 1.1,
+        "volume": 0.9
+      }
+    ],
+    "subtitle": "subtitles.block.fire.extinguish"
+  },
+  "block.candle.fall": {
+    "sounds": [
+      "cavesnotcliffs:block/candle/step1",
+      "cavesnotcliffs:block/candle/step2",
+      "cavesnotcliffs:block/candle/step3",
+      "cavesnotcliffs:block/candle/step4",
+      "cavesnotcliffs:block/candle/step5"
+    ]
+  },
+  "block.candle.hit": {
+    "sounds": [
+      "cavesnotcliffs:block/candle/step1",
+      "cavesnotcliffs:block/candle/step2",
+      "cavesnotcliffs:block/candle/step3",
+      "cavesnotcliffs:block/candle/step4",
+      "cavesnotcliffs:block/candle/step5"
+    ],
+    "subtitle": "subtitles.block.generic.hit"
+  },
+  "block.candle.place": {
+    "sounds": [
+      "cavesnotcliffs:block/candle/break1",
+      "cavesnotcliffs:block/candle/break2",
+      "cavesnotcliffs:block/candle/break3",
+      "cavesnotcliffs:block/candle/break4",
+      "cavesnotcliffs:block/candle/break5"
+    ],
+    "subtitle": "subtitles.block.generic.place"
+  },
+  "block.candle.step": {
+    "sounds": [
+      "cavesnotcliffs:block/candle/step1",
+      "cavesnotcliffs:block/candle/step2",
+      "cavesnotcliffs:block/candle/step3",
+      "cavesnotcliffs:block/candle/step4",
+      "cavesnotcliffs:block/candle/step5"
+    ],
+    "subtitle": "subtitles.block.generic.footsteps"
   }
 }

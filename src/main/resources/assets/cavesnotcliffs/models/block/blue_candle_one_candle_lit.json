@@ -1,0 +1,7 @@
+{
+  "parent": "cavesnotcliffs:block/template_candle",
+  "textures": {
+    "all": "cavesnotcliffs:blocks/blue_candle_lit",
+    "particle": "cavesnotcliffs:blocks/blue_candle_lit"
+  }
+}

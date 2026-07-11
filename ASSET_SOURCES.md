@@ -162,6 +162,13 @@ runtime has no separate fluid-state renderer. Signal smoke uses the target runti
 sprite with the official tall-column velocity because its dedicated signal-smoke particle does
 not exist in Java 1.12.2. Nether biome generation is intentionally unchanged by the v2 scope.
 
+The seventeen candle block and item textures, all candle and candle-cake model geometry, and the
+twenty-five candle/cake Ogg Vorbis files are unmodified Java 1.18.2 resources. The blockstates and
+models retain Mojang's exact color, count, lit-state, and cake geometry; only namespaces, legacy
+`blocks`/`items` texture-directory syntax, and the render-only omission of the visually identical
+waterlogged property are adapted for Forge 1.12.2. Java 1.12.2 has no `SMALL_FLAME` particle, so
+the runtime uses its otherwise equivalent `FLAME` sprite at Mojang's exact offsets and timing.
+
 - Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
 - Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
 - Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
