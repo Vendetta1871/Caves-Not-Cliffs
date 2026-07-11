@@ -64,9 +64,9 @@ public final class CncMaterialContent {
         register(event, rock("deepslate_tiles", 3.5F, 6.0F, 0));
         register(event, rock("cracked_deepslate_tiles", 3.5F, 6.0F, 0));
         register(event, rock("chiseled_deepslate", 3.5F, 6.0F, 0));
-        register(event, metal("raw_copper_block", MapColor.ADOBE, 5.0F, 6.0F, 1));
-        register(event, metal("raw_iron_block", CncBlockProperties.RAW_IRON, 5.0F, 6.0F, 1));
-        register(event, metal("raw_gold_block", MapColor.GOLD, 5.0F, 6.0F, 2));
+        register(event, createRawCopperBlock());
+        register(event, rawOreBlock("raw_iron_block", CncBlockProperties.RAW_IRON, 1));
+        register(event, rawOreBlock("raw_gold_block", MapColor.GOLD, 2));
 
         for (Map.Entry<String, String> shape : DEEPSLATE_SHAPES.entrySet()) {
             Block base = CREATED_BLOCKS.get(shape.getKey());
@@ -132,10 +132,13 @@ public final class CncMaterialContent {
                 hardness, resistance, harvestLevel);
     }
 
-    private static Block metal(String name, MapColor color, float hardness, float resistance,
-            int harvestLevel) {
-        return new BasicMaterialBlock(name, Material.IRON, color, SoundType.METAL,
-                hardness, resistance, harvestLevel);
+    static Block createRawCopperBlock() {
+        return rawOreBlock("raw_copper_block", MapColor.ADOBE, 1);
+    }
+
+    private static Block rawOreBlock(String name, MapColor color, int harvestLevel) {
+        return new BasicMaterialBlock(name, Material.ROCK, color, SoundType.STONE,
+                5.0F, 6.0F, harvestLevel);
     }
 
     private static void register(RegistryEvent.Register<Block> event, Block block) {

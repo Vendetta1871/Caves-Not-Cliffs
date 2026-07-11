@@ -12,9 +12,12 @@ import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.stats.StatBase;
+import net.minecraft.stats.StatList;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -29,6 +32,12 @@ public final class CopperInteractionHandler {
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         ItemStack held = event.getItemStack();
         if (held.isEmpty() || !(held.getItem() instanceof ItemAxe)) {
+            return;
+        }
+
+        EntityPlayer player = event.getEntityPlayer();
+        if (!player.canPlayerEdit(event.getPos(), event.getFace(), held)
+                || player.getCooldownTracker().hasCooldown(held.getItem())) {
             return;
         }
 
@@ -49,7 +58,6 @@ public final class CopperInteractionHandler {
         event.setUseBlock(net.minecraftforge.fml.common.eventhandler.Event.Result.DENY);
         event.setUseItem(net.minecraftforge.fml.common.eventhandler.Event.Result.DENY);
 
-        EntityPlayer player = event.getEntityPlayer();
         player.swingArm(event.getHand());
         if (world.isRemote) {
             return;
@@ -60,7 +68,15 @@ public final class CopperInteractionHandler {
                 SoundCategory.BLOCKS, 1.0F, 1.0F);
         spawnDebris(world, pos, state);
         world.setBlockState(pos, changed, 11);
+        ItemStack original = held.copy();
+        StatBase useStat = StatList.getObjectUseStats(original.getItem());
+        if (useStat != null) {
+            player.addStat(useStat);
+        }
         held.damageItem(1, player);
+        if (held.isEmpty()) {
+            ForgeEventFactory.onPlayerDestroyItem(player, original, event.getHand());
+        }
     }
 
     private static void spawnDebris(World world, BlockPos pos, IBlockState oldState) {

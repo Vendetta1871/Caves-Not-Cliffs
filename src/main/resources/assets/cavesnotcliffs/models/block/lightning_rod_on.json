@@ -1,9 +1,5 @@
 {
   "parent": "block/block",
-  "display": {
-    "head": {"rotation": [-180, 0, 0], "translation": [8.5, 4, 0]},
-    "thirdperson_righthand": {"translation": [0, 2, 0.5], "scale": [0.40, 0.40, 0.40]}
-  },
   "ambientocclusion": false,
   "textures": {
     "texture": "cavesnotcliffs:blocks/lightning_rod_on",
@@ -23,7 +19,7 @@
       "south": {"uv": [0, 4, 2, 16], "texture": "#texture"},
       "west": {"uv": [0, 4, 2, 16], "texture": "#texture"},
       "east": {"uv": [0, 4, 2, 16], "texture": "#texture"},
-      "down": {"uv": [0, 4, 2, 6], "texture": "#texture"}
+      "down": {"uv": [0, 4, 2, 16], "texture": "#texture"}
     }}
   ]
 }

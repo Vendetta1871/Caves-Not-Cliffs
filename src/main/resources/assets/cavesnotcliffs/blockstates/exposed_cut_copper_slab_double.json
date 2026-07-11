@@ -1,5 +1,5 @@
 {
   "variants": {
-    "variant=default": { "model": "cavesnotcliffs:copper_slab_stage1_double" }
+    "variant=default": { "model": "cavesnotcliffs:exposed_cut_copper_slab_double" }
   }
 }

@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.content;
 
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -47,6 +48,19 @@ public class CopperLightningTest {
                 assertEquals(powered, LightningRodContent.poweredFromMetadata(meta));
             }
         }
+    }
+
+    @Test
+    public void lightningRodAttractionUsesTheOfficialThreeDimensionalRadius() {
+        BlockPos strike = BlockPos.ORIGIN;
+        assertEquals(true, LightningRodContent.isWithinAttractionRange(
+                new BlockPos(0, LightningRodContent.RANGE, 0), strike));
+        assertEquals(false, LightningRodContent.isWithinAttractionRange(
+                new BlockPos(0, LightningRodContent.RANGE + 1, 0), strike));
+        assertEquals(false, LightningRodContent.isWithinAttractionRange(
+                new BlockPos(100, 100, 0), strike));
+        assertEquals(true, LightningRodContent.isWithinAttractionRange(
+                new BlockPos(90, 90, 0), strike));
     }
 
     private static final class ZeroRandom extends Random {

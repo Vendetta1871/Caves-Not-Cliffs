@@ -44,6 +44,9 @@ public class CopperResourceMatrixTest {
                 default:
                     throw new AssertionError(variant.getShape());
             }
+            variants.entrySet().forEach(entry -> assertCanonicalBlockModel(
+                    path, variant.getShape(),
+                    entry.getValue().getAsJsonObject().get("model").getAsString()));
 
             json("models/block/" + path + ".json");
             if (variant.getShape() == CopperWeathering.Shape.STAIRS) {
@@ -81,14 +84,18 @@ public class CopperResourceMatrixTest {
         }
         assertRecipe("copper_block", "copper_ingot", "copper_block", 1,
                 "###", "###", "###");
+        assertRecipe("lightning_rod", "copper_ingot", "lightning_rod", 1,
+                "#", "#", "#");
         JsonObject ingot = json("recipes/copper_ingot.json");
         assertEquals("minecraft:crafting_shapeless", ingot.get("type").getAsString());
+        assertEquals("copper_ingot", ingot.get("group").getAsString());
         assertEquals("cavesnotcliffs:copper_block", ingot.getAsJsonArray("ingredients")
                 .get(0).getAsJsonObject().get("item").getAsString());
         assertEquals("cavesnotcliffs:copper_ingot", ingot.getAsJsonObject("result")
                 .get("item").getAsString());
         assertEquals(9, ingot.getAsJsonObject("result").get("count").getAsInt());
         JsonObject waxedIngot = json("recipes/copper_ingot_from_waxed_copper_block.json");
+        assertEquals("copper_ingot", waxedIngot.get("group").getAsString());
         assertEquals("cavesnotcliffs:waxed_copper_block",
                 waxedIngot.getAsJsonArray("ingredients").get(0).getAsJsonObject()
                         .get("item").getAsString());
@@ -153,7 +160,12 @@ public class CopperResourceMatrixTest {
             }
         }
         json("models/block/lightning_rod.json");
-        json("models/block/lightning_rod_on.json");
+        JsonObject poweredModel = json("models/block/lightning_rod_on.json");
+        assertFalse("Powered model must match the canonical block-only model",
+                poweredModel.has("display"));
+        assertEquals(16, poweredModel.getAsJsonArray("elements").get(1).getAsJsonObject()
+                .getAsJsonObject("faces").getAsJsonObject("down")
+                .getAsJsonArray("uv").get(3).getAsInt());
         json("models/item/lightning_rod.json");
         assertFalse(exists("models/item/lightning_rod_waterlogged.json"));
         assertEquals("87690f8a45273383e0d4ba99fb8e5e6c55ab59fef5db05f69659089c74d762b6",
@@ -176,6 +188,18 @@ public class CopperResourceMatrixTest {
         for (int i = 0; i < pattern.length; i++) {
             assertEquals(pattern[i], json.getAsJsonArray("pattern").get(i).getAsString());
         }
+    }
+
+    private static void assertCanonicalBlockModel(String path,
+            CopperWeathering.Shape shape, String model) {
+        String base = "cavesnotcliffs:" + path;
+        boolean canonical = model.equals(base);
+        if (shape == CopperWeathering.Shape.STAIRS) {
+            canonical |= model.equals(base + "_inner") || model.equals(base + "_outer");
+        } else if (shape == CopperWeathering.Shape.SLAB) {
+            canonical |= model.equals(base + "_top");
+        }
+        assertTrue(path + " still references placeholder model " + model, canonical);
     }
 
     private static String sha256(String path) throws Exception {

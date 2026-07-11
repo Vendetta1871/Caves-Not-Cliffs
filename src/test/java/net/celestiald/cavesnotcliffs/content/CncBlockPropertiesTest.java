@@ -1,5 +1,11 @@
 package net.celestiald.cavesnotcliffs.content;
 
+import net.minecraft.block.Block;
+import net.minecraft.block.SoundType;
+import net.minecraft.block.material.MapColor;
+import net.minecraft.block.material.Material;
+import net.minecraft.init.Bootstrap;
+import net.minecraft.util.math.BlockPos;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -26,5 +32,33 @@ public class CncBlockPropertiesTest {
         assertEquals(0xD8AF93, CncBlockProperties.RAW_IRON.colorValue);
         assertEquals(0x167E86, CncBlockProperties.WARPED_NYLIUM.colorValue);
         assertEquals(0x3A8E8C, CncBlockProperties.WARPED_STEM.colorValue);
+    }
+
+    @Test
+    public void rawCopperBlockUsesCanonicalStoneProperties() {
+        Bootstrap.register();
+        Block block = CncMaterialContent.createRawCopperBlock();
+        assertSame(Material.ROCK, block.getDefaultState().getMaterial());
+        assertSame(SoundType.STONE, block.getSoundType());
+        assertSame(MapColor.ADOBE,
+                block.getMapColor(block.getDefaultState(), null, BlockPos.ORIGIN));
+        assertEquals(5.0F,
+                block.getBlockHardness(block.getDefaultState(), null, BlockPos.ORIGIN), 0.0F);
+        assertEquals(6.0F, block.getExplosionResistance(null), 0.0F);
+        assertEquals(1, block.getHarvestLevel(block.getDefaultState()));
+    }
+
+    @Test
+    public void lightningRodUsesCanonicalCopperPropertiesAndColor() {
+        Bootstrap.register();
+        Block rod = new LightningRodContent.LightningRodBlock(false);
+        assertSame(Material.IRON, rod.getDefaultState().getMaterial());
+        assertSame(CopperSoundEvents.COPPER, rod.getSoundType());
+        assertSame(MapColor.ADOBE,
+                rod.getMapColor(rod.getDefaultState(), null, BlockPos.ORIGIN));
+        assertEquals(3.0F,
+                rod.getBlockHardness(rod.getDefaultState(), null, BlockPos.ORIGIN), 0.0F);
+        assertEquals(6.0F, rod.getExplosionResistance(null), 0.0F);
+        assertEquals(1, rod.getHarvestLevel(rod.getDefaultState()));
     }
 }

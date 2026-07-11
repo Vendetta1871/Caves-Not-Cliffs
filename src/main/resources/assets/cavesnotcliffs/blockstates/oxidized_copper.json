@@ -1,7 +1,7 @@
 {
   "variants": {
     "normal": {
-      "model": "cavesnotcliffs:copper_block_stage3"
+      "model": "cavesnotcliffs:oxidized_copper"
     }
   }
 }

@@ -4,6 +4,7 @@ import net.celestiald.cavesnotcliffs.CavesNotCliffs;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDirectional;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.properties.PropertyBool;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
@@ -13,15 +14,20 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.effect.EntityLightningBolt;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
+import net.minecraft.init.SoundEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.stats.StatBase;
+import net.minecraft.stats.StatList;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.Mirror;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Rotation;
+import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -151,6 +157,9 @@ public final class LightningRodContent {
                     continue;
                 }
                 double distance = top.distanceSq(strike);
+                if (!isWithinAttractionRange(top, strike)) {
+                    continue;
+                }
                 if (distance < closestDistance) {
                     closest = top;
                     closestDistance = distance;
@@ -158,6 +167,10 @@ public final class LightningRodContent {
             }
         }
         return closest;
+    }
+
+    static boolean isWithinAttractionRange(BlockPos rod, BlockPos strike) {
+        return rod.distanceSq(strike) <= (double) RANGE * (double) RANGE;
     }
 
     private static void cleanCopper(final World world, BlockPos strike) {
@@ -286,6 +299,78 @@ public final class LightningRodContent {
         }
 
         @Override
+        public MapColor getMapColor(IBlockState state, IBlockAccess world, BlockPos pos) {
+            return MapColor.ADOBE;
+        }
+
+        @Override
+        public boolean onBlockActivated(World world, BlockPos pos, IBlockState state,
+                EntityPlayer player, EnumHand hand, EnumFacing side,
+                float hitX, float hitY, float hitZ) {
+            ItemStack held = player.getHeldItem(hand);
+            boolean fill = !waterlogged && held.getItem() == Items.WATER_BUCKET;
+            boolean drain = waterlogged && held.getItem() == Items.BUCKET;
+            if ((!fill && !drain) || !world.isBlockModifiable(player, pos)
+                    || !player.canPlayerEdit(pos, side, held)) {
+                return false;
+            }
+            if (world.isRemote) {
+                return true;
+            }
+
+            LightningRodBlock target = fill ? waterloggedRod : publicRod;
+            if (target == null) {
+                throw new IllegalStateException("Lightning rod companion was not registered");
+            }
+            boolean powered = state.getValue(POWERED);
+            if (powered) {
+                // The hidden 1.12 water-storage companion is a different block identity, so the
+                // old block's scheduled unpower tick cannot follow the state transition.
+                world.scheduleUpdate(pos, target, ACTIVATION_TICKS);
+            }
+            world.setBlockState(pos, target.getDefaultState()
+                    .withProperty(FACING, state.getValue(FACING))
+                    .withProperty(POWERED, powered), 3);
+            Item original = held.getItem();
+            replaceBucket(player, hand, held,
+                    new ItemStack(fill ? Items.BUCKET : Items.WATER_BUCKET));
+            addUseStat(player, original);
+            world.playSound(null, pos,
+                    fill ? SoundEvents.ITEM_BUCKET_EMPTY : SoundEvents.ITEM_BUCKET_FILL,
+                    SoundCategory.BLOCKS, 1.0F, 1.0F);
+            return true;
+        }
+
+        @Override
+        @SideOnly(Side.CLIENT)
+        public void randomDisplayTick(IBlockState state, World world, BlockPos pos,
+                Random random) {
+            if (!world.isThundering()
+                    || (long) world.rand.nextInt(200) > world.getTotalWorldTime() % 200L
+                    || pos.getY() != world.getHeight(pos).getY() - 1) {
+                return;
+            }
+
+            EnumFacing.Axis axis = state.getValue(FACING).getAxis();
+            int count = world.rand.nextInt(2) + 1;
+            for (int index = 0; index < count; index++) {
+                boolean xAxis = axis == EnumFacing.Axis.X;
+                boolean yAxis = axis == EnumFacing.Axis.Y;
+                boolean zAxis = axis == EnumFacing.Axis.Z;
+                double x = pos.getX() + 0.5D + signedDouble(world.rand)
+                        * (xAxis ? 0.5D : 0.125D);
+                double y = pos.getY() + 0.5D + signedDouble(world.rand)
+                        * (yAxis ? 0.5D : 0.125D);
+                double z = pos.getZ() + 0.5D + signedDouble(world.rand)
+                        * (zAxis ? 0.5D : 0.125D);
+                world.spawnParticle(EnumParticleTypes.FIREWORKS_SPARK, x, y, z,
+                        xAxis ? signedDouble(world.rand) : 0.0D,
+                        yAxis ? signedDouble(world.rand) : 0.0D,
+                        zAxis ? signedDouble(world.rand) : 0.0D);
+            }
+        }
+
+        @Override
         public boolean canProvidePower(IBlockState state) {
             return true;
         }
@@ -378,6 +463,30 @@ public final class LightningRodContent {
         @Override
         protected BlockStateContainer createBlockState() {
             return new BlockStateContainer(this, FACING, POWERED);
+        }
+    }
+
+    private static double signedDouble(Random random) {
+        return random.nextDouble() * 2.0D - 1.0D;
+    }
+
+    private static void replaceBucket(EntityPlayer player, EnumHand hand, ItemStack held,
+            ItemStack replacement) {
+        if (player.capabilities.isCreativeMode) {
+            return;
+        }
+        held.shrink(1);
+        if (held.isEmpty()) {
+            player.setHeldItem(hand, replacement);
+        } else if (!player.inventory.addItemStackToInventory(replacement)) {
+            player.dropItem(replacement, false);
+        }
+    }
+
+    private static void addUseStat(EntityPlayer player, Item item) {
+        StatBase stat = StatList.getObjectUseStats(item);
+        if (stat != null) {
+            player.addStat(stat);
         }
     }
 
