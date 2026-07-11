@@ -42,8 +42,26 @@ public final class V118OrePlacements {
      */
     public static DecorationResult decorate(WorldAccess world, long worldSeed, int chunkX,
             int chunkZ, Set<V118Biome> regionBiomes) {
+        return decorate(world, worldSeed, chunkX, chunkZ, regionBiomes,
+            BetweenDecorationSteps.NONE);
+    }
+
+    /**
+     * Executes ordinary ores while exposing the exact step-six/step-seven boundary.
+     *
+     * <p>Dripstone clusters and pointed dripstone occupy global feature indices zero and one in
+     * {@code UNDERGROUND_DECORATION}; infested ore is index two. Keeping this seam here prevents
+     * independently ported feature families from accidentally running after infested ore or from
+     * sharing the wrong feature RNG.</p>
+     */
+    public static DecorationResult decorate(WorldAccess world, long worldSeed, int chunkX,
+            int chunkZ, Set<V118Biome> regionBiomes,
+            BetweenDecorationSteps betweenSteps) {
         if (world == null || regionBiomes == null) {
             throw new NullPointerException("world and regionBiomes are required");
+        }
+        if (betweenSteps == null) {
+            throw new NullPointerException("betweenSteps");
         }
         V118WorldgenRandom random = new V118WorldgenRandom(0L);
         int originX = chunkX << 4;
@@ -52,7 +70,13 @@ public final class V118OrePlacements {
         EnumMap<PlacedOre, Boolean> results = new EnumMap<PlacedOre, Boolean>(PlacedOre.class);
         boolean underwaterMagmaDecorated = false;
         boolean softDisksDecorated = false;
+        boolean crossedIntoUndergroundDecoration = false;
         for (PlacedOre feature : PlacedOre.values()) {
+            if (!crossedIntoUndergroundDecoration
+                    && feature.decorationStep == UNDERGROUND_DECORATION_STEP) {
+                betweenSteps.decorate(decorationSeed, chunkX, chunkZ, regionBiomes, random);
+                crossedIntoUndergroundDecoration = true;
+            }
             if (!underwaterMagmaDecorated && feature.decorationStep == UNDERGROUND_ORES_STEP
                     && feature.globalFeatureIndex > 25) {
                 V118UnderwaterMagmaPlacements.decorate(world, decorationSeed, chunkX,
@@ -74,6 +98,18 @@ public final class V118OrePlacements {
                 originZ));
         }
         return new DecorationResult(decorationSeed, results);
+    }
+
+    public interface BetweenDecorationSteps {
+        BetweenDecorationSteps NONE = new BetweenDecorationSteps() {
+            @Override
+            public void decorate(long decorationSeed, int chunkX, int chunkZ,
+                    Set<V118Biome> regionBiomes, V118WorldgenRandom random) {
+            }
+        };
+
+        void decorate(long decorationSeed, int chunkX, int chunkZ,
+                Set<V118Biome> regionBiomes, V118WorldgenRandom random);
     }
 
     public enum PlacedOre {

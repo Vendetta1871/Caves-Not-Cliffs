@@ -49,6 +49,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
     private final V118BiomeMapper biomes;
     private final V118CubeSlicer slicer;
     private final V118GeodeWorldBridge geodes;
+    private final V118DripstoneWorldBridge dripstones;
     private final V118OreWorldBridge ordinaryOres;
     private ChunkPrimer cachedStructureColumn;
     private int cachedStructureX;
@@ -84,8 +85,9 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         slicer = new V118CubeSlicer(blockStates, biomes);
         geodes = new V118GeodeWorldBridge(world,
             V118GeodeBlockMapper.fromRegisteredBlocks());
-        ordinaryOres = new V118OreWorldBridge(world, this,
-            V118OreBlockMapper.fromRegisteredBlocks());
+        V118OreBlockMapper oreBlocks = V118OreBlockMapper.fromRegisteredBlocks();
+        dripstones = new V118DripstoneWorldBridge(world, this, oreBlocks);
+        ordinaryOres = new V118OreWorldBridge(world, this, oreBlocks);
         registerActiveGenerator(world, this);
     }
 
@@ -155,8 +157,9 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         if (cube.getY() == 0) {
             structures.populate(cube.getX(), cube.getZ());
             geodes.populate(cube.getX(), cube.getZ());
-            ordinaryOres.populate(cube.getX(), cube.getZ(),
-                decorationBiomeUnion(cube.getX(), cube.getZ()));
+            Set<V118Biome> regionBiomes = decorationBiomeUnion(cube.getX(), cube.getZ());
+            dripstones.populateLarge(cube.getX(), cube.getZ(), regionBiomes);
+            ordinaryOres.populate(cube.getX(), cube.getZ(), regionBiomes, dripstones);
         }
         TerrainColumn column = columns.column(cube.getX(), cube.getZ());
 
@@ -292,6 +295,17 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
 
     Set<V118Biome> decorationBiomeUnion(int chunkX, int chunkZ) {
         return V118BiomeDecorationUnion.collect(chunkX, chunkZ, columns::column);
+    }
+
+    /**
+     * Returns the immutable post-surface terrain used for feature-region reads beyond the
+     * writable three-by-three chunk area. Earlier features cannot mutate those chunks through a
+     * FEATURES-status region, so consulting the column cache avoids loading cubes recursively and
+     * keeps large-feature reads independent of request order.
+     */
+    IBlockState rawTerrainState(int blockX, int blockY, int blockZ) {
+        TerrainColumn column = columns.column(blockX >> 4, blockZ >> 4);
+        return blockStates.stateFor(column.materialId(blockX & 15, blockY, blockZ & 15));
     }
 
     private static TerrainProfile requireNativeProfile(TerrainProfile profile) {
