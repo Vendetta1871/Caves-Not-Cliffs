@@ -65,6 +65,10 @@ public final class BlockComposter extends ElementsCavesNotCliffs.ModElement {
 
     @Override
     public void initElements() {
+        registerSound(EMPTY_SOUND);
+        registerSound(FILL_SOUND);
+        registerSound(FILL_SUCCESS_SOUND);
+        registerSound(READY_SOUND);
         elements.blocks.add(() -> new BlockCustom()
             .setRegistryName(CncRegistryIds.COMPOSTER));
         elements.items.add(() -> new ItemBlock(block)

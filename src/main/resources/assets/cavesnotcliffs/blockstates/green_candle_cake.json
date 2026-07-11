@@ -1,10 +1,10 @@
 {
   "variants": {
     "lit=false": {
-      "model": "cavesnotcliffs:block/green_candle_cake"
+      "model": "cavesnotcliffs:green_candle_cake"
     },
     "lit=true": {
-      "model": "cavesnotcliffs:block/green_candle_cake_lit"
+      "model": "cavesnotcliffs:green_candle_cake_lit"
     }
   }
 }

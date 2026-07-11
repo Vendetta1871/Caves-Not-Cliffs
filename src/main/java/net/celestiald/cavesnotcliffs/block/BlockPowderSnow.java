@@ -74,6 +74,13 @@ public final class BlockPowderSnow extends ElementsCavesNotCliffs.ModElement {
 
     @Override
     public void initElements() {
+        registerSound(BREAK_SOUND);
+        registerSound(FALL_SOUND);
+        registerSound(HIT_SOUND);
+        registerSound(PLACE_SOUND);
+        registerSound(STEP_SOUND);
+        registerSound(BUCKET_EMPTY_SOUND);
+        registerSound(BUCKET_FILL_SOUND);
         elements.blocks.add(() -> new BlockCustom().setRegistryName(CncRegistryIds.POWDER_SNOW));
         elements.items.add(() -> new ItemPowderSnowBucket()
             .setRegistryName(CncRegistryIds.POWDER_SNOW_BUCKET));

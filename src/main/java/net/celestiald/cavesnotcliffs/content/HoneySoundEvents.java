@@ -25,7 +25,19 @@ public final class HoneySoundEvents {
     }
 
     public static void registerAll() {
-        // Events are queued by sound(String) during this class's one-time initialization.
+        register(HONEY_BREAK);
+        register(HONEY_FALL);
+        register(HONEY_HIT);
+        register(HONEY_PLACE);
+        register(HONEY_SLIDE);
+        register(HONEY_STEP);
+        register(HONEY_DRINK);
+        register(WAX_ON);
+        register(CORAL_BREAK);
+        register(CORAL_FALL);
+        register(CORAL_HIT);
+        register(CORAL_PLACE);
+        register(CORAL_STEP);
     }
 
     private static SoundEvent sound(String path) {
