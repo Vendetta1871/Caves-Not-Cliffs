@@ -53,9 +53,12 @@ public final class LegacyCubicSaveImporter {
             List<Path> dimensions = discovery.getTrueDimensionRoots();
             LegacyCubicPositionMetadata.Result positions =
                     LegacyCubicPositionMetadata.validate(worldRoot, levelFile.toPath());
+            LegacyCubicTicketMetadata.Result tickets = LegacyCubicTicketMetadata.validate(
+                    dimensionRoots(discovery));
             List<Path> additionalSources = new ArrayList<Path>(
                     discovery.getMetadataFiles());
             additionalSources.addAll(positions.getSourceFiles());
+            additionalSources.addAll(tickets.getSourceFiles());
             List<CubicImportJournal.FileRecord> sources =
                     CubicImportJournal.captureSources(
                             worldRoot, dimensions, additionalSources);
@@ -103,11 +106,14 @@ public final class LegacyCubicSaveImporter {
         Path normalizedRoot = worldRoot.toAbsolutePath().normalize();
         LegacyCubicDimensionMetadata.Result discovery = discoverDimensions(normalizedRoot);
         List<Path> dimensions = discovery.getTrueDimensionRoots();
+        List<Path> additionalSources = new ArrayList<Path>(discovery.getMetadataFiles());
+        additionalSources.addAll(LegacyCubicTicketMetadata.validate(
+                dimensionRoots(discovery)).getSourceFiles());
         List<CubicImportJournal.FileRecord> sources =
                 CubicImportJournal.captureSources(
-                        normalizedRoot, dimensions, discovery.getMetadataFiles());
+                        normalizedRoot, dimensions, additionalSources);
         return importWorld(normalizedRoot, terrainSchema, lastUpdate, dimensions,
-                discovery.getMetadataFiles(), sources);
+                additionalSources, sources);
     }
 
     private static boolean importWorld(Path worldRoot, int terrainSchema, long lastUpdate,
@@ -336,6 +342,19 @@ public final class LegacyCubicSaveImporter {
             throw new IOException("The Overworld is not marked as a supported -64..320 "
                     + "CubicChunks dimension in data/cubicChunksData.dat");
         }
+        return result;
+    }
+
+    private static List<Path> dimensionRoots(LegacyCubicDimensionMetadata.Result discovery) {
+        List<Path> result = new ArrayList<Path>(discovery.getTrueDimensionRoots());
+        for (Path metadata : discovery.getMetadataFiles()) {
+            Path dataDirectory = metadata.getParent();
+            Path dimension = dataDirectory == null ? null : dataDirectory.getParent();
+            if (dimension != null && !result.contains(dimension)) {
+                result.add(dimension);
+            }
+        }
+        Collections.sort(result, Comparator.comparing(Path::toString));
         return result;
     }
 

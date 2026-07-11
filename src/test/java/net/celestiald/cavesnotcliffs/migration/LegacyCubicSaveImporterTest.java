@@ -1,6 +1,8 @@
 package net.celestiald.cavesnotcliffs.migration;
 
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldData;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -113,6 +115,34 @@ public class LegacyCubicSaveImporterTest {
             assertTrue(expected.getMessage().contains(
                     "changed before legacy metadata cleanup"));
         }
+    }
+
+    @Test
+    public void refusesCubicChunkTicketsBeforeCreatingAJournal() throws Exception {
+        Path world = temporary.newFolder("cubic-ticket").toPath();
+        writeCubicMetadata(world);
+        NBTTagCompound ticket = new NBTTagCompound();
+        NBTTagCompound cubic = new NBTTagCompound();
+        cubic.setInteger("entityCubeY", 0);
+        NBTTagCompound entry = new NBTTagCompound();
+        entry.setInteger("x", 4);
+        entry.setInteger("z", 5);
+        entry.setIntArray("cubes", new int[] {0});
+        NBTTagList map = new NBTTagList();
+        map.appendTag(entry);
+        cubic.setTag("chunkMap", map);
+        ticket.setTag("cubicchunks", cubic);
+        LegacyCubicTicketMetadataTest.write(world,
+                LegacyCubicTicketMetadataTest.holders("chunkloader", ticket));
+
+        try {
+            LegacyCubicSaveImporter.importWorld(
+                    world, CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L);
+            fail("Expected cubic ticket rejection");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains("forces 1 cubic columns"));
+        }
+        assertFalse(Files.exists(world.resolve(CubicImportJournal.FILE_NAME)));
     }
 
     private static void writeCubicMetadata(Path world) throws IOException {

@@ -94,7 +94,7 @@ public class LegacyCubicTicketMetadataTest {
         }
     }
 
-    private static NBTTagList holders(String owner, NBTTagCompound... tickets) {
+    static NBTTagList holders(String owner, NBTTagCompound... tickets) {
         NBTTagCompound holder = new NBTTagCompound();
         holder.setString("Owner", owner);
         NBTTagList ticketList = new NBTTagList();
@@ -107,7 +107,7 @@ public class LegacyCubicTicketMetadataTest {
         return holders;
     }
 
-    private static Path write(Path dimension, NBTTagList holders) throws IOException {
+    static Path write(Path dimension, NBTTagList holders) throws IOException {
         NBTTagCompound root = new NBTTagCompound();
         root.setTag("TicketList", holders);
         Path file = dimension.resolve("forcedchunks.dat");
