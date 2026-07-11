@@ -1,0 +1,150 @@
+import java.io.PrintWriter;
+import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
+import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.biome.BiomeSource;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
+import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
+import net.minecraft.world.level.levelgen.WorldgenRandom;
+import net.minecraft.world.level.levelgen.XoroshiroRandomSource;
+import net.minecraft.world.level.levelgen.placement.BiomeFilter;
+import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+import net.minecraft.world.level.levelgen.placement.PlacementContext;
+import net.minecraft.world.level.levelgen.placement.PlacementModifier;
+
+/** Emits complete lush-cave placement modifier streams from mapped Java 1.18.2. */
+public final class Cnc118LushCavePlacementOracle {
+    private static final long[] SEEDS = {
+        0L, 1L, -1L, 123456789L, Long.MIN_VALUE, Long.MAX_VALUE
+    };
+    private static final int[][] CHUNKS = {
+        {0, 0}, {-1, 0}, {0, -1}, {-1, -1}, {17, -33}, {-33, 17}
+    };
+    private static final String[] IDS = {
+        "lush_caves_ceiling_vegetation", "cave_vines", "lush_caves_clay",
+        "lush_caves_vegetation", "rooted_azalea_tree", "spore_blossom",
+        "classic_vines_cave_feature"
+    };
+
+    public static void main(String[] args) throws Exception {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        BuiltinRegistries.bootstrap();
+        PrintWriter out = new PrintWriter(args[0], "UTF-8");
+        out.println("# official Minecraft Java 1.18.2 lush-cave placement streams");
+        MultiNoiseBiomeSource biomes = MultiNoiseBiomeSource.Preset.OVERWORLD
+            .biomeSource(BuiltinRegistries.BIOME);
+        Map<PlacedFeature, int[]> locations = new HashMap<>();
+        List<BiomeSource.StepFeatureData> steps = biomes.featuresPerStep();
+        for (int step = 0; step < steps.size(); ++step) {
+            for (int index = 0; index < steps.get(step).features().size(); ++index) {
+                locations.put(steps.get(step).features().get(index), new int[] {step, index});
+            }
+        }
+        for (String id : IDS) {
+            PlacedFeature feature = BuiltinRegistries.PLACED_FEATURE.get(
+                new net.minecraft.resources.ResourceLocation(id));
+            int[] location = locations.get(feature);
+            out.println("catalog\t" + id + "\t" + location[0] + "\t" + location[1]);
+        }
+
+        WorldGenLevel level = (WorldGenLevel) Proxy.newProxyInstance(
+            Cnc118LushCavePlacementOracle.class.getClassLoader(),
+            new Class[] {WorldGenLevel.class}, (proxy, method, arguments) -> {
+                String name = method.getName();
+                if (name.equals("getMinBuildHeight")) return -64;
+                if (name.equals("getMaxBuildHeight")) return 320;
+                if (name.equals("getHeight") && method.getParameterCount() == 0) return 384;
+                if (name.equals("isOutsideBuildHeight")) {
+                    int y = arguments[0] instanceof BlockPos
+                        ? ((BlockPos) arguments[0]).getY() : (Integer) arguments[0];
+                    return y < -64 || y >= 320;
+                }
+                if (name.equals("getBlockState")) return baseline((BlockPos) arguments[0]);
+                if (name.equals("isStateAtPosition")) {
+                    return ((Predicate<BlockState>) arguments[1]).test(
+                        baseline((BlockPos) arguments[0]));
+                }
+                if (method.getReturnType() == boolean.class) return false;
+                if (method.getReturnType() == int.class) return 0;
+                if (method.getReturnType() == long.class) return 0L;
+                return null;
+            });
+
+        for (String profile : new String[] {"normal", "large", "amplified"}) {
+            net.minecraft.core.Holder<NoiseGeneratorSettings> settings =
+                BuiltinRegistries.NOISE_GENERATOR_SETTINGS.getHolderOrThrow(
+                    profile.equals("large") ? NoiseGeneratorSettings.LARGE_BIOMES
+                    : profile.equals("amplified") ? NoiseGeneratorSettings.AMPLIFIED
+                    : NoiseGeneratorSettings.OVERWORLD);
+            for (int caseIndex = 0; caseIndex < SEEDS.length; ++caseIndex) {
+                long seed = SEEDS[caseIndex];
+                int chunkX = CHUNKS[caseIndex][0];
+                int chunkZ = CHUNKS[caseIndex][1];
+                NoiseBasedChunkGenerator generator = new NoiseBasedChunkGenerator(
+                    BuiltinRegistries.STRUCTURE_SETS, BuiltinRegistries.NOISE,
+                    biomes, seed, settings);
+                PlacementContext context = new PlacementContext(level, generator,
+                    Optional.empty());
+                WorldgenRandom random = new WorldgenRandom(new XoroshiroRandomSource(0L));
+                long decorationSeed = random.setDecorationSeed(seed,
+                    chunkX << 4, chunkZ << 4);
+                BlockPos origin = new BlockPos(chunkX << 4, -64, chunkZ << 4);
+                for (String id : IDS) {
+                    PlacedFeature feature = BuiltinRegistries.PLACED_FEATURE.get(
+                        new net.minecraft.resources.ResourceLocation(id));
+                    int[] location = locations.get(feature);
+                    random.setFeatureSeed(decorationSeed, location[1], location[0]);
+                    Stream<BlockPos> positions = Stream.of(origin);
+                    for (PlacementModifier modifier : feature.placement()) {
+                        if (modifier instanceof BiomeFilter) break;
+                        positions = positions.flatMap(position ->
+                            modifier.getPositions(context, random, position));
+                    }
+                    List<BlockPos> result = positions.toList();
+                    MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                    for (BlockPos position : result) {
+                        digest.update((encode(position) + "\n")
+                            .getBytes(StandardCharsets.UTF_8));
+                    }
+                    out.println("case\t" + profile + "\t" + seed + "\t" + chunkX
+                        + "\t" + chunkZ + "\t" + id + "\t" + result.size()
+                        + "\t" + (result.isEmpty() ? "-" : encode(result.get(0)))
+                        + "\t" + (result.isEmpty() ? "-" : encode(result.get(result.size() - 1)))
+                        + "\t" + hex(digest.digest()) + "\t" + random.nextLong());
+                }
+            }
+        }
+        out.close();
+    }
+
+    private static BlockState baseline(BlockPos position) {
+        int phase = Math.floorMod(position.getY() + 64, 16);
+        return phase <= 3 || phase >= 13
+            ? Blocks.STONE.defaultBlockState() : Blocks.AIR.defaultBlockState();
+    }
+
+    private static String encode(BlockPos position) {
+        return position.getX() + "," + position.getY() + "," + position.getZ();
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder result = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) result.append(String.format("%02x", value & 255));
+        return result.toString();
+    }
+}
