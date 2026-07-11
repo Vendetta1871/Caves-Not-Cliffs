@@ -1,7 +1,3 @@
 {
-  "parent": "block/cross",
-  "textures": {
-    "cross": "cavesnotcliffs:blocks/glow_berry_vines",
-    "particle": "cavesnotcliffs:blocks/glow_berry_vines"
-  }
+  "parent": "cavesnotcliffs:block/cave_vines_lit"
 }

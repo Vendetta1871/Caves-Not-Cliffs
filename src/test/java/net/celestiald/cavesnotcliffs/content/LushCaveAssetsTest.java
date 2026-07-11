@@ -139,6 +139,50 @@ public class LushCaveAssetsTest {
         assertEquals(1, bricks.getAsJsonObject("result").get("data").getAsInt());
     }
 
+    @Test
+    public void deferredLegacyAliasesRenderAndReadAsTheirCanonicalPeers() {
+        String[][] aliases = {
+                {"baby_dripleaf", "small_dripleaf_bottom", "small_dripleaf"},
+                {"dripleaf_stem", "big_dripleaf_stem", "big_dripleaf"},
+                {"dripleaf_plant", "big_dripleaf", "big_dripleaf"},
+                {"dripleafplant_1", "big_dripleaf_partial_tilt", "big_dripleaf"},
+                {"dripleaf_plant_2", "big_dripleaf_full_tilt", "big_dripleaf"},
+                {"glow_berry_vines", "cave_vines_lit", "glow_berries"},
+                {"glow_berry_middle_fill", "cave_vines_plant", "glow_berries"}
+        };
+        for (String[] alias : aliases) {
+            JsonObject blockModel = json(
+                    "assets/cavesnotcliffs/models/block/" + alias[0] + ".json");
+            assertEquals(alias[0], "cavesnotcliffs:block/" + alias[1],
+                    blockModel.get("parent").getAsString());
+            JsonObject itemModel = json(
+                    "assets/cavesnotcliffs/models/item/" + alias[0] + ".json");
+            assertEquals(alias[0], "cavesnotcliffs:item/" + alias[2],
+                    itemModel.get("parent").getAsString());
+            String blockstate = new String(readUnchecked(
+                    "assets/cavesnotcliffs/blockstates/" + alias[0] + ".json"),
+                    StandardCharsets.UTF_8);
+            assertTrue(alias[0], blockstate.contains(
+                    "cavesnotcliffs:block/" + alias[1]));
+            assertFalse(alias[0], blockstate.contains("custom/"));
+        }
+
+        String language = new String(readUnchecked(
+                "assets/cavesnotcliffs/lang/en_us.lang"), StandardCharsets.UTF_8);
+        for (String line : Arrays.asList(
+                "tile.baby_dripleaf.name=Small Dripleaf",
+                "tile.dripleaf_plant.name=Big Dripleaf",
+                "tile.dripleafplant_1.name=Big Dripleaf",
+                "tile.dripleaf_plant_2.name=Big Dripleaf",
+                "tile.dripleaf_stem.name=Big Dripleaf Stem",
+                "tile.glow_berry_vines.name=Cave Vines",
+                "tile.glow_berry_middle_fill.name=Cave Vines")) {
+            assertTrue(line, language.contains(line + '\n'));
+        }
+        assertFalse(language.contains("Big Dripleaf (Tilted)"));
+        assertFalse(language.contains("Glow Berry Vine (Fill)"));
+    }
+
     private static JsonObject json(String path) {
         return new JsonParser().parse(new InputStreamReader(resource(path),
                 StandardCharsets.UTF_8)).getAsJsonObject();
