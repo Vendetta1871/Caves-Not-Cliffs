@@ -43,6 +43,7 @@ public final class TerrainColumn {
     private final MaterialStorage materials;
     private final char[] surfaceBiomeIds;
     private final char[] virtualBiomeIds;
+    private final long[] scheduledFluidUpdates;
     private final long estimatedRetainedBytes;
 
     private TerrainColumn(Builder builder) {
@@ -51,9 +52,11 @@ public final class TerrainColumn {
         materials = MaterialStorage.compact(builder.materialIds);
         surfaceBiomeIds = builder.surfaceBiomeIds.clone();
         virtualBiomeIds = builder.virtualBiomeIds.clone();
+        scheduledFluidUpdates = builder.scheduledFluidUpdates.clone();
         estimatedRetainedBytes = COLUMN_SHALLOW_BYTES + materials.estimatedRetainedBytes()
             + retainedArrayBytes(surfaceBiomeIds.length, Character.BYTES)
-            + retainedArrayBytes(virtualBiomeIds.length, Character.BYTES);
+            + retainedArrayBytes(virtualBiomeIds.length, Character.BYTES)
+            + retainedArrayBytes(scheduledFluidUpdates.length, Long.BYTES);
     }
 
     public static Builder builder(int columnX, int columnZ) {
@@ -102,6 +105,23 @@ public final class TerrainColumn {
 
     public int virtualBiomeIdAtQuart(int localQuartX, int quartY, int localQuartZ) {
         return virtualBiomeIds[virtualBiomeIndex(localQuartX, quartY, localQuartZ)];
+    }
+
+    public boolean shouldScheduleFluidUpdate(int localX, int worldY, int localZ) {
+        int index = blockIndex(localX, worldY, localZ);
+        return (scheduledFluidUpdates[index >>> 6] & (1L << (index & 63))) != 0L;
+    }
+
+    public void copyCubeFluidUpdateFlags(int cubeY, boolean[] destination,
+            int destinationOffset) {
+        checkCubeY(cubeY);
+        checkDestination(destination, destinationOffset, BLOCKS_PER_CUBE);
+        int sourceIndex = (cubeY * 16 - MIN_Y) * WIDTH * WIDTH;
+        for (int index = 0; index < BLOCKS_PER_CUBE; ++index) {
+            int bitIndex = sourceIndex + index;
+            destination[destinationOffset + index] =
+                (scheduledFluidUpdates[bitIndex >>> 6] & (1L << (bitIndex & 63))) != 0L;
+        }
     }
 
     /** Conservative, deterministic cache weight including primitive-array headers and alignment. */
@@ -187,6 +207,16 @@ public final class TerrainColumn {
         }
     }
 
+    private static void checkDestination(boolean[] destination, int offset, int length) {
+        if (destination == null) {
+            throw new NullPointerException("destination");
+        }
+        if (offset < 0 || (long) offset + length > destination.length) {
+            throw new IndexOutOfBoundsException("destination range " + offset + ".."
+                + ((long) offset + length) + " exceeds length " + destination.length);
+        }
+    }
+
     private static long retainedArrayBytes(int length, int elementBytes) {
         long unaligned = ARRAY_HEADER_BYTES + (long) length * elementBytes;
         return (unaligned + 7L) & ~7L;
@@ -198,6 +228,7 @@ public final class TerrainColumn {
         private final char[] materialIds = new char[BLOCK_COUNT];
         private final char[] surfaceBiomeIds = new char[SURFACE_BIOME_COUNT];
         private final char[] virtualBiomeIds = new char[VIRTUAL_BIOME_COUNT];
+        private final long[] scheduledFluidUpdates = new long[(BLOCK_COUNT + 63) >>> 6];
 
         private Builder(int columnX, int columnZ) {
             this.columnX = columnX;
@@ -245,6 +276,18 @@ public final class TerrainColumn {
         public Builder fillVirtualBiomeIds(int biomeId) {
             checkId(biomeId, "biomeId");
             Arrays.fill(virtualBiomeIds, (char) biomeId);
+            return this;
+        }
+
+        public Builder setScheduledFluidUpdate(int localX, int worldY, int localZ,
+                boolean scheduled) {
+            int index = blockIndex(localX, worldY, localZ);
+            long mask = 1L << (index & 63);
+            if (scheduled) {
+                scheduledFluidUpdates[index >>> 6] |= mask;
+            } else {
+                scheduledFluidUpdates[index >>> 6] &= ~mask;
+            }
             return this;
         }
 

@@ -92,6 +92,32 @@ public class TerrainColumnTest {
     }
 
     @Test
+    public void retainsExactAquiferFluidUpdateFlagsAcrossCubeBoundaries() {
+        TerrainColumn.Builder builder = TerrainColumn.builder(-1, 2)
+            .setScheduledFluidUpdate(0, -64, 0, true)
+            .setScheduledFluidUpdate(15, -49, 15, true)
+            .setScheduledFluidUpdate(0, -48, 0, true)
+            .setScheduledFluidUpdate(15, 319, 15, true)
+            .setScheduledFluidUpdate(0, 0, 0, true)
+            .setScheduledFluidUpdate(0, 0, 0, false);
+        TerrainColumn column = builder.build();
+
+        assertTrue(column.shouldScheduleFluidUpdate(0, -64, 0));
+        assertTrue(column.shouldScheduleFluidUpdate(15, -49, 15));
+        assertTrue(column.shouldScheduleFluidUpdate(0, -48, 0));
+        assertTrue(column.shouldScheduleFluidUpdate(15, 319, 15));
+        assertFalse(column.shouldScheduleFluidUpdate(0, 0, 0));
+
+        boolean[] flags = new boolean[TerrainColumn.BLOCKS_PER_CUBE + 2];
+        column.copyCubeFluidUpdateFlags(-4, flags, 1);
+        assertTrue(flags[1]);
+        assertTrue(flags[TerrainColumn.BLOCKS_PER_CUBE]);
+        column.copyCubeFluidUpdateFlags(-3, flags, 1);
+        assertTrue(flags[1]);
+        assertFalse(flags[TerrainColumn.BLOCKS_PER_CUBE]);
+    }
+
+    @Test
     public void builtColumnsAreUnaffectedByLaterBuilderChanges() {
         TerrainColumn.Builder builder = TerrainColumn.builder(4, 5)
             .fillMaterialIds(11)
