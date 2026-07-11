@@ -14,6 +14,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityFallingBlock;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -101,10 +102,11 @@ public final class EntityFallingPointedDripstone extends ElementsCavesNotCliffs.
                 return;
             }
             BlockPos landing = new BlockPos(this);
+            boolean landedInWater = waterBeforeMove.contains(landing.toLong());
             IBlockState state = world.getBlockState(landing);
             if (state.getBlock() instanceof BlockPointedDripstone) {
                 IBlockState storage = BlockPointedDripstone.landingState(state,
-                        waterBeforeMove.contains(landing.toLong()));
+                        landedInWater);
                 if (storage != state) {
                     world.setBlockState(landing, storage, 3);
                     state = storage;
@@ -113,7 +115,7 @@ public final class EntityFallingPointedDripstone extends ElementsCavesNotCliffs.
                 if (BlockPointedDripstone.validPlacement(world, landing, direction)) {
                     return;
                 }
-                world.setBlockToAir(landing);
+                world.setBlockState(landing, retainedLandingFluid(landedInWater), 3);
                 Item canonical = BlockStalactite.block == null
                         ? null : Item.getItemFromBlock(BlockStalactite.block);
                 if (canonical != null) {
@@ -158,6 +160,11 @@ public final class EntityFallingPointedDripstone extends ElementsCavesNotCliffs.
             return water;
         }
 
+        public static IBlockState retainedLandingFluid(boolean landedInWater) {
+            return landedInWater
+                    ? Blocks.WATER.getDefaultState() : Blocks.AIR.getDefaultState();
+        }
+
         @Override
         protected void writeEntityToNBT(NBTTagCompound compound) {
             super.writeEntityToNBT(compound);
@@ -166,8 +173,17 @@ public final class EntityFallingPointedDripstone extends ElementsCavesNotCliffs.
 
         @Override
         protected void readEntityFromNBT(NBTTagCompound compound) {
+            normalizeSavedFallingState(compound);
             super.readEntityFromNBT(compound);
             damageFactor = compound.getFloat(DAMAGE_FACTOR_KEY);
+        }
+
+        /** Normalizes wet entities saved by draft-v2 builds before the carried-state fix. */
+        public static void normalizeSavedFallingState(NBTTagCompound compound) {
+            if ("cavesnotcliffs:pointed_dripstone_waterlogged".equals(
+                    compound.getString("Block"))) {
+                compound.setString("Block", "cavesnotcliffs:pointed_dripstone");
+            }
         }
 
         @Override
