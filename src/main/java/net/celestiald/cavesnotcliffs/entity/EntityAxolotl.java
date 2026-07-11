@@ -85,7 +85,6 @@ public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
                 .setRegistryName(CncRegistryIds.TROPICAL_FISH_BUCKET)
                 .setUnlocalizedName("tropical_fish_bucket")
                 .setMaxStackSize(1)
-                .setContainerItem(Items.WATER_BUCKET)
                 .setCreativeTab(net.minecraft.creativetab.CreativeTabs.MISC));
     }
 

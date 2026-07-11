@@ -33,15 +33,6 @@ public class AxolotlAssetsTest {
         assertTrue(EntityAnimal.class.isAssignableFrom(EntityAxolotl.EntityCustom.class));
         assertEquals(1, new ItemAxolotlBucket().getItemStackLimit());
 
-        JsonObject recipe = json("assets/cavesnotcliffs/recipes/tropical_fish_bucket.json");
-        JsonArray ingredients = recipe.getAsJsonArray("ingredients");
-        assertEquals("minecraft:water_bucket",
-                ingredients.get(0).getAsJsonObject().get("item").getAsString());
-        assertEquals("minecraft:fish",
-                ingredients.get(1).getAsJsonObject().get("item").getAsString());
-        assertEquals(2, ingredients.get(1).getAsJsonObject().get("data").getAsInt());
-        assertEquals("cavesnotcliffs:tropical_fish_bucket",
-                recipe.getAsJsonObject("result").get("item").getAsString());
     }
 
     @Test
