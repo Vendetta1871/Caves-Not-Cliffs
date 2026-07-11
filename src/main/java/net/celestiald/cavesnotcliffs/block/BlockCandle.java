@@ -200,8 +200,10 @@ public final class BlockCandle extends LushWaterloggedBlock implements CandleLig
                 CandleEffects.extinguish(null, world, pos, state);
                 state = world.getBlockState(pos);
             }
-            world.setBlockState(pos, state.withProperty(WATERLOGGED, fill)
-                    .withProperty(LIT, false), 3);
+            IBlockState updated = state.withProperty(WATERLOGGED, fill)
+                    .withProperty(LIT, false);
+            world.setBlockState(pos, updated, 3);
+            scheduleRetainedWater(world, pos, updated);
             replaceContainer(player, hand, held,
                     new ItemStack(fill ? Items.BUCKET : Items.WATER_BUCKET));
             StatBase stat = StatList.getObjectUseStats(used);

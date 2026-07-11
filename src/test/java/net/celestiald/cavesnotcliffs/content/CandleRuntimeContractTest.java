@@ -1,5 +1,6 @@
 package net.celestiald.cavesnotcliffs.content;
 
+import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.block.BlockCandle;
 import net.celestiald.cavesnotcliffs.block.BlockCandleCake;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
@@ -94,5 +95,30 @@ public class CandleRuntimeContractTest {
         CncRegistryIds.CANDLES.forEach(id -> assertTrue(all.add(id.toString())));
         CncRegistryIds.CANDLE_CAKES.forEach(id -> assertTrue(all.add(id.toString())));
         assertEquals(34, all.size());
+    }
+
+    @Test
+    public void modElementRegistersThirtyFourBlocksButOnlySeventeenItems() {
+        ElementsCavesNotCliffs elements = new ElementsCavesNotCliffs();
+        new CandleContent(elements).initElements();
+        assertEquals(34, elements.blocks.size());
+        assertEquals(17, elements.items.size());
+        int candles = 0;
+        int cakes = 0;
+        for (java.util.function.Supplier<net.minecraft.block.Block> supplier
+                : elements.blocks) {
+            net.minecraft.block.Block block = supplier.get();
+            if (block instanceof BlockCandle) {
+                candles++;
+            } else if (block instanceof BlockCandleCake) {
+                cakes++;
+            }
+        }
+        assertEquals(17, candles);
+        assertEquals(17, cakes);
+        assertTrue(ElementsCavesNotCliffs.sounds.containsKey(
+                CandleSoundEvents.CANDLE_AMBIENT.getSoundName()));
+        assertTrue(ElementsCavesNotCliffs.sounds.containsKey(
+                CandleSoundEvents.CAKE_ADD_CANDLE.getSoundName()));
     }
 }

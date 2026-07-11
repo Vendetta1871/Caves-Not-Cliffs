@@ -27,15 +27,30 @@ public class CandleResourceMatrixTest {
         Set<String> blockModels = new HashSet<>();
         for (CandleMechanics.Color color : CandleMechanics.colors()) {
             String candle = color.getCandlePath();
-            JsonObject variants = json("blockstates/" + candle + ".json")
-                    .getAsJsonObject("variants");
-            assertEquals(candle, 8, variants.size());
+            JsonArray multipart = json("blockstates/" + candle + ".json")
+                    .getAsJsonArray("multipart");
+            assertEquals(candle, 9, multipart.size());
+            Set<String> renderedStates = new HashSet<>();
+            boolean waterOverlay = false;
+            for (JsonElement element : multipart) {
+                JsonObject part = element.getAsJsonObject();
+                JsonObject when = part.getAsJsonObject("when");
+                String model = part.getAsJsonObject("apply").get("model").getAsString();
+                if (when.has("waterlogged")) {
+                    assertEquals("true", when.get("waterlogged").getAsString());
+                    assertEquals("cavesnotcliffs:amethyst_water_overlay", model);
+                    waterOverlay = true;
+                } else {
+                    renderedStates.add("candles=" + when.get("candles").getAsString()
+                            + ",lit=" + when.get("lit").getAsString());
+                    assertModel(model, blockModels);
+                }
+            }
+            assertTrue(candle, waterOverlay);
             for (int count = 1; count <= 4; count++) {
                 for (boolean lit : new boolean[]{false, true}) {
                     String key = "candles=" + count + ",lit=" + lit;
-                    assertTrue(candle + " " + key, variants.has(key));
-                    assertModel(variants.getAsJsonObject(key).get("model").getAsString(),
-                            blockModels);
+                    assertTrue(candle + " " + key, renderedStates.contains(key));
                 }
             }
 

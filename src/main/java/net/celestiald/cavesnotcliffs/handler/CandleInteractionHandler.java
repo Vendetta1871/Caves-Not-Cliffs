@@ -58,7 +58,7 @@ public final class CandleInteractionHandler {
         }
         if (!world.isRemote) {
             boolean flint = held.getItem() == Items.FLINT_AND_STEEL;
-            world.playSound(player, pos,
+            world.playSound(null, pos,
                     flint ? net.minecraft.init.SoundEvents.ITEM_FLINTANDSTEEL_USE
                             : net.minecraft.init.SoundEvents.ITEM_FIRECHARGE_USE,
                     SoundCategory.BLOCKS, 1.0F,

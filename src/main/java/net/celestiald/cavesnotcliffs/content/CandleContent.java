@@ -8,7 +8,6 @@ import net.celestiald.cavesnotcliffs.item.ItemBlockCandle;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
-import net.minecraft.client.renderer.block.statemap.StateMap;
 import net.minecraft.item.Item;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
@@ -59,12 +58,6 @@ public final class CandleContent extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void registerModels(ModelRegistryEvent event) {
         for (CandleMechanics.Color color : CandleMechanics.colors()) {
-            Block block = ForgeRegistries.BLOCKS.getValue(
-                    CncRegistryIds.id(color.getCandlePath()));
-            if (block instanceof BlockCandle) {
-                ModelLoader.setCustomStateMapper(block,
-                        new StateMap.Builder().ignore(BlockCandle.WATERLOGGED).build());
-            }
             Item item = ForgeRegistries.ITEMS.getValue(
                     CncRegistryIds.id(color.getCandlePath()));
             if (item != null) {

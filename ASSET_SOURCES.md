@@ -165,8 +165,8 @@ not exist in Java 1.12.2. Nether biome generation is intentionally unchanged by 
 The seventeen candle block and item textures, all candle and candle-cake model geometry, and the
 twenty-five candle/cake Ogg Vorbis files are unmodified Java 1.18.2 resources. The blockstates and
 models retain Mojang's exact color, count, lit-state, and cake geometry; only namespaces, legacy
-`blocks`/`items` texture-directory syntax, and the render-only omission of the visually identical
-waterlogged property are adapted for Forge 1.12.2. Java 1.12.2 has no `SMALL_FLAME` particle, so
+`blocks`/`items` texture-directory syntax, and a multipart source-water overlay are adapted for
+Forge 1.12.2. Java 1.12.2 has no `SMALL_FLAME` particle, so
 the runtime uses its otherwise equivalent `FLAME` sprite at Mojang's exact offsets and timing.
 
 - Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`

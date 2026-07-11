@@ -48,7 +48,7 @@ public final class CandleEffects {
             spawnSmoke(world, pos.getX() + offset.x, pos.getY() + offset.y,
                     pos.getZ() + offset.z, 0.1D);
         }
-        world.playSound(player, pos, CandleSoundEvents.CANDLE_EXTINGUISH,
+        world.playSound(null, pos, CandleSoundEvents.CANDLE_EXTINGUISH,
                 SoundCategory.BLOCKS, 1.0F, 1.0F);
         return true;
     }
