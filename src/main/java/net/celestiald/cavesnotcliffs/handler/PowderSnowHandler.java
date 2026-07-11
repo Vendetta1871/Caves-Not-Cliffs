@@ -57,7 +57,8 @@ public final class PowderSnowHandler {
         ItemStack held = player.getHeldItem(event.getHand());
         if (BlockPowderSnow.block == null || BlockPowderSnow.bucket == null
                 || world.getBlockState(pos).getBlock() != BlockPowderSnow.block
-                || held.isEmpty() || held.getItem() != Items.BUCKET) {
+                || held.isEmpty() || held.getItem() != Items.BUCKET
+                || !world.isBlockModifiable(player, pos)) {
             return;
         }
 
@@ -93,7 +94,8 @@ public final class PowderSnowHandler {
             || target == BlockPowderSnowCauldron.block;
         if (!cauldron || BlockPowderSnow.bucket == null
                 || BlockPowderSnowCauldron.block == null || held.isEmpty()
-                || held.getItem() != BlockPowderSnow.bucket) {
+                || held.getItem() != BlockPowderSnow.bucket
+                || !world.isBlockModifiable(player, pos)) {
             return;
         }
 

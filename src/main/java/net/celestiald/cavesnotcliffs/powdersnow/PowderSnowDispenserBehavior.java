@@ -41,7 +41,9 @@ public final class PowderSnowDispenserBehavior {
             if (!world.isAirBlock(target)) {
                 return super.dispenseStack(source, stack);
             }
-            world.setBlockState(target, BlockPowderSnow.block.getDefaultState(), 3);
+            if (!world.setBlockState(target, BlockPowderSnow.block.getDefaultState(), 3)) {
+                return super.dispenseStack(source, stack);
+            }
             world.playSound(null, target, BlockPowderSnow.BUCKET_EMPTY_SOUND,
                 SoundCategory.BLOCKS, 1.0F, 1.0F);
             stack.shrink(1);

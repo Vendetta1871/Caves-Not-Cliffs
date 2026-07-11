@@ -176,6 +176,7 @@ public final class BlockPowderSnow extends ElementsCavesNotCliffs.ModElement {
                 entity.motionZ *= PowderSnowMechanics.HORIZONTAL_STUCK_MULTIPLIER;
                 if (world.isRemote && (entity.prevPosX != entity.posX
                         || entity.prevPosZ != entity.posZ) && world.rand.nextBoolean()) {
+                    // 1.12 has no snowflake particle; SNOW_SHOVEL is its white snow-particle peer.
                     world.spawnParticle(EnumParticleTypes.SNOW_SHOVEL,
                         entity.posX, pos.getY() + 1.0D, entity.posZ,
                         (world.rand.nextFloat() * 2.0F - 1.0F) / 12.0F,
@@ -248,6 +249,7 @@ public final class BlockPowderSnow extends ElementsCavesNotCliffs.ModElement {
         }
 
         private boolean canWalkOnPowderSnow(Entity entity) {
+            // The fourth 1.18 tag member is the fox, which has no Java 1.12 entity peer.
             if (entity instanceof EntityRabbit || entity instanceof EntityEndermite
                     || entity instanceof EntitySilverfish) {
                 return true;
