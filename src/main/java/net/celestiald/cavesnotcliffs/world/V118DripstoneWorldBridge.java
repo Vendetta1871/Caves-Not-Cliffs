@@ -23,13 +23,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.IntPredicate;
 
-/** Mutable CubicChunks feature-region view for the exact Java 1.18.2 dripstone port. */
+/** Mutable finite-column feature-region view for the exact Java 1.18.2 dripstone port. */
 final class V118DripstoneWorldBridge implements V118DripstoneFeature.WorldAccess,
         V118OrePlacements.BetweenDecorationSteps {
     private static final int FEATURE_WRITE_RADIUS_CHUNKS = 1;
 
     private final World world;
-    private final V118CubicChunksGenerator generator;
+    private final V118ChunkGenerator generator;
     private final V118OreBlockMapper oreBlocks;
     private final Block dripstoneBlock;
     private final BlockPointedDripstone dryPointed;
@@ -38,13 +38,13 @@ final class V118DripstoneWorldBridge implements V118DripstoneFeature.WorldAccess
     private int centerChunkX;
     private int centerChunkZ;
 
-    V118DripstoneWorldBridge(World world, V118CubicChunksGenerator generator,
+    V118DripstoneWorldBridge(World world, V118ChunkGenerator generator,
             V118OreBlockMapper oreBlocks) {
         this(world, generator, oreBlocks, registered("dripstone_block"),
             pointed("pointed_dripstone"), pointed("pointed_dripstone_waterlogged"));
     }
 
-    V118DripstoneWorldBridge(World world, V118CubicChunksGenerator generator,
+    V118DripstoneWorldBridge(World world, V118ChunkGenerator generator,
             V118OreBlockMapper oreBlocks, Block dripstoneBlock,
             BlockPointedDripstone dryPointed, BlockPointedDripstone waterloggedPointed) {
         if (world == null || generator == null || oreBlocks == null || dripstoneBlock == null

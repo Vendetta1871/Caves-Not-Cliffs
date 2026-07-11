@@ -23,15 +23,15 @@ import java.util.Random;
  *
  * Y=0..255 is copied from the selected vanilla 1.12 generator so surface terrain, structures and
  * seeds remain familiar.  Y=-64..-1 is a deepslate extension with worm caves and deep ores; the
- * New schema-2 worlds use {@link V118CubicChunksGenerator}; this class intentionally preserves the
+ * New schema-2 worlds use {@link V118ChunkGenerator}; this class intentionally preserves the
  * old terrain profile to avoid seams while its population pass emits canonical content only.
  */
-public final class CavesNotCliffsCubeGenerator implements IChunkGenerator {
+public final class LegacyFiniteChunkGenerator implements IChunkGenerator {
     private final World world;
     private final IChunkGenerator vanillaGenerator;
     private final TerrainProfile terrainProfile;
 
-    CavesNotCliffsCubeGenerator(World world, IChunkGenerator vanillaGenerator,
+    LegacyFiniteChunkGenerator(World world, IChunkGenerator vanillaGenerator,
             TerrainProfile terrainProfile) {
         this.world = world;
         this.vanillaGenerator = vanillaGenerator;

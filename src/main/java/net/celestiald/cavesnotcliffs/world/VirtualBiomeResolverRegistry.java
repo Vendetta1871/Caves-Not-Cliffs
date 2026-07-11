@@ -16,12 +16,12 @@ public final class VirtualBiomeResolverRegistry {
     private VirtualBiomeResolverRegistry() {}
 
     public static void install(World world, long seed, TerrainProfile profile) {
-        if (world == null || !V118CubicChunksGenerator.isNativeProfile(profile)) {
+        if (world == null || !V118ChunkGenerator.isNativeProfile(profile)) {
             return;
         }
         Resolver resolver = new Resolver(
                 new V118TerrainColumnGenerator(seed,
-                        V118CubicChunksGenerator.nativeProfileFor(profile)),
+                        V118ChunkGenerator.nativeProfileFor(profile)),
                 V118BiomeMapper.fromRegisteredBiomes());
         synchronized (RESOLVERS) {
             RESOLVERS.put(world, resolver);
@@ -35,8 +35,8 @@ public final class VirtualBiomeResolverRegistry {
     }
 
     public static Biome resolve(World world, int x, int y, int z, Biome base) {
-        V118CubicChunksGenerator server = V118CubicChunksGenerator.forWorld(world);
-        if (server != null && V118CubicChunksGenerator.hasVirtualBiomeY(y)) {
+        V118ChunkGenerator server = V118ChunkGenerator.forWorld(world);
+        if (server != null && V118ChunkGenerator.hasVirtualBiomeY(y)) {
             return server.getRegisteredVirtualBiome(x, y, z);
         }
         Resolver resolver;

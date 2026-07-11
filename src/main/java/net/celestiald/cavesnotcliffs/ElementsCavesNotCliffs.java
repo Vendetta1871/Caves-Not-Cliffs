@@ -6,7 +6,7 @@
  */
 package net.celestiald.cavesnotcliffs;
 
-import net.celestiald.cavesnotcliffs.world.V118CubicChunksGenerator;
+import net.celestiald.cavesnotcliffs.world.V118ChunkGenerator;
 
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.common.registry.EntityEntry;
@@ -92,9 +92,9 @@ public class ElementsCavesNotCliffs implements IFuelHandler, IWorldGenerator {
 
 	@Override
 	public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator cg, IChunkProvider cp) {
-		// Schema-2 owns its full feature order. CubicChunks may otherwise replay this registered
+		// Schema-2 owns its full feature order. Forge may otherwise replay this registered
 		// MCreator IWorldGenerator and leak the draft-v2 decorators into native 1.18 terrain.
-		if (V118CubicChunksGenerator.forWorld(world) != null)
+		if (V118ChunkGenerator.forWorld(world) != null)
 			return;
 		elements.forEach(element -> element.generateWorld(random, chunkX * 16, chunkZ * 16, world, world.provider.getDimension(), cg, cp));
 	}

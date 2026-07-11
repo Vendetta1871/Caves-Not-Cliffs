@@ -34,7 +34,7 @@ public final class CavesNotCliffsWorldType extends WorldType
         } finally {
             world.getWorldInfo().setTerrainType(selected);
         }
-        return new CavesNotCliffsCubeGenerator(world, baseGenerator, data.getTerrainProfile());
+        return new LegacyFiniteChunkGenerator(world, baseGenerator, data.getTerrainProfile());
     }
 
     @Override

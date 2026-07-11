@@ -12,8 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Request-order-independent content migration core shared by vanilla chunks, CubicChunks cubes,
- * and save fixtures.
+ * Request-order-independent content migration core shared by finite chunks and save fixtures.
  */
 public final class LegacyChunkMigration {
     public static final String LEGACY_GEODE_PATH = "amethyst_geode";
@@ -53,7 +52,7 @@ public final class LegacyChunkMigration {
         }
 
         /**
-         * Reports whether the position can be inspected without forcing another chunk/cube to
+         * Reports whether the position can be inspected without forcing another chunk section to
          * load. Boundary-sensitive conversions must defer while their one-block halo is absent.
          */
         default boolean isPositionAvailable(int x, int y, int z) {

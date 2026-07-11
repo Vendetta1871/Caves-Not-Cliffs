@@ -32,10 +32,10 @@ import java.util.Set;
  * the legacy cave carver or legacy deep ores. Native ordinary 1.18 ore/blob and lush-cave
  * features run through isolated decoration bridges after structure population.</p>
  */
-public final class V118CubicChunksGenerator implements IChunkGenerator {
+public final class V118ChunkGenerator implements IChunkGenerator {
     private static final int CUBE_SIZE = 16;
-    private static final Map<World, WeakReference<V118CubicChunksGenerator>> ACTIVE_GENERATORS =
-        new WeakHashMap<World, WeakReference<V118CubicChunksGenerator>>();
+    private static final Map<World, WeakReference<V118ChunkGenerator>> ACTIVE_GENERATORS =
+        new WeakHashMap<World, WeakReference<V118ChunkGenerator>>();
 
     private final World world;
     private final TerrainProfile terrainProfile;
@@ -44,7 +44,7 @@ public final class V118CubicChunksGenerator implements IChunkGenerator {
     private final V118TerrainColumnGenerator columns;
     private final V118BlockStateMapper blockStates;
     private final V118BiomeMapper biomes;
-    private final V118CubeSlicer slicer;
+    private final V118ChunkSlicer slicer;
     private final V118GeodeWorldBridge geodes;
     private final V118DripstoneWorldBridge dripstones;
     private final V118OreWorldBridge ordinaryOres;
@@ -54,7 +54,7 @@ public final class V118CubicChunksGenerator implements IChunkGenerator {
     private int cachedStructureX;
     private int cachedStructureZ;
 
-    V118CubicChunksGenerator(World world, TerrainProfile terrainProfile,
+    V118ChunkGenerator(World world, TerrainProfile terrainProfile,
             IChunkGenerator structureGenerator) {
         this(world, terrainProfile, structureGenerator,
             new V118TerrainColumnGenerator(world.getSeed(), nativeProfileFor(terrainProfile)),
@@ -62,7 +62,7 @@ public final class V118CubicChunksGenerator implements IChunkGenerator {
             V118BiomeMapper.fromRegisteredBiomes());
     }
 
-    V118CubicChunksGenerator(World world, TerrainProfile terrainProfile,
+    V118ChunkGenerator(World world, TerrainProfile terrainProfile,
             IChunkGenerator structureGenerator, V118TerrainColumnGenerator columns,
             V118BlockStateMapper blockStates, V118BiomeMapper biomes) {
         if (world == null) {
@@ -83,7 +83,7 @@ public final class V118CubicChunksGenerator implements IChunkGenerator {
         this.columns = columns;
         this.blockStates = blockStates;
         this.biomes = biomes;
-        slicer = new V118CubeSlicer(blockStates, biomes);
+        slicer = new V118ChunkSlicer(blockStates, biomes);
         geodes = new V118GeodeWorldBridge(world,
             V118GeodeBlockMapper.fromRegisteredBlocks());
         V118OreBlockMapper oreBlocks = V118OreBlockMapper.fromRegisteredBlocks();
@@ -109,17 +109,17 @@ public final class V118CubicChunksGenerator implements IChunkGenerator {
         return columns.biomeAt(blockX, blockY, blockZ);
     }
 
-    /** Returns the registered 1.12 projection used for spawning, colors, and cube storage. */
+    /** Returns the registered 1.12 projection used for spawning and colors. */
     public Biome getRegisteredVirtualBiome(int blockX, int blockY, int blockZ) {
         return biomes.biomeFor(getVirtualBiome(blockX, blockY, blockZ));
     }
 
-    public static V118CubicChunksGenerator forWorld(World world) {
+    public static V118ChunkGenerator forWorld(World world) {
         if (world == null) {
             return null;
         }
         synchronized (ACTIVE_GENERATORS) {
-            WeakReference<V118CubicChunksGenerator> reference = ACTIVE_GENERATORS.get(world);
+            WeakReference<V118ChunkGenerator> reference = ACTIVE_GENERATORS.get(world);
             return reference == null ? null : reference.get();
         }
     }
@@ -243,9 +243,9 @@ public final class V118CubicChunksGenerator implements IChunkGenerator {
 
     static PopulationBox fullPopulationRequirements(int cubeY) {
         if (isGeneratedCube(cubeY)) {
-            // Native features are executed by cube Y=0 and can cross one X/Z cube boundary.
+            // Native features are executed by section Y=0 and can cross one X/Z chunk boundary.
             // Requiring all nine sources here makes every vertical target complete before it can
-            // be exposed, independent of which target cube was requested first.
+            // be exposed, independent of which target section was requested first.
             return new PopulationBox(-1, -cubeY, -1, 1, -cubeY, 1);
         }
         return PopulationBox.NONE;
@@ -267,9 +267,9 @@ public final class V118CubicChunksGenerator implements IChunkGenerator {
     }
 
     private static void registerActiveGenerator(World world,
-            V118CubicChunksGenerator generator) {
+            V118ChunkGenerator generator) {
         synchronized (ACTIVE_GENERATORS) {
-            ACTIVE_GENERATORS.put(world, new WeakReference<V118CubicChunksGenerator>(generator));
+            ACTIVE_GENERATORS.put(world, new WeakReference<V118ChunkGenerator>(generator));
         }
     }
 
@@ -280,7 +280,7 @@ public final class V118CubicChunksGenerator implements IChunkGenerator {
     /**
      * Returns the immutable post-surface terrain used for feature-region reads beyond the
      * writable three-by-three chunk area. Earlier features cannot mutate those chunks through a
-     * FEATURES-status region, so consulting the column cache avoids loading cubes recursively and
+     * FEATURES-status region, so consulting the column cache avoids loading chunks recursively and
      * keeps large-feature reads independent of request order.
      */
     IBlockState rawTerrainState(int blockX, int blockY, int blockZ) {

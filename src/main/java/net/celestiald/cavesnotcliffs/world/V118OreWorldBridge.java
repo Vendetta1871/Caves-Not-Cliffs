@@ -13,14 +13,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.IntPredicate;
 
-/** Mutable CubicChunks population view used by the exact ordinary ore/blob port. */
+/** Mutable finite-column population view used by the exact ordinary ore/blob port. */
 final class V118OreWorldBridge implements V118OrePlacements.WorldAccess {
     private final World world;
-    private final V118CubicChunksGenerator generator;
+    private final V118ChunkGenerator generator;
     private final V118OreBlockMapper blocks;
     private final Map<Long, Integer> oceanFloorHeights = new HashMap<>();
 
-    V118OreWorldBridge(World world, V118CubicChunksGenerator generator,
+    V118OreWorldBridge(World world, V118ChunkGenerator generator,
             V118OreBlockMapper blocks) {
         if (world == null || generator == null || blocks == null) {
             throw new NullPointerException("world, generator, and blocks are required");

@@ -10,7 +10,7 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 
 /** Copies one immutable 16x384x16 terrain column into signed-Y chunk sections. */
-final class V118CubeSlicer {
+final class V118ChunkSlicer {
     private static final int CUBE_SIZE = 16;
 
     private final V118BlockStateMapper blockStates;
@@ -18,7 +18,7 @@ final class V118CubeSlicer {
     private final char[] materialIds = new char[TerrainColumn.BLOCKS_PER_CUBE];
     private final IBlockState[] sectionStates = new IBlockState[TerrainColumn.BLOCKS_PER_CUBE];
 
-    V118CubeSlicer(V118BlockStateMapper blockStates, V118BiomeMapper biomes) {
+    V118ChunkSlicer(V118BlockStateMapper blockStates, V118BiomeMapper biomes) {
         if (blockStates == null) {
             throw new NullPointerException("blockStates");
         }

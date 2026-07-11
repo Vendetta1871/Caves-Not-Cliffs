@@ -2,7 +2,7 @@ package net.celestiald.cavesnotcliffs.command;
 
 import net.celestiald.cavesnotcliffs.world.CaveBiomeSampler;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
-import net.celestiald.cavesnotcliffs.world.V118CubicChunksGenerator;
+import net.celestiald.cavesnotcliffs.world.V118ChunkGenerator;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.minecraft.command.CommandBase;
@@ -36,7 +36,7 @@ public final class CommandCaveBiome extends CommandBase {
         World world = sender.getEntityWorld();
         BlockPos origin = sender.getPosition();
         BlockPos position = arguments.length == 0 ? origin : parseBlockPos(sender, arguments, 0, false);
-        V118CubicChunksGenerator nativeGenerator = V118CubicChunksGenerator.forWorld(world);
+        V118ChunkGenerator nativeGenerator = V118ChunkGenerator.forWorld(world);
         if (nativeGenerator != null) {
             if (position.getY() < TerrainColumn.MIN_Y || position.getY() > TerrainColumn.MAX_Y) {
                 throw new CommandException("Y must be between " + TerrainColumn.MIN_Y + " and "

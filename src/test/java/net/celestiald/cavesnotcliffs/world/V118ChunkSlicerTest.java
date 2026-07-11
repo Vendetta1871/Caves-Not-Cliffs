@@ -20,7 +20,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 
-public class V118CubeSlicerTest {
+public class V118ChunkSlicerTest {
     @BeforeClass
     public static void bootstrapVanillaRegistries() {
         Bootstrap.register();
@@ -44,7 +44,7 @@ public class V118CubeSlicerTest {
             }
         }
         V118BlockStateMapper blockMapper = blockMapper();
-        V118CubeSlicer slicer = new V118CubeSlicer(blockMapper, biomeMapper());
+        V118ChunkSlicer slicer = new V118ChunkSlicer(blockMapper, biomeMapper());
         IBlockState[] section = new IBlockState[TerrainColumn.BLOCKS_PER_CUBE];
         slicer.copySectionStates(builder.build(), cubeY, section);
 
@@ -75,7 +75,7 @@ public class V118CubeSlicerTest {
             .setScheduledFluidUpdate(1, 0, 1, true);
 
         final List<String> fluids = new ArrayList<String>();
-        new V118CubeSlicer(blockMapper(), biomeMapper()).forEachScheduledFluid(
+        new V118ChunkSlicer(blockMapper(), biomeMapper()).forEachScheduledFluid(
             builder.build(), -1, (x, y, z, material) ->
                 fluids.add(x + ":" + y + ":" + z + ":" + material));
 
@@ -102,7 +102,7 @@ public class V118CubeSlicerTest {
         }
 
         V118BlockStateMapper mapper = blockMapper();
-        V118CubeSlicer slicer = new V118CubeSlicer(mapper, biomeMapper());
+        V118ChunkSlicer slicer = new V118ChunkSlicer(mapper, biomeMapper());
         TerrainColumn column = builder.build();
         ChunkPrimer structureColumn = new ChunkPrimer();
         slicer.fillStructureTerrain(column, structureColumn);
@@ -137,7 +137,7 @@ public class V118CubeSlicerTest {
         builder.setSurfaceBiomeId(15, 15, V118Biome.FROZEN_PEAKS.ordinal());
 
         byte[] projected = new byte[TerrainColumn.SURFACE_BIOME_COUNT];
-        new V118CubeSlicer(blockMapper(), biomeMapper())
+        new V118ChunkSlicer(blockMapper(), biomeMapper())
             .projectSurfaceBiomes(builder.build(), projected);
 
         assertEquals(Biome.getIdForBiome(Biomes.DESERT), projected[0] & 255);
@@ -149,7 +149,7 @@ public class V118CubeSlicerTest {
 
     @Test
     public void projectsEveryNativeMountainBiomeThroughTheLegacySurfacePath() {
-        V118CubeSlicer slicer = new V118CubeSlicer(blockMapper(), biomeMapperWithMountains());
+        V118ChunkSlicer slicer = new V118ChunkSlicer(blockMapper(), biomeMapperWithMountains());
         for (Definition definition : Definition.values()) {
             TerrainColumn column = TerrainColumn.builder(2, -4)
                 .fillMaterialIds(V118Material.AIR.storageId())

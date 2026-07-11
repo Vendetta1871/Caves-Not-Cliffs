@@ -33,9 +33,9 @@ import java.util.Set;
 final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
         V118BeeTreeVegetation.WorldAccess {
     private final World world;
-    private final V118CubicChunksGenerator generator;
+    private final V118ChunkGenerator generator;
 
-    V118BeeTreeWorldBridge(World world, V118CubicChunksGenerator generator) {
+    V118BeeTreeWorldBridge(World world, V118ChunkGenerator generator) {
         if (world == null || generator == null) {
             throw new NullPointerException("world and generator are required");
         }

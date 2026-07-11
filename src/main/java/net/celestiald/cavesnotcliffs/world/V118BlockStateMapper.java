@@ -16,7 +16,7 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
  * Immutable translation from generation-local 1.18 materials to registered 1.12 block states.
  *
  * <p>The column cache deliberately contains no Forge registry objects. Resolving the registry once
- * at the cube boundary keeps cached columns deterministic and prevents later registry lookups from
+ * at the section boundary keeps cached columns deterministic and prevents later registry lookups from
  * changing the meaning of a stored material id.</p>
  */
 public final class V118BlockStateMapper {

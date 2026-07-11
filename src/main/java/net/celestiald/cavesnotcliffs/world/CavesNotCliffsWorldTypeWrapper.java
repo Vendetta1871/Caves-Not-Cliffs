@@ -52,10 +52,10 @@ public final class CavesNotCliffsWorldTypeWrapper extends WorldType
         String options = data.getGeneratorOptions();
         IChunkGenerator baseGenerator = delegate(world,
                 () -> baseType.getChunkGenerator(world, options == null ? "" : options));
-        if (V118CubicChunksGenerator.isNativeProfile(persistedProfile)) {
-            return new V118CubicChunksGenerator(world, persistedProfile, baseGenerator);
+        if (V118ChunkGenerator.isNativeProfile(persistedProfile)) {
+            return new V118ChunkGenerator(world, persistedProfile, baseGenerator);
         }
-        return new CavesNotCliffsCubeGenerator(world, baseGenerator, persistedProfile);
+        return new LegacyFiniteChunkGenerator(world, baseGenerator, persistedProfile);
     }
 
     @Override

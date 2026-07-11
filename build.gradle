@@ -30,7 +30,6 @@ minecraft {
 }
 
 repositories {
-    maven { url = 'https://maven.daporkchop.net/snapshot/' }
     maven { url = 'https://jitpack.io' }
     mavenCentral()
 }
@@ -40,15 +39,6 @@ dependencies {
         transitive = false
     }
     testCompile('com.github.frostdev-ops:CaveBiomesAPI:859b631') {
-        transitive = false
-    }
-
-    // CubicChunks itself is a required runtime mod, but only its public API belongs on the compile
-    // classpath. The API must never be bundled into the Caves Not Cliffs distributable.
-    compileOnly('io.github.opencubicchunks:cubicchunks-api:1.12.2-0.0.1301.0-SNAPSHOT') {
-        transitive = false
-    }
-    testCompile('io.github.opencubicchunks:cubicchunks-api:1.12.2-0.0.1301.0-SNAPSHOT') {
         transitive = false
     }
 
@@ -153,15 +143,15 @@ task verifyReleaseJar(dependsOn: reobfJar) {
             if (!(metadata instanceof List) || metadata.isEmpty() || metadata[0].version != project.version.toString()) {
                 throw new GradleException("mcmod.info does not contain release version ${project.version}")
             }
-            if (!metadata[0].dependencies.any { it.startsWith('required-after:cubicchunks@') }) {
-                throw new GradleException('mcmod.info does not declare CubicChunks as a required runtime mod')
+            if (!metadata[0].dependencies.any { it.startsWith('required-after:cavebiomesapi@') }) {
+                throw new GradleException('mcmod.info does not declare CaveBiomesAPI as a required runtime mod')
             }
 
             if (zip.getEntry('org/spongepowered/asm/launch/MixinBootstrap.class') != null) {
                 throw new GradleException('A Mixin runtime was accidentally bundled into the mod jar')
             }
-            if (zip.getEntry('io/github/opencubicchunks/cubicchunks/api/world/ICubicWorld.class') != null) {
-                throw new GradleException('The CubicChunks API was bundled into the mod jar')
+            if (zip.getEntry('net/celestiald/cavebiomes/api/WorldHeightAPI.class') != null) {
+                throw new GradleException('The CaveBiomesAPI classes were bundled into the mod jar')
             }
 
             def badReferences = []
@@ -173,7 +163,12 @@ task verifyReleaseJar(dependsOn: reobfJar) {
                 }
                 def stream = zip.getInputStream(entry)
                 try {
-                    new org.objectweb.asm.ClassReader(stream).accept(
+                    byte[] classBytes = stream.bytes
+                    if (new String(classBytes, 'ISO-8859-1')
+                            .contains('io/github/opencubicchunks/')) {
+                        badReferences << "${entry.name}: static CubicChunks linkage"
+                    }
+                    new org.objectweb.asm.ClassReader(classBytes).accept(
                         new org.objectweb.asm.ClassVisitor(org.objectweb.asm.Opcodes.ASM5) {
                             @Override
                             org.objectweb.asm.MethodVisitor visitMethod(int access, String name,

@@ -11,7 +11,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-/** Mutable CubicChunks view used by the exact amethyst-geode placed feature. */
+/** Mutable finite-world view used by the exact amethyst-geode placed feature. */
 final class V118GeodeWorldBridge implements V118GeodeFeature.WorldAccess {
     private final World world;
     private final V118GeodeBlockMapper blocks;

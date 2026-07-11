@@ -7,7 +7,7 @@ import net.celestiald.cavesnotcliffs.content.AxolotlMechanics;
 import net.celestiald.cavesnotcliffs.content.AxolotlSoundEvents;
 import net.celestiald.cavesnotcliffs.item.ItemAxolotlBucket;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
-import net.celestiald.cavesnotcliffs.world.V118CubicChunksGenerator;
+import net.celestiald.cavesnotcliffs.world.V118ChunkGenerator;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -91,7 +91,7 @@ public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
 
     @Override
     public void init(FMLInitializationEvent event) {
-        // Native biome spawning is supplied by V118CubicChunksGenerator#getPossibleCreatures;
+        // Native biome spawning is supplied by V118ChunkGenerator#getPossibleCreatures;
         // registering against the 1.12 surface projection would leak axolotls into forest ponds.
     }
 
@@ -185,7 +185,7 @@ public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
         @Override
         public boolean getCanSpawnHere() {
             Block below = world.getBlockState(getPosition().down()).getBlock();
-            V118CubicChunksGenerator generator = V118CubicChunksGenerator.forWorld(world);
+            V118ChunkGenerator generator = V118ChunkGenerator.forWorld(world);
             return world.getBlockState(getPosition()).getMaterial() == Material.WATER
                     && below == Blocks.CLAY
                     && generator != null

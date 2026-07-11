@@ -5,9 +5,9 @@ import java.util.Arrays;
 /**
  * Immutable generated contents of one complete 1.18 Overworld column.
  *
- * <p>Materials are stored in Y-major order so each 16-block Cubic Chunks cube is one contiguous
- * 4,096-value range. Values use unsigned 16-bit generation-local IDs; translating those IDs to
- * runtime {@code IBlockState}s belongs at the later cube-slicing boundary. The storage chooses a
+ * <p>Materials are stored in Y-major order so each 16-block section is one contiguous 4,096-value
+ * range. Values use unsigned 16-bit generation-local IDs; translating those IDs to runtime
+ * {@code IBlockState}s belongs at the later section-slicing boundary. The storage chooses a
  * packed palette when that is smaller than a direct unsigned-short array.</p>
  *
  * <p>The legacy surface-biome plane has one value per X/Z block. The virtual biome volume follows
@@ -83,7 +83,7 @@ public final class TerrainColumn {
         return materials.get(blockIndex(localX, worldY, localZ));
     }
 
-    /** Copies one complete cube in CubePrimer order: local Y, then Z, then X. */
+    /** Copies one complete 16-block section in local Y, then Z, then X order. */
     public void copyCubeMaterialIds(int cubeY, char[] destination, int destinationOffset) {
         checkCubeY(cubeY);
         checkDestination(destination, destinationOffset, BLOCKS_PER_CUBE);

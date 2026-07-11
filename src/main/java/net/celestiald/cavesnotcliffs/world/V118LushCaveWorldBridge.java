@@ -26,16 +26,16 @@ import net.minecraft.world.World;
 import java.util.Random;
 import java.util.Set;
 
-/** Mutable CubicChunks population view for the exact schema-2 lush-cave feature port. */
+/** Mutable finite-column population view for the exact schema-2 lush-cave feature port. */
 final class V118LushCaveWorldBridge implements V118LushCaveFeature.WorldAccess {
     private static final int FEATURE_CHUNK_RADIUS = 1;
 
     private final World world;
-    private final V118CubicChunksGenerator generator;
+    private final V118ChunkGenerator generator;
     private int targetChunkX;
     private int targetChunkZ;
 
-    V118LushCaveWorldBridge(World world, V118CubicChunksGenerator generator) {
+    V118LushCaveWorldBridge(World world, V118ChunkGenerator generator) {
         if (world == null || generator == null) {
             throw new NullPointerException("world and generator are required");
         }

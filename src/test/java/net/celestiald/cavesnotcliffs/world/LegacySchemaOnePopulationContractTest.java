@@ -16,9 +16,9 @@ import static org.junit.Assert.assertTrue;
 public class LegacySchemaOnePopulationContractTest {
     @Test
     public void schemaOneGeneratorRetainsItsDecoratorWithoutLegacyStateIds() throws IOException {
-        String generatorResource = '/' + CavesNotCliffsCubeGenerator.class.getName()
+        String generatorResource = '/' + LegacyFiniteChunkGenerator.class.getName()
                 .replace('.', '/') + ".class";
-        InputStream generatorInput = CavesNotCliffsCubeGenerator.class
+        InputStream generatorInput = LegacyFiniteChunkGenerator.class
                 .getResourceAsStream(generatorResource);
         assertNotNull(generatorInput);
 

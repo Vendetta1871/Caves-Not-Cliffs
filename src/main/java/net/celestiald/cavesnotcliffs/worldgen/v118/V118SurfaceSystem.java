@@ -8,7 +8,7 @@ import java.util.Map;
  * Java 8 port of Java 1.18.2's seeded Overworld {@code SurfaceSystem}.
  *
  * <p>The caller owns the raw terrain and climate data through {@link SurfaceAccess}.  This keeps
- * the numeric implementation independent of both 1.12 block states and CubicChunks while
+ * the numeric implementation independent of both 1.12 block states and the storage substrate while
  * preserving vanilla's 16-by-16 chunk scan order.</p>
  */
 public final class V118SurfaceSystem {

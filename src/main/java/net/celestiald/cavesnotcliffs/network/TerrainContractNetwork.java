@@ -1,6 +1,6 @@
 package net.celestiald.cavesnotcliffs.network;
 
-import net.celestiald.cavesnotcliffs.world.V118CubicChunksGenerator;
+import net.celestiald.cavesnotcliffs.world.V118ChunkGenerator;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -33,8 +33,8 @@ public final class TerrainContractNetwork {
         if (!(event.player instanceof EntityPlayerMP)) {
             return;
         }
-        V118CubicChunksGenerator generator =
-                V118CubicChunksGenerator.forWorld(event.player.world);
+        V118ChunkGenerator generator =
+                V118ChunkGenerator.forWorld(event.player.world);
         if (generator != null) {
             CHANNEL.sendTo(new TerrainContractMessage(
                     event.player.world.getSeed(), generator.getTerrainProfile()),

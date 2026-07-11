@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/** Applies one coherent cave-biome identity to all exposed surfaces in a populated cube. */
+/** Applies one coherent cave-biome identity to all exposed surfaces in a populated section. */
 final class CaveBiomeDecorator {
     private CaveBiomeDecorator() {
     }
