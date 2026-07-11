@@ -27,7 +27,31 @@ public final class CncRegistryIds {
     public static final ResourceLocation AMETHYST_CLUSTER_WATERLOGGED =
             id("amethyst_cluster_waterlogged");
     public static final ResourceLocation GLOW_BERRIES = id("glow_berries");
+    /** Hidden cave-vine head/body storage; glow berries are their only obtainable item. */
+    public static final ResourceLocation CAVE_VINES = id("cave_vines");
+    public static final ResourceLocation CAVE_VINES_AGE_8_15 = id("cave_vines_age_8_15");
+    public static final ResourceLocation CAVE_VINES_AGE_16_23 = id("cave_vines_age_16_23");
+    public static final ResourceLocation CAVE_VINES_AGE_24_25 = id("cave_vines_age_24_25");
+    public static final ResourceLocation CAVE_VINES_PLANT = id("cave_vines_plant");
+    public static final ResourceLocation AZALEA = id("azalea");
+    public static final ResourceLocation FLOWERING_AZALEA = id("flowering_azalea");
+    public static final ResourceLocation AZALEA_LEAVES = id("azalea_leaves");
+    public static final ResourceLocation FLOWERING_AZALEA_LEAVES = id("flowering_azalea_leaves");
+    public static final ResourceLocation ROOTED_DIRT = id("rooted_dirt");
+    public static final ResourceLocation HANGING_ROOTS = id("hanging_roots");
+    public static final ResourceLocation HANGING_ROOTS_WATERLOGGED =
+            id("hanging_roots_waterlogged");
+    public static final ResourceLocation MOSS_BLOCK = id("moss_block");
+    public static final ResourceLocation MOSS_CARPET = id("moss_carpet");
+    public static final ResourceLocation SMALL_DRIPLEAF = id("small_dripleaf");
     public static final ResourceLocation BIG_DRIPLEAF = id("big_dripleaf");
+    public static final ResourceLocation BIG_DRIPLEAF_WATERLOGGED =
+            id("big_dripleaf_waterlogged");
+    public static final ResourceLocation BIG_DRIPLEAF_STEM = id("big_dripleaf_stem");
+    public static final ResourceLocation SPORE_BLOSSOM = id("spore_blossom");
+    public static final ResourceLocation POTTED_AZALEA = id("potted_azalea_bush");
+    public static final ResourceLocation POTTED_FLOWERING_AZALEA =
+            id("potted_flowering_azalea_bush");
     public static final ResourceLocation DRIPSTONE_BLOCK = id("dripstone_block");
     public static final ResourceLocation POINTED_DRIPSTONE = id("pointed_dripstone");
     /** Hidden storage identity for source-water pointed-dripstone states. */
