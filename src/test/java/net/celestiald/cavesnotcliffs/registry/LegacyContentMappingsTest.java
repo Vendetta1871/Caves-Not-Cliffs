@@ -34,6 +34,23 @@ public class LegacyContentMappingsTest {
     }
 
     @Test
+    public void legacyDoubleSlabItemsBecomeObtainableSingleSlabs() {
+        assertEquals("cut_copper_slab",
+                LegacyContentMappings.canonicalItemPath("copper_slab_double"));
+        assertEquals("exposed_cut_copper_slab",
+                LegacyContentMappings.canonicalItemPath("copper_slab_stage1_double"));
+        assertEquals("weathered_cut_copper_slab",
+                LegacyContentMappings.canonicalItemPath("copper_slab_stage2_double"));
+        assertEquals("oxidized_cut_copper_slab",
+                LegacyContentMappings.canonicalItemPath("copper_slab_stage3_double"));
+
+        assertEquals("cut_copper_slab_double",
+                LegacyContentMappings.canonicalBlockPath("copper_slab_double"));
+        assertEquals("oxidized_cut_copper_slab_double",
+                LegacyContentMappings.canonicalBlockPath("copper_slab_stage3_double"));
+    }
+
+    @Test
     public void preservesLegacyGeodeBlockMarkerButCanonicalizesItsItem() {
         assertEquals("amethyst_geode",
                 LegacyContentMappings.canonicalBlockPath("amethyst_geode"));

@@ -62,6 +62,13 @@ public final class LegacyContentMappings {
         BLOCK_PATHS = Collections.unmodifiableMap(blocks);
 
         Map<String, String> items = new LinkedHashMap<>(blocks);
+        // Double slabs are hidden block-only storage in v2. Any prerelease stack carrying one of
+        // the old state-split IDs must become the obtainable single slab rather than mapping to a
+        // registry path which intentionally has no ItemBlock.
+        replaceItem(items, "copper_slab_double", "cut_copper_slab");
+        replaceItem(items, "copper_slab_stage1_double", "exposed_cut_copper_slab");
+        replaceItem(items, "copper_slab_stage2_double", "weathered_cut_copper_slab");
+        replaceItem(items, "copper_slab_stage3_double", "oxidized_cut_copper_slab");
         // The old block identity is retained for chunk recognition, but its obtainable item is not.
         map(items, "amethyst_geode", "amethyst_block");
         // State-split companion blocks remain registered, but their old ItemBlocks do not.
@@ -87,6 +94,13 @@ public final class LegacyContentMappings {
         if (paths.put(legacy, canonical) != null) {
             throw new IllegalStateException("Duplicate legacy content path: " + legacy);
         }
+    }
+
+    private static void replaceItem(Map<String, String> paths, String legacy, String canonical) {
+        if (!paths.containsKey(legacy)) {
+            throw new IllegalStateException("Missing inherited legacy item path: " + legacy);
+        }
+        paths.put(legacy, canonical);
     }
 
     public static String canonicalPath(String path) {
