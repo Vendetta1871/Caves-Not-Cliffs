@@ -1,11 +1,13 @@
 package net.celestiald.cavesnotcliffs.migration.cubic;
 
 import net.minecraft.nbt.CompressedStreamTools;
+import net.minecraft.nbt.NBTSizeTracker;
 import net.minecraft.nbt.NBTTagCompound;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.DirectoryStream;
@@ -30,6 +32,8 @@ import java.util.zip.GZIPInputStream;
  */
 public final class CubicRegionReader {
     static final int SECTOR_BYTES = 512;
+    static final int MAX_COMPRESSED_ENTRY_BYTES = 64 * 1024 * 1024;
+    static final long MAX_DECOMPRESSED_ENTRY_BYTES = 64L * 1024L * 1024L;
 
     private static final String COORDINATE = "(?:0|-?[1-9]\\d*)";
     private static final Pattern COLUMN_NAME = Pattern.compile("^(" + COORDINATE
@@ -277,9 +281,10 @@ public final class CubicRegionReader {
         lengthBuffer.flip();
         int length = lengthBuffer.getInt();
         int maximum = location.sectorCount * SECTOR_BYTES - Integer.BYTES;
-        if (length <= 0 || length > maximum) {
+        if (length <= 0 || length > maximum || length > MAX_COMPRESSED_ENTRY_BYTES) {
             throw format(path, "entry " + entryId + " declares compressed length " + length
-                    + " but its sector allocation permits 1.." + maximum);
+                    + " but its safe sector allocation permits 1.."
+                    + Math.min(maximum, MAX_COMPRESSED_ENTRY_BYTES));
         }
         ByteBuffer payload = ByteBuffer.allocate(length);
         readFully(channel, payload, byteOffset + Integer.BYTES, path, "entry " + entryId + " payload");
@@ -288,7 +293,7 @@ public final class CubicRegionReader {
 
     private static byte[] readExtensionPayload(Path path, int entryId) throws IOException {
         long length = Files.size(path);
-        if (length <= 0L || length > Integer.MAX_VALUE) {
+        if (length <= 0L || length > MAX_COMPRESSED_ENTRY_BYTES) {
             throw format(path, "oversized entry " + entryId + " has unsupported compressed length " + length);
         }
         return Files.readAllBytes(path);
@@ -308,10 +313,23 @@ public final class CubicRegionReader {
                 compressed.length, nbt);
     }
 
-    private static NBTTagCompound readAndValidateGzip(Path source, int entryId, byte[] compressed) throws IOException {
+    private static NBTTagCompound readAndValidateGzip(Path source, int entryId,
+            byte[] compressed) throws IOException {
+        return readAndValidateGzip(source, entryId, compressed,
+                MAX_DECOMPRESSED_ENTRY_BYTES);
+    }
+
+    static NBTTagCompound readAndValidateGzip(Path source, int entryId,
+            byte[] compressed, long decompressedLimit) throws IOException {
+        if (decompressedLimit <= 0L) {
+            throw new IllegalArgumentException("decompressedLimit must be positive");
+        }
         try (GZIPInputStream gzip = new GZIPInputStream(new ByteArrayInputStream(compressed));
-                DataInputStream input = new DataInputStream(gzip)) {
-            NBTTagCompound nbt = CompressedStreamTools.read(input);
+                InputStream bounded = new BoundedInputStream(
+                        gzip, source, entryId, decompressedLimit);
+                DataInputStream input = new DataInputStream(bounded)) {
+            NBTTagCompound nbt = CompressedStreamTools.read(
+                    input, new NBTSizeTracker(decompressedLimit));
 
             byte[] trailing = new byte[8192];
             int trailingBytes = 0;
@@ -328,6 +346,53 @@ public final class CubicRegionReader {
             throw exception;
         } catch (IOException | RuntimeException exception) {
             throw format(source, "entry " + entryId + " is not a complete valid gzip NBT payload", exception);
+        }
+    }
+
+    private static final class BoundedInputStream extends InputStream {
+        private final InputStream delegate;
+        private final Path source;
+        private final int entryId;
+        private final long limit;
+        private long count;
+
+        private BoundedInputStream(InputStream delegate, Path source,
+                int entryId, long limit) {
+            this.delegate = delegate;
+            this.source = source;
+            this.entryId = entryId;
+            this.limit = limit;
+        }
+
+        @Override
+        public int read() throws IOException {
+            int value = delegate.read();
+            if (value >= 0) {
+                account(1L);
+            }
+            return value;
+        }
+
+        @Override
+        public int read(byte[] buffer, int offset, int length) throws IOException {
+            int read = delegate.read(buffer, offset, length);
+            if (read > 0) {
+                account(read);
+            }
+            return read;
+        }
+
+        private void account(long bytes) throws CubicRegionFormatException {
+            count += bytes;
+            if (count > limit) {
+                throw format(source, "entry " + entryId
+                        + " exceeds the decompressed payload limit of " + limit + " bytes");
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            delegate.close();
         }
     }
 

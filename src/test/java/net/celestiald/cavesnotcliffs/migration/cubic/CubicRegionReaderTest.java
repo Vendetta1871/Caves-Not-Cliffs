@@ -7,7 +7,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.zip.GZIPOutputStream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -227,6 +230,36 @@ public class CubicRegionReaderTest {
         assertFormat(() -> collectColumns(orphan), "orphaned temporary oversized entry id 2");
     }
 
+    @Test
+    public void rejectsExtensionEntriesAboveTheCompressedBudgetBeforeAllocation()
+            throws Exception {
+        Path directory = temporary.newFolder("oversized-extension").toPath();
+        Path extension = Files.createDirectory(directory.resolve("0.0.2dr.ext"));
+        Path entry = extension.resolve("0");
+        try (RandomAccessFile file = new RandomAccessFile(entry.toFile(), "rw")) {
+            file.setLength((long) CubicRegionReader.MAX_COMPRESSED_ENTRY_BYTES + 1L);
+        }
+
+        assertFormat(() -> collectColumns(directory), "unsupported compressed length");
+    }
+
+    @Test
+    public void boundsTrailingDecompressedDataAfterTheRootTag() throws Exception {
+        NBTTagCompound root = root(0, null, 0);
+        ByteArrayOutputStream raw = new ByteArrayOutputStream();
+        CompressedStreamTools.write(root, new DataOutputStream(raw));
+        long limit = raw.size() + 1024L;
+
+        try {
+            CubicRegionReader.readAndValidateGzip(
+                    temporary.newFile("bounded-gzip").toPath(), 0,
+                    gzipWithTrailing(root, 4096), limit);
+            fail("Expected decompressed payload limit rejection");
+        } catch (CubicRegionFormatException expected) {
+            assertTrue(expected.getMessage().contains("decompressed payload limit"));
+        }
+    }
+
     private List<CubicRegionEntry> collectColumns(Path directory) throws IOException {
         List<CubicRegionEntry> entries = new ArrayList<>();
         long count = CubicRegionReader.visitColumns(directory, entries::add);
@@ -268,6 +301,16 @@ public class CubicRegionReaderTest {
     private static byte[] compress(NBTTagCompound root) throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         CompressedStreamTools.writeCompressed(root, output);
+        return output.toByteArray();
+    }
+
+    private static byte[] gzipWithTrailing(NBTTagCompound root, int trailingBytes)
+            throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (DataOutputStream data = new DataOutputStream(new GZIPOutputStream(output))) {
+            CompressedStreamTools.write(root, data);
+            data.write(new byte[trailingBytes]);
+        }
         return output.toByteArray();
     }
 
