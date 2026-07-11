@@ -31,27 +31,33 @@ public class V118CubeSlicerTest {
             .fillMaterialIds(V118Material.AIR.storageId())
             .fillSurfaceBiomeIds(V118Biome.PLAINS.ordinal())
             .fillVirtualBiomeIds(V118Biome.PLAINS.ordinal());
-        builder.setMaterialId(0, -16, 0, V118Material.STONE.storageId());
-        builder.setMaterialId(15, -16, 0, V118Material.BEDROCK.storageId());
-        builder.setMaterialId(0, -16, 1, V118Material.GRANITE.storageId());
-        builder.setMaterialId(7, -8, 11, V118Material.WATER.storageId());
-        builder.setMaterialId(15, -1, 15, V118Material.LAVA.storageId());
+        V118Material[] materials = V118Material.values();
+        for (int localY = 0; localY < 16; ++localY) {
+            for (int localZ = 0; localZ < 16; ++localZ) {
+                for (int localX = 0; localX < 16; ++localX) {
+                    int linearIndex = (localY << 8) | (localZ << 4) | localX;
+                    builder.setMaterialId(localX, cubeY * 16 + localY, localZ,
+                        materials[linearIndex % materials.length].storageId());
+                }
+            }
+        }
         builder.setVirtualBiomeIdAtQuart(0, -2, 0, V118Biome.DESERT.ordinal());
         builder.setVirtualBiomeIdAtQuart(3, -2, 3, V118Biome.FROZEN_PEAKS.ordinal());
 
-        V118CubeSlicer slicer = new V118CubeSlicer(blockMapper(), biomeMapper());
+        V118BlockStateMapper blockMapper = blockMapper();
+        V118CubeSlicer slicer = new V118CubeSlicer(blockMapper, biomeMapper());
         CubePrimer primer = new CubePrimer();
         slicer.slice(builder.build(), cubeY, primer);
 
-        assertSame(Blocks.STONE.getDefaultState(), primer.getBlockState(0, 0, 0));
-        assertSame(Blocks.BEDROCK.getDefaultState(), primer.getBlockState(15, 0, 0));
-        assertEquals(Blocks.STONE.getDefaultState().withProperty(
-            net.minecraft.block.BlockStone.VARIANT,
-            net.minecraft.block.BlockStone.EnumType.GRANITE),
-            primer.getBlockState(0, 0, 1));
-        assertSame(Blocks.WATER.getDefaultState(), primer.getBlockState(7, 8, 11));
-        assertSame(Blocks.LAVA.getDefaultState(), primer.getBlockState(15, 15, 15));
-        assertSame(Blocks.AIR.getDefaultState(), primer.getBlockState(14, 15, 15));
+        for (int localY = 0; localY < 16; ++localY) {
+            for (int localZ = 0; localZ < 16; ++localZ) {
+                for (int localX = 0; localX < 16; ++localX) {
+                    int linearIndex = (localY << 8) | (localZ << 4) | localX;
+                    assertEquals(blockMapper.stateFor(materials[linearIndex % materials.length]),
+                        primer.getBlockState(localX, localY, localZ));
+                }
+            }
+        }
         assertSame(Biomes.DESERT, primer.getBiome(0, 0, 0));
         assertSame(Biomes.ICE_MOUNTAINS, primer.getBiome(3, 15, 3));
     }
