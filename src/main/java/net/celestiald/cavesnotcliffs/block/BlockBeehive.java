@@ -4,10 +4,12 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.content.BeeMechanics;
 import net.celestiald.cavesnotcliffs.content.BeeSoundEvents;
 import net.celestiald.cavesnotcliffs.content.BeehiveHarvestHooks;
+import net.celestiald.cavesnotcliffs.content.BeehiveDispenserBehavior;
 import net.celestiald.cavesnotcliffs.entity.EntityBee;
 import net.celestiald.cavesnotcliffs.item.ItemBlockBeehive;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.celestiald.cavesnotcliffs.tile.TileEntityBeehive;
+import net.celestiald.cavesnotcliffs.world.BeeSaplingNestHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.BlockFire;
@@ -42,6 +44,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -92,6 +95,16 @@ public final class BlockBeehive extends ElementsCavesNotCliffs.ModElement {
     public void preInit(FMLPreInitializationEvent event) {
         GameRegistry.registerTileEntity(TileEntityBeehive.class,
                 CncRegistryIds.BEEHIVE);
+        net.minecraftforge.common.MinecraftForge.TERRAIN_GEN_BUS.register(
+                BeeSaplingNestHandler.INSTANCE);
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(
+                BeeSaplingNestHandler.INSTANCE);
+    }
+
+    @Override
+    public void init(FMLInitializationEvent event) {
+        net.minecraft.block.BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(
+                Items.SHEARS, new BeehiveDispenserBehavior());
     }
 
     @SideOnly(Side.CLIENT)
@@ -240,27 +253,33 @@ public final class BlockBeehive extends ElementsCavesNotCliffs.ModElement {
                     Enchantments.SILK_TOUCH, tool) > 0;
             if (silk) {
                 spawnAsEntity(world, pos, preservedStack(hive));
-                hive.setBreakHandled(true);
             } else {
                 if (!nest) {
                     spawnAsEntity(world, pos, new ItemStack(beehive));
                 }
-                hive.emptyAllLivingFromHive(player,
-                        TileEntityBeehive.BeeReleaseStatus.EMERGENCY);
-                angerNearbyBees(world, pos);
-                hive.setBreakHandled(true);
             }
         }
 
         @Override
         public void onBlockHarvested(World world, BlockPos pos, IBlockState state,
                 EntityPlayer player) {
-            if (!world.isRemote && player.capabilities.isCreativeMode) {
+            if (!world.isRemote) {
                 TileEntity tile = world.getTileEntity(pos);
                 if (tile instanceof TileEntityBeehive) {
                     TileEntityBeehive hive = (TileEntityBeehive) tile;
-                    if (!hive.isEmpty() || hive.getHoneyLevel() > 0) {
-                        spawnAsEntity(world, pos, preservedStack(hive));
+                    if (player.capabilities.isCreativeMode) {
+                        if (!hive.isEmpty() || hive.getHoneyLevel() > 0) {
+                            spawnAsEntity(world, pos, preservedStack(hive));
+                        }
+                    } else {
+                        boolean silk = EnchantmentHelper.getEnchantmentLevel(
+                                Enchantments.SILK_TOUCH,
+                                player.getHeldItemMainhand()) > 0;
+                        if (!silk) {
+                            hive.emptyAllLivingFromHive(player,
+                                    TileEntityBeehive.BeeReleaseStatus.EMERGENCY);
+                            angerNearbyBees(world, pos);
+                        }
                     }
                     hive.setBreakHandled(true);
                 }
@@ -288,6 +307,9 @@ public final class BlockBeehive extends ElementsCavesNotCliffs.ModElement {
             TileEntity tile = world.getTileEntity(pos);
             if (!world.isRemote && tile instanceof TileEntityBeehive) {
                 TileEntityBeehive hive = (TileEntityBeehive) tile;
+                if (hive.isVisualTransition()) {
+                    return;
+                }
                 if (!hive.isBreakHandled()) {
                     hive.emptyAllLivingFromHive(null,
                             TileEntityBeehive.BeeReleaseStatus.EMERGENCY);

@@ -57,11 +57,15 @@ public final class TileEntityBeehive extends TileEntity implements ITickable {
     private BlockPos savedFlowerPos;
     private int honeyLevel;
     private boolean breakHandled;
+    private boolean visualTransition;
 
     @Override
     public void update() {
         if (world == null || world.isRemote) {
             return;
+        }
+        if (!stored.isEmpty() && isFireNearby()) {
+            releaseAllOccupants(BeeReleaseStatus.EMERGENCY);
         }
         boolean changed = false;
         Iterator<BeeData> iterator = stored.iterator();
@@ -353,6 +357,10 @@ public final class TileEntityBeehive extends TileEntity implements ITickable {
         breakHandled = handled;
     }
 
+    public boolean isVisualTransition() {
+        return visualTransition;
+    }
+
     private void updateVisualState() {
         if (world == null || world.isRemote) {
             return;
@@ -368,8 +376,13 @@ public final class TileEntityBeehive extends TileEntity implements ITickable {
             return;
         }
         EnumFacing facing = current.getValue(BlockBeehive.BlockCustom.FACING);
-        world.setBlockState(pos, target.getDefaultState()
-                .withProperty(BlockBeehive.BlockCustom.FACING, facing), 3);
+        visualTransition = true;
+        try {
+            world.setBlockState(pos, target.getDefaultState()
+                    .withProperty(BlockBeehive.BlockCustom.FACING, facing), 3);
+        } finally {
+            visualTransition = false;
+        }
     }
 
     private void markDirtyAndSync() {

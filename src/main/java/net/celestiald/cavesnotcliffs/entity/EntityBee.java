@@ -16,6 +16,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityAgeable;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.EnumCreatureAttribute;
 import net.minecraft.entity.MoverType;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.EntityAIBase;
@@ -467,6 +468,25 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
         @Override
         protected float getSoundVolume() {
             return 0.4F;
+        }
+
+        @Override
+        public EnumCreatureAttribute getCreatureAttribute() {
+            return EnumCreatureAttribute.ARTHROPOD;
+        }
+
+        @Override
+        public float getEyeHeight() {
+            return height * 0.5F;
+        }
+
+        @Override
+        public float getBlockPathWeight(BlockPos pos) {
+            return world.isAirBlock(pos) ? 10.0F : 0.0F;
+        }
+
+        @Override
+        protected void playStepSound(BlockPos pos, Block block) {
         }
 
         public boolean isFlying() {
