@@ -19,6 +19,10 @@ import net.minecraft.entity.passive.EntityRabbit;
 import net.minecraft.entity.passive.EntitySheep;
 import net.minecraft.entity.passive.EntityWolf;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.ColorizerFoliage;
+import net.minecraft.world.ColorizerGrass;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.gen.feature.WorldGenAbstractTree;
 import net.minecraft.world.gen.feature.WorldGenBirchTree;
@@ -28,6 +32,8 @@ import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -318,6 +324,32 @@ public final class MountainBiomeContent {
             setRegistryName(definition.registryName());
             configureSpawns();
             configureLegacyDecorator();
+        }
+
+        @Override
+        @SideOnly(Side.CLIENT)
+        public int getSkyColorByTemp(float ignoredHeightAdjustedTemperature) {
+            float colorTemperature = MathHelper.clamp(definition.temperature() / 3.0F,
+                -1.0F, 1.0F);
+            return MathHelper.hsvToRGB(0.62222224F - colorTemperature * 0.05F,
+                0.5F + colorTemperature * 0.1F, 1.0F);
+        }
+
+        @Override
+        @SideOnly(Side.CLIENT)
+        public int getGrassColorAtPos(BlockPos ignoredPosition) {
+            double temperature = MathHelper.clamp(definition.temperature(), 0.0F, 1.0F);
+            double downfall = MathHelper.clamp(definition.downfall(), 0.0F, 1.0F);
+            return getModdedBiomeGrassColor(ColorizerGrass.getGrassColor(temperature, downfall));
+        }
+
+        @Override
+        @SideOnly(Side.CLIENT)
+        public int getFoliageColorAtPos(BlockPos ignoredPosition) {
+            double temperature = MathHelper.clamp(definition.temperature(), 0.0F, 1.0F);
+            double downfall = MathHelper.clamp(definition.downfall(), 0.0F, 1.0F);
+            return getModdedBiomeFoliageColor(ColorizerFoliage.getFoliageColor(temperature,
+                downfall));
         }
 
         @Override

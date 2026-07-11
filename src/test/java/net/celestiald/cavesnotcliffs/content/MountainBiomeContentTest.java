@@ -4,6 +4,9 @@ import net.celestiald.cavesnotcliffs.content.MountainBiomeContent.DecorationCont
 import net.celestiald.cavesnotcliffs.content.MountainBiomeContent.Definition;
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.init.Bootstrap;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.ColorizerFoliage;
+import net.minecraft.world.ColorizerGrass;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.gen.feature.WorldGenBigTree;
 import net.minecraft.world.gen.feature.WorldGenBirchTree;
@@ -95,6 +98,10 @@ public class MountainBiomeContentTest {
                 biome.getWaterColorMultiplier());
             assertEquals(definition.name(), skyColor,
                 biome.getSkyColorByTemp(definition.temperature()));
+            assertEquals("sky color must not drift with legacy height temperature",
+                skyColor, biome.getSkyColorByTemp(-10.0F));
+            assertEquals("sky color must not drift with legacy height temperature",
+                skyColor, biome.getSkyColorByTemp(10.0F));
             assertEquals("native density owns legacy base height", 0.1F,
                 biome.getBaseHeight(), 0.0F);
             assertEquals("native density owns legacy height variation", 0.2F,
@@ -103,6 +110,33 @@ public class MountainBiomeContentTest {
 
         assertEquals(329_011, MountainBiomeContent.NORMAL_WATER_FOG_COLOR);
         assertEquals(12_638_463, MountainBiomeContent.OVERWORLD_FOG_COLOR);
+    }
+
+    @Test
+    public void grassAndFoliageColorsUseBaseClimateAtEveryHeight() {
+        int[] indexedColors = new int[65_536];
+        for (int index = 0; index < indexedColors.length; ++index) {
+            indexedColors[index] = index;
+        }
+        ColorizerGrass.setGrassBiomeColorizer(indexedColors);
+        ColorizerFoliage.setFoliageBiomeColorizer(indexedColors);
+        try {
+            for (Definition definition : Definition.values()) {
+                int expected = climateColorIndex(definition.temperature(),
+                    definition.downfall());
+                assertEquals(definition.name(), expected,
+                    definition.biome().getGrassColorAtPos(new BlockPos(17, -64, -31)));
+                assertEquals(definition.name(), expected,
+                    definition.biome().getGrassColorAtPos(new BlockPos(17, 319, -31)));
+                assertEquals(definition.name(), expected,
+                    definition.biome().getFoliageColorAtPos(new BlockPos(17, -64, -31)));
+                assertEquals(definition.name(), expected,
+                    definition.biome().getFoliageColorAtPos(new BlockPos(17, 319, -31)));
+            }
+        } finally {
+            ColorizerGrass.setGrassBiomeColorizer(new int[65_536]);
+            ColorizerFoliage.setFoliageBiomeColorizer(new int[65_536]);
+        }
     }
 
     @Test
@@ -280,6 +314,14 @@ public class MountainBiomeContentTest {
                 + entry.minGroupCount + ":" + entry.maxGroupCount);
         }
         return signatures;
+    }
+
+    private static int climateColorIndex(float baseTemperature, float downfall) {
+        double temperature = Math.max(0.0, Math.min(1.0, baseTemperature));
+        double humidity = Math.max(0.0, Math.min(1.0, downfall)) * temperature;
+        int temperatureIndex = (int) ((1.0 - temperature) * 255.0);
+        int humidityIndex = (int) ((1.0 - humidity) * 255.0);
+        return humidityIndex << 8 | temperatureIndex;
     }
 
     private static final class FixedFloatRandom extends Random {
