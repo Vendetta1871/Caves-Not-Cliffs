@@ -94,7 +94,7 @@ public final class LegacyCubicSaveImporter {
             boolean imported = importWorld(worldRoot, terrainSchema, worldInfo.getWorldTotalTime(),
                     dimensions, additionalSources, sources, lookaheadVerifier);
             if (metadata.changed() && !imported) {
-                verifyCommittedTargets(worldRoot, CubicImportJournal.read(
+                finishCommittedStorage(worldRoot, CubicImportJournal.read(
                         worldRoot.resolve(CubicImportJournal.FILE_NAME)), true);
             }
             cleanLevelMetadata(levelFile.toPath());
@@ -109,7 +109,7 @@ public final class LegacyCubicSaveImporter {
         Path normalizedRoot = worldRoot.toAbsolutePath().normalize();
         CubicImportJournal completed = existingJournal(normalizedRoot);
         if (completed != null) {
-            verifyCommittedTargets(normalizedRoot, completed);
+            finishCommittedStorage(normalizedRoot, completed, false);
             return false;
         }
         LegacyCubicDimensionMetadata.Result discovery = discoverDimensions(normalizedRoot);
@@ -134,7 +134,7 @@ public final class LegacyCubicSaveImporter {
         Path stagingRoot = worldRoot.resolve(STAGING_DIRECTORY);
         CubicImportJournal completed = existingJournal(worldRoot);
         if (completed != null) {
-            verifyCommittedTargets(worldRoot, completed);
+            finishCommittedStorage(worldRoot, completed, false);
             return false;
         }
         if (sources.isEmpty()) {
@@ -319,8 +319,14 @@ public final class LegacyCubicSaveImporter {
             CubicImportJournal journal) throws IOException {
         LegacyCubicLevelMetadata.Result metadata =
                 LegacyCubicLevelMetadata.inspect(levelFile, false);
-        verifyCommittedTargets(worldRoot, journal, metadata.changed());
+        finishCommittedStorage(worldRoot, journal, metadata.changed());
         cleanLevelMetadata(levelFile);
+    }
+
+    private static void finishCommittedStorage(Path worldRoot, CubicImportJournal journal,
+            boolean verifyHashes) throws IOException {
+        verifyCommittedTargets(worldRoot, journal, verifyHashes);
+        deleteTreeBestEffort(worldRoot.resolve(STAGING_DIRECTORY));
     }
 
     private static int terrainSchema(WorldInfo worldInfo) {

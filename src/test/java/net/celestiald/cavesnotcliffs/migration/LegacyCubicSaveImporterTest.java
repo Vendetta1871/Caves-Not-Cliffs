@@ -79,6 +79,7 @@ public class LegacyCubicSaveImporterTest {
                 world, Collections.singletonList(world));
         CubicImportJournal.create(2, sources, Collections.singletonList("."))
                 .writeAtomic(world.resolve(CubicImportJournal.FILE_NAME));
+        Path stagingMarker = writeStagingMarker(world);
 
         try {
             LegacyCubicSaveImporter.importWorld(world, 2, 0L);
@@ -87,6 +88,48 @@ public class LegacyCubicSaveImporterTest {
             assertTrue(expected.getMessage().contains("incomplete at state DISCOVERED"));
             assertTrue(expected.getMessage().contains("Source region2d/region3d files were not modified"));
         }
+        assertTrue(Files.isRegularFile(stagingMarker));
+    }
+
+    @Test
+    public void committedRestartRemovesLeftoverStaging() throws Exception {
+        Path world = temporary.newFolder("committed-staging").toPath();
+        writeCommittedJournal(world);
+        Path stagingMarker = writeStagingMarker(world);
+
+        assertFalse(LegacyCubicSaveImporter.importWorld(world, 2, 0L));
+        assertFalse(Files.exists(stagingMarker.getParent().getParent()));
+    }
+
+    @Test
+    public void interruptedJournalUpdateBlocksCleanup() throws Exception {
+        Path world = temporary.newFolder("temporary-journal").toPath();
+        writeCommittedJournal(world);
+        Path stagingMarker = writeStagingMarker(world);
+        Files.write(world.resolve(CubicImportJournal.TEMP_FILE_NAME),
+                "interrupted".getBytes(StandardCharsets.UTF_8));
+
+        try {
+            LegacyCubicSaveImporter.importWorld(world, 2, 0L);
+            fail("Expected temporary journal rejection");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains("interrupted journal update remains"));
+        }
+        assertTrue(Files.isRegularFile(stagingMarker));
+    }
+
+    @Test
+    public void orphanStagingWithoutJournalBlocksCleanup() throws Exception {
+        Path world = temporary.newFolder("orphan-staging").toPath();
+        Path stagingMarker = writeStagingMarker(world);
+
+        try {
+            LegacyCubicSaveImporter.importWorld(world, 2, 0L);
+            fail("Expected orphan staging rejection");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains("staging exists without a journal"));
+        }
+        assertTrue(Files.isRegularFile(stagingMarker));
     }
 
     @Test
@@ -227,5 +270,34 @@ public class LegacyCubicSaveImporterTest {
     private static void writeCubicMetadata(Path world) throws IOException {
         LegacyCubicDimensionMetadataTest.writeMetadata(world, true, -64, 320,
                 "cubicchunks:anvil3d", "cubicchunks:default");
+    }
+
+    private static void writeCommittedJournal(Path world) throws IOException {
+        Path source = world.resolve("region2d/source-marker");
+        Files.createDirectories(source.getParent());
+        Files.write(source, "source".getBytes(StandardCharsets.UTF_8));
+        CubicImportJournal journal = CubicImportJournal.create(2,
+                CubicImportJournal.captureSources(world, Collections.singletonList(world)),
+                Collections.singletonList("."));
+        journal.recordDimension(".", 0L, 0L,
+                Collections.<CubicImportJournal.FileRecord>emptyList());
+        journal.transition(CubicImportJournal.State.DISCOVERED,
+                CubicImportJournal.State.STAGED);
+        journal.transition(CubicImportJournal.State.STAGED,
+                CubicImportJournal.State.VERIFIED);
+        journal.transition(CubicImportJournal.State.VERIFIED,
+                CubicImportJournal.State.COMMITTING);
+        journal.markDimensionCommitted(".");
+        journal.transition(CubicImportJournal.State.COMMITTING,
+                CubicImportJournal.State.COMMITTED);
+        journal.writeAtomic(world.resolve(CubicImportJournal.FILE_NAME));
+    }
+
+    private static Path writeStagingMarker(Path world) throws IOException {
+        Path marker = world.resolve(
+                ".cavesnotcliffs-cubic-staging/dimension-0000/marker");
+        Files.createDirectories(marker.getParent());
+        Files.write(marker, "staged".getBytes(StandardCharsets.UTF_8));
+        return marker;
     }
 }
