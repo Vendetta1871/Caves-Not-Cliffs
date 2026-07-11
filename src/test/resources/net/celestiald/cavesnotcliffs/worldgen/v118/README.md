@@ -262,13 +262,15 @@ deterministic 5-by-5 sparse chunk region. It hashes every final moss, clay, wate
 dripleaf, root-system, azalea-tree, spore-blossom, and vine state after their configured-feature
 random calls have been interleaved with placement sampling. The standalone bootstrap explicitly
 binds the flattened contents of the official 1.18.2 block and fluid tag JSON used by these
-features; no production backport classes are on the oracle classpath.
+features; no production backport classes are on the oracle classpath. Its 5-by-5 region is a read
+fixture; ordinary non-retrogen `WorldGenRegion` semantics restrict writes to the center plus one
+chunk in X/Z, while ProtoChunk rather than `ensureCanWrite` discards out-of-height writes.
 
 - Lush-placement harness SHA-256:
   `fa5141c5f9d920bcbb15c080a6dc541628eac95ce00ee1ba8b2b5bb992eda358`
 - Lush-placement TSV SHA-256:
   `d304e4b24169d0ff9eff519f946627344dc2c31e1c2bd5e1087a9aa07f633f78`
 - Lush-decoration harness SHA-256:
-  `7c1b944c04f260797d519aa78e66caabb279619c92f1958034702704cdc1d35c`
+  `913d4b5a0dcc94efa187902ea69da6d17151e358d2eb89e1969e39c64a5c8c0b`
 - Lush-decoration TSV SHA-256:
   `e51587ee5daf51590a4e626df52c716b78496c3e0c561b44609a31f1e4ab74df`

@@ -208,8 +208,12 @@ public final class Cnc118LushCaveDecorationOracle {
         final int maxChunkX;
         final int minChunkZ;
         final int maxChunkZ;
+        final int centerChunkX;
+        final int centerChunkZ;
 
         SparseWorld(int chunkX, int chunkZ) {
+            centerChunkX = chunkX;
+            centerChunkZ = chunkZ;
             minChunkX = chunkX - 2;
             maxChunkX = chunkX + 2;
             minChunkZ = chunkZ - 2;
@@ -267,7 +271,7 @@ public final class Cnc118LushCaveDecorationOracle {
                 return chunks.get(key(Math.floorDiv(pos.getX(), 16),
                     Math.floorDiv(pos.getZ(), 16)));
             }
-            if (name.equals("ensureCanWrite")) return contains((BlockPos) args[0]);
+            if (name.equals("ensureCanWrite")) return writable((BlockPos) args[0]);
             if (name.equals("isOutsideBuildHeight")) {
                 int y = args[0] instanceof BlockPos ? ((BlockPos) args[0]).getY()
                     : (Integer) args[0];
@@ -285,7 +289,8 @@ public final class Cnc118LushCaveDecorationOracle {
             if (name.equals("setBlock")) {
                 BlockPos pos = (BlockPos) args[0];
                 ProtoChunk chunk = chunk(pos);
-                if (chunk == null || pos.getY() < -64 || pos.getY() >= 320) return false;
+                if (!writable(pos) || chunk == null
+                        || pos.getY() < -64 || pos.getY() >= 320) return false;
                 chunk.setBlockState(pos, (BlockState) args[1], false);
                 return true;
             }
@@ -305,6 +310,13 @@ public final class Cnc118LushCaveDecorationOracle {
 
         private boolean contains(BlockPos pos) {
             return chunk(pos) != null && pos.getY() >= -64 && pos.getY() < 320;
+        }
+
+        private boolean writable(BlockPos pos) {
+            int chunkX = Math.floorDiv(pos.getX(), 16);
+            int chunkZ = Math.floorDiv(pos.getZ(), 16);
+            return Math.abs(chunkX - centerChunkX) <= 1
+                && Math.abs(chunkZ - centerChunkZ) <= 1;
         }
 
         private ProtoChunk chunk(BlockPos pos) {

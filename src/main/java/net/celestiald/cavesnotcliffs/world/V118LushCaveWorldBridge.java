@@ -170,16 +170,14 @@ final class V118LushCaveWorldBridge implements V118LushCaveFeature.WorldAccess {
             return;
         }
         if (!insideFeatureChunks(blockX, blockZ)) {
-            throw new IllegalStateException("Lush feature escaped its one-chunk population halo: "
-                + blockX + "," + blockY + "," + blockZ + " from "
-                + targetChunkX + "," + targetChunkZ);
+            return;
         }
         world.setBlockState(new BlockPos(blockX, blockY, blockZ), stateFor(state), 2);
     }
 
     @Override
     public boolean ensureCanWrite(int blockX, int blockY, int blockZ) {
-        return !isOutsideBuildHeight(blockY) && insideFeatureChunks(blockX, blockZ);
+        return insideFeatureChunks(blockX, blockZ);
     }
 
     @Override

@@ -21,7 +21,9 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /** End-to-end comparison with all seven official Java 1.18.2 lush cave features. */
 public class V118LushCaveDecorationOracleTest {
@@ -73,6 +75,21 @@ public class V118LushCaveDecorationOracleTest {
         assertEquals(0, world.overrides.size());
     }
 
+    @Test
+    public void normalFeatureRegionSeparatesReadStorageWriteRadiusAndBuildHeight() {
+        SparseWorld world = new SparseWorld(0, 0);
+        assertTrue(world.ensureCanWrite(0, -65, 0));
+        assertTrue(world.ensureCanWrite(31, 320, -16));
+        assertFalse(world.ensureCanWrite(32, 0, 0));
+        assertFalse(world.ensureCanWrite(0, 0, -17));
+
+        world.setState(0, -65, 0, State.MOSS_BLOCK);
+        world.setState(32, 0, 0, State.MOSS_BLOCK);
+        assertEquals(0, world.overrides.size());
+        world.setState(31, 0, -16, State.MOSS_BLOCK);
+        assertEquals(1, world.overrides.size());
+    }
+
     private static final class SparseWorld implements WorldAccess {
         private final Map<String, PlacedState> overrides =
             new HashMap<String, PlacedState>();
@@ -80,8 +97,12 @@ public class V118LushCaveDecorationOracleTest {
         private final int maxBlockX;
         private final int minBlockZ;
         private final int maxBlockZ;
+        private final int centerChunkX;
+        private final int centerChunkZ;
 
         SparseWorld(int chunkX, int chunkZ) {
+            centerChunkX = chunkX;
+            centerChunkZ = chunkZ;
             minBlockX = (chunkX - 2) << 4;
             maxBlockX = ((chunkX + 3) << 4) - 1;
             minBlockZ = (chunkZ - 2) << 4;
@@ -105,14 +126,14 @@ public class V118LushCaveDecorationOracleTest {
 
         @Override
         public void setState(int x, int y, int z, State state) {
-            if (contains(x, y, z)) {
+            if (writable(x, z) && contains(x, y, z)) {
                 overrides.put(key(x, y, z), PlacedState.fromFeature(state));
             }
         }
 
         @Override
         public boolean ensureCanWrite(int x, int y, int z) {
-            return contains(x, y, z);
+            return writable(x, z);
         }
 
         @Override
@@ -285,6 +306,11 @@ public class V118LushCaveDecorationOracleTest {
         private boolean contains(int x, int y, int z) {
             return x >= minBlockX && x <= maxBlockX && z >= minBlockZ && z <= maxBlockZ
                 && y >= -64 && y < 320;
+        }
+
+        private boolean writable(int x, int z) {
+            return Math.abs(Math.floorDiv(x, 16) - centerChunkX) <= 1
+                && Math.abs(Math.floorDiv(z, 16) - centerChunkZ) <= 1;
         }
 
         private static boolean isBaseStone(Block block) {
