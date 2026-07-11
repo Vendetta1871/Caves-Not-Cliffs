@@ -88,6 +88,13 @@ public class CopperResourceMatrixTest {
         assertEquals("cavesnotcliffs:copper_ingot", ingot.getAsJsonObject("result")
                 .get("item").getAsString());
         assertEquals(9, ingot.getAsJsonObject("result").get("count").getAsInt());
+        JsonObject waxedIngot = json("recipes/copper_ingot_from_waxed_copper_block.json");
+        assertEquals("cavesnotcliffs:waxed_copper_block",
+                waxedIngot.getAsJsonArray("ingredients").get(0).getAsJsonObject()
+                        .get("item").getAsString());
+        assertEquals("cavesnotcliffs:copper_ingot",
+                waxedIngot.getAsJsonObject("result").get("item").getAsString());
+        assertEquals(9, waxedIngot.getAsJsonObject("result").get("count").getAsInt());
     }
 
     @Test

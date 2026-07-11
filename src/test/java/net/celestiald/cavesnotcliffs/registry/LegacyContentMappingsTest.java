@@ -22,6 +22,18 @@ public class LegacyContentMappingsTest {
     }
 
     @Test
+    public void everyLegacyCopperAliasTargetsTheCompleteCanonicalCatalog() {
+        for (Map.Entry<String, String> mapping : LegacyContentMappings.blockPaths().entrySet()) {
+            if (!mapping.getKey().startsWith("copper_")) {
+                continue;
+            }
+            assertNotNull(mapping.toString(),
+                    net.celestiald.cavesnotcliffs.content.CopperWeathering
+                            .variant(mapping.getValue()));
+        }
+    }
+
+    @Test
     public void preservesLegacyGeodeBlockMarkerButCanonicalizesItsItem() {
         assertEquals("amethyst_geode",
                 LegacyContentMappings.canonicalBlockPath("amethyst_geode"));
