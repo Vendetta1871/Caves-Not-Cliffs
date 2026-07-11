@@ -172,6 +172,10 @@ public final class CandleMechanics {
         return PARTICLE_OFFSETS.get(candles);
     }
 
+    public static ParticleOffset cakeParticleOffset() {
+        return offset(0.5D, 1.0D, 0.5D);
+    }
+
     /** Candle cakes extinguish only when the empty-hand hit lands above the cake body. */
     public static boolean extinguishesCandleCake(boolean emptyHand, boolean lit,
             double hitY) {

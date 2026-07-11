@@ -79,6 +79,20 @@ public final class CncRegistryIds {
     public static final ResourceLocation CAMPFIRE = id("campfire");
     public static final ResourceLocation SOUL_CAMPFIRE = id("soul_campfire");
     public static final ResourceLocation SOUL_SOIL = id("soul_soil");
+    public static final List<ResourceLocation> CANDLES = paths(
+            "candle", "white_candle", "orange_candle", "magenta_candle",
+            "light_blue_candle", "yellow_candle", "lime_candle", "pink_candle",
+            "gray_candle", "light_gray_candle", "cyan_candle", "purple_candle",
+            "blue_candle", "brown_candle", "green_candle", "red_candle",
+            "black_candle");
+    /** Hidden block-state companions created only by inserting a candle into a full cake. */
+    public static final List<ResourceLocation> CANDLE_CAKES = paths(
+            "candle_cake", "white_candle_cake", "orange_candle_cake",
+            "magenta_candle_cake", "light_blue_candle_cake", "yellow_candle_cake",
+            "lime_candle_cake", "pink_candle_cake", "gray_candle_cake",
+            "light_gray_candle_cake", "cyan_candle_cake", "purple_candle_cake",
+            "blue_candle_cake", "brown_candle_cake", "green_candle_cake",
+            "red_candle_cake", "black_candle_cake");
     /** Hidden model/storage states used when the tile's honey level reaches five. */
     public static final ResourceLocation BEE_NEST_HONEY = id("bee_nest_honey");
     public static final ResourceLocation BEEHIVE_HONEY = id("beehive_honey");
@@ -110,5 +124,13 @@ public final class CncRegistryIds {
 
     public static ResourceLocation id(String path) {
         return new ResourceLocation(CavesNotCliffs.MODID, path);
+    }
+
+    private static List<ResourceLocation> paths(String... paths) {
+        ResourceLocation[] ids = new ResourceLocation[paths.length];
+        for (int i = 0; i < paths.length; i++) {
+            ids[i] = id(paths[i]);
+        }
+        return Collections.unmodifiableList(Arrays.asList(ids));
     }
 }
