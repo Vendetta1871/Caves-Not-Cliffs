@@ -68,12 +68,12 @@ public final class AxolotlMechanics {
     /** Exact play-dead eligibility and RNG consumption from Axolotl#hurt. */
     public static boolean shouldPlayDead(Random random, float damage, float health,
             float maxHealth, boolean inWater, boolean hasAttacker, boolean alreadyPlayingDead) {
-        return !alreadyPlayingDead
-                && random.nextInt(3) == 0
+        return random.nextInt(3) == 0
                 && (random.nextInt(3) < damage || health / maxHealth < 0.5F)
                 && damage < health
                 && inWater
-                && hasAttacker;
+                && hasAttacker
+                && !alreadyPlayingDead;
     }
 
     public static int rehydratedAir(int currentAir) {

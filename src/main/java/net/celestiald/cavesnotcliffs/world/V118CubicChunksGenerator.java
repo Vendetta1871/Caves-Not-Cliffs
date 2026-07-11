@@ -9,6 +9,7 @@ import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118BiomeDecorationUnion;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118NoiseRouterData;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118TerrainColumnGenerator;
+import net.celestiald.cavesnotcliffs.entity.EntityAxolotl;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EnumCreatureType;
@@ -20,6 +21,7 @@ import net.minecraft.world.chunk.ChunkPrimer;
 import net.minecraft.world.gen.IChunkGenerator;
 
 import java.util.List;
+import java.util.Collections;
 import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -206,6 +208,15 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
 
     @Override
     public List<Biome.SpawnListEntry> getPossibleCreatures(EnumCreatureType type, BlockPos pos) {
+        if (type == EnumCreatureType.WATER_CREATURE
+                && getVirtualBiome(pos.getX(), pos.getY(), pos.getZ())
+                    == V118Biome.LUSH_CAVES) {
+            // 1.18 uses a dedicated AXOLOTLS category. Mapping that category onto 1.12's water
+            // creature scheduler is narrower than using the projected surface biome and avoids
+            // leaking this spawn into ordinary forest water. Tropical fish are intentionally
+            // represented only by the bucket bridge in this backport.
+            return AXOLOTL_SPAWNS;
+        }
         return getRegisteredVirtualBiome(pos.getX(), pos.getY(), pos.getZ())
             .getSpawnableList(type);
     }
@@ -296,4 +307,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
 
     private static final Box FEATURE_POPULATION_REQUIREMENT = new Box(-1,
         TerrainColumn.MIN_CUBE_Y, -1, 1, TerrainColumn.MAX_CUBE_Y, 1);
+    private static final List<Biome.SpawnListEntry> AXOLOTL_SPAWNS =
+        Collections.singletonList(new Biome.SpawnListEntry(
+            EntityAxolotl.EntityCustom.class, 10, 4, 6));
 }
