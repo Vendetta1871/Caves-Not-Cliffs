@@ -74,6 +74,30 @@ java -cp .:<unsigned-inner-server.jar>:<extracted-libraries/*> \
   Cnc118BlendedNoiseOracle blended-noise-oracle-1.18.2.tsv
 ```
 
+## Overworld six-parameter biome table
+
+`overworld-biomes-oracle-1.18.2.tsv` records all 7,578 entries emitted by the official
+`OverworldBiomeBuilder`, including exact insertion order, every quantized parameter bound, offset,
+and canonical biome resource key. It then records 13,280 official nearest-neighbor resolutions:
+one midpoint lookup per entry, every unique axis boundary and its adjacent quantized values in two
+cross-axis contexts, an explicit underground depth/humidity/continentalness/weirdness matrix, and
+2,048 deterministic points spanning beyond the normal climate range. The independent obfuscated
+server harness is `Cnc118OverworldBiomeOracle.java.txt`.
+
+- Overworld-biome harness SHA-256:
+  `ee1ec1753437228d0860c617b9a6c07d68a85ef556610d172d57d438233ca42c`
+- Overworld-biome TSV SHA-256:
+  `2d5993d08ad043cd645dd8178fba0540f9199d092e1719ad239c4149b841edfc`
+
+Regenerate it with Java 17 and the official unsigned inner server jar plus its extracted libraries:
+
+```text
+javac -cp <unsigned-inner-server.jar>:<extracted-libraries/*> \
+  Cnc118OverworldBiomeOracle.java
+java -cp .:<unsigned-inner-server.jar>:<extracted-libraries/*> \
+  Cnc118OverworldBiomeOracle overworld-biomes-oracle-1.18.2.tsv
+```
+
 ## Overworld noise settings and density slides
 
 `noise-settings-oracle-1.18.2.tsv` records both normal and amplified Overworld settings directly
