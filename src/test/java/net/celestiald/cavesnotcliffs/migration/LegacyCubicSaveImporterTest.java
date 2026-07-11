@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.List;
 
@@ -132,6 +133,47 @@ public class LegacyCubicSaveImporterTest {
             assertTrue(expected.getMessage().contains(
                     "changed before legacy metadata cleanup"));
         }
+    }
+
+    @Test
+    public void verifiesCommittedHashesOnlyUntilLegacyLevelMetadataIsCleaned()
+            throws Exception {
+        Path world = temporary.newFolder("committed-cleanup-window").toPath();
+        writeCubicMetadata(world);
+        CubicDimensionStagerTest.writeExtension(
+                world.resolve("region2d/0.0.2dr.ext"), 0,
+                CubicDimensionStagerTest.column(0, 0));
+        for (int cubeY = -4; cubeY < 20; cubeY++) {
+            CubicDimensionStagerTest.writeCube(world, 0, cubeY, 0,
+                    CubicDimensionStagerTest.cube(0, cubeY, 0, true, true));
+        }
+        assertTrue(LegacyCubicSaveImporter.importWorld(
+                world, CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L));
+        CubicImportJournal journal = CubicImportJournal.read(
+                world.resolve(CubicImportJournal.FILE_NAME));
+        Path levelFile = world.resolve("level.dat");
+        LegacyCubicLevelMetadataTest.write(levelFile,
+                LegacyCubicLevelMetadataTest.level(
+                        "cubicchunks:storage_format_provider_registry",
+                        "cubicchunks:vanilla_compatibility_generators_registry"));
+        Path output = world.resolve("region/r.0.0.mca");
+        byte[] committedBytes = Files.readAllBytes(output);
+
+        Files.write(output, new byte[] {1}, StandardOpenOption.APPEND);
+        try {
+            LegacyCubicSaveImporter.finishCommittedImport(world, levelFile, journal);
+            fail("Expected output verification before metadata cleanup");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains(
+                    "changed before legacy metadata cleanup"));
+        }
+        assertTrue(LegacyCubicLevelMetadata.inspect(levelFile, false).changed());
+
+        Files.write(output, committedBytes, StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE);
+        LegacyCubicLevelMetadata.clean(levelFile);
+        Files.write(output, new byte[] {2}, StandardOpenOption.APPEND);
+        LegacyCubicSaveImporter.finishCommittedImport(world, levelFile, journal);
     }
 
     @Test

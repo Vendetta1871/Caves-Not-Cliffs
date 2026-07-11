@@ -120,7 +120,7 @@ public class LegacyCubicLevelMetadataTest {
         }
     }
 
-    private static NBTTagCompound level(String... cubicRegistries) {
+    static NBTTagCompound level(String... cubicRegistries) {
         NBTTagCompound root = new NBTTagCompound();
         NBTTagCompound data = new NBTTagCompound();
         data.setBoolean("isCubicWorld", true);
@@ -168,13 +168,13 @@ public class LegacyCubicLevelMetadataTest {
         return mod;
     }
 
-    private static void write(Path path, NBTTagCompound root) throws IOException {
+    static void write(Path path, NBTTagCompound root) throws IOException {
         try (OutputStream output = new BufferedOutputStream(Files.newOutputStream(path))) {
             CompressedStreamTools.writeCompressed(root, output);
         }
     }
 
-    private static NBTTagCompound read(Path path) throws IOException {
+    static NBTTagCompound read(Path path) throws IOException {
         try (InputStream input = new BufferedInputStream(Files.newInputStream(path))) {
             return CompressedStreamTools.readCompressed(input);
         }

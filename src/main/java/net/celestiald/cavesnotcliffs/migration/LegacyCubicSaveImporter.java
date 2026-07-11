@@ -52,9 +52,7 @@ public final class LegacyCubicSaveImporter {
         try {
             CubicImportJournal completed = existingJournal(worldRoot);
             if (completed != null) {
-                verifyCommittedTargets(worldRoot, completed);
-                LegacyCubicLevelMetadata.inspect(levelFile.toPath(), false);
-                cleanLevelMetadata(levelFile.toPath());
+                finishCommittedImport(worldRoot, levelFile.toPath(), completed);
                 return;
             }
             LegacyCubicDimensionMetadata.Result discovery = discoverDimensions(worldRoot);
@@ -315,6 +313,14 @@ public final class LegacyCubicSaveImporter {
                     cleaned.getRemovedRegistries(), cleaned.getRemovedMods(),
                     cleaned.removedWorldFlag(), LegacyCubicLevelMetadata.BACKUP_FILE_NAME);
         }
+    }
+
+    static void finishCommittedImport(Path worldRoot, Path levelFile,
+            CubicImportJournal journal) throws IOException {
+        LegacyCubicLevelMetadata.Result metadata =
+                LegacyCubicLevelMetadata.inspect(levelFile, false);
+        verifyCommittedTargets(worldRoot, journal, metadata.changed());
+        cleanLevelMetadata(levelFile);
     }
 
     private static int terrainSchema(WorldInfo worldInfo) {
