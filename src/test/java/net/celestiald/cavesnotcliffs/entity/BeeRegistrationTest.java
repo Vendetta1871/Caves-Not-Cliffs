@@ -7,6 +7,8 @@ import net.celestiald.cavesnotcliffs.item.ItemHoneycomb;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.minecraft.block.Block;
 import net.minecraft.entity.passive.EntityAnimal;
+import net.minecraft.entity.ai.attributes.AttributeMap;
+import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.init.Bootstrap;
 import net.minecraft.item.Item;
 import net.minecraft.nbt.NBTTagCompound;
@@ -34,6 +36,21 @@ public class BeeRegistrationTest {
         assertEquals("cavesnotcliffs:beehive_honey",
                 CncRegistryIds.BEEHIVE_HONEY.toString());
         assertTrue(EntityAnimal.class.isAssignableFrom(EntityBee.EntityCustom.class));
+    }
+
+    @Test
+    public void vanillaFlyHelperAlwaysHasTheOfficialBeeFlyingSpeedAttribute() {
+        AttributeMap attributes = new AttributeMap();
+        EntityBee.EntityCustom.registerFlyingSpeed(attributes);
+        assertTrue(attributes.getAttributeInstance(SharedMonsterAttributes.FLYING_SPEED)
+                != null);
+        assertEquals(0.6D, attributes.getAttributeInstance(
+                SharedMonsterAttributes.FLYING_SPEED).getBaseValue(), 0.0D);
+
+        // Reapplying the entity attribute contract must not attempt duplicate registration.
+        EntityBee.EntityCustom.registerFlyingSpeed(attributes);
+        assertEquals(0.6D, attributes.getAttributeInstance(
+                SharedMonsterAttributes.FLYING_SPEED).getBaseValue(), 0.0D);
     }
 
     @Test

@@ -31,6 +31,8 @@ import net.minecraft.entity.ai.EntityAIMate;
 import net.minecraft.entity.ai.EntityAISwimming;
 import net.minecraft.entity.ai.EntityAIWatchClosest;
 import net.minecraft.entity.ai.EntityFlyHelper;
+import net.minecraft.entity.ai.attributes.AbstractAttributeMap;
+import net.minecraft.entity.ai.attributes.IAttributeInstance;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.MobEffects;
@@ -156,9 +158,21 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
             super.applyEntityAttributes();
             getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(10.0D);
             getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.3D);
+            registerFlyingSpeed(getAttributeMap());
             getAttributeMap().registerAttribute(SharedMonsterAttributes.ATTACK_DAMAGE)
                     .setBaseValue(2.0D);
             getEntityAttribute(SharedMonsterAttributes.FOLLOW_RANGE).setBaseValue(48.0D);
+        }
+
+        static void registerFlyingSpeed(AbstractAttributeMap attributes) {
+            IAttributeInstance flyingSpeed = attributes.getAttributeInstance(
+                    SharedMonsterAttributes.FLYING_SPEED);
+            if (flyingSpeed == null) {
+                flyingSpeed = attributes.registerAttribute(
+                        SharedMonsterAttributes.FLYING_SPEED);
+            }
+            // Java 1.18.2 Bee#createAttributes uses 0.6 for generic.flying_speed.
+            flyingSpeed.setBaseValue(0.6D);
         }
 
         @Override
