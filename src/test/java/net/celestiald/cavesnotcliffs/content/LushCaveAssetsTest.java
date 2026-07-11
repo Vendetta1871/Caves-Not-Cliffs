@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import org.junit.Test;
+import org.junit.BeforeClass;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -24,6 +25,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class LushCaveAssetsTest {
+    @BeforeClass
+    public static void bootstrapMinecraftRegistries() {
+        net.minecraft.init.Bootstrap.register();
+    }
+
     private static final List<String> PUBLIC_BLOCKS = Arrays.asList(
             "azalea", "flowering_azalea", "azalea_leaves",
             "flowering_azalea_leaves", "rooted_dirt", "hanging_roots",
@@ -71,12 +77,11 @@ public class LushCaveAssetsTest {
                 checked++;
             }
         }
-        assertEquals(125, checked);
+        assertEquals(130, checked);
     }
 
     @Test
     public void allFiftyEightSoundEventsResolveAndRetainOfficialEntrySettings() {
-        net.minecraft.init.Bootstrap.register();
         JsonObject sounds = json("assets/cavesnotcliffs/sounds.json");
         Set<String> events = new HashSet<>();
         LushCaveSounds.events().forEach(sound -> events.add(

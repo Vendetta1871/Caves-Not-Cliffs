@@ -66,6 +66,10 @@ public final class LegacyChunkMigration {
                 int metadata) {
             return replace(x, y, z, targetRegistryPath, metadata);
         }
+
+        default void scheduleUpdate(int x, int y, int z, String targetRegistryPath,
+                int delay) {
+        }
     }
 
     public static final class Bounds {
@@ -264,7 +268,8 @@ public final class LegacyChunkMigration {
             for (int y = bounds.minY; y < bounds.minY + bounds.sizeY; y++) {
                 for (int z = bounds.minZ; z < bounds.minZ + bounds.sizeZ; z++) {
                     String source = volume.blockPathAt(x, y, z);
-                    Target target = lushTarget(source, x, y, z, volume);
+                    Target target = lushTarget(source, x, y, z, volume,
+                            y > bounds.minY);
                     if (target == null) {
                         continue;
                     }
@@ -274,6 +279,13 @@ public final class LegacyChunkMigration {
                         continue;
                     }
                     converted++;
+                    if ("big_dripleaf".equals(target.path)) {
+                        LushCaveMechanics.Tilt tilt =
+                                LushCaveMechanics.bigDripleafTilt(target.metadata);
+                        if (tilt.getDelay() >= 0) {
+                            volume.scheduleUpdate(x, y, z, target.path, tilt.getDelay());
+                        }
+                    }
                     if (LEGACY_SMALL_DRIPLEAF.equals(source)
                             && y + 1 < bounds.minY + bounds.sizeY
                             && volume.isAirAt(x, y + 1, z)) {
@@ -291,13 +303,14 @@ public final class LegacyChunkMigration {
         return new int[]{converted, deferred};
     }
 
-    private static Target lushTarget(String source, int x, int y, int z, Volume volume) {
+    private static Target lushTarget(String source, int x, int y, int z, Volume volume,
+            boolean belowInBounds) {
         if (LEGACY_GLOWING_VINE.equals(source) || LEGACY_PLAIN_VINE.equals(source)) {
             boolean berries = LEGACY_GLOWING_VINE.equals(source);
-            String below = volume.blockPathAt(x, y - 1, z);
-            boolean body = LEGACY_GLOWING_VINE.equals(below)
+            String below = belowInBounds ? volume.blockPathAt(x, y - 1, z) : null;
+            boolean body = belowInBounds && (LEGACY_GLOWING_VINE.equals(below)
                     || LEGACY_PLAIN_VINE.equals(below)
-                    || LushCaveMechanics.isCaveVine(below);
+                    || LushCaveMechanics.isCaveVine(below));
             if (body) {
                 return new Target(LushCaveMechanics.CAVE_VINES_PLANT,
                         LushCaveMechanics.caveVinePlantMeta(berries));

@@ -6,6 +6,7 @@ import net.celestiald.cavesnotcliffs.block.LushDripleafBlocks;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumFacing;
 import org.junit.Test;
+import org.junit.BeforeClass;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -15,6 +16,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class LushCaveRuntimeContractTest {
+    @BeforeClass
+    public static void bootstrapMinecraftRegistries() {
+        net.minecraft.init.Bootstrap.register();
+    }
+
     @Test
     public void runtimeCaveVineBandsRoundTripAllReachableMetadata() {
         int base = 0;
@@ -70,7 +76,6 @@ public class LushCaveRuntimeContractTest {
 
     @Test
     public void soundCatalogHasEveryUniqueCanonicalEvent() {
-        net.minecraft.init.Bootstrap.register();
         Set<String> ids = new HashSet<>();
         LushCaveSounds.events().forEach(sound ->
                 assertTrue(ids.add(sound.getSoundName().toString())));

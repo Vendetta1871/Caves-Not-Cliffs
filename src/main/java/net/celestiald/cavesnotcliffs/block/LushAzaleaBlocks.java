@@ -391,8 +391,7 @@ public final class LushAzaleaBlocks {
                 EntityPlayer player, EnumHand hand, EnumFacing facing, float hitX,
                 float hitY, float hitZ) {
             Block heldBlock = Block.getBlockFromItem(player.getHeldItem(hand).getItem());
-            if (heldBlock == LushCaveContent.AZALEA
-                    || heldBlock == LushCaveContent.FLOWERING_AZALEA) {
+            if (isPottable(player.getHeldItem(hand), heldBlock)) {
                 return true;
             }
             if (!world.isRemote) {
@@ -405,6 +404,16 @@ public final class LushAzaleaBlocks {
                 world.setBlockState(pos, Blocks.FLOWER_POT.getDefaultState(), 3);
             }
             return true;
+        }
+
+        private static boolean isPottable(ItemStack stack, Block block) {
+            return block == LushCaveContent.AZALEA
+                    || block == LushCaveContent.FLOWERING_AZALEA
+                    || block == Blocks.YELLOW_FLOWER || block == Blocks.RED_FLOWER
+                    || block == Blocks.CACTUS || block == Blocks.BROWN_MUSHROOM
+                    || block == Blocks.RED_MUSHROOM || block == Blocks.SAPLING
+                    || block == Blocks.DEADBUSH
+                    || block == Blocks.TALLGRASS && stack.getMetadata() == 2;
         }
 
         @Override

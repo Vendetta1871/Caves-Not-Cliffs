@@ -44,7 +44,8 @@ public final class LegacyChunkMigrationHandler {
 
         Chunk chunk = event.getChunk();
         LegacyChunkMigration.Bounds bounds = chunkBounds(chunk);
-        migrateLoaded(event.getData(), world.getSeed(), bounds, new ChunkVolume(chunk), chunk);
+        migrateLoaded(event.getData(), world.getSeed(), bounds,
+                new ChunkVolume(world, chunk), chunk);
     }
 
     @SubscribeEvent
@@ -54,7 +55,7 @@ public final class LegacyChunkMigrationHandler {
             return;
         }
         writeCompletedVersion(event.getData(), chunkBounds(event.getChunk()),
-                new ChunkVolume(event.getChunk()), event.getChunk());
+                new ChunkVolume(world, event.getChunk()), event.getChunk());
     }
 
     @SubscribeEvent
@@ -66,7 +67,8 @@ public final class LegacyChunkMigrationHandler {
 
         ICube cube = event.getCube();
         LegacyChunkMigration.Bounds bounds = cubeBounds(cube.getCoords());
-        migrateLoaded(event.getData(), world.getSeed(), bounds, new CubeVolume(cube), cube);
+        migrateLoaded(event.getData(), world.getSeed(), bounds,
+                new CubeVolume(world, cube), cube);
     }
 
     @SubscribeEvent
@@ -77,7 +79,7 @@ public final class LegacyChunkMigrationHandler {
         }
         ICube cube = event.getCube();
         writeCompletedVersion(event.getData(), cubeBounds(cube.getCoords()),
-                new CubeVolume(cube), cube);
+                new CubeVolume(world, cube), cube);
     }
 
     private static void migrateLoaded(NBTTagCompound data, long worldSeed,
@@ -181,9 +183,11 @@ public final class LegacyChunkMigrationHandler {
     }
 
     private static final class ChunkVolume extends RegistryVolume {
+        private final World world;
         private final Chunk chunk;
 
-        private ChunkVolume(Chunk chunk) {
+        private ChunkVolume(World world, Chunk chunk) {
+            this.world = world;
             this.chunk = chunk;
         }
 
@@ -217,12 +221,23 @@ public final class LegacyChunkMigrationHandler {
             return target != null
                     && chunk.setBlockState(new BlockPos(x, y, z), target) != null;
         }
+
+        @Override
+        public void scheduleUpdate(int x, int y, int z, String targetRegistryPath,
+                int delay) {
+            Block block = ForgeRegistries.BLOCKS.getValue(CncRegistryIds.id(targetRegistryPath));
+            if (block != null) {
+                world.scheduleUpdate(new BlockPos(x, y, z), block, delay);
+            }
+        }
     }
 
     private static final class CubeVolume extends RegistryVolume {
+        private final World world;
         private final ICube cube;
 
-        private CubeVolume(ICube cube) {
+        private CubeVolume(World world, ICube cube) {
+            this.world = world;
             this.cube = cube;
         }
 
@@ -255,6 +270,15 @@ public final class LegacyChunkMigrationHandler {
             IBlockState target = target(targetRegistryPath, metadata);
             return target != null
                     && cube.setBlockState(new BlockPos(x, y, z), target) != null;
+        }
+
+        @Override
+        public void scheduleUpdate(int x, int y, int z, String targetRegistryPath,
+                int delay) {
+            Block block = ForgeRegistries.BLOCKS.getValue(CncRegistryIds.id(targetRegistryPath));
+            if (block != null) {
+                world.scheduleUpdate(new BlockPos(x, y, z), block, delay);
+            }
         }
     }
 }

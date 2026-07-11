@@ -8,6 +8,8 @@ import org.junit.Test;
 
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
@@ -111,6 +113,8 @@ public class LegacyChunkMigrationTest {
         assertEquals(2, volume.metadataAt(2, 0, 0));
         assertEquals(10, volume.metadataAt(3, 0, 0));
         assertEquals(14, volume.metadataAt(4, 0, 0));
+        assertEquals(Arrays.asList("3,0,0:big_dripleaf#10",
+                "4,0,0:big_dripleaf#100"), volume.scheduled);
         assertFalse(LegacyChunkMigration.containsLegacyLushState(bounds(fixture), volume));
     }
 
@@ -243,6 +247,7 @@ public class LegacyChunkMigrationTest {
     private static final class FixtureVolume implements LegacyChunkMigration.Volume {
         private final NBTTagList blocks;
         private final Set<String> targets;
+        private final List<String> scheduled = new ArrayList<>();
 
         private FixtureVolume(NBTTagCompound fixture, String... targets) {
             this.blocks = fixture.getTagList("blocks", 10);
@@ -306,6 +311,13 @@ public class LegacyChunkMigrationTest {
             block.setString("id", "cavesnotcliffs:" + targetRegistryPath);
             block.setInteger("meta", metadata);
             return true;
+        }
+
+        @Override
+        public void scheduleUpdate(int x, int y, int z, String targetRegistryPath,
+                int delay) {
+            scheduled.add(x + "," + y + "," + z + ':' + targetRegistryPath + '#'
+                    + delay);
         }
 
         private NBTTagCompound entryAt(int x, int y, int z) {

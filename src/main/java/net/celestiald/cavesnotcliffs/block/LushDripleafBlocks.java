@@ -13,8 +13,6 @@ import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.projectile.EntityArrow;
-import net.minecraft.entity.projectile.EntityThrowable;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
@@ -289,11 +287,13 @@ public final class LushDripleafBlocks {
             if (world.isRemote) {
                 return;
             }
-            if (entity instanceof EntityArrow || entity instanceof EntityThrowable) {
-                setTiltAndSchedule(world, pos, state, Tilt.FULL, true);
-                return;
-            }
             attemptEntityTilt(world, pos, state, entity);
+        }
+
+        public void projectileHit(World world, BlockPos pos, IBlockState state) {
+            if (!world.isRemote && state.getBlock() == this) {
+                setTiltAndSchedule(world, pos, state, Tilt.FULL, true);
+            }
         }
 
         @Override
