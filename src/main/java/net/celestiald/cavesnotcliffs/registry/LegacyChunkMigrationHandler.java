@@ -7,6 +7,7 @@ import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld;
 import net.celestiald.cavesnotcliffs.CavesNotCliffs;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -192,6 +193,17 @@ public final class LegacyChunkMigrationHandler {
         }
 
         @Override
+        public int blockMetadataAt(int x, int y, int z) {
+            IBlockState state = chunk.getBlockState(new BlockPos(x, y, z));
+            return state.getBlock().getMetaFromState(state);
+        }
+
+        @Override
+        public boolean isAirAt(int x, int y, int z) {
+            return chunk.getBlockState(new BlockPos(x, y, z)).getBlock() == Blocks.AIR;
+        }
+
+        @Override
         public boolean replace(int x, int y, int z, String targetRegistryPath) {
             IBlockState target = target(targetRegistryPath);
             return target != null
@@ -199,7 +211,7 @@ public final class LegacyChunkMigrationHandler {
         }
 
         @Override
-        public boolean replaceState(int x, int y, int z, String targetRegistryPath,
+        public boolean replace(int x, int y, int z, String targetRegistryPath,
                 int metadata) {
             IBlockState target = target(targetRegistryPath, metadata);
             return target != null
@@ -220,6 +232,17 @@ public final class LegacyChunkMigrationHandler {
         }
 
         @Override
+        public int blockMetadataAt(int x, int y, int z) {
+            IBlockState state = cube.getBlockState(new BlockPos(x, y, z));
+            return state.getBlock().getMetaFromState(state);
+        }
+
+        @Override
+        public boolean isAirAt(int x, int y, int z) {
+            return cube.getBlockState(new BlockPos(x, y, z)).getBlock() == Blocks.AIR;
+        }
+
+        @Override
         public boolean replace(int x, int y, int z, String targetRegistryPath) {
             IBlockState target = target(targetRegistryPath);
             return target != null
@@ -227,7 +250,7 @@ public final class LegacyChunkMigrationHandler {
         }
 
         @Override
-        public boolean replaceState(int x, int y, int z, String targetRegistryPath,
+        public boolean replace(int x, int y, int z, String targetRegistryPath,
                 int metadata) {
             IBlockState target = target(targetRegistryPath, metadata);
             return target != null

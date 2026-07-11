@@ -14,8 +14,11 @@ public final class CncDataVersions {
     /** State-split stalactites and stalagmites have been folded into pointed dripstone. */
     public static final int POINTED_DRIPSTONE_CONTENT_VERSION = 2;
 
+    /** State-split lush-cave blocks converted to canonical public/hidden runtime states. */
+    public static final int LUSH_CAVE_CONTENT_VERSION = 3;
+
     /** Latest fully implemented save-content schema. */
-    public static final int CURRENT_CONTENT_VERSION = POINTED_DRIPSTONE_CONTENT_VERSION;
+    public static final int CURRENT_CONTENT_VERSION = LUSH_CAVE_CONTENT_VERSION;
 
     /** Reserved final v2 content schema; later migration steps advance toward this value. */
     public static final int V2_CONTENT_VERSION = 2000;

@@ -50,20 +50,68 @@ public class LegacyChunkMigrationTest {
     }
 
     @Test
-    public void preservesCanonicalAndInternalDraftV2States() throws Exception {
+    public void convertsDraftV2StateSplitBlocksToCanonicalStorage() throws Exception {
         NBTTagCompound fixture = loadFixture("fixtures/draft_v2_chunk.snbt");
         FixtureVolume volume = new FixtureVolume(fixture,
                 LegacyChunkMigration.AMETHYST_BLOCK_PATH,
-                LegacyChunkMigration.BUDDING_AMETHYST_PATH);
+                LegacyChunkMigration.BUDDING_AMETHYST_PATH,
+                "big_dripleaf_stem");
 
         LegacyChunkMigration.Result result = LegacyChunkMigration.migrate(
                 ContentMigrationVersion.read(fixture), fixture.getLong("seed"), bounds(fixture), volume);
 
         assertTrue(result.isComplete());
-        assertEquals(1, result.getConvertedBlocks());
+        assertEquals(2, result.getConvertedBlocks());
         assertEquals("amethyst_block", volume.pathAt(-15, -64, 16));
-        assertEquals("dripleaf_stem", volume.pathAt(-14, -64, 16));
+        assertEquals("big_dripleaf_stem", volume.pathAt(-14, -64, 16));
+        assertEquals(2, volume.metadataAt(-14, -64, 16));
         assertEquals("pointed_dripstone", volume.pathAt(-13, -64, 16));
+    }
+
+    @Test
+    public void convertsEveryLegacyLushCompanionWithoutInventedItems() {
+        NBTTagCompound fixture = new NBTTagCompound();
+        fixture.setInteger("minX", 0);
+        fixture.setInteger("minY", 0);
+        fixture.setInteger("minZ", 0);
+        fixture.setInteger("sizeX", 6);
+        fixture.setInteger("sizeY", 6);
+        fixture.setInteger("sizeZ", 1);
+        fixture.setLong("seed", 0L);
+        ContentMigrationVersion.write(fixture,
+                CncDataVersions.CANONICAL_REGISTRY_CONTENT_VERSION);
+        NBTTagList blocks = new NBTTagList();
+        addBlock(blocks, 0, 4, 0, "glow_berry_vines");
+        addBlock(blocks, 0, 3, 0, "glow_berry_middle_fill");
+        addBlock(blocks, 0, 2, 0, "glow_berry_vines");
+        addBlock(blocks, 1, 0, 0, "baby_dripleaf");
+        addBlock(blocks, 2, 0, 0, "dripleaf_stem");
+        addBlock(blocks, 3, 0, 0, "dripleafplant_1");
+        addBlock(blocks, 4, 0, 0, "dripleaf_plant_2");
+        fixture.setTag("blocks", blocks);
+
+        FixtureVolume volume = new FixtureVolume(fixture,
+                "cave_vines_plant", "cave_vines_age_24_25",
+                "small_dripleaf", "big_dripleaf_stem", "big_dripleaf");
+        LegacyChunkMigration.Result result = LegacyChunkMigration.migrate(
+                ContentMigrationVersion.read(fixture), 0L, bounds(fixture), volume);
+
+        assertTrue(result.isComplete());
+        assertEquals(8, result.getConvertedBlocks());
+        assertEquals("cave_vines_plant", volume.pathAt(0, 4, 0));
+        assertEquals(1, volume.metadataAt(0, 4, 0));
+        assertEquals("cave_vines_plant", volume.pathAt(0, 3, 0));
+        assertEquals(0, volume.metadataAt(0, 3, 0));
+        assertEquals("cave_vines_age_24_25", volume.pathAt(0, 2, 0));
+        assertEquals(9, volume.metadataAt(0, 2, 0));
+        assertEquals("small_dripleaf", volume.pathAt(1, 0, 0));
+        assertEquals(2, volume.metadataAt(1, 0, 0));
+        assertEquals("small_dripleaf", volume.pathAt(1, 1, 0));
+        assertEquals(6, volume.metadataAt(1, 1, 0));
+        assertEquals(2, volume.metadataAt(2, 0, 0));
+        assertEquals(10, volume.metadataAt(3, 0, 0));
+        assertEquals(14, volume.metadataAt(4, 0, 0));
+        assertFalse(LegacyChunkMigration.containsLegacyLushState(bounds(fixture), volume));
     }
 
     @Test
@@ -183,6 +231,15 @@ public class LegacyChunkMigrationTest {
                 fixture.getInteger("sizeY"), fixture.getInteger("sizeZ"));
     }
 
+    private static void addBlock(NBTTagList blocks, int x, int y, int z, String path) {
+        NBTTagCompound block = new NBTTagCompound();
+        block.setInteger("x", x);
+        block.setInteger("y", y);
+        block.setInteger("z", z);
+        block.setString("id", "cavesnotcliffs:" + path);
+        blocks.appendTag(block);
+    }
+
     private static final class FixtureVolume implements LegacyChunkMigration.Volume {
         private final NBTTagList blocks;
         private final Set<String> targets;
@@ -207,6 +264,21 @@ public class LegacyChunkMigrationTest {
             return blockPathAt(x, y, z);
         }
 
+        private int metadataAt(int x, int y, int z) {
+            NBTTagCompound block = entryAt(x, y, z);
+            return block == null ? 0 : block.getInteger("meta");
+        }
+
+        @Override
+        public int blockMetadataAt(int x, int y, int z) {
+            return metadataAt(x, y, z);
+        }
+
+        @Override
+        public boolean isAirAt(int x, int y, int z) {
+            return entryAt(x, y, z) == null;
+        }
+
         @Override
         public boolean hasTarget(String registryPath) {
             return targets.contains(registryPath);
@@ -214,30 +286,26 @@ public class LegacyChunkMigrationTest {
 
         @Override
         public boolean replace(int x, int y, int z, String targetRegistryPath) {
+            return replace(x, y, z, targetRegistryPath, 0);
+        }
+
+        @Override
+        public boolean replace(int x, int y, int z, String targetRegistryPath,
+                int metadata) {
             if (!hasTarget(targetRegistryPath)) {
                 return false;
             }
             NBTTagCompound block = entryAt(x, y, z);
             if (block == null) {
-                return false;
+                block = new NBTTagCompound();
+                block.setInteger("x", x);
+                block.setInteger("y", y);
+                block.setInteger("z", z);
+                blocks.appendTag(block);
             }
             block.setString("id", "cavesnotcliffs:" + targetRegistryPath);
+            block.setInteger("meta", metadata);
             return true;
-        }
-
-        @Override
-        public boolean replaceState(int x, int y, int z, String targetRegistryPath,
-                int metadata) {
-            if (!replace(x, y, z, targetRegistryPath)) {
-                return false;
-            }
-            entryAt(x, y, z).setInteger("meta", metadata);
-            return true;
-        }
-
-        private int metadataAt(int x, int y, int z) {
-            NBTTagCompound block = entryAt(x, y, z);
-            return block == null ? 0 : block.getInteger("meta");
         }
 
         private NBTTagCompound entryAt(int x, int y, int z) {

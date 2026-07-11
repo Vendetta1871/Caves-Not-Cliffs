@@ -72,6 +72,14 @@ public class LegacyContentMappingsTest {
                 LegacyContentMappings.canonicalBlockPath("top_stalagmite"));
         assertEquals("pointed_dripstone",
                 LegacyContentMappings.canonicalItemPath("top_stalagmite"));
+        assertEquals("glow_berries",
+                LegacyContentMappings.canonicalItemPath("cave_vines_age_24_25"));
+        assertEquals("big_dripleaf",
+                LegacyContentMappings.canonicalItemPath("big_dripleaf_waterlogged"));
+        assertEquals("hanging_roots",
+                LegacyContentMappings.canonicalItemPath("hanging_roots_waterlogged"));
+        assertEquals("flowering_azalea",
+                LegacyContentMappings.canonicalItemPath("potted_flowering_azalea_bush"));
     }
 
     @Test

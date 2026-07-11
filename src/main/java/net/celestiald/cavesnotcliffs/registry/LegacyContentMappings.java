@@ -74,9 +74,19 @@ public final class LegacyContentMappings {
         // State-split companion blocks remain registered, but their old ItemBlocks do not.
         map(items, "glow_berry_vines", "glow_berries");
         map(items, "glow_berry_middle_fill", "glow_berries");
+        map(items, "cave_vines", "glow_berries");
+        map(items, "cave_vines_age_8_15", "glow_berries");
+        map(items, "cave_vines_age_16_23", "glow_berries");
+        map(items, "cave_vines_age_24_25", "glow_berries");
+        map(items, "cave_vines_plant", "glow_berries");
         map(items, "dripleafplant_1", "big_dripleaf");
         map(items, "dripleaf_plant_2", "big_dripleaf");
         map(items, "dripleaf_stem", "big_dripleaf");
+        map(items, "big_dripleaf_stem", "big_dripleaf");
+        map(items, "big_dripleaf_waterlogged", "big_dripleaf");
+        map(items, "hanging_roots_waterlogged", "hanging_roots");
+        map(items, "potted_azalea_bush", "azalea");
+        map(items, "potted_flowering_azalea_bush", "flowering_azalea");
         map(items, "stalagmite", "pointed_dripstone");
         map(items, "bottom_stalactite", "pointed_dripstone");
         map(items, "middle_stalactite", "pointed_dripstone");
