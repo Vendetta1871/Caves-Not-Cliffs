@@ -15,6 +15,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkPrimer;
 import net.minecraft.world.gen.IChunkGenerator;
 
 import java.util.List;
@@ -34,10 +35,14 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
     private final World world;
     private final TerrainProfile terrainProfile;
     private final IChunkGenerator structureGenerator;
+    private final VanillaStructureBridge structures;
     private final V118TerrainColumnGenerator columns;
     private final V118BlockStateMapper blockStates;
     private final V118BiomeMapper biomes;
     private final V118CubeSlicer slicer;
+    private ChunkPrimer cachedStructureColumn;
+    private int cachedStructureX;
+    private int cachedStructureZ;
 
     V118CubicChunksGenerator(World world, TerrainProfile terrainProfile,
             IChunkGenerator structureGenerator) {
@@ -62,6 +67,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         this.world = world;
         this.terrainProfile = requireNativeProfile(terrainProfile);
         this.structureGenerator = structureGenerator;
+        structures = new VanillaStructureBridge(world, structureGenerator);
         this.columns = columns;
         this.blockStates = blockStates;
         this.biomes = biomes;
@@ -101,7 +107,13 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         if (!isGeneratedCube(cubeY)) {
             return primer;
         }
-        slicer.slice(columns.column(cubeX, cubeZ), cubeY, primer);
+        TerrainColumn column = columns.column(cubeX, cubeZ);
+        if (cubeY >= 0 && cubeY < 16) {
+            slicer.sliceStructureBlocks(structureColumn(cubeX, cubeZ, column), column, cubeY,
+                primer);
+        } else {
+            slicer.slice(column, cubeY, primer);
+        }
         return primer;
     }
 
@@ -116,6 +128,9 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         if (!isGeneratedCube(cube.getY())) {
             return;
         }
+        if (cube.getY() == 0) {
+            structures.populate(cube.getX(), cube.getZ());
+        }
         TerrainColumn column = columns.column(cube.getX(), cube.getZ());
 
         // CubicChunks 1.12 has no proto-cube scheduled-tick list. Preserve aquifer intent at the
@@ -128,7 +143,9 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
                 cube.getX() * CUBE_SIZE + localX,
                 cube.getY() * CUBE_SIZE + localY,
                 cube.getZ() * CUBE_SIZE + localZ);
-            world.scheduleUpdate(position, block, block.tickRate(world));
+            if (world.getBlockState(position).getBlock() == block) {
+                world.scheduleUpdate(position, block, block.tickRate(world));
+            }
         });
     }
 
@@ -144,11 +161,17 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
 
     @Override
     public Box getFullPopulationRequirements(ICube cube) {
+        if (cube.getY() == 0) {
+            return new Box(-1, 0, -1, 0, 15, 0);
+        }
         return NO_REQUIREMENT;
     }
 
     @Override
     public Box getPopulationPregenerationRequirements(ICube cube) {
+        if (cube.getY() == 0) {
+            return new Box(-1, 0, -1, 1, 15, 1);
+        }
         return NO_REQUIREMENT;
     }
 
@@ -159,7 +182,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
 
     @Override
     public void recreateStructures(Chunk column) {
-        // The structure-only bridge is a later checkpoint.
+        structures.recreateStructures(column);
     }
 
     @Override
@@ -170,7 +193,20 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
 
     @Override
     public BlockPos getClosestStructure(String name, BlockPos pos, boolean findUnexplored) {
-        return null;
+        return structures.getClosestStructure(name, pos, findUnexplored);
+    }
+
+    private ChunkPrimer structureColumn(int columnX, int columnZ, TerrainColumn terrain) {
+        if (cachedStructureColumn == null || cachedStructureX != columnX
+                || cachedStructureZ != columnZ) {
+            ChunkPrimer primer = new ChunkPrimer();
+            slicer.fillStructureTerrain(terrain, primer);
+            structures.generate(columnX, columnZ, primer);
+            cachedStructureColumn = primer;
+            cachedStructureX = columnX;
+            cachedStructureZ = columnZ;
+        }
+        return cachedStructureColumn;
     }
 
     static boolean isNativeProfile(TerrainProfile profile) {

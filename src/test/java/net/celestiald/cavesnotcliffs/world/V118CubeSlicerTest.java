@@ -8,6 +8,7 @@ import net.minecraft.init.Biomes;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Bootstrap;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.chunk.ChunkPrimer;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -85,6 +86,46 @@ public class V118CubeSlicerTest {
         assertEquals(Arrays.asList(
             "7:8:11:WATER",
             "15:15:15:LAVA"), fluids);
+    }
+
+    @Test
+    public void structurePrimerStartsWithNativeTerrainAndCopiesOnlyTheRequestedCube() {
+        TerrainColumn.Builder builder = TerrainColumn.builder(-8, 12)
+            .fillMaterialIds(V118Material.AIR.storageId())
+            .fillSurfaceBiomeIds(V118Biome.PLAINS.ordinal())
+            .fillVirtualBiomeIds(V118Biome.PLAINS.ordinal());
+        V118Material[] materials = V118Material.values();
+        for (int worldY = 0; worldY < 256; ++worldY) {
+            for (int localZ = 0; localZ < 16; ++localZ) {
+                for (int localX = 0; localX < 16; ++localX) {
+                    int index = (worldY << 8) | (localZ << 4) | localX;
+                    builder.setMaterialId(localX, worldY, localZ,
+                        materials[index % materials.length].storageId());
+                }
+            }
+        }
+
+        V118BlockStateMapper mapper = blockMapper();
+        V118CubeSlicer slicer = new V118CubeSlicer(mapper, biomeMapper());
+        TerrainColumn column = builder.build();
+        ChunkPrimer structureColumn = new ChunkPrimer();
+        slicer.fillStructureTerrain(column, structureColumn);
+        for (int worldY = 0; worldY < 256; ++worldY) {
+            for (int localZ = 0; localZ < 16; ++localZ) {
+                for (int localX = 0; localX < 16; ++localX) {
+                    int index = (worldY << 8) | (localZ << 4) | localX;
+                    assertEquals(mapper.stateFor(materials[index % materials.length]),
+                        structureColumn.getBlockState(localX, worldY, localZ));
+                }
+            }
+        }
+
+        structureColumn.setBlockState(3, 173, 7, Blocks.DIAMOND_BLOCK.getDefaultState());
+        CubePrimer cube = new CubePrimer();
+        slicer.sliceStructureBlocks(structureColumn, column, 10, cube);
+        assertSame(Blocks.DIAMOND_BLOCK, cube.getBlockState(3, 13, 7).getBlock());
+        assertEquals(structureColumn.getBlockState(15, 175, 15),
+            cube.getBlockState(15, 15, 15));
     }
 
     @Test

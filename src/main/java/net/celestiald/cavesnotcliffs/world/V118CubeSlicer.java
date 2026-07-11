@@ -4,6 +4,7 @@ import io.github.opencubicchunks.cubicchunks.api.worldgen.CubePrimer;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Material;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.chunk.ChunkPrimer;
 
 /** Copies one immutable 16x384x16 terrain column into CubicChunks' 16-cube view. */
 final class V118CubeSlicer {
@@ -26,6 +27,49 @@ final class V118CubeSlicer {
     }
 
     void slice(TerrainColumn column, int cubeY, CubePrimer primer) {
+        sliceTerrainBlocks(column, cubeY, primer);
+        projectCubeBiomes(column, cubeY, primer);
+    }
+
+    void fillStructureTerrain(TerrainColumn column, ChunkPrimer primer) {
+        if (primer == null) {
+            throw new NullPointerException("primer");
+        }
+        for (int cubeY = 0; cubeY < 16; ++cubeY) {
+            column.copyCubeMaterialIds(cubeY, materialIds, 0);
+            int minY = cubeY * CUBE_SIZE;
+            for (int index = 0; index < materialIds.length; ++index) {
+                int localY = index >>> 8;
+                int localZ = (index >>> 4) & 15;
+                int localX = index & 15;
+                primer.setBlockState(localX, minY + localY, localZ,
+                    blockStates.stateFor(materialIds[index]));
+            }
+        }
+    }
+
+    void sliceStructureBlocks(ChunkPrimer structureColumn, TerrainColumn column, int cubeY,
+            CubePrimer primer) {
+        if (structureColumn == null) {
+            throw new NullPointerException("structureColumn");
+        }
+        if (cubeY < 0 || cubeY >= 16) {
+            throw new IllegalArgumentException("1.12 structures only cover cube Y 0..15: "
+                + cubeY);
+        }
+        int minY = cubeY * CUBE_SIZE;
+        for (int localY = 0; localY < CUBE_SIZE; ++localY) {
+            for (int localZ = 0; localZ < CUBE_SIZE; ++localZ) {
+                for (int localX = 0; localX < CUBE_SIZE; ++localX) {
+                    primer.setBlockState(localX, localY, localZ,
+                        structureColumn.getBlockState(localX, minY + localY, localZ));
+                }
+            }
+        }
+        projectCubeBiomes(column, cubeY, primer);
+    }
+
+    private void sliceTerrainBlocks(TerrainColumn column, int cubeY, CubePrimer primer) {
         column.copyCubeMaterialIds(cubeY, materialIds, 0);
         for (int index = 0; index < materialIds.length; ++index) {
             // CubePrimer's private index is (localY << 8) | (localZ << 4) | localX.
@@ -35,7 +79,9 @@ final class V118CubeSlicer {
             primer.setBlockState(localX, localY, localZ,
                 blockStates.stateFor(materialIds[index]));
         }
+    }
 
+    private void projectCubeBiomes(TerrainColumn column, int cubeY, CubePrimer primer) {
         // CubicChunks 1.12 stores one vertical biome plane per cube. It cannot represent the four
         // separate quart-Y samples inside a 16-block cube, so the center quart sample is projected
         // into CubePrimer while TerrainColumn retains the exact 4x96x4 volume for later queries.
