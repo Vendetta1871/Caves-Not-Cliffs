@@ -57,6 +57,12 @@ public class PowderSnowRegistrationTest {
         assertTrue(block instanceof BlockPowderSnowCauldron.BlockCustom);
         assertEquals(Integer.valueOf(1),
             block.getDefaultState().getValue(BlockCauldron.LEVEL));
+        for (net.minecraft.block.state.IBlockState validState
+                : block.getBlockState().getValidStates()) {
+            int metadata = block.getMetaFromState(validState);
+            assertTrue("Forge registry metadata must stay within the hidden 1..3 range",
+                metadata >= 1 && metadata <= 3);
+        }
         for (int level = 1; level <= 3; ++level) {
             assertEquals(level, block.getMetaFromState(block.getStateFromMeta(level)));
         }
