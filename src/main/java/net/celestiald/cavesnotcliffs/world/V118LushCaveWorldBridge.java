@@ -104,8 +104,7 @@ final class V118LushCaveWorldBridge implements V118LushCaveFeature.WorldAccess {
                 state.getValue(LushDripleafBlocks.WATERLOGGED));
         }
         if (block == Blocks.DOUBLE_PLANT
-                && state.getValue(BlockDoublePlant.VARIANT)
-                    == BlockDoublePlant.EnumPlantType.GRASS) {
+                && state.getValue(BlockDoublePlant.VARIANT).getMeta() == 2) {
             return V118LushCaveFeature.State.tallGrass(
                 state.getValue(BlockDoublePlant.HALF)
                     == BlockDoublePlant.EnumBlockHalf.UPPER);
@@ -119,8 +118,8 @@ final class V118LushCaveWorldBridge implements V118LushCaveFeature.WorldAccess {
             }
             return V118LushCaveFeature.State.OTHER;
         }
-        if (block == Blocks.TALLGRASS && state.getValue(BlockTallGrass.TYPE)
-                == BlockTallGrass.EnumType.GRASS) {
+        if (block == Blocks.TALLGRASS
+                && state.getValue(BlockTallGrass.TYPE).getMeta() == 1) {
             return V118LushCaveFeature.State.GRASS;
         }
         if (block == LushCaveContent.MOSS_BLOCK) {
@@ -323,11 +322,12 @@ final class V118LushCaveWorldBridge implements V118LushCaveFeature.WorldAccess {
                 return LushCaveContent.FLOWERING_AZALEA.getDefaultState();
             case GRASS:
                 return Blocks.TALLGRASS.getDefaultState()
-                    .withProperty(BlockTallGrass.TYPE, BlockTallGrass.EnumType.GRASS);
+                    .withProperty(BlockTallGrass.TYPE,
+                        BlockTallGrass.EnumType.byMetadata(1));
             case TALL_GRASS:
                 return Blocks.DOUBLE_PLANT.getDefaultState()
                     .withProperty(BlockDoublePlant.VARIANT,
-                        BlockDoublePlant.EnumPlantType.GRASS)
+                        BlockDoublePlant.EnumPlantType.byMetadata(2))
                     .withProperty(BlockDoublePlant.HALF, state.upper()
                         ? BlockDoublePlant.EnumBlockHalf.UPPER
                         : BlockDoublePlant.EnumBlockHalf.LOWER);
@@ -390,10 +390,7 @@ final class V118LushCaveWorldBridge implements V118LushCaveFeature.WorldAccess {
     static boolean isBaseStoneOverworld(IBlockState state) {
         if (state.getBlock() == Blocks.STONE) {
             BlockStone.EnumType variant = state.getValue(BlockStone.VARIANT);
-            return variant == BlockStone.EnumType.STONE
-                || variant == BlockStone.EnumType.GRANITE
-                || variant == BlockStone.EnumType.DIORITE
-                || variant == BlockStone.EnumType.ANDESITE;
+            return variant.isNatural();
         }
         return hasPath(state.getBlock(), "deepslate") || hasPath(state.getBlock(), "tuff");
     }
