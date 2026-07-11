@@ -1,7 +1,7 @@
 {
   "variants": {
     "normal": {
-      "model": "cavesnotcliffs:block/moss_block"
+      "model": "cavesnotcliffs:moss_block"
     }
   }
 }

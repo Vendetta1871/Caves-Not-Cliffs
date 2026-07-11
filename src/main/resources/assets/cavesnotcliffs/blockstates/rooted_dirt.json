@@ -2,18 +2,18 @@
   "variants": {
     "normal": [
       {
-        "model": "cavesnotcliffs:block/rooted_dirt"
+        "model": "cavesnotcliffs:rooted_dirt"
       },
       {
-        "model": "cavesnotcliffs:block/rooted_dirt",
+        "model": "cavesnotcliffs:rooted_dirt",
         "y": 90
       },
       {
-        "model": "cavesnotcliffs:block/rooted_dirt",
+        "model": "cavesnotcliffs:rooted_dirt",
         "y": 180
       },
       {
-        "model": "cavesnotcliffs:block/rooted_dirt",
+        "model": "cavesnotcliffs:rooted_dirt",
         "y": 270
       }
     ]

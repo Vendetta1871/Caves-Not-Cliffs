@@ -163,7 +163,7 @@ public class LushCaveAssetsTest {
                     "assets/cavesnotcliffs/blockstates/" + alias[0] + ".json"),
                     StandardCharsets.UTF_8);
             assertTrue(alias[0], blockstate.contains(
-                    "cavesnotcliffs:block/" + alias[1]));
+                    "cavesnotcliffs:" + alias[1]));
             assertFalse(alias[0], blockstate.contains("custom/"));
         }
 

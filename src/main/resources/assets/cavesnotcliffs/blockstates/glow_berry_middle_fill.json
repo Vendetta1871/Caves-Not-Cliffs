@@ -1,7 +1,7 @@
 {
   "variants": {
     "normal": {
-      "model": "cavesnotcliffs:block/cave_vines_plant"
+      "model": "cavesnotcliffs:cave_vines_plant"
     }
   }
 }

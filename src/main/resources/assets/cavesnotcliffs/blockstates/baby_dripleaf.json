@@ -1,7 +1,7 @@
 {
   "variants": {
     "normal": {
-      "model": "cavesnotcliffs:block/small_dripleaf_bottom"
+      "model": "cavesnotcliffs:small_dripleaf_bottom"
     }
   }
 }
