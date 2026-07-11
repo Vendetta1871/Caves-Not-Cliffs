@@ -25,7 +25,7 @@ public final class HoneycombDispenserBehavior extends BehaviorDefaultDispenseIte
         }
         successful = true;
         world.setBlockState(target, waxed, 3);
-        world.playEvent(3003, target, 0);
+        HoneyWaxingEffects.play(world, target);
         stack.shrink(1);
         return stack;
     }

@@ -138,3 +138,14 @@ state used to bridge the legacy four-bit metadata limit.
 - Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
 - Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
 - Asset base: <https://resources.download.minecraft.net/>
+
+The honey-block, honeycomb-block, and honey-bottle textures; honey-block, coral-block,
+honey-drink, and honeycomb-waxing sounds; and their models and sound definitions are direct
+Java 1.18.2 assets. Resource paths and model syntax are adapted only for Java 1.12.2. The wax-on
+effect uses the closest target-runtime spell sprite while retaining the official per-face count,
+position, velocity, and sound contract because the dedicated 1.18 particle type is unavailable.
+
+- Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
+- Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
+- Asset base: <https://resources.download.minecraft.net/>

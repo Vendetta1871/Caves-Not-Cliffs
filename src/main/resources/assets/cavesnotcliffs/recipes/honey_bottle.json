@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {"item": "cavesnotcliffs:honey_block"},
+    {"item": "minecraft:glass_bottle"},
+    {"item": "minecraft:glass_bottle"},
+    {"item": "minecraft:glass_bottle"},
+    {"item": "minecraft:glass_bottle"}
+  ],
+  "result": {"item": "cavesnotcliffs:honey_bottle", "count": 4}
+}

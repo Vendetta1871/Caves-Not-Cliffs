@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["HH", "HH"],
+  "key": {"H": {"item": "cavesnotcliffs:honeycomb"}},
+  "result": {"item": "cavesnotcliffs:honeycomb_block"}
+}

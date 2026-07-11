@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.item;
 
 import net.celestiald.cavesnotcliffs.content.CopperContent;
+import net.celestiald.cavesnotcliffs.content.HoneyWaxingEffects;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
@@ -23,7 +24,7 @@ public final class ItemHoneycomb extends Item {
         }
         stack.shrink(1);
         world.setBlockState(pos, waxed, 11);
-        world.playEvent(player, 3003, pos, 0);
+        HoneyWaxingEffects.play(world, pos);
         return EnumActionResult.SUCCESS;
     }
 }
