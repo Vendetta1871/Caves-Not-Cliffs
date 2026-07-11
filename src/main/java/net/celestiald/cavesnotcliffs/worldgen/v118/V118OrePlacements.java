@@ -50,8 +50,15 @@ public final class V118OrePlacements {
         int originZ = chunkZ << 4;
         long decorationSeed = random.setDecorationSeed(worldSeed, originX, originZ);
         EnumMap<PlacedOre, Boolean> results = new EnumMap<PlacedOre, Boolean>(PlacedOre.class);
+        boolean underwaterMagmaDecorated = false;
         boolean softDisksDecorated = false;
         for (PlacedOre feature : PlacedOre.values()) {
+            if (!underwaterMagmaDecorated && feature.decorationStep == UNDERGROUND_ORES_STEP
+                    && feature.globalFeatureIndex > 25) {
+                V118UnderwaterMagmaPlacements.decorate(world, decorationSeed, chunkX,
+                        chunkZ, random);
+                underwaterMagmaDecorated = true;
+            }
             if (!softDisksDecorated && feature.decorationStep == UNDERGROUND_ORES_STEP
                     && feature.globalFeatureIndex > 30) {
                 V118DiskPlacements.decorate(world, decorationSeed, chunkX, chunkZ,
@@ -547,7 +554,7 @@ public final class V118OrePlacements {
     }
 
     public interface WorldAccess extends V118OreFeature.WorldAccess,
-            V118DiskPlacements.WorldAccess {
+            V118DiskPlacements.WorldAccess, V118UnderwaterMagmaFeature.WorldAccess {
         V118Biome biomeAt(int blockX, int blockY, int blockZ);
     }
 

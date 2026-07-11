@@ -21,6 +21,7 @@ public enum V118OreMaterial {
     GRASS_BLOCK,
     SAND,
     SANDSTONE,
+    MAGMA,
     COAL_ORE,
     DEEPSLATE_COAL_ORE,
     IRON_ORE,
