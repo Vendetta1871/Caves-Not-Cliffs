@@ -24,6 +24,7 @@ import org.apache.logging.log4j.Logger;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 
@@ -32,6 +33,7 @@ import java.util.WeakHashMap;
 public final class LegacyChunkMigrationHandler {
     private static final Logger LOGGER = LogManager.getLogger("CavesNotCliffs/ChunkMigration");
     private static final Set<Object> COMPLETED = Collections.newSetFromMap(new WeakHashMap<>());
+    private static final Map<Object, Integer> PENDING = new WeakHashMap<>();
 
     private LegacyChunkMigrationHandler() {
     }
@@ -67,9 +69,17 @@ public final class LegacyChunkMigrationHandler {
         }
 
         ICube cube = event.getCube();
-        LegacyChunkMigration.Bounds bounds = cubeBounds(cube.getCoords());
-        migrateLoaded(event.getData(), world.getSeed(), bounds,
-                new CubeVolume(world, cube), cube);
+        CubeMigrationAccess current = new LiveCubeMigrationAccess(world, cube);
+        ICubicWorld cubicWorld = (ICubicWorld) world;
+        CubePos position = cube.getCoords();
+        migrateLoadedCube(event.getData(), world.getSeed(), current,
+                verticalOffset -> {
+                    ICube neighbor = cubicWorld.getCubeCache().getLoadedCube(
+                            position.getX(), position.getY() + verticalOffset,
+                            position.getZ());
+                    return neighbor == null ? null
+                            : new LiveCubeMigrationAccess(world, neighbor);
+                });
     }
 
     @SubscribeEvent
@@ -99,15 +109,50 @@ public final class LegacyChunkMigrationHandler {
         if (result.isComplete()) {
             rememberCompleted(storage);
         } else if (result.getDeferredBlocks() > 0) {
-            LOGGER.warn("Deferred {} legacy content blocks because their canonical target is not "
-                            + "registered or could not be stored; migration remains at version {}",
+            rememberPending(storage, result.getResultingVersion());
+            LOGGER.warn("Deferred {} legacy content blocks because their canonical target or "
+                            + "loaded boundary halo is unavailable; migration remains at version {}",
                     result.getDeferredBlocks(), result.getResultingVersion());
         }
     }
 
-    private static void writeCompletedVersion(NBTTagCompound data,
+    static void migrateLoadedCube(NBTTagCompound data, long worldSeed,
+            CubeMigrationAccess current, LoadedVerticalNeighborLookup neighbors) {
+        migrateLoaded(data, worldSeed, current.bounds(), current.volume(), current.storage());
+        for (int verticalOffset : new int[]{-1, 1}) {
+            CubeMigrationAccess neighbor = neighbors.loaded(verticalOffset);
+            if (neighbor != null && neighbor.storage() != current.storage()) {
+                retryPending(worldSeed, neighbor);
+            }
+        }
+    }
+
+    private static void retryPending(long worldSeed, CubeMigrationAccess access) {
+        Integer version = pendingVersion(access.storage());
+        if (version == null) {
+            return;
+        }
+        LegacyChunkMigration.Result result = LegacyChunkMigration.migrate(
+                version, worldSeed, access.bounds(), access.volume());
+        if (result.getConvertedBlocks() > 0 || result.getResultingVersion() > version) {
+            markDirty(access.storage());
+        }
+        if (result.isComplete()) {
+            rememberCompleted(access.storage());
+            return;
+        }
+        rememberPending(access.storage(), result.getResultingVersion());
+    }
+
+    static void writeCompletedVersion(NBTTagCompound data,
             LegacyChunkMigration.Bounds bounds, LegacyChunkMigration.Volume volume,
             Object storage) {
+        Integer pending = pendingVersion(storage);
+        if (pending != null) {
+            ContentMigrationVersion.write(data,
+                    Math.max(ContentMigrationVersion.read(data), pending));
+            return;
+        }
         if (isRememberedCompleted(storage)
                 || !LegacyChunkMigration.containsLegacyContent(bounds, volume)) {
             ContentMigrationVersion.write(data,
@@ -131,8 +176,34 @@ public final class LegacyChunkMigrationHandler {
     }
 
     private static void rememberCompleted(Object storage) {
+        forgetPending(storage);
         synchronized (COMPLETED) {
             COMPLETED.add(storage);
+        }
+    }
+
+    private static void rememberPending(Object storage, int version) {
+        forgetCompleted(storage);
+        synchronized (PENDING) {
+            PENDING.put(storage, version);
+        }
+    }
+
+    private static Integer pendingVersion(Object storage) {
+        synchronized (PENDING) {
+            return PENDING.get(storage);
+        }
+    }
+
+    private static void forgetPending(Object storage) {
+        synchronized (PENDING) {
+            PENDING.remove(storage);
+        }
+    }
+
+    private static void forgetCompleted(Object storage) {
+        synchronized (COMPLETED) {
+            COMPLETED.remove(storage);
         }
     }
 
@@ -180,6 +251,45 @@ public final class LegacyChunkMigrationHandler {
         protected IBlockState target(String registryPath, int metadata) {
             Block block = ForgeRegistries.BLOCKS.getValue(CncRegistryIds.id(registryPath));
             return block == null ? null : block.getStateFromMeta(metadata);
+        }
+    }
+
+    interface CubeMigrationAccess {
+        Object storage();
+
+        LegacyChunkMigration.Bounds bounds();
+
+        LegacyChunkMigration.Volume volume();
+    }
+
+    interface LoadedVerticalNeighborLookup {
+        CubeMigrationAccess loaded(int verticalOffset);
+    }
+
+    private static final class LiveCubeMigrationAccess implements CubeMigrationAccess {
+        private final ICube cube;
+        private final LegacyChunkMigration.Bounds bounds;
+        private final CubeVolume volume;
+
+        private LiveCubeMigrationAccess(World world, ICube cube) {
+            this.cube = cube;
+            this.bounds = cubeBounds(cube.getCoords());
+            this.volume = new CubeVolume(world, cube);
+        }
+
+        @Override
+        public Object storage() {
+            return cube;
+        }
+
+        @Override
+        public LegacyChunkMigration.Bounds bounds() {
+            return bounds;
+        }
+
+        @Override
+        public LegacyChunkMigration.Volume volume() {
+            return volume;
         }
     }
 
