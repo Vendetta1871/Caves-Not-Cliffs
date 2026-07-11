@@ -18,6 +18,8 @@ public final class CncBlockProperties {
     /** Java 1.18's stable material-color slots, absent from the 1.12 palette. */
     public static final MapColor DEEPSLATE = registerMapColor(59, 0x646464);
     public static final MapColor RAW_IRON = registerMapColor(60, 0xD8AF93);
+    public static final MapColor WARPED_NYLIUM = registerMapColor(55, 0x167E86);
+    public static final MapColor WARPED_STEM = registerMapColor(56, 0x3A8E8C);
 
     private CncBlockProperties() {
     }

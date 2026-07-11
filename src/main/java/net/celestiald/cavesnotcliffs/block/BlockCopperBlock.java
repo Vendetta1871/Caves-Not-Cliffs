@@ -18,7 +18,6 @@ import net.minecraft.world.World;
 import java.util.Random;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockCopperBlock extends ElementsCavesNotCliffs.ModElement {
     @GameRegistry.ObjectHolder("cavesnotcliffs:copper_block")
     public static final Block block = null;

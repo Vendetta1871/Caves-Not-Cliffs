@@ -22,7 +22,6 @@ import net.minecraft.util.IStringSerializable;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import java.util.Random;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockCopperSlabStage1 extends ElementsCavesNotCliffs.ModElement {
     @GameRegistry.ObjectHolder("cavesnotcliffs:exposed_cut_copper_slab")
     public static final Block block = null;
