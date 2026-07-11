@@ -232,10 +232,10 @@ public final class CavesNotCliffsCubeGenerator implements ICubeGenerator {
                 ^ (long) position.getZ() * 42317861L));
         MinecraftForge.EVENT_BUS.post(new PopulateCubeEvent.Pre(world, random,
                 position.getX(), position.getY(), position.getZ(), false));
-        // The draft-v2 CaveBiomeDecorator emitted state-split lush aliases after load migration
-        // (and could place only the lower half of small dripleaf). Do not run it in schema-1 saves:
-        // retained vanilla/structure population below remains authoritative, while new schema-2
-        // worlds receive the exact 1.18 feature pipeline through V118CubicChunksGenerator.
+        // Keep the draft-v2 feature positions and RNG schedule so existing schema-1 saves do not
+        // gain a decoration seam. The compatibility decorator now emits canonical complete states
+        // instead of recreating aliases after their one-time load migration.
+        CaveBiomeDecorator.decorate(world, random, position);
         CubeGeneratorsRegistry.generateWorld(world, random, position,
                 world.getBiome(position.getCenterBlockPos()));
         MinecraftForge.EVENT_BUS.post(new PopulateCubeEvent.Post(world, random,

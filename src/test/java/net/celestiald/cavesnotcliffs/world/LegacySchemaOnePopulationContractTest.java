@@ -6,23 +6,54 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Random;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class LegacySchemaOnePopulationContractTest {
     @Test
-    public void schemaOneGeneratorCannotInvokeTheRemovedAliasDecorator() throws IOException {
-        String resource = '/' + CavesNotCliffsCubeGenerator.class.getName()
+    public void schemaOneGeneratorRetainsItsDecoratorWithoutLegacyStateIds() throws IOException {
+        String generatorResource = '/' + CavesNotCliffsCubeGenerator.class.getName()
                 .replace('.', '/') + ".class";
-        InputStream input = CavesNotCliffsCubeGenerator.class.getResourceAsStream(resource);
-        assertNotNull(input);
+        InputStream generatorInput = CavesNotCliffsCubeGenerator.class
+                .getResourceAsStream(generatorResource);
+        assertNotNull(generatorInput);
 
-        String classFile = new String(readFully(input), StandardCharsets.ISO_8859_1);
-        assertFalse(classFile.contains("CaveBiomeDecorator"));
-        assertFalse(classFile.contains("glow_berry_vines"));
-        assertFalse(classFile.contains("glow_berry_middle_fill"));
-        assertFalse(classFile.contains("baby_dripleaf"));
+        String generator = new String(readFully(generatorInput),
+                StandardCharsets.ISO_8859_1);
+        assertTrue(generator.contains("CaveBiomeDecorator"));
+
+        String decoratorResource = '/' + CaveBiomeDecorator.class.getName()
+                .replace('.', '/') + ".class";
+        InputStream decoratorInput = CaveBiomeDecorator.class
+                .getResourceAsStream(decoratorResource);
+        assertNotNull(decoratorInput);
+
+        String decorator = new String(readFully(decoratorInput),
+                StandardCharsets.ISO_8859_1);
+        assertFalse(decorator.contains("BlockGlowBerryVines"));
+        assertFalse(decorator.contains("BlockGlowBerryMiddleFill"));
+        assertFalse(decorator.contains("BlockBabyDripleaf"));
+        assertFalse(decorator.contains("BlockDripleafPlant"));
+        assertTrue(decorator.contains("LushCaveVinesBlock"));
+        assertTrue(decorator.contains("LushDripleafBlocks"));
+        assertTrue(decorator.contains("LushCaveContent"));
+        assertTrue(decorator.contains("BlockPointedDripstone"));
+    }
+
+    @Test
+    public void canonicalVinesConsumeTheDraftV2RandomSchedule() {
+        CountingRandom random = new CountingRandom();
+        assertFalse(CaveBiomeDecorator.legacyVineBerryRoll(random, 0, 4));
+        assertFalse(CaveBiomeDecorator.legacyVineBerryRoll(random, 1, 4));
+        assertFalse(CaveBiomeDecorator.legacyVineBerryRoll(random, 2, 4));
+        assertTrue(CaveBiomeDecorator.legacyVineBerryRoll(random, 3, 4));
+        assertTrue(CaveBiomeDecorator.legacyVineBerryRoll(random, 0, 1));
+        assertFalse(CaveBiomeDecorator.legacyVineBerryRoll(random, 0, 2));
+        assertEquals(4, random.calls);
     }
 
     private static byte[] readFully(InputStream input) throws IOException {
@@ -33,6 +64,16 @@ public class LegacySchemaOnePopulationContractTest {
                 output.write(buffer, 0, read);
             }
             return output.toByteArray();
+        }
+    }
+
+    private static final class CountingRandom extends Random {
+        private int calls;
+
+        @Override
+        public double nextDouble() {
+            calls++;
+            return 0.5D;
         }
     }
 }
