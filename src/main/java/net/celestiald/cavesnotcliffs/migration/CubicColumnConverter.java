@@ -25,6 +25,9 @@ public final class CubicColumnConverter {
     private static final String CONTENT_VERSION = "contentVersion";
     private static final String CAULDRON_BRIDGE = "CavesNotCliffsCauldronBridge";
     static final String REBUILD_HEIGHT_MAP = "CavesNotCliffsRebuildHeightMap";
+    static final String SCHEMA_ONE_POPULATION = "CavesNotCliffsSchema1Population";
+    static final int SCHEMA_ONE_POPULATION_VERSION = 1;
+    static final int SCHEMA_ONE_POPULATION_COMPLETE_MASK = 0xff;
 
     private static final Set<String> KNOWN_CUBE_ROOT_KEYS = new HashSet<String>(Arrays.asList(
             "DataVersion", "ForgeDataVersion", "Level", CONTENT_ROOT, CAULDRON_BRIDGE));
@@ -149,8 +152,11 @@ public final class CubicColumnConverter {
         target.setInteger("zPos", chunkZ);
         target.setLong("LastUpdate", lastUpdate);
         target.setIntArray("HeightMap", heightMap);
+        int schemaOnePopulation = schemaOnePopulationMask(
+                cubes, terrainSchema, cavesNotCliffsOverworld);
         target.setBoolean("TerrainPopulated", populationState(
-                cubes, terrainSchema, chunkX, chunkZ, cavesNotCliffsOverworld));
+                cubes, terrainSchema, chunkX, chunkZ, cavesNotCliffsOverworld,
+                schemaOnePopulation));
         // CubicChunks lighting-engine metadata has no Anvil peer. The section nibble arrays are
         // preserved, but vanilla must perform its normal finite-column light validation.
         target.setBoolean("LightPopulated", false);
@@ -164,6 +170,13 @@ public final class CubicColumnConverter {
             target.setTag("ForgeCaps", column.getCompoundTag("ForgeCaps").copy());
         }
         result.setTag("Level", target);
+
+        if (schemaOnePopulation >= 0) {
+            NBTTagCompound progress = new NBTTagCompound();
+            progress.setInteger("version", SCHEMA_ONE_POPULATION_VERSION);
+            progress.setInteger("mask", schemaOnePopulation);
+            result.setTag(SCHEMA_ONE_POPULATION, progress);
+        }
 
         if (cavesNotCliffsOverworld || sawContentMarker) {
             NBTTagCompound content = result.hasKey(CONTENT_ROOT, 10)
@@ -365,7 +378,8 @@ public final class CubicColumnConverter {
     }
 
     private static boolean populationState(Map<Integer, NBTTagCompound> cubes,
-            int terrainSchema, int chunkX, int chunkZ, boolean cavesNotCliffsOverworld)
+            int terrainSchema, int chunkX, int chunkZ, boolean cavesNotCliffsOverworld,
+            int schemaOnePopulation)
             throws CubicColumnConversionException {
         if (!cavesNotCliffsOverworld) {
             boolean first = cubes.get(0).getCompoundTag("Level").getBoolean("populated");
@@ -380,14 +394,36 @@ public final class CubicColumnConverter {
         if (terrainSchema == CavesNotCliffsWorldData.CURRENT_SCHEMA) {
             return cubes.get(0).getCompoundTag("Level").getBoolean("populated");
         }
-        boolean first = cubes.get(MIN_SECTION_Y).getCompoundTag("Level").getBoolean("populated");
-        for (int cubeY = MIN_SECTION_Y + 1; cubeY < 4; cubeY++) {
-            boolean populated = cubes.get(cubeY).getCompoundTag("Level").getBoolean("populated");
-            if (populated != first) {
-                throw fail(chunkX, chunkZ, "has a mixed schema-1 population state across cubes -4..3");
+        if (schemaOnePopulation < 0) {
+            throw fail(chunkX, chunkZ, "has no preserved schema-1 population mask");
+        }
+        // Cube Y=0 owned vanilla terrain population in the CubicChunks generator. If it was
+        // already populated, finite Chunk.populate must not replay vanilla/Forge worldgen merely
+        // because another cave band still needs its deterministic decorator pass.
+        return (schemaOnePopulation & populationBit(0)) != 0;
+    }
+
+    private static int schemaOnePopulationMask(Map<Integer, NBTTagCompound> cubes,
+            int terrainSchema, boolean cavesNotCliffsOverworld) {
+        if (!cavesNotCliffsOverworld
+                || terrainSchema != CavesNotCliffsWorldData.LEGACY_SCHEMA) {
+            return -1;
+        }
+        int mask = 0;
+        for (int cubeY = MIN_SECTION_Y; cubeY < 4; cubeY++) {
+            if (cubes.get(cubeY).getCompoundTag("Level").getBoolean("populated")) {
+                mask |= populationBit(cubeY);
             }
         }
-        return first;
+        return mask;
+    }
+
+    static int populationBit(int cubeY) {
+        if (cubeY < MIN_SECTION_Y || cubeY >= 4) {
+            throw new IllegalArgumentException("Schema-1 population cube is outside -4..3: "
+                    + cubeY);
+        }
+        return 1 << (cubeY - MIN_SECTION_Y);
     }
 
     private static void validateOpacityIndex(NBTTagCompound column, int chunkX, int chunkZ)

@@ -77,14 +77,37 @@ public class CubicColumnConverterTest {
         assertEquals(20, converted.getCompoundTag("Level")
                 .getTagList("Sections", 10).tagCount());
         assertFalse(converted.getCompoundTag("Level").getBoolean("TerrainPopulated"));
+        assertEquals(1, converted.getCompoundTag(
+                CubicColumnConverter.SCHEMA_ONE_POPULATION).getInteger("version"));
+        assertEquals(0, converted.getCompoundTag(
+                CubicColumnConverter.SCHEMA_ONE_POPULATION).getInteger("mask"));
     }
 
     @Test
-    public void rejectsMixedSchemaOnePopulationState() throws Exception {
+    public void preservesMixedSchemaOnePopulationWithoutReplayingVanilla() throws Exception {
         Map<Integer, NBTTagCompound> cubes = completeCubes(-4, 16, true);
         cube(cubes, 1).getCompoundTag("Level").setBoolean("populated", false);
-        expectFailure("mixed schema-1 population", column(), cubes,
-                CavesNotCliffsWorldData.LEGACY_SCHEMA);
+        NBTTagCompound converted = convertOverworld(
+                column(), cubes, CavesNotCliffsWorldData.LEGACY_SCHEMA, 0L);
+
+        assertTrue(converted.getCompoundTag("Level").getBoolean("TerrainPopulated"));
+        assertEquals(0xff & ~CubicColumnConverter.populationBit(1),
+                converted.getCompoundTag(CubicColumnConverter.SCHEMA_ONE_POPULATION)
+                        .getInteger("mask"));
+    }
+
+    @Test
+    public void leavesFinitePopulationPendingWhenSchemaOneCubeZeroWasNotPopulated()
+            throws Exception {
+        Map<Integer, NBTTagCompound> cubes = completeCubes(-4, 16, true);
+        cube(cubes, 0).getCompoundTag("Level").setBoolean("populated", false);
+        NBTTagCompound converted = convertOverworld(
+                column(), cubes, CavesNotCliffsWorldData.LEGACY_SCHEMA, 0L);
+
+        assertFalse(converted.getCompoundTag("Level").getBoolean("TerrainPopulated"));
+        assertEquals(0xff & ~CubicColumnConverter.populationBit(0),
+                converted.getCompoundTag(CubicColumnConverter.SCHEMA_ONE_POPULATION)
+                        .getInteger("mask"));
     }
 
     @Test
