@@ -92,7 +92,7 @@ public final class MossBonemealFeature {
                 return;
             }
             Blocks.DOUBLE_PLANT.placeAt(world, position,
-                    BlockDoublePlant.EnumPlantType.GRASS, 2);
+                    BlockDoublePlant.EnumPlantType.byMetadata(2), 2);
             return;
         }
         if (world.isAirBlock(position) && state.getBlock().canPlaceBlockAt(world, position)) {
