@@ -48,6 +48,47 @@ public final class CubicColumnConverter {
             throw new CubicColumnConversionException(
                     "Unsupported Caves Not Cliffs terrain schema " + terrainSchema);
         }
+        return convert(columnRoot, cubeRoots, terrainSchema, lastUpdate, true);
+    }
+
+    /** Converts a CubicChunks vanilla-compatibility dimension after proving it has no 3D biomes. */
+    public static NBTTagCompound convertVanillaDimension(NBTTagCompound columnRoot,
+            Map<Integer, NBTTagCompound> cubeRoots, long lastUpdate)
+            throws CubicColumnConversionException {
+        for (Map.Entry<Integer, NBTTagCompound> entry : cubeRoots.entrySet()) {
+            NBTTagCompound root = entry.getValue();
+            if (root != null && root.hasKey("Level", 10)
+                    && root.getCompoundTag("Level").hasKey("Biomes3D")) {
+                throw new CubicColumnConversionException("Vanilla-compatibility cube Y="
+                        + entry.getKey() + " has 3D biome data that finite Anvil cannot represent");
+            }
+        }
+        return convert(columnRoot, cubeRoots, 0, lastUpdate, false);
+    }
+
+    /** Proves that a cube-only lookahead column contains no state that an Anvil import could lose. */
+    public static void validateDiscardableLookahead(Map<Integer, NBTTagCompound> cubeRoots)
+            throws CubicColumnConversionException {
+        if (cubeRoots.isEmpty()) {
+            return;
+        }
+        NBTTagCompound firstRoot = cubeRoots.values().iterator().next();
+        NBTTagCompound first = requireCompound(firstRoot, "Level", "cube-only lookahead");
+        int chunkX = requireInt(first, "x", "cube-only lookahead");
+        int chunkZ = requireInt(first, "z", "cube-only lookahead");
+        for (Map.Entry<Integer, NBTTagCompound> entry : cubeRoots.entrySet()) {
+            NBTTagCompound cube = validateCube(
+                    entry.getValue(), chunkX, entry.getKey(), chunkZ);
+            if (!isLogicallyEmpty(cube)) {
+                throw fail(chunkX, chunkZ, "is a cube-only lookahead column with stateful cube Y="
+                        + entry.getKey());
+            }
+        }
+    }
+
+    private static NBTTagCompound convert(NBTTagCompound columnRoot,
+            Map<Integer, NBTTagCompound> cubeRoots, int terrainSchema, long lastUpdate,
+            boolean cavesNotCliffsOverworld) throws CubicColumnConversionException {
         NBTTagCompound column = requireCompound(columnRoot, "Level", "column root");
         rejectUnknownKeys(column, KNOWN_COLUMN_LEVEL_KEYS, "column Level");
         requireVersion(column, "column");
@@ -60,7 +101,8 @@ public final class CubicColumnConverter {
         int[] heightMap = decodeHeightMap(column, chunkX, chunkZ);
 
         TreeMap<Integer, NBTTagCompound> cubes = new TreeMap<Integer, NBTTagCompound>(cubeRoots);
-        validateRequiredCubes(cubes, terrainSchema, chunkX, chunkZ);
+        validateRequiredCubes(cubes, terrainSchema, chunkX, chunkZ,
+                cavesNotCliffsOverworld);
         validateOutOfRangeCubes(cubes, chunkX, chunkZ);
 
         NBTTagList sections = new NBTTagList();
@@ -71,6 +113,8 @@ public final class CubicColumnConverter {
         Set<String> tilePositions = new HashSet<String>();
         int contentVersion = Integer.MAX_VALUE;
         boolean allCauldronsBridged = true;
+        boolean sawContentMarker = false;
+        boolean sawCauldronMarker = false;
 
         for (Map.Entry<Integer, NBTTagCompound> entry : cubes.entrySet()) {
             int cubeY = entry.getKey();
@@ -86,7 +130,9 @@ public final class CubicColumnConverter {
             copyPositionedList(cube, "TileTicks", cubeY, tileTicks,
                     null, chunkX, chunkZ, false);
             contentVersion = Math.min(contentVersion, contentVersion(cubeRoot));
+            sawContentMarker |= cubeRoot.hasKey(CONTENT_ROOT, 10);
             allCauldronsBridged &= cubeRoot.getInteger(CAULDRON_BRIDGE) >= 1;
+            sawCauldronMarker |= cubeRoot.hasKey(CAULDRON_BRIDGE, 99);
         }
 
         if (contentVersion == Integer.MAX_VALUE) {
@@ -100,7 +146,8 @@ public final class CubicColumnConverter {
         target.setInteger("zPos", chunkZ);
         target.setLong("LastUpdate", lastUpdate);
         target.setIntArray("HeightMap", heightMap);
-        target.setBoolean("TerrainPopulated", populationState(cubes, terrainSchema, chunkX, chunkZ));
+        target.setBoolean("TerrainPopulated", populationState(
+                cubes, terrainSchema, chunkX, chunkZ, cavesNotCliffsOverworld));
         // CubicChunks lighting-engine metadata has no Anvil peer. The section nibble arrays are
         // preserved, but vanilla must perform its normal finite-column light validation.
         target.setBoolean("LightPopulated", false);
@@ -115,26 +162,34 @@ public final class CubicColumnConverter {
         }
         result.setTag("Level", target);
 
-        NBTTagCompound content = result.hasKey(CONTENT_ROOT, 10)
-                ? result.getCompoundTag(CONTENT_ROOT).copy() : new NBTTagCompound();
-        content.setInteger(CONTENT_VERSION, contentVersion);
-        result.setTag(CONTENT_ROOT, content);
-        if (allCauldronsBridged) {
-            result.setInteger(CAULDRON_BRIDGE, 1);
-        } else {
-            result.removeTag(CAULDRON_BRIDGE);
+        if (cavesNotCliffsOverworld || sawContentMarker) {
+            NBTTagCompound content = result.hasKey(CONTENT_ROOT, 10)
+                    ? result.getCompoundTag(CONTENT_ROOT).copy() : new NBTTagCompound();
+            content.setInteger(CONTENT_VERSION, contentVersion);
+            result.setTag(CONTENT_ROOT, content);
+        }
+        if (cavesNotCliffsOverworld || sawCauldronMarker) {
+            if (allCauldronsBridged) {
+                result.setInteger(CAULDRON_BRIDGE, 1);
+            } else {
+                result.removeTag(CAULDRON_BRIDGE);
+            }
         }
         return result;
     }
 
     private static void validateRequiredCubes(Map<Integer, NBTTagCompound> cubes,
-            int terrainSchema, int chunkX, int chunkZ) throws CubicColumnConversionException {
+            int terrainSchema, int chunkX, int chunkZ, boolean cavesNotCliffsOverworld)
+            throws CubicColumnConversionException {
+        int requiredMin = cavesNotCliffsOverworld ? MIN_SECTION_Y : 0;
         int requiredMax = terrainSchema == CavesNotCliffsWorldData.LEGACY_SCHEMA
-                ? 16 : MAX_SECTION_Y_EXCLUSIVE;
-        for (int cubeY = MIN_SECTION_Y; cubeY < requiredMax; cubeY++) {
+                ? 16 : cavesNotCliffsOverworld ? MAX_SECTION_Y_EXCLUSIVE : 16;
+        for (int cubeY = requiredMin; cubeY < requiredMax; cubeY++) {
             if (!cubes.containsKey(cubeY)) {
                 throw fail(chunkX, chunkZ, "is missing authoritative cube Y=" + cubeY
-                        + " for terrain schema " + terrainSchema);
+                        + (cavesNotCliffsOverworld
+                        ? " for terrain schema " + terrainSchema
+                        : " for a vanilla-compatibility dimension"));
             }
         }
     }
@@ -297,7 +352,18 @@ public final class CubicColumnConverter {
     }
 
     private static boolean populationState(Map<Integer, NBTTagCompound> cubes,
-            int terrainSchema, int chunkX, int chunkZ) throws CubicColumnConversionException {
+            int terrainSchema, int chunkX, int chunkZ, boolean cavesNotCliffsOverworld)
+            throws CubicColumnConversionException {
+        if (!cavesNotCliffsOverworld) {
+            boolean first = cubes.get(0).getCompoundTag("Level").getBoolean("populated");
+            for (int cubeY = 1; cubeY < 16; cubeY++) {
+                if (cubes.get(cubeY).getCompoundTag("Level").getBoolean("populated") != first) {
+                    throw fail(chunkX, chunkZ,
+                            "has a mixed vanilla-dimension population state across cubes 0..15");
+                }
+            }
+            return first;
+        }
         if (terrainSchema == CavesNotCliffsWorldData.CURRENT_SCHEMA) {
             return cubes.get(0).getCompoundTag("Level").getBoolean("populated");
         }
