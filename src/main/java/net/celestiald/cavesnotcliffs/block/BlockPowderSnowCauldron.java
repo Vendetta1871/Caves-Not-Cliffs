@@ -1,6 +1,10 @@
 package net.celestiald.cavesnotcliffs.block;
 
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.Interaction;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.State;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronStateBridge;
 import net.celestiald.cavesnotcliffs.powdersnow.PowderSnowMechanics;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.minecraft.block.Block;
@@ -9,11 +13,11 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.stats.StatBase;
 import net.minecraft.stats.StatList;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
@@ -68,17 +72,19 @@ public final class BlockPowderSnowCauldron extends ElementsCavesNotCliffs.ModEle
                 return false;
             }
             int level = state.getValue(LEVEL);
+            State contents = CauldronMechanics.powderSnow(level);
             Item item = held.getItem();
 
             if (item == Items.BUCKET) {
-                if (level != 3) {
+                if (!CauldronMechanics.canInteract(contents, Interaction.TAKE_BUCKET)) {
                     return false;
                 }
                 if (!world.isRemote) {
                     giveFilledContainer(player, hand, held,
                         new ItemStack(BlockPowderSnow.bucket));
-                    player.addStat(StatList.CAULDRON_USED);
-                    setVanillaCauldronState(world, pos, 0, false);
+                    used(player, item, StatList.CAULDRON_USED);
+                    setContents(world, pos, CauldronMechanics.interact(
+                        contents, Interaction.TAKE_BUCKET));
                     play(world, pos, BlockPowderSnow.BUCKET_FILL_SOUND);
                     syncInventory(player);
                 }
@@ -88,9 +94,10 @@ public final class BlockPowderSnowCauldron extends ElementsCavesNotCliffs.ModEle
             if (item == Items.WATER_BUCKET || item == Items.LAVA_BUCKET) {
                 if (!world.isRemote) {
                     replaceFilledBucket(player, hand, held);
-                    player.addStat(StatList.CAULDRON_FILLED);
                     boolean lava = item == Items.LAVA_BUCKET;
-                    setVanillaCauldronState(world, pos, 3, lava);
+                    used(player, item, StatList.CAULDRON_FILLED);
+                    setContents(world, pos, CauldronMechanics.interact(contents,
+                        lava ? Interaction.FILL_LAVA : Interaction.FILL_WATER));
                     play(world, pos, lava
                         ? SoundEvents.ITEM_BUCKET_EMPTY_LAVA : SoundEvents.ITEM_BUCKET_EMPTY);
                     syncInventory(player);
@@ -101,8 +108,9 @@ public final class BlockPowderSnowCauldron extends ElementsCavesNotCliffs.ModEle
             if (item == BlockPowderSnow.bucket) {
                 if (!world.isRemote) {
                     replaceFilledBucket(player, hand, held);
-                    player.addStat(StatList.CAULDRON_FILLED);
-                    world.setBlockState(pos, getDefaultState().withProperty(LEVEL, 3), 3);
+                    used(player, item, StatList.CAULDRON_FILLED);
+                    setContents(world, pos, CauldronMechanics.interact(
+                        contents, Interaction.FILL_POWDER_SNOW));
                     play(world, pos, BlockPowderSnow.BUCKET_EMPTY_SOUND);
                     syncInventory(player);
                 }
@@ -129,8 +137,9 @@ public final class BlockPowderSnowCauldron extends ElementsCavesNotCliffs.ModEle
             }
             // 1.18 melts one powder-snow layer into water, then consumes that water layer while
             // extinguishing: level N powder snow becomes level N-1 water.
-            setVanillaCauldronState(world, pos,
-                PowderSnowMechanics.waterLevelAfterExtinguishing(level), false);
+            setContents(world, pos,
+                CauldronMechanics.extinguishInPowderSnow(
+                    CauldronMechanics.powderSnow(level)));
         }
 
         @Override
@@ -146,8 +155,7 @@ public final class BlockPowderSnowCauldron extends ElementsCavesNotCliffs.ModEle
             int next = PowderSnowMechanics.nextPowderSnowCauldronLevel(
                 level, snowing, world.rand.nextFloat());
             if (next != level) {
-                world.setBlockState(pos, state.withProperty(LEVEL, next), 2);
-                world.updateComparatorOutputLevel(pos, this);
+                setContents(world, pos, CauldronMechanics.powderSnow(next));
             }
         }
 
@@ -161,19 +169,8 @@ public final class BlockPowderSnowCauldron extends ElementsCavesNotCliffs.ModEle
             return new ItemStack(Items.CAULDRON);
         }
 
-        private void setVanillaCauldronState(World world, BlockPos pos, int level,
-                boolean lava) {
-            IBlockState next;
-            if (BlockLavaCauldron.block != null) {
-                next = BlockLavaCauldron.block.getDefaultState()
-                    .withProperty(BlockCauldron.LEVEL, Math.max(0, Math.min(3, level)))
-                    .withProperty(BlockLavaCauldron.BlockCustom.IS_LAVA, lava && level > 0);
-            } else {
-                next = Blocks.CAULDRON.getDefaultState()
-                    .withProperty(BlockCauldron.LEVEL, lava ? 0 : Math.max(0, Math.min(3, level)));
-            }
-            world.setBlockState(pos, next, 3);
-            world.updateComparatorOutputLevel(pos, next.getBlock());
+        private void setContents(World world, BlockPos pos, State contents) {
+            CauldronStateBridge.setContents(world, pos, contents);
         }
 
         private void replaceFilledBucket(EntityPlayer player, EnumHand hand,
@@ -217,6 +214,14 @@ public final class BlockPowderSnowCauldron extends ElementsCavesNotCliffs.ModEle
         private void syncInventory(EntityPlayer player) {
             if (player instanceof EntityPlayerMP) {
                 ((EntityPlayerMP) player).sendContainerToPlayer(player.inventoryContainer);
+            }
+        }
+
+        private void used(EntityPlayer player, Item item, StatBase cauldronStat) {
+            player.addStat(cauldronStat);
+            StatBase itemUse = StatList.getObjectUseStats(item);
+            if (itemUse != null) {
+                player.addStat(itemUse);
             }
         }
     }

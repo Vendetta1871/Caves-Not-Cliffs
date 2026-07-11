@@ -5,7 +5,9 @@ import net.celestiald.cavesnotcliffs.content.DripstoneSoundEvents;
 import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics;
 import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.Content;
 import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.DripFluid;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.Interaction;
 import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.State;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronStateBridge;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockCauldron;
@@ -130,7 +132,8 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
             if (item == Items.WATER_BUCKET) {
                 if (!world.isRemote) {
                     consumeFilledContainer(player, hand, held);
-                    fill(world, pos, CauldronMechanics.water(3));
+                    fill(world, pos, CauldronMechanics.interact(
+                            contents, Interaction.FILL_WATER));
                     used(player, item, StatList.CAULDRON_FILLED);
                     play(world, pos, SoundEvents.ITEM_BUCKET_EMPTY);
                 }
@@ -140,7 +143,8 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
             if (item == Items.LAVA_BUCKET) {
                 if (!world.isRemote) {
                     consumeFilledContainer(player, hand, held);
-                    fill(world, pos, CauldronMechanics.lava());
+                    fill(world, pos, CauldronMechanics.interact(
+                            contents, Interaction.FILL_LAVA));
                     used(player, item, StatList.CAULDRON_FILLED);
                     play(world, pos, SoundEvents.ITEM_BUCKET_EMPTY_LAVA);
                 }
@@ -148,11 +152,10 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
             }
 
             if (BlockPowderSnow.bucket != null && item == BlockPowderSnow.bucket) {
-                if (!world.isRemote && BlockPowderSnowCauldron.block != null) {
+                if (!world.isRemote) {
                     consumeFilledContainer(player, hand, held);
-                    world.setBlockState(pos, BlockPowderSnowCauldron.block.getDefaultState()
-                            .withProperty(LEVEL, 3), 3);
-                    world.updateComparatorOutputLevel(pos, BlockPowderSnowCauldron.block);
+                    fill(world, pos, CauldronMechanics.interact(
+                            contents, Interaction.FILL_POWDER_SNOW));
                     used(player, item, StatList.CAULDRON_FILLED);
                     play(world, pos, BlockPowderSnow.BUCKET_EMPTY_SOUND);
                 }
@@ -160,14 +163,15 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
             }
 
             if (item == Items.BUCKET) {
-                if (!CauldronMechanics.canFillBucket(contents)) {
+                if (!CauldronMechanics.canInteract(contents, Interaction.TAKE_BUCKET)) {
                     return false;
                 }
                 if (!world.isRemote) {
                     Item filled = contents.content == Content.LAVA
                             ? Items.LAVA_BUCKET : Items.WATER_BUCKET;
                     giveFilledResult(player, hand, held, new ItemStack(filled));
-                    fill(world, pos, CauldronMechanics.empty());
+                    fill(world, pos, CauldronMechanics.interact(
+                            contents, Interaction.TAKE_BUCKET));
                     used(player, item, StatList.CAULDRON_USED);
                     play(world, pos, contents.content == Content.LAVA
                             ? SoundEvents.ITEM_BUCKET_FILL_LAVA : SoundEvents.ITEM_BUCKET_FILL);
@@ -176,14 +180,15 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
             }
 
             if (item == Items.GLASS_BOTTLE) {
-                if (contents.content != Content.WATER) {
+                if (!CauldronMechanics.canInteract(contents, Interaction.TAKE_BOTTLE)) {
                     return false;
                 }
                 if (!world.isRemote) {
                     ItemStack waterBottle = PotionUtils.addPotionToItemStack(
                             new ItemStack(Items.POTIONITEM), PotionTypes.WATER);
                     giveFilledResult(player, hand, held, waterBottle);
-                    fill(world, pos, CauldronMechanics.lowerLayer(contents));
+                    fill(world, pos, CauldronMechanics.interact(
+                            contents, Interaction.TAKE_BOTTLE));
                     used(player, item, StatList.CAULDRON_USED);
                     play(world, pos, SoundEvents.ITEM_BOTTLE_FILL);
                 }
@@ -192,14 +197,14 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
 
             if (item == Items.POTIONITEM
                     && PotionUtils.getPotionFromItem(held) == PotionTypes.WATER) {
-                if (contents.content != Content.EMPTY && contents.content != Content.WATER
-                        || contents.content == Content.WATER && contents.level == 3) {
+                if (!CauldronMechanics.canInteract(
+                        contents, Interaction.POUR_WATER_BOTTLE)) {
                     return false;
                 }
                 if (!world.isRemote) {
                     giveFilledResult(player, hand, held, new ItemStack(Items.GLASS_BOTTLE));
-                    fill(world, pos, CauldronMechanics.water(
-                            contents.content == Content.EMPTY ? 1 : contents.level + 1));
+                    fill(world, pos, CauldronMechanics.interact(
+                            contents, Interaction.POUR_WATER_BOTTLE));
                     used(player, item, StatList.CAULDRON_USED);
                     play(world, pos, SoundEvents.ITEM_BOTTLE_EMPTY);
                 }
@@ -212,7 +217,8 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
                         && armor.hasColor(held)) {
                     if (!world.isRemote) {
                         armor.removeColor(held);
-                        fill(world, pos, CauldronMechanics.lowerLayer(contents));
+                        fill(world, pos, CauldronMechanics.interact(
+                                contents, Interaction.CLEAN));
                         player.addStat(StatList.ARMOR_CLEANED);
                     }
                     return true;
@@ -229,7 +235,8 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
                         held.shrink(1);
                     }
                     deliverResult(player, hand, held, clean);
-                    fill(world, pos, CauldronMechanics.lowerLayer(contents));
+                    fill(world, pos, CauldronMechanics.interact(
+                            contents, Interaction.CLEAN));
                     player.addStat(StatList.BANNER_CLEANED);
                 }
                 return true;
@@ -243,7 +250,8 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
                         clean.setTagCompound(held.getTagCompound().copy());
                     }
                     player.setHeldItem(hand, clean);
-                    fill(world, pos, CauldronMechanics.lowerLayer(contents));
+                    fill(world, pos, CauldronMechanics.interact(
+                            contents, Interaction.CLEAN));
                     if (player instanceof EntityPlayerMP) {
                         ((EntityPlayerMP) player)
                                 .sendContainerToPlayer(player.inventoryContainer);
@@ -269,7 +277,8 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
                 entity.extinguish();
                 if (!(entity instanceof EntityPlayer)
                         || world.isBlockModifiable((EntityPlayer) entity, pos)) {
-                    fill(world, pos, CauldronMechanics.lowerLayer(contents));
+                    fill(world, pos, CauldronMechanics.interact(
+                            contents, Interaction.CLEAN));
                 }
             }
         }
@@ -326,21 +335,11 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
             if (next.equals(contents)) {
                 return;
             }
-            if (next.content == Content.POWDER_SNOW) {
-                if (BlockPowderSnowCauldron.block != null) {
-                    world.setBlockState(pos, BlockPowderSnowCauldron.block.getDefaultState()
-                            .withProperty(LEVEL, next.level), 2);
-                    world.updateComparatorOutputLevel(pos, BlockPowderSnowCauldron.block);
-                }
-            } else {
-                fill(world, pos, next);
-            }
+            fill(world, pos, next);
         }
 
         private void fill(World world, BlockPos pos, State state) {
-            IBlockState next = blockState(state);
-            world.setBlockState(pos, next, 2);
-            world.updateComparatorOutputLevel(pos, this);
+            CauldronStateBridge.setContents(world, pos, state);
         }
 
         @Override

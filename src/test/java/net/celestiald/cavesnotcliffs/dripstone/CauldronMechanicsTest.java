@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.dripstone;
 
 import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.DripFluid;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.Interaction;
 import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.State;
 import org.junit.Test;
 
@@ -9,6 +10,17 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class CauldronMechanicsTest {
+    private static final State[] ALL_STATES = {
+            CauldronMechanics.empty(),
+            CauldronMechanics.water(1),
+            CauldronMechanics.water(2),
+            CauldronMechanics.water(3),
+            CauldronMechanics.lava(),
+            CauldronMechanics.powderSnow(1),
+            CauldronMechanics.powderSnow(2),
+            CauldronMechanics.powderSnow(3)
+    };
+
     @Test
     public void dripMatrixMatchesJava1182() {
         State empty = CauldronMechanics.empty();
@@ -43,6 +55,67 @@ public class CauldronMechanicsTest {
                     CauldronMechanics.water(level)));
             assertEquals((6.0D + level * 3.0D) / 16.0D,
                     CauldronMechanics.contentHeight(CauldronMechanics.water(level)), 0.0D);
+            assertEquals(level, CauldronMechanics.comparatorSignal(
+                    CauldronMechanics.powderSnow(level)));
+        }
+    }
+
+    @Test
+    public void everyFilledBucketReplacesEveryOfficialContentState() {
+        for (State before : ALL_STATES) {
+            assertTrue(CauldronMechanics.canInteract(before, Interaction.FILL_WATER));
+            assertEquals(CauldronMechanics.water(3),
+                    CauldronMechanics.interact(before, Interaction.FILL_WATER));
+            assertTrue(CauldronMechanics.canInteract(before, Interaction.FILL_LAVA));
+            assertEquals(CauldronMechanics.lava(),
+                    CauldronMechanics.interact(before, Interaction.FILL_LAVA));
+            assertTrue(CauldronMechanics.canInteract(
+                    before, Interaction.FILL_POWDER_SNOW));
+            assertEquals(CauldronMechanics.powderSnow(3),
+                    CauldronMechanics.interact(before, Interaction.FILL_POWDER_SNOW));
+        }
+    }
+
+    @Test
+    public void extractionBottleAndCleaningMapsCoverEveryOfficialState() {
+        for (State before : ALL_STATES) {
+            boolean fullBucket = before.equals(CauldronMechanics.water(3))
+                    || before.equals(CauldronMechanics.lava())
+                    || before.equals(CauldronMechanics.powderSnow(3));
+            assertEquals(fullBucket,
+                    CauldronMechanics.canInteract(before, Interaction.TAKE_BUCKET));
+            assertEquals(fullBucket ? CauldronMechanics.empty() : before,
+                    CauldronMechanics.interact(before, Interaction.TAKE_BUCKET));
+
+            boolean water = before.content == CauldronMechanics.Content.WATER;
+            State lowered = water ? CauldronMechanics.lowerLayer(before) : before;
+            assertEquals(water,
+                    CauldronMechanics.canInteract(before, Interaction.TAKE_BOTTLE));
+            assertEquals(lowered,
+                    CauldronMechanics.interact(before, Interaction.TAKE_BOTTLE));
+            assertEquals(water,
+                    CauldronMechanics.canInteract(before, Interaction.CLEAN));
+            assertEquals(lowered,
+                    CauldronMechanics.interact(before, Interaction.CLEAN));
+        }
+    }
+
+    @Test
+    public void waterBottleMapCoversEmptyAndEveryLayeredOrForeignContent() {
+        for (State before : ALL_STATES) {
+            boolean accepted = before.content == CauldronMechanics.Content.EMPTY
+                    || before.content == CauldronMechanics.Content.WATER
+                    && before.level < CauldronMechanics.MAX_LEVEL;
+            State expected = before;
+            if (before.content == CauldronMechanics.Content.EMPTY) {
+                expected = CauldronMechanics.water(1);
+            } else if (accepted) {
+                expected = CauldronMechanics.water(before.level + 1);
+            }
+            assertEquals(accepted, CauldronMechanics.canInteract(
+                    before, Interaction.POUR_WATER_BOTTLE));
+            assertEquals(expected, CauldronMechanics.interact(
+                    before, Interaction.POUR_WATER_BOTTLE));
         }
     }
 
@@ -62,6 +135,27 @@ public class CauldronMechanicsTest {
                         CauldronMechanics.powderSnow(3)));
         assertEquals(empty, CauldronMechanics.extinguishInPowderSnow(
                 CauldronMechanics.powderSnow(1)));
+
+        for (State before : ALL_STATES) {
+            State rain = before;
+            if (before.content == CauldronMechanics.Content.EMPTY) {
+                rain = CauldronMechanics.water(1);
+            } else if (before.content == CauldronMechanics.Content.WATER
+                    && before.level < 3) {
+                rain = CauldronMechanics.water(before.level + 1);
+            }
+            State snow = before;
+            if (before.content == CauldronMechanics.Content.EMPTY) {
+                snow = CauldronMechanics.powderSnow(1);
+            } else if (before.content == CauldronMechanics.Content.POWDER_SNOW
+                    && before.level < 3) {
+                snow = CauldronMechanics.powderSnow(before.level + 1);
+            }
+            assertEquals(rain, CauldronMechanics.precipitation(before, false, 0.0F));
+            assertEquals(snow, CauldronMechanics.precipitation(before, true, 0.0F));
+            assertEquals(before, CauldronMechanics.precipitation(before, false, 0.05F));
+            assertEquals(before, CauldronMechanics.precipitation(before, true, 0.1F));
+        }
     }
 
     @Test(expected = IllegalArgumentException.class)

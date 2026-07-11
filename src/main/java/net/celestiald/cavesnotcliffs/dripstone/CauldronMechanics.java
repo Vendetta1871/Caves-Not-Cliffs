@@ -22,6 +22,17 @@ public final class CauldronMechanics {
         LAVA
     }
 
+    /** The seven state-changing entries shared by the four Java 1.18.2 interaction maps. */
+    public enum Interaction {
+        FILL_WATER,
+        FILL_LAVA,
+        FILL_POWDER_SNOW,
+        TAKE_BUCKET,
+        TAKE_BOTTLE,
+        POUR_WATER_BOTTLE,
+        CLEAN
+    }
+
     public static final class State {
         public final Content content;
         public final int level;
@@ -112,6 +123,52 @@ public final class CauldronMechanics {
         return state.level == 1 ? empty() : new State(state.content, state.level - 1);
     }
 
+    /** Returns whether the selected 1.18.2 cauldron interaction map accepts the item. */
+    public static boolean canInteract(State state, Interaction interaction) {
+        requireStateAndInteraction(state, interaction);
+        switch (interaction) {
+            case FILL_WATER:
+            case FILL_LAVA:
+            case FILL_POWDER_SNOW:
+                // addDefaultInteractions installs all three filled buckets in every map.
+                return true;
+            case TAKE_BUCKET:
+                return canFillBucket(state);
+            case TAKE_BOTTLE:
+            case CLEAN:
+                return state.content == Content.WATER;
+            case POUR_WATER_BOTTLE:
+                return state.content == Content.EMPTY
+                        || state.content == Content.WATER && state.level < MAX_LEVEL;
+            default:
+                throw new AssertionError(interaction);
+        }
+    }
+
+    /** Applies an accepted interaction, or returns the unchanged state for a map miss. */
+    public static State interact(State state, Interaction interaction) {
+        if (!canInteract(state, interaction)) {
+            return state;
+        }
+        switch (interaction) {
+            case FILL_WATER:
+                return water(MAX_LEVEL);
+            case FILL_LAVA:
+                return lava();
+            case FILL_POWDER_SNOW:
+                return powderSnow(MAX_LEVEL);
+            case TAKE_BUCKET:
+                return empty();
+            case TAKE_BOTTLE:
+            case CLEAN:
+                return lowerLayer(state);
+            case POUR_WATER_BOTTLE:
+                return water(state.content == Content.EMPTY ? 1 : state.level + 1);
+            default:
+                throw new AssertionError(interaction);
+        }
+    }
+
     /** Burning entities turn N layers of powder snow into N-1 layers of water. */
     public static State extinguishInPowderSnow(State state) {
         if (state.content != Content.POWDER_SNOW) {
@@ -147,6 +204,12 @@ public final class CauldronMechanics {
                 && level >= 1 && level <= MAX_LEVEL;
         if (!valid) {
             throw new IllegalArgumentException("Invalid cauldron state " + content + "@" + level);
+        }
+    }
+
+    private static void requireStateAndInteraction(State state, Interaction interaction) {
+        if (state == null || interaction == null) {
+            throw new IllegalArgumentException("Cauldron state and interaction are required");
         }
     }
 }

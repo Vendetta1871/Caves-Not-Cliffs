@@ -4,6 +4,7 @@ import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
 import net.celestiald.cavesnotcliffs.content.DripstoneSoundEvents;
 import net.celestiald.cavesnotcliffs.client.ParticleDripstone;
 import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.DripFluid;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronStateBridge;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Neighbor;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness;
@@ -632,11 +633,8 @@ public final class BlockPointedDripstone extends Block {
                 if (!accepts) {
                     return null;
                 }
-                IBlockState storage = BlockLavaCauldron.block.getDefaultState()
-                        .withProperty(net.minecraft.block.BlockCauldron.LEVEL, level)
-                        .withProperty(BlockLavaCauldron.BlockCustom.IS_LAVA, false);
-                world.setBlockState(cursor, storage, 2);
-                return cursor;
+                return CauldronStateBridge.bridgeVanillaAt(world, cursor)
+                        ? cursor : null;
             }
             if (!canDripThrough(world, cursor, state)) {
                 return null;
