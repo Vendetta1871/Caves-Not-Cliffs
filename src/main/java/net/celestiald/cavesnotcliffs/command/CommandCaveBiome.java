@@ -2,6 +2,9 @@ package net.celestiald.cavesnotcliffs.command;
 
 import net.celestiald.cavesnotcliffs.world.CaveBiomeSampler;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
+import net.celestiald.cavesnotcliffs.world.V118CubicChunksGenerator;
+import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -33,11 +36,25 @@ public final class CommandCaveBiome extends CommandBase {
         World world = sender.getEntityWorld();
         BlockPos origin = sender.getPosition();
         BlockPos position = arguments.length == 0 ? origin : parseBlockPos(sender, arguments, 0, false);
-        CaveBiomeSampler.Type type = CaveBiomeSampler.sample(world.getSeed(),
-                position.getX(), position.getY(), position.getZ());
+        V118CubicChunksGenerator nativeGenerator = V118CubicChunksGenerator.forWorld(world);
+        if (nativeGenerator != null) {
+            if (position.getY() < TerrainColumn.MIN_Y || position.getY() > TerrainColumn.MAX_Y) {
+                throw new CommandException("Y must be between " + TerrainColumn.MIN_Y + " and "
+                    + TerrainColumn.MAX_Y + " for the finite 1.18 biome volume");
+            }
+            V118Biome biome = nativeGenerator.getVirtualBiome(position.getX(), position.getY(),
+                position.getZ());
+            sender.sendMessage(new TextComponentString(biome.id() + " at "
+                + position.getX() + ", " + position.getY() + ", " + position.getZ()));
+            return;
+        }
+
+        CaveBiomeSampler.Type type = CaveBiomeSampler.sample(world.getSeed(), position.getX(),
+            position.getY(), position.getZ());
 
         String suffix = CavesNotCliffsWorldType.isCavesNotCliffs(world)
-                ? "" : " (sampler preview; this is not a Caves Not Cliffs v2 world)";
+                ? " (legacy/delegated sampler)"
+                : " (sampler preview; this is not a Caves Not Cliffs v2 world)";
         sender.sendMessage(new TextComponentString(type.getDisplayName() + " at "
                 + position.getX() + ", " + position.getY() + ", " + position.getZ() + suffix));
     }

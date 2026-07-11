@@ -19,6 +19,9 @@ import net.minecraft.world.chunk.ChunkPrimer;
 import net.minecraft.world.gen.IChunkGenerator;
 
 import java.util.List;
+import java.lang.ref.WeakReference;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 /**
  * Native schema-2 CubicChunks bridge for the Java 1.18.2 density columns.
@@ -31,6 +34,8 @@ import java.util.List;
 public final class V118CubicChunksGenerator implements ICubeGenerator {
     private static final int CUBE_SIZE = 16;
     private static final V118Biome[] V118_BIOMES = V118Biome.values();
+    private static final Map<World, WeakReference<V118CubicChunksGenerator>> ACTIVE_GENERATORS =
+        new WeakHashMap<World, WeakReference<V118CubicChunksGenerator>>();
 
     private final World world;
     private final TerrainProfile terrainProfile;
@@ -72,6 +77,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         this.blockStates = blockStates;
         this.biomes = biomes;
         slicer = new V118CubeSlicer(blockStates, biomes);
+        registerActiveGenerator(world, this);
     }
 
     public TerrainProfile getTerrainProfile() {
@@ -83,6 +89,9 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
     }
 
     public V118Biome getVirtualBiome(int blockX, int blockY, int blockZ) {
+        if (!hasVirtualBiomeY(blockY)) {
+            throw new IllegalArgumentException("Virtual biome Y is outside -64..319: " + blockY);
+        }
         int columnX = Math.floorDiv(blockX, TerrainColumn.WIDTH);
         int columnZ = Math.floorDiv(blockZ, TerrainColumn.WIDTH);
         int localX = Math.floorMod(blockX, TerrainColumn.WIDTH);
@@ -93,6 +102,16 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
             throw new IllegalStateException("Generated an unknown virtual biome id: " + biomeId);
         }
         return V118_BIOMES[biomeId];
+    }
+
+    public static V118CubicChunksGenerator forWorld(World world) {
+        if (world == null) {
+            return null;
+        }
+        synchronized (ACTIVE_GENERATORS) {
+            WeakReference<V118CubicChunksGenerator> reference = ACTIVE_GENERATORS.get(world);
+            return reference == null ? null : reference.get();
+        }
     }
 
     @Deprecated
@@ -235,6 +254,17 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
                 1, Math.max(1, 15 - cubeY), 1);
         }
         return NO_REQUIREMENT;
+    }
+
+    static boolean hasVirtualBiomeY(int blockY) {
+        return blockY >= TerrainColumn.MIN_Y && blockY <= TerrainColumn.MAX_Y;
+    }
+
+    private static void registerActiveGenerator(World world,
+            V118CubicChunksGenerator generator) {
+        synchronized (ACTIVE_GENERATORS) {
+            ACTIVE_GENERATORS.put(world, new WeakReference<V118CubicChunksGenerator>(generator));
+        }
     }
 
     private static TerrainProfile requireNativeProfile(TerrainProfile profile) {

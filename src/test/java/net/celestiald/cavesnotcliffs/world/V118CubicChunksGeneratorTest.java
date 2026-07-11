@@ -54,4 +54,12 @@ public class V118CubicChunksGeneratorTest {
         assertSame(V118CubicChunksGenerator.populationPregenerationRequirements(-1),
             V118CubicChunksGenerator.populationPregenerationRequirements(16));
     }
+
+    @Test
+    public void virtualBiomeQueriesCoverExactlyTheFiniteGeneratedHeight() {
+        assertFalse(V118CubicChunksGenerator.hasVirtualBiomeY(-65));
+        assertTrue(V118CubicChunksGenerator.hasVirtualBiomeY(-64));
+        assertTrue(V118CubicChunksGenerator.hasVirtualBiomeY(319));
+        assertFalse(V118CubicChunksGenerator.hasVirtualBiomeY(320));
+    }
 }
