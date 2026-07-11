@@ -59,6 +59,7 @@ import java.util.UUID;
 /** Java 1.12 runtime adaptation of Java 1.18.2's complete bee state contract. */
 @ElementsCavesNotCliffs.ModElement.Tag
 public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
+    public static final int NETWORK_ID = 2;
     private static final int EGG_PRIMARY = 15582019;
     private static final int EGG_SECONDARY = 4400155;
 
@@ -70,7 +71,7 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
     public void initElements() {
         BeeSoundEvents.registerAll();
         EntityRegistry.registerModEntity(CncRegistryIds.BEE,
-                EntityCustom.class, "bee", 1, CavesNotCliffs.instance,
+                EntityCustom.class, "bee", NETWORK_ID, CavesNotCliffs.instance,
                 80, 3, true, EGG_PRIMARY, EGG_SECONDARY);
     }
 

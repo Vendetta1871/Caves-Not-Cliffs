@@ -62,6 +62,7 @@ import java.util.Random;
 /** Java 1.12 runtime adaptation of the Java 1.18.2 axolotl contract. */
 @ElementsCavesNotCliffs.ModElement.Tag
 public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
+    public static final int NETWORK_ID = 0;
     private static final int EGG_PRIMARY = 16499171;
     private static final int EGG_SECONDARY = 10890612;
 
@@ -77,7 +78,7 @@ public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void initElements() {
         EntityRegistry.registerModEntity(CncRegistryIds.AXOLOTL,
-                EntityCustom.class, "axolotl", 0, CavesNotCliffs.instance,
+                EntityCustom.class, "axolotl", NETWORK_ID, CavesNotCliffs.instance,
                 80, 3, true, EGG_PRIMARY, EGG_SECONDARY);
         elements.items.add(() -> new ItemAxolotlBucket()
                 .setRegistryName(CncRegistryIds.AXOLOTL_BUCKET));

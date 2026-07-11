@@ -33,6 +33,7 @@ import java.util.Set;
 /** Internal falling entity needed for exact stalactite damage, filtering, and landing behavior. */
 @ElementsCavesNotCliffs.ModElement.Tag
 public final class EntityFallingPointedDripstone extends ElementsCavesNotCliffs.ModElement {
+    public static final int NETWORK_ID = 1;
     public EntityFallingPointedDripstone(ElementsCavesNotCliffs elements) {
         super(elements, 205);
     }
@@ -40,7 +41,8 @@ public final class EntityFallingPointedDripstone extends ElementsCavesNotCliffs.
     @Override
     public void initElements() {
         EntityRegistry.registerModEntity(CncEntity.ID, EntityCustom.class,
-                "falling_pointed_dripstone", 1, CavesNotCliffs.instance, 64, 3, true);
+                "falling_pointed_dripstone", NETWORK_ID,
+                CavesNotCliffs.instance, 64, 3, true);
     }
 
     public static final class CncEntity {
