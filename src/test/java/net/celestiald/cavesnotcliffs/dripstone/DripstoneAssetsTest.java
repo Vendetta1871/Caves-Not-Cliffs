@@ -65,6 +65,16 @@ public class DripstoneAssetsTest {
                 sha1(ROOT + "sounds/block/pointed_dripstone/drip_water_cauldron8.ogg"));
     }
 
+    @Test
+    public void lavaCauldronUsesFullVanillaGeometryAndTheRuntimeLavaTexture()
+            throws Exception {
+        JsonObject model = json(ROOT + "models/block/lavacauldron_level6.json");
+        assertEquals("minecraft:block/cauldron_level3", model.get("parent").getAsString());
+        assertEquals("minecraft:blocks/lava_still",
+                model.getAsJsonObject("textures").get("water").getAsString());
+        assertEquals(1, model.getAsJsonObject("textures").size());
+    }
+
     private static JsonObject json(String path) throws Exception {
         InputStream stream = resource(path);
         try {

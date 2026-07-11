@@ -1,0 +1,26 @@
+{
+  fixture: "draft-v2-dripstone",
+  seed: 123456789L,
+  minX: 0,
+  minY: 0,
+  minZ: 0,
+  sizeX: 4,
+  sizeY: 4,
+  sizeZ: 2,
+  cavesnotcliffs: { contentVersion: 1, preserved: 27 },
+  blocks: [
+    { x: 0, y: 3, z: 0, id: "cavesnotcliffs:bottom_stalactite" },
+    { x: 0, y: 2, z: 0, id: "cavesnotcliffs:top_stalactite" },
+    { x: 1, y: 3, z: 0, id: "cavesnotcliffs:bottom_stalactite" },
+    { x: 1, y: 2, z: 0, id: "cavesnotcliffs:middle_stalactite" },
+    { x: 1, y: 1, z: 0, id: "cavesnotcliffs:top_stalactite" },
+    { x: 0, y: 0, z: 1, id: "cavesnotcliffs:bottom_stalagmite" },
+    { x: 0, y: 1, z: 1, id: "cavesnotcliffs:top_stalagmite" },
+    { x: 1, y: 0, z: 1, id: "cavesnotcliffs:bottom_stalagmite" },
+    { x: 1, y: 1, z: 1, id: "cavesnotcliffs:middle_stalagmite" },
+    { x: 1, y: 2, z: 1, id: "cavesnotcliffs:top_stalagmite" },
+    { x: 2, y: 3, z: 0, id: "cavesnotcliffs:stalactite" },
+    { x: 2, y: 0, z: 1, id: "cavesnotcliffs:stalagmite" },
+    { x: 3, y: 0, z: 0, id: "minecraft:stone" }
+  ]
+}

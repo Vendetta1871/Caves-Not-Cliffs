@@ -243,11 +243,12 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
                     if (held.hasTagCompound()) {
                         clean.setTagCompound(held.getTagCompound().copy());
                     }
-                    if (!player.capabilities.isCreativeMode) {
-                        held.shrink(1);
-                    }
-                    deliverResult(player, hand, held, clean);
+                    player.setHeldItem(hand, clean);
                     fill(world, pos, CauldronMechanics.lowerLayer(contents));
+                    if (player instanceof EntityPlayerMP) {
+                        ((EntityPlayerMP) player)
+                                .sendContainerToPlayer(player.inventoryContainer);
+                    }
                 }
                 return true;
             }

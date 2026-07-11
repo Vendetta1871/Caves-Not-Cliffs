@@ -3,6 +3,7 @@ package net.celestiald.cavesnotcliffs.dripstone;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.block.BlockPointedDripstone;
 import net.celestiald.cavesnotcliffs.block.BlockPointedDripstoneWaterlogged;
+import net.celestiald.cavesnotcliffs.block.BlockLegacyStalactiteAlias;
 import net.celestiald.cavesnotcliffs.block.BlockStalactite;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.minecraft.block.Block;
@@ -41,5 +42,15 @@ public class PointedDripstoneRegistrationTest {
         assertTrue(((BlockPointedDripstone) wet).isWaterloggedStorage());
         assertTrue(publicItem instanceof ItemBlock);
         assertEquals(CncRegistryIds.POINTED_DRIPSTONE, publicItem.getRegistryName());
+    }
+
+    @Test
+    public void releasedStalactiteIdRemainsAHiddenBlockOnlyMigrationAlias() {
+        ElementsCavesNotCliffs elements = new ElementsCavesNotCliffs();
+        new BlockLegacyStalactiteAlias(elements).initElements();
+        assertEquals(1, elements.blocks.size());
+        assertTrue(elements.items.isEmpty());
+        assertEquals("cavesnotcliffs:stalactite",
+                elements.blocks.get(0).get().getRegistryName().toString());
     }
 }

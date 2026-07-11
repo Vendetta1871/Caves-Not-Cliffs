@@ -99,15 +99,60 @@ public final class PointedDripstoneMechanics {
     }
 
     public static int metadata(boolean tipUp, Thickness thickness) {
-        return (tipUp ? Thickness.values().length : 0) + thickness.ordinal();
+        if (tipUp) {
+            switch (thickness) {
+                case TIP:
+                    return 0;
+                case FRUSTUM:
+                    return 6;
+                case MIDDLE:
+                    return 7;
+                case BASE:
+                    return 8;
+                case TIP_MERGE:
+                default:
+                    return 9;
+            }
+        }
+        switch (thickness) {
+            case TIP:
+                return 1;
+            case FRUSTUM:
+                return 2;
+            case MIDDLE:
+                return 3;
+            case BASE:
+                return 4;
+            case TIP_MERGE:
+            default:
+                return 5;
+        }
     }
 
     public static boolean tipUpFromMetadata(int metadata) {
-        return clampMetadata(metadata) >= Thickness.values().length;
+        int checked = clampMetadata(metadata);
+        return checked == 0 || checked >= 6;
     }
 
     public static Thickness thicknessFromMetadata(int metadata) {
-        return Thickness.values()[clampMetadata(metadata) % Thickness.values().length];
+        switch (clampMetadata(metadata)) {
+            case 0:
+            case 1:
+                return Thickness.TIP;
+            case 2:
+            case 6:
+                return Thickness.FRUSTUM;
+            case 3:
+            case 7:
+                return Thickness.MIDDLE;
+            case 4:
+            case 8:
+                return Thickness.BASE;
+            case 5:
+            case 9:
+            default:
+                return Thickness.TIP_MERGE;
+        }
     }
 
     private static int clampMetadata(int metadata) {

@@ -88,16 +88,16 @@ public final class LegacyChunkMigrationHandler {
         if (result.getConvertedBlocks() > 0) {
             markDirty(storage);
         }
-        if (result.isComplete()) {
+        if (result.getResultingVersion() > version) {
             ContentMigrationVersion.write(data, result.getResultingVersion());
+            markDirty(storage);
+        }
+        if (result.isComplete()) {
             rememberCompleted(storage);
-            if (version < result.getResultingVersion()) {
-                markDirty(storage);
-            }
         } else if (result.getDeferredBlocks() > 0) {
-            LOGGER.warn("Deferred {} legacy amethyst geode blocks because their canonical target "
-                            + "is not registered yet; the migration marker was not advanced",
-                    result.getDeferredBlocks());
+            LOGGER.warn("Deferred {} legacy content blocks because their canonical target is not "
+                            + "registered or could not be stored; migration remains at version {}",
+                    result.getDeferredBlocks(), result.getResultingVersion());
         }
     }
 
@@ -105,9 +105,9 @@ public final class LegacyChunkMigrationHandler {
             LegacyChunkMigration.Bounds bounds, LegacyChunkMigration.Volume volume,
             Object storage) {
         if (isRememberedCompleted(storage)
-                || !LegacyChunkMigration.containsLegacyGeode(bounds, volume)) {
+                || !LegacyChunkMigration.containsLegacyContent(bounds, volume)) {
             ContentMigrationVersion.write(data,
-                    CncDataVersions.CANONICAL_REGISTRY_CONTENT_VERSION);
+                    CncDataVersions.CURRENT_CONTENT_VERSION);
             rememberCompleted(storage);
         }
     }
@@ -172,6 +172,11 @@ public final class LegacyChunkMigrationHandler {
             Block block = ForgeRegistries.BLOCKS.getValue(CncRegistryIds.id(registryPath));
             return block == null ? null : block.getDefaultState();
         }
+
+        protected IBlockState target(String registryPath, int metadata) {
+            Block block = ForgeRegistries.BLOCKS.getValue(CncRegistryIds.id(registryPath));
+            return block == null ? null : block.getStateFromMeta(metadata);
+        }
     }
 
     private static final class ChunkVolume extends RegistryVolume {
@@ -192,6 +197,14 @@ public final class LegacyChunkMigrationHandler {
             return target != null
                     && chunk.setBlockState(new BlockPos(x, y, z), target) != null;
         }
+
+        @Override
+        public boolean replaceState(int x, int y, int z, String targetRegistryPath,
+                int metadata) {
+            IBlockState target = target(targetRegistryPath, metadata);
+            return target != null
+                    && chunk.setBlockState(new BlockPos(x, y, z), target) != null;
+        }
     }
 
     private static final class CubeVolume extends RegistryVolume {
@@ -209,6 +222,14 @@ public final class LegacyChunkMigrationHandler {
         @Override
         public boolean replace(int x, int y, int z, String targetRegistryPath) {
             IBlockState target = target(targetRegistryPath);
+            return target != null
+                    && cube.setBlockState(new BlockPos(x, y, z), target) != null;
+        }
+
+        @Override
+        public boolean replaceState(int x, int y, int z, String targetRegistryPath,
+                int metadata) {
+            IBlockState target = target(targetRegistryPath, metadata);
             return target != null
                     && cube.setBlockState(new BlockPos(x, y, z), target) != null;
         }

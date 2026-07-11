@@ -11,6 +11,12 @@ public final class CncDataVersions {
     /** Registry canonicalization and the retained-geode-marker conversion checkpoint. */
     public static final int CANONICAL_REGISTRY_CONTENT_VERSION = 1;
 
+    /** State-split stalactites and stalagmites have been folded into pointed dripstone. */
+    public static final int POINTED_DRIPSTONE_CONTENT_VERSION = 2;
+
+    /** Latest fully implemented save-content schema. */
+    public static final int CURRENT_CONTENT_VERSION = POINTED_DRIPSTONE_CONTENT_VERSION;
+
     /** Reserved final v2 content schema; later migration steps advance toward this value. */
     public static final int V2_CONTENT_VERSION = 2000;
 

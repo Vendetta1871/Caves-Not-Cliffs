@@ -34,6 +34,10 @@ public class PointedDripstoneMechanicsTest {
                 }
             }
             assertEquals(9, block.getMetaFromState(block.getStateFromMeta(15)));
+            assertEquals(EnumFacing.UP,
+                    block.getStateFromMeta(0).getValue(BlockPointedDripstone.TIP_DIRECTION));
+            assertEquals(Thickness.TIP,
+                    block.getStateFromMeta(0).getValue(BlockPointedDripstone.THICKNESS));
         }
     }
 

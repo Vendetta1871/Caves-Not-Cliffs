@@ -99,6 +99,72 @@ public class LegacyChunkMigrationTest {
         assertEquals(0, LegacyInventoryMigration.migrateSerializedStacks(inventory));
     }
 
+    @Test
+    public void consolidatesEveryLegacyPointedSegmentWithoutTraversalDependence()
+            throws Exception {
+        NBTTagCompound fixture = loadFixture("fixtures/draft_v2_dripstone_chunk.snbt");
+        FixtureVolume volume = new FixtureVolume(fixture,
+                LegacyChunkMigration.POINTED_DRIPSTONE_PATH);
+
+        LegacyChunkMigration.Result result = LegacyChunkMigration.migrate(
+                ContentMigrationVersion.read(fixture), fixture.getLong("seed"),
+                bounds(fixture), volume);
+
+        assertTrue(result.isComplete());
+        assertEquals(12, result.getConvertedBlocks());
+        assertEquals(0, result.getDeferredBlocks());
+        assertFalse(LegacyChunkMigration.containsLegacyContent(bounds(fixture), volume));
+        assertEquals(27, fixture.getCompoundTag("cavesnotcliffs").getInteger("preserved"));
+
+        // Two-block roots are frustums; three-block roots are bases. Tips retain direction.
+        assertState(volume, 0, 3, 0, false,
+                net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness.FRUSTUM);
+        assertState(volume, 1, 3, 0, false,
+                net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness.BASE);
+        assertState(volume, 1, 2, 0, false,
+                net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness.MIDDLE);
+        assertState(volume, 0, 2, 0, false,
+                net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness.TIP);
+        assertState(volume, 0, 0, 1, true,
+                net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness.FRUSTUM);
+        assertState(volume, 1, 0, 1, true,
+                net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness.BASE);
+        assertState(volume, 1, 1, 1, true,
+                net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness.MIDDLE);
+        assertState(volume, 2, 3, 0, false,
+                net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness.TIP);
+        assertState(volume, 2, 0, 1, true,
+                net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness.TIP);
+    }
+
+    @Test
+    public void defersLegacyPointedSegmentsWhenCanonicalStateIsUnavailable()
+            throws Exception {
+        NBTTagCompound fixture = loadFixture("fixtures/draft_v2_dripstone_chunk.snbt");
+        FixtureVolume volume = new FixtureVolume(fixture);
+        LegacyChunkMigration.Result result = LegacyChunkMigration.migrate(
+                ContentMigrationVersion.read(fixture), fixture.getLong("seed"),
+                bounds(fixture), volume);
+        assertFalse(result.isComplete());
+        assertEquals(12, result.getDeferredBlocks());
+        assertEquals(CncDataVersions.CANONICAL_REGISTRY_CONTENT_VERSION,
+                result.getResultingVersion());
+        assertEquals("bottom_stalactite", volume.pathAt(0, 3, 0));
+    }
+
+    private static void assertState(FixtureVolume volume, int x, int y, int z,
+            boolean tipUp,
+            net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness thickness) {
+        assertEquals(LegacyChunkMigration.POINTED_DRIPSTONE_PATH, volume.pathAt(x, y, z));
+        int metadata = volume.metadataAt(x, y, z);
+        assertEquals(tipUp,
+                net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics
+                        .tipUpFromMetadata(metadata));
+        assertEquals(thickness,
+                net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics
+                        .thicknessFromMetadata(metadata));
+    }
+
     private static NBTTagCompound loadFixture(String resource) throws Exception {
         InputStream stream = LegacyChunkMigrationTest.class.getClassLoader()
                 .getResourceAsStream(resource);
@@ -157,6 +223,21 @@ public class LegacyChunkMigrationTest {
             }
             block.setString("id", "cavesnotcliffs:" + targetRegistryPath);
             return true;
+        }
+
+        @Override
+        public boolean replaceState(int x, int y, int z, String targetRegistryPath,
+                int metadata) {
+            if (!replace(x, y, z, targetRegistryPath)) {
+                return false;
+            }
+            entryAt(x, y, z).setInteger("meta", metadata);
+            return true;
+        }
+
+        private int metadataAt(int x, int y, int z) {
+            NBTTagCompound block = entryAt(x, y, z);
+            return block == null ? 0 : block.getInteger("meta");
         }
 
         private NBTTagCompound entryAt(int x, int y, int z) {

@@ -111,6 +111,9 @@ texture, and their model geometry are unmodified Java 1.18.2 client assets, with
 and Java 1.12 model-path syntax adapted. The eleven shared dripstone break/step sounds, thirty-three
 water/lava drip sounds, and five pointed-dripstone landing sounds are unmodified objects from the
 official 1.18 asset index and use the Java 1.18.2 sound definitions.
+The lava-cauldron model uses the target runtime's matching vanilla cauldron geometry and textures
+with its content surface switched to the animated runtime lava texture; no copied lava texture is
+distributed.
 
 - Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
 - Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`

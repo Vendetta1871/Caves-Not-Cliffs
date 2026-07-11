@@ -40,6 +40,7 @@ import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraft.world.Explosion;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
@@ -190,6 +191,7 @@ public final class BlockPointedDripstone extends Block {
         if (state.getValue(TIP_DIRECTION) == EnumFacing.UP) {
             if (!validPlacement(world, pos, EnumFacing.UP)) {
                 world.destroyBlock(pos, true);
+                restoreWaterAfterRemoval(world, pos, state);
             }
             return;
         }
@@ -224,6 +226,22 @@ public final class BlockPointedDripstone extends Block {
             world.setBlockState(pos, Blocks.WATER.getDefaultState(), 3);
         }
         return removed;
+    }
+
+    @Override
+    public void onBlockExploded(World world, BlockPos pos, Explosion explosion) {
+        IBlockState state = world.getBlockState(pos);
+        super.onBlockExploded(world, pos, explosion);
+        restoreWaterAfterRemoval(world, pos, state);
+    }
+
+    private static void restoreWaterAfterRemoval(World world, BlockPos pos,
+            IBlockState state) {
+        if (state.getBlock() instanceof BlockPointedDripstone
+                && ((BlockPointedDripstone) state.getBlock()).waterloggedStorage
+                && world.isAirBlock(pos)) {
+            world.setBlockState(pos, Blocks.WATER.getDefaultState(), 3);
+        }
     }
 
     @Override
@@ -470,6 +488,10 @@ public final class BlockPointedDripstone extends Block {
             EntityFallingBlock falling = new EntityFallingBlock(world,
                     cursor.getX() + 0.5D, cursor.getY(), cursor.getZ() + 0.5D, state);
             world.spawnEntity(falling);
+            // Modern FallingBlockEntity removes the source synchronously. Advancing the legacy
+            // entity once gives the same ordering and lets us restore a retained source fluid.
+            falling.onUpdate();
+            restoreWaterAfterRemoval(world, cursor, state);
             if (isTip(state, true)) {
                 falling.setHurtEntities(true);
                 ObfuscationReflectionHelper.setPrivateValue(EntityFallingBlock.class, falling,
@@ -605,10 +627,8 @@ public final class BlockPointedDripstone extends Block {
         if (collision == null) {
             return true;
         }
-        AxisAlignedBB required = new AxisAlignedBB(pos.getX() + 6.0D / 16.0D,
-                pos.getY(), pos.getZ() + 6.0D / 16.0D,
-                pos.getX() + 10.0D / 16.0D, pos.getY() + 1.0D,
-                pos.getZ() + 10.0D / 16.0D);
+        AxisAlignedBB required = new AxisAlignedBB(6.0D / 16.0D, 0.0D,
+                6.0D / 16.0D, 10.0D / 16.0D, 1.0D, 10.0D / 16.0D);
         return !collision.intersects(required);
     }
 
