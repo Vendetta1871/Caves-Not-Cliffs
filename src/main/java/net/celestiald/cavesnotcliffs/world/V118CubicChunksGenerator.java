@@ -6,6 +6,7 @@ import io.github.opencubicchunks.cubicchunks.api.worldgen.CubePrimer;
 import io.github.opencubicchunks.cubicchunks.api.worldgen.ICubeGenerator;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118BiomeDecorationUnion;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118NoiseRouterData;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118TerrainColumnGenerator;
 import net.minecraft.block.Block;
@@ -22,14 +23,15 @@ import java.util.List;
 import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.Set;
 
 /**
  * Native schema-2 CubicChunks bridge for the Java 1.18.2 density columns.
  *
- * <p>This generator retains the selected 1.12 chunk generator for the later structure-only bridge,
- * but intentionally does not invoke its terrain or population methods. It also does not invoke the
- * legacy cave carver, legacy deep ores, or legacy decorators. Structure bridging and 1.18 feature
- * population are separate checkpoints.</p>
+ * <p>This generator retains the selected 1.12 chunk generator for the structure-only bridge, but
+ * intentionally does not invoke its terrain or general decorator pipeline. It also does not invoke
+ * the legacy cave carver or legacy deep ores. Native ordinary 1.18 ore/blob features run through
+ * their isolated decoration bridge after structure population.</p>
  */
 public final class V118CubicChunksGenerator implements ICubeGenerator {
     private static final int CUBE_SIZE = 16;
@@ -44,6 +46,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
     private final V118BlockStateMapper blockStates;
     private final V118BiomeMapper biomes;
     private final V118CubeSlicer slicer;
+    private final V118OreWorldBridge ordinaryOres;
     private ChunkPrimer cachedStructureColumn;
     private int cachedStructureX;
     private int cachedStructureZ;
@@ -76,6 +79,8 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         this.blockStates = blockStates;
         this.biomes = biomes;
         slicer = new V118CubeSlicer(blockStates, biomes);
+        ordinaryOres = new V118OreWorldBridge(world, this,
+            V118OreBlockMapper.fromRegisteredBlocks());
         registerActiveGenerator(world, this);
     }
 
@@ -144,6 +149,8 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         }
         if (cube.getY() == 0) {
             structures.populate(cube.getX(), cube.getZ());
+            ordinaryOres.populate(cube.getX(), cube.getZ(),
+                decorationBiomeUnion(cube.getX(), cube.getZ()));
         }
         TerrainColumn column = columns.column(cube.getX(), cube.getZ());
 
@@ -185,7 +192,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
 
     @Override
     public void recreateStructures(ICube cube) {
-        // The structure-only bridge is a later checkpoint.
+        // Starts are recreated once per projected 2D column below, not once per vertical cube.
     }
 
     @Override
@@ -237,13 +244,19 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
     }
 
     static Box fullPopulationRequirements(int cubeY) {
-        if (cubeY >= 0 && cubeY < 16) {
-            return new Box(-1, -cubeY, -1, 0, 15 - cubeY, 0);
+        if (isGeneratedCube(cubeY)) {
+            // Ordinary features are executed by cube Y=0 and can cross one X/Z cube boundary.
+            // Requiring all nine sources here makes every vertical target complete before it can
+            // be exposed, independent of which target cube was requested first.
+            return new Box(-1, -cubeY, -1, 1, -cubeY, 1);
         }
         return NO_REQUIREMENT;
     }
 
     static Box populationPregenerationRequirements(int cubeY) {
+        if (cubeY == 0) {
+            return FEATURE_POPULATION_REQUIREMENT;
+        }
         if (cubeY >= 0 && cubeY < 16) {
             return new Box(-1, Math.min(-1, -cubeY), -1,
                 1, Math.max(1, 15 - cubeY), 1);
@@ -262,6 +275,10 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         }
     }
 
+    Set<V118Biome> decorationBiomeUnion(int chunkX, int chunkZ) {
+        return V118BiomeDecorationUnion.collect(chunkX, chunkZ, columns::column);
+    }
+
     private static TerrainProfile requireNativeProfile(TerrainProfile profile) {
         if (!isNativeProfile(profile)) {
             throw new IllegalArgumentException("Not a native 1.18 terrain profile: " + profile);
@@ -272,4 +289,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
     private static boolean isGeneratedCube(int cubeY) {
         return cubeY >= TerrainColumn.MIN_CUBE_Y && cubeY <= TerrainColumn.MAX_CUBE_Y;
     }
+
+    private static final Box FEATURE_POPULATION_REQUIREMENT = new Box(-1,
+        TerrainColumn.MIN_CUBE_Y, -1, 1, TerrainColumn.MAX_CUBE_Y, 1);
 }

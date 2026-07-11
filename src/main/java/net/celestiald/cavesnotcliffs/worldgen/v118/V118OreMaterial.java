@@ -33,5 +33,7 @@ public enum V118OreMaterial {
     EMERALD_ORE,
     DEEPSLATE_EMERALD_ORE,
     INFESTED_STONE,
-    INFESTED_DEEPSLATE
+    INFESTED_DEEPSLATE,
+    /** Any non-air runtime block that is not a configured ore replacement target. */
+    OTHER
 }

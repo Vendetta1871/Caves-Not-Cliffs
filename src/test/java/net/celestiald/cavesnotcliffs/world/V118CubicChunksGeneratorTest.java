@@ -34,14 +34,25 @@ public class V118CubicChunksGeneratorTest {
     }
 
     @Test
-    public void retainedStructuresLoadTheWholeLegacyVerticalColumnWithoutOldDecorators() {
+    public void everyFiniteTargetRequiresTheNineFeatureSourceColumnsAtCubeZero() {
         Box full = V118CubicChunksGenerator.fullPopulationRequirements(5);
         AtomicInteger fullCount = new AtomicInteger();
         full.forEachPoint((x, y, z) -> fullCount.incrementAndGet());
-        assertEquals(64, fullCount.get());
-        assertTrue(full.allMatch((x, y, z) -> x >= -1 && x <= 0
-            && y >= -5 && y <= 10 && z >= -1 && z <= 0));
+        assertEquals(9, fullCount.get());
+        assertTrue(full.allMatch((x, y, z) -> x >= -1 && x <= 1
+            && y == -5 && z >= -1 && z <= 1));
 
+        Box bottom = V118CubicChunksGenerator.fullPopulationRequirements(-4);
+        assertTrue(bottom.allMatch((x, y, z) -> y == 4));
+        Box top = V118CubicChunksGenerator.fullPopulationRequirements(19);
+        assertTrue(top.allMatch((x, y, z) -> y == -19));
+
+        assertSame(V118CubicChunksGenerator.fullPopulationRequirements(-5),
+            V118CubicChunksGenerator.fullPopulationRequirements(20));
+    }
+
+    @Test
+    public void retainedStructuresPregenerateTheWholeLegacyVerticalColumn() {
         Box pregeneration = V118CubicChunksGenerator.populationPregenerationRequirements(5);
         AtomicInteger pregenerationCount = new AtomicInteger();
         pregeneration.forEachPoint((x, y, z) -> pregenerationCount.incrementAndGet());
@@ -49,10 +60,26 @@ public class V118CubicChunksGeneratorTest {
         assertTrue(pregeneration.allMatch((x, y, z) -> x >= -1 && x <= 1
             && y >= -5 && y <= 10 && z >= -1 && z <= 1));
 
-        assertSame(V118CubicChunksGenerator.fullPopulationRequirements(-1),
-            V118CubicChunksGenerator.fullPopulationRequirements(16));
         assertSame(V118CubicChunksGenerator.populationPregenerationRequirements(-1),
             V118CubicChunksGenerator.populationPregenerationRequirements(16));
+    }
+
+    @Test
+    public void featurePopulationLoadsTheCompleteFiniteThreeByThreeRegion() {
+        Box full = V118CubicChunksGenerator.fullPopulationRequirements(0);
+        AtomicInteger sourceCount = new AtomicInteger();
+        full.forEachPoint((x, y, z) -> sourceCount.incrementAndGet());
+        assertEquals(9, sourceCount.get());
+        assertTrue(full.allMatch((x, y, z) -> x >= -1 && x <= 1
+            && y == 0 && z >= -1 && z <= 1));
+
+        Box pregeneration =
+            V118CubicChunksGenerator.populationPregenerationRequirements(0);
+        AtomicInteger generatedCount = new AtomicInteger();
+        pregeneration.forEachPoint((x, y, z) -> generatedCount.incrementAndGet());
+        assertEquals(3 * 24 * 3, generatedCount.get());
+        assertTrue(pregeneration.allMatch((x, y, z) -> x >= -1 && x <= 1
+            && y >= -4 && y <= 19 && z >= -1 && z <= 1));
     }
 
     @Test
