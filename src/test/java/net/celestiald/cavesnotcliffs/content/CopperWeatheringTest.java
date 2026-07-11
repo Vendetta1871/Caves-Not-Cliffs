@@ -78,6 +78,31 @@ public class CopperWeatheringTest {
     }
 
     @Test
+    public void axeMatrixScrapesBeforeItUnwaxes() {
+        for (CopperWeathering.Variant variant : CopperWeathering.variants()) {
+            CopperWeathering.AxeAction expected;
+            if (!variant.isWaxed() && variant.getStage() != CopperWeathering.Stage.UNAFFECTED) {
+                expected = CopperWeathering.AxeAction.SCRAPE;
+            } else if (variant.isWaxed()) {
+                expected = CopperWeathering.AxeAction.UNWAX;
+            } else {
+                expected = CopperWeathering.AxeAction.PASS;
+            }
+            assertEquals(variant.getPath(), expected, CopperWeathering.axeAction(variant));
+            CopperWeathering.Variant result = CopperWeathering.axeResult(variant);
+            if (expected == CopperWeathering.AxeAction.PASS) {
+                assertNull(result);
+            } else if (expected == CopperWeathering.AxeAction.SCRAPE) {
+                assertEquals(variant.getStage().previous(), result.getStage());
+                assertFalse(result.isWaxed());
+            } else {
+                assertEquals(variant.getStage(), result.getStage());
+                assertFalse(result.isWaxed());
+            }
+        }
+    }
+
+    @Test
     public void youngerNeighborVetoesAgingAnywhereInsideRadiusFour() {
         assertEquals(-1.0F, CopperWeathering.transitionChance(
                 CopperWeathering.Stage.WEATHERED,

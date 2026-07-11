@@ -43,6 +43,12 @@ public final class CopperWeathering {
         DOUBLE_SLAB
     }
 
+    public enum AxeAction {
+        SCRAPE,
+        UNWAX,
+        PASS
+    }
+
     public static final class Variant {
         private final String path;
         private final Stage stage;
@@ -194,6 +200,22 @@ public final class CopperWeathering {
 
     public static Variant unwaxed(Variant source) {
         return source.waxed ? counterpart(source, source.stage, false) : null;
+    }
+
+    /** Mirrors AxeItem's scrape-before-unwax precedence. */
+    public static AxeAction axeAction(Variant source) {
+        if (previous(source) != null) {
+            return AxeAction.SCRAPE;
+        }
+        return unwaxed(source) != null ? AxeAction.UNWAX : AxeAction.PASS;
+    }
+
+    public static Variant axeResult(Variant source) {
+        AxeAction action = axeAction(source);
+        if (action == AxeAction.SCRAPE) {
+            return previous(source);
+        }
+        return action == AxeAction.UNWAX ? unwaxed(source) : null;
     }
 
     /** The unaffected stage uses the exact 0.75 modifier; all later stages use 1.0. */
