@@ -125,6 +125,7 @@ public class DensityFunctionsOracleTest {
         NormalNoise.NoiseParameters parameters = parameters();
         DensityFunctions.Noise noise = DensityFunctions.noise(parameters, 0.25D, 0.5D);
         assertRawBits("unseeded noise", 0.0D, noise.compute(context(4, -8, 16)));
+        assertRawBits("coordinate convenience overload", 0.0D, noise.compute(4, -8, 16));
         assertRawBits("unseeded noise minimum", -2.0D, noise.minValue());
         assertRawBits("unseeded noise maximum", 2.0D, noise.maxValue());
 

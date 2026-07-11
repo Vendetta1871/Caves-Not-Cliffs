@@ -10,6 +10,10 @@ package net.celestiald.cavesnotcliffs.worldgen.v118;
 public interface DensityFunction {
     double compute(FunctionContext context);
 
+    default double compute(int blockX, int blockY, int blockZ) {
+        return compute(new SinglePointContext(blockX, blockY, blockZ));
+    }
+
     void fillArray(double[] values, ContextProvider contextProvider);
 
     DensityFunction mapAll(Visitor visitor);
