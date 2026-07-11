@@ -161,18 +161,12 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
 
     @Override
     public Box getFullPopulationRequirements(ICube cube) {
-        if (cube.getY() == 0) {
-            return new Box(-1, 0, -1, 0, 15, 0);
-        }
-        return NO_REQUIREMENT;
+        return fullPopulationRequirements(cube.getY());
     }
 
     @Override
     public Box getPopulationPregenerationRequirements(ICube cube) {
-        if (cube.getY() == 0) {
-            return new Box(-1, 0, -1, 1, 15, 1);
-        }
-        return NO_REQUIREMENT;
+        return populationPregenerationRequirements(cube.getY());
     }
 
     @Override
@@ -226,6 +220,21 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
             default:
                 throw new AssertionError(profile);
         }
+    }
+
+    static Box fullPopulationRequirements(int cubeY) {
+        if (cubeY >= 0 && cubeY < 16) {
+            return new Box(-1, -cubeY, -1, 0, 15 - cubeY, 0);
+        }
+        return NO_REQUIREMENT;
+    }
+
+    static Box populationPregenerationRequirements(int cubeY) {
+        if (cubeY >= 0 && cubeY < 16) {
+            return new Box(-1, Math.min(-1, -cubeY), -1,
+                1, Math.max(1, 15 - cubeY), 1);
+        }
+        return NO_REQUIREMENT;
     }
 
     private static TerrainProfile requireNativeProfile(TerrainProfile profile) {
