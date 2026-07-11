@@ -81,6 +81,28 @@ public class V118CubeSlicerTest {
             "15:15:15:LAVA"), fluids);
     }
 
+    @Test
+    public void projectsSurfaceBiomesIntoLegacyChunkZMajorOrder() {
+        TerrainColumn.Builder builder = TerrainColumn.builder(-3, 5)
+            .fillMaterialIds(V118Material.AIR.storageId())
+            .fillSurfaceBiomeIds(V118Biome.PLAINS.ordinal())
+            .fillVirtualBiomeIds(V118Biome.PLAINS.ordinal());
+        builder.setSurfaceBiomeId(0, 0, V118Biome.DESERT.ordinal());
+        builder.setSurfaceBiomeId(15, 0, V118Biome.FROZEN_PEAKS.ordinal());
+        builder.setSurfaceBiomeId(0, 1, V118Biome.DESERT.ordinal());
+        builder.setSurfaceBiomeId(15, 15, V118Biome.FROZEN_PEAKS.ordinal());
+
+        byte[] projected = new byte[TerrainColumn.SURFACE_BIOME_COUNT];
+        new V118CubeSlicer(blockMapper(), biomeMapper())
+            .projectSurfaceBiomes(builder.build(), projected);
+
+        assertEquals(Biome.getIdForBiome(Biomes.DESERT), projected[0] & 255);
+        assertEquals(Biome.getIdForBiome(Biomes.ICE_MOUNTAINS), projected[15] & 255);
+        assertEquals(Biome.getIdForBiome(Biomes.DESERT), projected[16] & 255);
+        assertEquals(Biome.getIdForBiome(Biomes.PLAINS), projected[17] & 255);
+        assertEquals(Biome.getIdForBiome(Biomes.ICE_MOUNTAINS), projected[255] & 255);
+    }
+
     private static V118BlockStateMapper blockMapper() {
         return new V118BlockStateMapper(
             Blocks.COAL_BLOCK.getDefaultState(), Blocks.BRICK_BLOCK.getDefaultState(),

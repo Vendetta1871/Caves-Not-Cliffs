@@ -50,6 +50,20 @@ public class CavesNotCliffsWorldTypesTest {
                 modded.getName(), modded.getClass().getName()), moddedWrapper.getName());
         assertEquals(TerrainProfile.DELEGATED, moddedWrapper.getTerrainProfile());
 
+        assertEquals(TerrainProfile.DEFAULT,
+                CavesNotCliffsWorldTypes.wrapperForBase(WorldType.DEFAULT).getTerrainProfile());
+        assertEquals(TerrainProfile.LARGE_BIOMES,
+                CavesNotCliffsWorldTypes.wrapperForBase(WorldType.LARGE_BIOMES)
+                        .getTerrainProfile());
+        assertEquals(TerrainProfile.AMPLIFIED,
+                CavesNotCliffsWorldTypes.wrapperForBase(WorldType.AMPLIFIED)
+                        .getTerrainProfile());
+        for (WorldType delegated : Arrays.asList(WorldType.FLAT, WorldType.CUSTOMIZED,
+                WorldType.DEBUG_ALL_BLOCK_STATES, WorldType.DEFAULT_1_1, modded)) {
+            assertEquals("2D and third-party wrappers must remain delegated", TerrainProfile.DELEGATED,
+                    CavesNotCliffsWorldTypes.wrapperForBase(delegated).getTerrainProfile());
+        }
+
         WorldType late = new TestWorldType("test_late_twod");
         CavesNotCliffsWorldTypes.registerWrappers();
         CavesNotCliffsWorldTypeWrapper lateWrapper =

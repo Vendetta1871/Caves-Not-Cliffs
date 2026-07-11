@@ -3,6 +3,7 @@ package net.celestiald.cavesnotcliffs.world;
 import io.github.opencubicchunks.cubicchunks.api.worldgen.CubePrimer;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Material;
+import net.minecraft.world.biome.Biome;
 
 /** Copies one immutable 16x384x16 terrain column into CubicChunks' 16-cube view. */
 final class V118CubeSlicer {
@@ -45,6 +46,24 @@ final class V118CubeSlicer {
                 int biomeId = column.virtualBiomeIdAtQuart(localQuartX, centerQuartY,
                     localQuartZ);
                 primer.setBiome(localQuartX, 0, localQuartZ, biomes.biomeFor(biomeId));
+            }
+        }
+    }
+
+    void projectSurfaceBiomes(TerrainColumn column, byte[] legacyBiomeArray) {
+        if (legacyBiomeArray == null
+                || legacyBiomeArray.length != TerrainColumn.SURFACE_BIOME_COUNT) {
+            throw new IllegalArgumentException("Expected a complete 16x16 chunk biome array");
+        }
+        for (int localZ = 0; localZ < TerrainColumn.WIDTH; ++localZ) {
+            for (int localX = 0; localX < TerrainColumn.WIDTH; ++localX) {
+                Biome biome = biomes.biomeFor(column.surfaceBiomeId(localX, localZ));
+                int biomeId = Biome.getIdForBiome(biome);
+                if (biomeId < 0 || biomeId > 255) {
+                    throw new IllegalStateException("Projected biome id does not fit the legacy "
+                        + "chunk biome array: " + biomeId);
+                }
+                legacyBiomeArray[localZ * TerrainColumn.WIDTH + localX] = (byte) biomeId;
             }
         }
     }
