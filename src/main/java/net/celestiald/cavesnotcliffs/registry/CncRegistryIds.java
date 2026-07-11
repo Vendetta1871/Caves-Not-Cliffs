@@ -76,6 +76,9 @@ public final class CncRegistryIds {
     public static final ResourceLocation HONEY_BOTTLE = id("honey_bottle");
     public static final ResourceLocation HONEY_BLOCK = id("honey_block");
     public static final ResourceLocation HONEYCOMB_BLOCK = id("honeycomb_block");
+    public static final ResourceLocation CAMPFIRE = id("campfire");
+    public static final ResourceLocation SOUL_CAMPFIRE = id("soul_campfire");
+    public static final ResourceLocation SOUL_SOIL = id("soul_soil");
     /** Hidden model/storage states used when the tile's honey level reaches five. */
     public static final ResourceLocation BEE_NEST_HONEY = id("bee_nest_honey");
     public static final ResourceLocation BEEHIVE_HONEY = id("beehive_honey");

@@ -13,8 +13,11 @@ import net.minecraft.client.renderer.entity.RenderFallingBlock;
 import net.celestiald.cavesnotcliffs.client.RenderBee;
 import net.celestiald.cavesnotcliffs.client.BeeLoopSoundController;
 import net.celestiald.cavesnotcliffs.client.HoneyDrinkSoundHandler;
+import net.celestiald.cavesnotcliffs.client.RenderCampfire;
 import net.celestiald.cavesnotcliffs.entity.EntityBee;
+import net.celestiald.cavesnotcliffs.tile.TileEntityCampfire;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.client.registry.ClientRegistry;
 
 public class ClientProxyCavesNotCliffs implements IProxyCavesNotCliffs {
 	@Override
@@ -30,6 +33,8 @@ public class ClientProxyCavesNotCliffs implements IProxyCavesNotCliffs {
 				EntityFallingPointedDripstone.EntityCustom.class, RenderFallingBlock::new);
 		RenderingRegistry.registerEntityRenderingHandler(EntityBee.EntityCustom.class,
 				RenderBee::new);
+		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityCampfire.class,
+				new RenderCampfire());
 		MinecraftForge.EVENT_BUS.register(BeeLoopSoundController.INSTANCE);
 		MinecraftForge.EVENT_BUS.register(HoneyDrinkSoundHandler.INSTANCE);
 	}
