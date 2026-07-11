@@ -15,7 +15,6 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockMoss extends ElementsCavesNotCliffs.ModElement {
     @GameRegistry.ObjectHolder("cavesnotcliffs:moss_block")
     public static final Block block = null;

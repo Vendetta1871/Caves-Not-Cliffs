@@ -20,7 +20,6 @@ import net.minecraft.world.World;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import java.util.Random;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDripleafPlant2 extends ElementsCavesNotCliffs.ModElement {
     @GameRegistry.ObjectHolder("cavesnotcliffs:dripleaf_plant_2")
     public static final Block block = null;

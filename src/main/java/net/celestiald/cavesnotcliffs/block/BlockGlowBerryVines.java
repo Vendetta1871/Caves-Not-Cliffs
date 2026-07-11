@@ -22,7 +22,6 @@ import java.util.Random;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.item.ItemGlowBerries;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockGlowBerryVines extends ElementsCavesNotCliffs.ModElement {
     @GameRegistry.ObjectHolder("cavesnotcliffs:glow_berry_vines")
     public static final Block block = null;

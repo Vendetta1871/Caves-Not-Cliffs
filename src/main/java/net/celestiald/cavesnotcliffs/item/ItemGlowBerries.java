@@ -1,7 +1,8 @@
 package net.celestiald.cavesnotcliffs.item;
 
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
-import net.celestiald.cavesnotcliffs.block.BlockGlowBerryVines;
+import net.celestiald.cavesnotcliffs.block.LushCaveVinesBlock;
+import net.celestiald.cavesnotcliffs.content.LushCaveContent;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -53,7 +54,7 @@ public final class ItemGlowBerries extends ElementsCavesNotCliffs.ModElement {
         @Override
         public EnumActionResult onItemUse(EntityPlayer player, World world, BlockPos supportPos,
                 EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
-            if (facing != EnumFacing.DOWN || BlockGlowBerryVines.block == null) {
+            if (facing != EnumFacing.DOWN || LushCaveContent.CAVE_VINES == null) {
                 return EnumActionResult.FAIL;
             }
 
@@ -67,7 +68,8 @@ public final class ItemGlowBerries extends ElementsCavesNotCliffs.ModElement {
             }
 
             if (!world.isRemote) {
-                world.setBlockState(target, BlockGlowBerryVines.block.getDefaultState(), 11);
+                world.setBlockState(target,
+                        LushCaveVinesBlock.headState(world.rand.nextInt(25), false), 11);
                 if (!player.capabilities.isCreativeMode) {
                     held.shrink(1);
                 }

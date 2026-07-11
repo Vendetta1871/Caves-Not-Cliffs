@@ -19,7 +19,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockBabyDripleaf extends ElementsCavesNotCliffs.ModElement {
     @GameRegistry.ObjectHolder("cavesnotcliffs:small_dripleaf")
     public static final Block block = null;

@@ -20,7 +20,6 @@ import net.minecraft.world.IBlockAccess;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import java.util.Random;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDripleafStem extends ElementsCavesNotCliffs.ModElement {
     @GameRegistry.ObjectHolder("cavesnotcliffs:dripleaf_stem")
     public static final Block block = null;

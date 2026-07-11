@@ -21,7 +21,6 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.item.ItemGlowBerries;
 import java.util.Random;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockGlowBerryMiddleFill extends ElementsCavesNotCliffs.ModElement {
     @GameRegistry.ObjectHolder("cavesnotcliffs:glow_berry_middle_fill")
     public static final Block block = null;
