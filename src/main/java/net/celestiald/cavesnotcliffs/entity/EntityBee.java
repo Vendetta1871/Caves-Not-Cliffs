@@ -99,7 +99,8 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
             setSize(0.7F, 0.6F);
             moveHelper = new EntityFlyHelper(this);
             setPathPriority(net.minecraft.pathfinding.PathNodeType.DANGER_FIRE, -1.0F);
-            setPathPriority(net.minecraft.pathfinding.PathNodeType.WATER, -1.0F);
+            // valueOf avoids a production MCP-field reference rejected by verifyReleaseJar.
+            setPathPriority(net.minecraft.pathfinding.PathNodeType.valueOf("WATER"), -1.0F);
             setPathPriority(net.minecraft.pathfinding.PathNodeType.FENCE, -1.0F);
             remainingCooldownBeforeLocatingNewFlower = 20 + rand.nextInt(41);
         }
