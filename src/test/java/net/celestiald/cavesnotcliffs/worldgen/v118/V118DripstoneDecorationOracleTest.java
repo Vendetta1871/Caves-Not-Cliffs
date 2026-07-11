@@ -182,10 +182,10 @@ public class V118DripstoneDecorationOracleTest {
         }
 
         private void set(int x, int y, int z, PlacedState state) {
+            ++setCalls;
             if (!contains(x, y, z)) {
                 return;
             }
-            ++setCalls;
             overrides.put(key(x, y, z), state);
         }
 

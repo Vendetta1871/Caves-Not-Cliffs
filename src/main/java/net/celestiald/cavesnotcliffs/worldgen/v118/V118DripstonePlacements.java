@@ -111,10 +111,7 @@ public final class V118DripstonePlacements {
                 int placedZ = z + V118DripstoneFeature.clampedNormalInt(random,
                     0.0F, 3.0F, -10, 10);
                 ++pointedAttempts;
-                boolean insideBuildHeight = placedY >= world.minBuildHeight()
-                    && placedY < world.maxBuildHeight();
-                boolean placed = insideBuildHeight
-                    && world.biomeAt(placedX, placedY, placedZ)
+                boolean placed = world.biomeAt(placedX, placedY, placedZ)
                     == V118Biome.DRIPSTONE_CAVES
                     && V118PointedDripstoneFeature.selectScanAndPlace(world, random,
                         placedX, placedY, placedZ);
