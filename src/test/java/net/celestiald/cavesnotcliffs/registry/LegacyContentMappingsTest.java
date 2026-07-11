@@ -47,4 +47,17 @@ public class LegacyContentMappingsTest {
                     loader.getResource(canonicalResource));
         }
     }
+
+    @Test
+    public void retainedGeodeGeneratorUsesOnlyCanonicalRuntimeIds() {
+        for (ResourceLocation id : CncRegistryIds.GEODE_GENERATION_BLOCKS) {
+            assertEquals("cavesnotcliffs", id.getResourceDomain());
+            assertEquals(id.getResourcePath(),
+                    LegacyContentMappings.canonicalPath(id.getResourcePath()));
+            assertNotNull("Missing blockstate for runtime geode lookup " + id,
+                    getClass().getClassLoader().getResource(
+                            "assets/cavesnotcliffs/blockstates/"
+                                    + id.getResourcePath() + ".json"));
+        }
+    }
 }

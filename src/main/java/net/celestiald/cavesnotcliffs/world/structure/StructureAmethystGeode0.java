@@ -16,6 +16,7 @@ import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.block.BlockAmethystCrystal;
 import net.celestiald.cavesnotcliffs.block.BlockAmethystCrystalStage1;
 import net.celestiald.cavesnotcliffs.block.BlockAmethystCrystalStage2;
+import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 
 import java.util.Random;
 
@@ -55,17 +56,26 @@ public class StructureAmethystGeode0 extends ElementsCavesNotCliffs.ModElement {
 		ResourceLocation name = block.getRegistryName();
 		if (name == null || !"cavesnotcliffs".equals(name.getResourceDomain())) return false;
 		String path = name.getResourcePath();
-		return "unnamed_stone".equals(path) || "dark_stone".equals(path);
+			return "deepslate".equals(path) || "tuff".equals(path)
+					|| "unnamed_stone".equals(path) || "dark_stone".equals(path);
+		}
+
+	private Block requireBlock(ResourceLocation registryName) {
+		Block block = ForgeRegistries.BLOCKS.getValue(registryName);
+		if (block == null) {
+			throw new IllegalStateException("Required Caves Not Cliffs block is not registered: "
+					+ registryName);
+		}
+		return block;
 	}
 
 	private void generateGeode(World world, Random random, int cx, int cy, int cz) {
-		Block casingBlock  = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "geode_casing"));
-		Block geodeBlock   = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_geode"));
-		Block calciteBlock = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "unknown_stone"));
-		Block stage1Block  = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal_stage_1"));
-		Block stage2Block  = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal_stage_2"));
-		Block crystalBlock = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal"));
-		if (casingBlock == null || geodeBlock == null) return;
+		Block casingBlock  = requireBlock(CncRegistryIds.SMOOTH_BASALT);
+		Block geodeBlock   = requireBlock(CncRegistryIds.AMETHYST_BLOCK);
+		Block calciteBlock = requireBlock(CncRegistryIds.CALCITE);
+		Block stage1Block  = requireBlock(CncRegistryIds.SMALL_AMETHYST_BUD);
+		Block stage2Block  = requireBlock(CncRegistryIds.MEDIUM_AMETHYST_BUD);
+		Block crystalBlock = requireBlock(CncRegistryIds.AMETHYST_CLUSTER);
 
 		int radius = 6 + random.nextInt(4); // 6–9
 		double noiseAmp = 0.9;
@@ -73,7 +83,7 @@ public class StructureAmethystGeode0 extends ElementsCavesNotCliffs.ModElement {
 
 		IBlockState casingState  = casingBlock.getDefaultState();
 		IBlockState geodeState   = geodeBlock.getDefaultState();
-		IBlockState calciteState = calciteBlock != null ? calciteBlock.getDefaultState() : casingState;
+		IBlockState calciteState = calciteBlock.getDefaultState();
 
 		// Pass 1: carve shells
 		for (int dx = -ext; dx <= ext; dx++) {
@@ -107,8 +117,6 @@ public class StructureAmethystGeode0 extends ElementsCavesNotCliffs.ModElement {
 		}
 
 		// Pass 2: crystals on inner surface
-		if (stage1Block == null || stage2Block == null || crystalBlock == null) return;
-
 		for (int dx = -ext; dx <= ext; dx++) {
 			for (int dy = -ext; dy <= ext; dy++) {
 				int ny = cy + dy;
