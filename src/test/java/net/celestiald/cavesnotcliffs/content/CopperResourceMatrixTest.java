@@ -124,6 +124,27 @@ public class CopperResourceMatrixTest {
         }
     }
 
+    @Test
+    public void lightningRodHasAllDirectionalPowerModelsAndNoHiddenItem() throws Exception {
+        for (String path : new String[]{"lightning_rod", "lightning_rod_waterlogged"}) {
+            JsonObject variants = json("blockstates/" + path + ".json")
+                    .getAsJsonObject("variants");
+            assertEquals(path, 12, variants.size());
+            for (String facing : new String[]{"down", "east", "north", "south", "up", "west"}) {
+                assertTrue(path, variants.has("facing=" + facing + ",powered=false"));
+                assertTrue(path, variants.has("facing=" + facing + ",powered=true"));
+            }
+        }
+        assertResource("models/block/lightning_rod.json");
+        assertResource("models/block/lightning_rod_on.json");
+        assertResource("models/item/lightning_rod.json");
+        assertFalse(exists("models/item/lightning_rod_waterlogged.json"));
+        assertEquals("87690f8a45273383e0d4ba99fb8e5e6c55ab59fef5db05f69659089c74d762b6",
+                sha256("textures/blocks/lightning_rod.png"));
+        assertEquals("6c940d767c5ec3d50d4bc53e12b15cf6a4762c15c37705f4e7fa1476627cba70",
+                sha256("textures/blocks/lightning_rod_on.png"));
+    }
+
     private static void assertRecipe(String recipe, String ingredient, String result,
             int count, String... pattern) {
         JsonObject json = json("recipes/" + recipe + ".json");

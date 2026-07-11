@@ -79,7 +79,8 @@ The ten copper block sounds, six axe scrape/wax-off sounds, and two trident thun
 unmodified objects from the official 1.18 asset index. Models and blockstates preserve Mojang's
 texture selection and stair rotations with only the Java 1.12 slab property names and resource
 paths adapted. Waxed variants intentionally reuse the matching unwaxed-stage texture, as in
-Java 1.18.2.
+Java 1.18.2. The lightning rod's two textures and geometry are likewise adapted directly from
+that client artifact; the hidden waterlogged storage block reuses the same model.
 
 - Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
 - Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
