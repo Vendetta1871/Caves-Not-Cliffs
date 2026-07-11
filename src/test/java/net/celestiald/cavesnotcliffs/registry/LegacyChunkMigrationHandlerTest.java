@@ -76,6 +76,40 @@ public class LegacyChunkMigrationHandlerTest {
                 ContentMigrationVersion.read(completedSave));
     }
 
+    @Test
+    public void absoluteTopDripleafIsPreservedWithoutEnteringPendingRetryQueue() {
+        Map<String, State> blocks = new HashMap<>();
+        blocks.put(key(0, 319, 0), new State("baby_dripleaf", 0));
+        Set<Integer> loadedCubeYs = new HashSet<>();
+        loadedCubeYs.add(19);
+        HaloVolume volume = new HaloVolume(blocks, loadedCubeYs);
+        TestStorage storage = new TestStorage();
+        Access access = new Access(storage,
+                new LegacyChunkMigration.Bounds(0, 304, 0, 1, 16, 1), volume);
+        NBTTagCompound data = new NBTTagCompound();
+        ContentMigrationVersion.write(data,
+                CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION);
+
+        LegacyChunkMigrationHandler.migrateLoadedCube(data, 0L, access, offset -> null);
+        assertEquals("baby_dripleaf", volume.pathAt(0, 319, 0));
+        assertEquals(0, storage.dirtyCount);
+
+        NBTTagCompound firstSave = new NBTTagCompound();
+        LegacyChunkMigrationHandler.writeCompletedVersion(firstSave,
+                access.bounds(), access.volume(), access.storage());
+        assertEquals(CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION,
+                ContentMigrationVersion.read(firstSave));
+
+        LegacyChunkMigrationHandler.migrateLoadedCube(firstSave, 0L, access, offset -> null);
+        NBTTagCompound secondSave = new NBTTagCompound();
+        LegacyChunkMigrationHandler.writeCompletedVersion(secondSave,
+                access.bounds(), access.volume(), access.storage());
+        assertEquals(CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION,
+                ContentMigrationVersion.read(secondSave));
+        assertEquals("baby_dripleaf", volume.pathAt(0, 319, 0));
+        assertEquals(0, storage.dirtyCount);
+    }
+
     public static final class TestStorage {
         private int dirtyCount;
 
@@ -145,6 +179,11 @@ public class LegacyChunkMigrationHandlerTest {
         @Override
         public boolean isPositionAvailable(int x, int y, int z) {
             return y < -64 || y >= 320 || loadedCubeYs.contains(y >> 4);
+        }
+
+        @Override
+        public boolean canStoreAt(int x, int y, int z) {
+            return y >= -64 && y < 320;
         }
 
         @Override

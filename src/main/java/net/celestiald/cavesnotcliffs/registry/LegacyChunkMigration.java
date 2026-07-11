@@ -60,6 +60,11 @@ public final class LegacyChunkMigration {
             return true;
         }
 
+        /** Reports whether the position exists inside the world's absolute storage height. */
+        default boolean canStoreAt(int x, int y, int z) {
+            return true;
+        }
+
         /** Replaces the position with the target's default state and reports success. */
         boolean replace(int x, int y, int z, String targetRegistryPath);
 
@@ -116,13 +121,15 @@ public final class LegacyChunkMigration {
         private final int resultingVersion;
         private final int convertedBlocks;
         private final int deferredBlocks;
+        private final int preservedBlocks;
 
         private Result(int previousVersion, int resultingVersion,
-                int convertedBlocks, int deferredBlocks) {
+                int convertedBlocks, int deferredBlocks, int preservedBlocks) {
             this.previousVersion = previousVersion;
             this.resultingVersion = resultingVersion;
             this.convertedBlocks = convertedBlocks;
             this.deferredBlocks = deferredBlocks;
+            this.preservedBlocks = preservedBlocks;
         }
 
         public int getPreviousVersion() {
@@ -141,6 +148,14 @@ public final class LegacyChunkMigration {
             return deferredBlocks;
         }
 
+        /**
+         * Legacy blocks intentionally retained because their canonical multi-block state cannot
+         * fit inside the absolute build height without moving or deleting world content.
+         */
+        public int getPreservedBlocks() {
+            return preservedBlocks;
+        }
+
         public boolean isComplete() {
             return resultingVersion >= CncDataVersions.CURRENT_CONTENT_VERSION;
         }
@@ -149,11 +164,12 @@ public final class LegacyChunkMigration {
     public static Result migrate(int previousVersion, long worldSeed, Bounds bounds,
             Volume volume) {
         if (previousVersion >= CncDataVersions.CURRENT_CONTENT_VERSION) {
-            return new Result(previousVersion, previousVersion, 0, 0);
+            return new Result(previousVersion, previousVersion, 0, 0, 0);
         }
 
         int converted = 0;
         int deferred = 0;
+        int preserved = 0;
         int resultingVersion = previousVersion;
 
         if (resultingVersion < CncDataVersions.CANONICAL_REGISTRY_CONTENT_VERSION) {
@@ -161,7 +177,8 @@ public final class LegacyChunkMigration {
             converted += geode[0];
             deferred += geode[1];
             if (geode[1] > 0) {
-                return new Result(previousVersion, resultingVersion, converted, deferred);
+                return new Result(previousVersion, resultingVersion, converted, deferred,
+                        preserved);
             }
             resultingVersion = CncDataVersions.CANONICAL_REGISTRY_CONTENT_VERSION;
         }
@@ -171,7 +188,8 @@ public final class LegacyChunkMigration {
             converted += pointed[0];
             deferred += pointed[1];
             if (pointed[1] > 0) {
-                return new Result(previousVersion, resultingVersion, converted, deferred);
+                return new Result(previousVersion, resultingVersion, converted, deferred,
+                        preserved);
             }
             resultingVersion = CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION;
         }
@@ -180,11 +198,12 @@ public final class LegacyChunkMigration {
             int[] lush = migrateLushStates(bounds, volume);
             converted += lush[0];
             deferred += lush[1];
-            if (lush[1] == 0) {
+            preserved += lush[2];
+            if (lush[1] == 0 && lush[2] == 0) {
                 resultingVersion = CncDataVersions.LUSH_CAVE_CONTENT_VERSION;
             }
         }
-        return new Result(previousVersion, resultingVersion, converted, deferred);
+        return new Result(previousVersion, resultingVersion, converted, deferred, preserved);
     }
 
     private static int[] migrateGeodes(long worldSeed, Bounds bounds, Volume volume) {
@@ -292,6 +311,7 @@ public final class LegacyChunkMigration {
     private static int[] migrateLushStates(Bounds bounds, Volume volume) {
         int converted = 0;
         int deferred = 0;
+        int preserved = 0;
         for (int x = bounds.minX; x < bounds.minX + bounds.sizeX; x++) {
             for (int y = bounds.minY; y < bounds.minY + bounds.sizeY; y++) {
                 for (int z = bounds.minZ; z < bounds.minZ + bounds.sizeZ; z++) {
@@ -306,6 +326,7 @@ public final class LegacyChunkMigration {
                         int[] smallDripleaf = migrateSmallDripleaf(x, y, z, volume);
                         converted += smallDripleaf[0];
                         deferred += smallDripleaf[1];
+                        preserved += smallDripleaf[2];
                         continue;
                     }
                     Target target = lushTarget(source, x, y, z, volume);
@@ -328,14 +349,17 @@ public final class LegacyChunkMigration {
                 }
             }
         }
-        return new int[]{converted, deferred};
+        return new int[]{converted, deferred, preserved};
     }
 
     private static int[] migrateSmallDripleaf(int x, int y, int z, Volume volume) {
         int upperY = y + 1;
+        if (!volume.canStoreAt(x, upperY, z)) {
+            return new int[]{0, 0, 1};
+        }
         if (!volume.isPositionAvailable(x, upperY, z)
                 || !volume.hasTarget("small_dripleaf")) {
-            return new int[]{0, 1};
+            return new int[]{0, 1, 0};
         }
 
         int lowerMeta = LushCaveMechanics.smallDripleafMeta(
@@ -345,17 +369,17 @@ public final class LegacyChunkMigration {
                 && LushCaveMechanics.dripleafUpper(
                         volume.blockMetadataAt(x, upperY, z))) {
             return volume.replaceState(x, y, z, "small_dripleaf", lowerMeta)
-                    ? new int[]{1, 0} : new int[]{0, 1};
+                    ? new int[]{1, 0, 0} : new int[]{0, 1, 0};
         }
         if (!volume.isAirAt(x, upperY, z)) {
-            return new int[]{0, 1};
+            return new int[]{0, 1, 0};
         }
 
         int upperMeta = LushCaveMechanics.smallDripleafMeta(
                 NORTH_HORIZONTAL_INDEX, true, false);
         return volume.replacePair(x, y, z, "small_dripleaf", lowerMeta,
                 x, upperY, z, "small_dripleaf", upperMeta)
-                ? new int[]{2, 0} : new int[]{0, 1};
+                ? new int[]{2, 0, 0} : new int[]{0, 1, 0};
     }
 
     private static Target lushTarget(String source, int x, int y, int z, Volume volume) {

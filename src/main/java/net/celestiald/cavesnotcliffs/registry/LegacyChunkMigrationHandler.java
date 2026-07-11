@@ -34,6 +34,7 @@ public final class LegacyChunkMigrationHandler {
     private static final Logger LOGGER = LogManager.getLogger("CavesNotCliffs/ChunkMigration");
     private static final Set<Object> COMPLETED = Collections.newSetFromMap(new WeakHashMap<>());
     private static final Map<Object, Integer> PENDING = new WeakHashMap<>();
+    private static final Map<Object, Integer> PRESERVED = new WeakHashMap<>();
 
     private LegacyChunkMigrationHandler() {
     }
@@ -113,6 +114,10 @@ public final class LegacyChunkMigrationHandler {
             LOGGER.warn("Deferred {} legacy content blocks because their canonical target or "
                             + "loaded boundary halo is unavailable; migration remains at version {}",
                     result.getDeferredBlocks(), result.getResultingVersion());
+        } else if (result.getPreservedBlocks() > 0) {
+            // An absolute-top small dripleaf has no lossless canonical two-block representation.
+            // Keep the legacy source and honest schema version, but do not queue futile retries.
+            rememberPreserved(storage, result.getResultingVersion());
         }
     }
 
@@ -141,17 +146,30 @@ public final class LegacyChunkMigrationHandler {
             rememberCompleted(access.storage());
             return;
         }
-        rememberPending(access.storage(), result.getResultingVersion());
+        if (result.getDeferredBlocks() > 0) {
+            rememberPending(access.storage(), result.getResultingVersion());
+        } else if (result.getPreservedBlocks() > 0) {
+            rememberPreserved(access.storage(), result.getResultingVersion());
+        } else {
+            forgetPending(access.storage());
+        }
     }
 
     static void writeCompletedVersion(NBTTagCompound data,
             LegacyChunkMigration.Bounds bounds, LegacyChunkMigration.Volume volume,
             Object storage) {
         Integer pending = pendingVersion(storage);
-        if (pending != null) {
+        Integer preserved = preservedVersion(storage);
+        Integer retainedVersion = pending != null ? pending : preserved;
+        if (retainedVersion != null
+                && LegacyChunkMigration.containsLegacyContent(bounds, volume)) {
             ContentMigrationVersion.write(data,
-                    Math.max(ContentMigrationVersion.read(data), pending));
+                    Math.max(ContentMigrationVersion.read(data), retainedVersion));
             return;
+        }
+        if (retainedVersion != null) {
+            forgetPending(storage);
+            forgetPreserved(storage);
         }
         if (isRememberedCompleted(storage)
                 || !LegacyChunkMigration.containsLegacyContent(bounds, volume)) {
@@ -177,6 +195,7 @@ public final class LegacyChunkMigrationHandler {
 
     private static void rememberCompleted(Object storage) {
         forgetPending(storage);
+        forgetPreserved(storage);
         synchronized (COMPLETED) {
             COMPLETED.add(storage);
         }
@@ -184,6 +203,7 @@ public final class LegacyChunkMigrationHandler {
 
     private static void rememberPending(Object storage, int version) {
         forgetCompleted(storage);
+        forgetPreserved(storage);
         synchronized (PENDING) {
             PENDING.put(storage, version);
         }
@@ -198,6 +218,26 @@ public final class LegacyChunkMigrationHandler {
     private static void forgetPending(Object storage) {
         synchronized (PENDING) {
             PENDING.remove(storage);
+        }
+    }
+
+    private static void rememberPreserved(Object storage, int version) {
+        forgetPending(storage);
+        forgetCompleted(storage);
+        synchronized (PRESERVED) {
+            PRESERVED.put(storage, version);
+        }
+    }
+
+    private static Integer preservedVersion(Object storage) {
+        synchronized (PRESERVED) {
+            return PRESERVED.get(storage);
+        }
+    }
+
+    private static void forgetPreserved(Object storage) {
+        synchronized (PRESERVED) {
+            PRESERVED.remove(storage);
         }
     }
 
@@ -331,6 +371,11 @@ public final class LegacyChunkMigrationHandler {
         }
 
         @Override
+        public boolean canStoreAt(int x, int y, int z) {
+            return isStoredPosition(x, y, z);
+        }
+
+        @Override
         public boolean replace(int x, int y, int z, String targetRegistryPath) {
             IBlockState target = target(targetRegistryPath);
             return target != null
@@ -421,6 +466,11 @@ public final class LegacyChunkMigrationHandler {
         @Override
         public boolean isPositionAvailable(int x, int y, int z) {
             return outsideFiniteHeight(y) || cubeAt(x, y, z) != null;
+        }
+
+        @Override
+        public boolean canStoreAt(int x, int y, int z) {
+            return !outsideFiniteHeight(y);
         }
 
         @Override
