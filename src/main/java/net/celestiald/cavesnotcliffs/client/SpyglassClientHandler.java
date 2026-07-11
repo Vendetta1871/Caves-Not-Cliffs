@@ -45,9 +45,12 @@ public final class SpyglassClientHandler {
             return;
         }
         EntityPlayer player = Minecraft.getMinecraft().player;
-        if (!isScoping(player)) {
+        if (!isScoping(player) || Minecraft.getMinecraft().gameSettings.thirdPersonView != 0) {
             return;
         }
+
+        // Scope and carved-pumpkin overlays are mutually exclusive in Java 1.18.2.
+        event.setCanceled(true);
 
         ScaledResolution resolution = event.getResolution();
         int width = resolution.getScaledWidth();
@@ -59,7 +62,13 @@ public final class SpyglassClientHandler {
         int top = (height - diameter) / 2;
 
         GlStateManager.disableDepth();
+        GlStateManager.depthMask(false);
         GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(
+                GlStateManager.SourceFactor.SRC_ALPHA,
+                GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
+                GlStateManager.SourceFactor.ONE,
+                GlStateManager.DestFactor.ZERO);
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         Minecraft.getMinecraft().getTextureManager().bindTexture(SCOPE);
         Gui.drawScaledCustomSizeModalRect(left, top, 0.0F, 0.0F,
@@ -70,6 +79,7 @@ public final class SpyglassClientHandler {
         Gui.drawRect(left, 0, left + diameter, top, 0xFF000000);
         Gui.drawRect(left, top + diameter, left + diameter, height, 0xFF000000);
         GlStateManager.disableBlend();
+        GlStateManager.depthMask(true);
         GlStateManager.enableDepth();
     }
 

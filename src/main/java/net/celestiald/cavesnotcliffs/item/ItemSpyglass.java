@@ -6,6 +6,8 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.EnumAction;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.stats.StatBase;
+import net.minecraft.stats.StatList;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumHand;
@@ -36,6 +38,10 @@ public final class ItemSpyglass extends Item {
     public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player,
             EnumHand hand) {
         player.playSound(AmethystSoundEvents.SPYGLASS_USE, 1.0F, 1.0F);
+        StatBase used = StatList.getObjectUseStats(this);
+        if (used != null) {
+            player.addStat(used);
+        }
         player.setActiveHand(hand);
         return new ActionResult<>(EnumActionResult.SUCCESS, player.getHeldItem(hand));
     }
