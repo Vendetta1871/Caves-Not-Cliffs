@@ -10,6 +10,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
+import java.util.List;
 import java.util.Random;
 
 /** Backports the 1.18 raw-material loot tables onto 1.12's vanilla iron and gold ores. */
@@ -18,10 +19,17 @@ public final class VanillaRawOreDrops {
     private VanillaRawOreDrops() {
     }
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = EventPriority.HIGH)
     public static void replaceVanillaOreDrops(BlockEvent.HarvestDropsEvent event) {
-        String replacement = replacementPath(event.getState().getBlock(), event.isSilkTouching());
+        Block block = event.getState().getBlock();
+        String replacement = replacementPath(block, event.isSilkTouching());
         if (replacement == null) {
+            return;
+        }
+
+        // Transform vanilla's original self-drop early in the event pipeline. If another mod has
+        // already replaced or augmented it, leave that deliberate behavior intact.
+        if (!isVanillaSelfDrop(block, event.getDrops())) {
             return;
         }
 
@@ -52,5 +60,12 @@ public final class VanillaRawOreDrops {
 
     static int rollRawCount(int fortune, Random random) {
         return OreDropLogic.applyOreBonus(1, fortune, random);
+    }
+
+    static boolean isVanillaSelfDrop(Block block, List<ItemStack> drops) {
+        return drops.size() == 1
+                && drops.get(0).getCount() == 1
+                && drops.get(0).getMetadata() == 0
+                && drops.get(0).getItem() == Item.getItemFromBlock(block);
     }
 }

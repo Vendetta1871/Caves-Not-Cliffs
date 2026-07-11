@@ -2,12 +2,17 @@ package net.celestiald.cavesnotcliffs.content;
 
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Bootstrap;
+import net.minecraft.item.ItemStack;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -43,5 +48,20 @@ public class VanillaRawOreDropsTest {
             assertTrue("fortune " + fortune + " never rolled its minimum", sawMinimum);
             assertTrue("fortune " + fortune + " never rolled its maximum", sawMaximum);
         }
+    }
+
+    @Test
+    public void onlyTransformsTheUntouchedVanillaSelfDrop() {
+        assertTrue(VanillaRawOreDrops.isVanillaSelfDrop(Blocks.IRON_ORE,
+                Collections.singletonList(new ItemStack(Blocks.IRON_ORE))));
+        assertTrue(VanillaRawOreDrops.isVanillaSelfDrop(Blocks.GOLD_ORE,
+                Collections.singletonList(new ItemStack(Blocks.GOLD_ORE))));
+        assertFalse(VanillaRawOreDrops.isVanillaSelfDrop(Blocks.IRON_ORE,
+                Collections.<ItemStack>emptyList()));
+
+        List<ItemStack> augmented = new ArrayList<>();
+        augmented.add(new ItemStack(Blocks.IRON_ORE));
+        augmented.add(new ItemStack(Blocks.COAL_ORE));
+        assertFalse(VanillaRawOreDrops.isVanillaSelfDrop(Blocks.IRON_ORE, augmented));
     }
 }
