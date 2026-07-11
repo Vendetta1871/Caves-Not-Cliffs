@@ -31,6 +31,8 @@ public final class BlockBuddingAmethyst extends BlockAmethystBase {
         IBlockState growthState = world.getBlockState(growthPos);
         boolean sourceWater = growthState.getBlock() == Blocks.WATER
                 && growthState.getValue(net.minecraft.block.BlockLiquid.LEVEL) == 0;
+        boolean retainedWater = growthState.getBlock() instanceof BlockAmethystGrowth
+                && ((BlockAmethystGrowth) growthState.getBlock()).isWaterlogged(growthState);
 
         Block next = null;
         if (growthState.getBlock().isAir(growthState, world, growthPos) || sourceWater) {
@@ -44,8 +46,17 @@ public final class BlockBuddingAmethyst extends BlockAmethystBase {
         }
 
         if (next instanceof BlockAmethystGrowth) {
-            world.setBlockState(growthPos, next.getDefaultState()
-                    .withProperty(BlockAmethystGrowth.WATERLOGGED, sourceWater)
+            BlockAmethystGrowth nextGrowth = (BlockAmethystGrowth) next;
+            boolean waterlogged = sourceWater || retainedWater;
+            if (waterlogged) {
+                BlockAmethystGrowth companion = nextGrowth.getWaterloggedCompanion();
+                if (companion == null) {
+                    return;
+                }
+                nextGrowth = companion;
+            }
+            world.setBlockState(growthPos, nextGrowth.getDefaultState()
+                    .withProperty(BlockAmethystGrowth.WATERLOGGED, waterlogged)
                     .withProperty(BlockAmethystGrowth.FACING, direction), 3);
         }
     }
@@ -72,9 +83,9 @@ public final class BlockBuddingAmethyst extends BlockAmethystBase {
 
     private static boolean hasMatchingFacing(IBlockState state, EnumFacing direction,
             String expectedName) {
-        Block expected = CncMaterialContent.block(expectedName);
-        return state.getBlock() == expected
-                && state.getPropertyKeys().contains(BlockAmethystGrowth.FACING)
+        return state.getBlock() instanceof BlockAmethystGrowth
+                && expectedName.equals(
+                        ((BlockAmethystGrowth) state.getBlock()).getPublicStagePath())
                 && state.getValue(BlockAmethystGrowth.FACING) == direction;
     }
 }

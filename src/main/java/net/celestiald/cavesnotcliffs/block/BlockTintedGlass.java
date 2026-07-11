@@ -2,10 +2,13 @@ package net.celestiald.cavesnotcliffs.block;
 
 import net.minecraft.block.BlockGlass;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.util.BlockRenderLayer;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -30,6 +33,11 @@ public final class BlockTintedGlass extends BlockGlass {
     @Override
     public int quantityDropped(Random random) {
         return 1;
+    }
+
+    @Override
+    public MapColor getMapColor(IBlockState state, IBlockAccess world, BlockPos pos) {
+        return MapColor.GRAY;
     }
 
     @Override

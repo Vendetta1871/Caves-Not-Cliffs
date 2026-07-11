@@ -342,6 +342,46 @@
     "subtitle": "subtitles.block.generic.footsteps"
   },
 
+  "block.basalt.break": {
+    "sounds": [
+      "cavesnotcliffs:block/basalt/break1", "cavesnotcliffs:block/basalt/break2",
+      "cavesnotcliffs:block/basalt/break3", "cavesnotcliffs:block/basalt/break4",
+      "cavesnotcliffs:block/basalt/break5"
+    ],
+    "subtitle": "subtitles.block.generic.break"
+  },
+  "block.basalt.fall": {
+    "sounds": [
+      "cavesnotcliffs:block/basalt/step1", "cavesnotcliffs:block/basalt/step2",
+      "cavesnotcliffs:block/basalt/step3", "cavesnotcliffs:block/basalt/step4",
+      "cavesnotcliffs:block/basalt/step5", "cavesnotcliffs:block/basalt/step6"
+    ]
+  },
+  "block.basalt.hit": {
+    "sounds": [
+      "cavesnotcliffs:block/basalt/step1", "cavesnotcliffs:block/basalt/step2",
+      "cavesnotcliffs:block/basalt/step3", "cavesnotcliffs:block/basalt/step4",
+      "cavesnotcliffs:block/basalt/step5", "cavesnotcliffs:block/basalt/step6"
+    ],
+    "subtitle": "subtitles.block.generic.hit"
+  },
+  "block.basalt.place": {
+    "sounds": [
+      "cavesnotcliffs:block/basalt/break1", "cavesnotcliffs:block/basalt/break2",
+      "cavesnotcliffs:block/basalt/break3", "cavesnotcliffs:block/basalt/break4",
+      "cavesnotcliffs:block/basalt/break5"
+    ],
+    "subtitle": "subtitles.block.generic.place"
+  },
+  "block.basalt.step": {
+    "sounds": [
+      "cavesnotcliffs:block/basalt/step1", "cavesnotcliffs:block/basalt/step2",
+      "cavesnotcliffs:block/basalt/step3", "cavesnotcliffs:block/basalt/step4",
+      "cavesnotcliffs:block/basalt/step5", "cavesnotcliffs:block/basalt/step6"
+    ],
+    "subtitle": "subtitles.block.generic.footsteps"
+  },
+
   "item.spyglass.stop_using": {
     "sounds": [
       {"name": "cavesnotcliffs:item/spyglass/stop", "volume": 0.5},

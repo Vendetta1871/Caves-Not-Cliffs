@@ -1,5 +1,1 @@
-{
-  "variants": {
-    "normal": { "model": "cavesnotcliffs:geode_casing" }
-  }
-}
+{"variants":{"normal":{"model":"cavesnotcliffs:smooth_basalt"}}}

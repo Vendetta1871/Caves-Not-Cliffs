@@ -3,10 +3,14 @@ package net.celestiald.cavesnotcliffs.block;
 import net.minecraft.block.material.EnumPushReaction;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Bootstrap;
+import net.minecraft.init.Items;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -84,6 +88,41 @@ public class BlockAmethystGrowthTest {
                 budding.getMobilityFlag(budding.getDefaultState()));
         assertEquals(255, tinted.getLightOpacity(tinted.getDefaultState()));
         assertFalse(tinted.isOpaqueCube(tinted.getDefaultState()));
+    }
+
+    @Test
+    public void waterloggedCompanionsAreStableHiddenStageIdentities() {
+        BlockAmethystGrowth wet = BlockAmethystGrowth.waterloggedCompanion(
+                "large_amethyst_bud", 5, 3, 4, false);
+        assertTrue(wet.isWaterloggedStorage());
+        assertTrue(wet.isWaterlogged(wet.getDefaultState()));
+        assertEquals("large_amethyst_bud", wet.getPublicStagePath());
+        assertEquals("large_amethyst_bud_waterlogged",
+                AmethystWaterlogging.companionPath(wet.getPublicStagePath()));
+        assertEquals("large_amethyst_bud",
+                AmethystWaterlogging.publicPath("large_amethyst_bud_waterlogged"));
+        assertEquals("large_amethyst_bud_waterlogged",
+                AmethystWaterlogging.storagePathForMetadata("large_amethyst_bud", 8));
+        assertEquals("large_amethyst_bud",
+                AmethystWaterlogging.storagePathForMetadata("large_amethyst_bud", 0));
+    }
+
+    @Test
+    public void clusterLootAllowsEveryToolButOnlyPickaxesReceiveTheFourShardPath() {
+        BlockAmethystGrowth cluster = new BlockAmethystGrowth(
+                "amethyst_cluster", 7, 3, 5, true);
+        assertTrue(cluster.canHarvestBlock(null, null, null));
+        assertEquals(2, BlockAmethystGrowth.clusterDropCount(
+                ItemStack.EMPTY, 0, new Random(1L)));
+        assertEquals(4, BlockAmethystGrowth.clusterDropCount(
+                new ItemStack(Items.WOODEN_PICKAXE), 0, new Random(1L)));
+        assertEquals(8, BlockAmethystGrowth.clusterDropCount(
+                new ItemStack(Items.WOODEN_PICKAXE), 1, new Random() {
+                    @Override
+                    public int nextInt(int bound) {
+                        return bound - 1;
+                    }
+                }));
     }
 
     private static AxisAlignedBB box(BlockAmethystGrowth block, EnumFacing facing) {

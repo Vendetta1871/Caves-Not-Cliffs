@@ -1,1 +1,5 @@
-{"parent":"item/generated","textures":{"layer0":"cavesnotcliffs:blocks/amethyst_cluster"}}
+{
+  "parent": "item/generated",
+  "textures": {"layer0": "cavesnotcliffs:blocks/amethyst_cluster"},
+  "display": {"head": {"translation": [0, 14, -5]}}
+}

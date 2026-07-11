@@ -1,1 +1,5 @@
-{"parent":"item/generated","textures":{"layer0":"cavesnotcliffs:blocks/medium_amethyst_bud"}}
+{
+  "parent": "cavesnotcliffs:item/amethyst_bud",
+  "textures": {"layer0": "cavesnotcliffs:blocks/medium_amethyst_bud"},
+  "display": {"fixed": {"translation": [0, 6, 0]}}
+}

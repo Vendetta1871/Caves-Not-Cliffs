@@ -2,6 +2,7 @@ package net.celestiald.cavesnotcliffs.content;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import net.celestiald.cavesnotcliffs.block.AmethystWaterlogging;
 import net.minecraft.block.SoundType;
 import net.minecraft.init.Bootstrap;
 import org.junit.BeforeClass;
@@ -13,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class AmethystContentResourceTest {
     @BeforeClass
@@ -30,6 +32,7 @@ public class AmethystContentResourceTest {
                 "block.medium_amethyst_bud");
         assertBudType(AmethystSoundEvents.LARGE_AMETHYST_BUD,
                 "block.large_amethyst_bud");
+        assertType(AmethystSoundEvents.BASALT, "block.basalt");
         assertEquals("cavesnotcliffs:block.amethyst_block.chime",
                 AmethystSoundEvents.BLOCK_CHIME.getSoundName().toString());
     }
@@ -47,7 +50,8 @@ public class AmethystContentResourceTest {
                 "block.small_amethyst_bud.place", "block.medium_amethyst_bud.break",
                 "block.medium_amethyst_bud.place", "block.large_amethyst_bud.break",
                 "block.large_amethyst_bud.place", "item.spyglass.use",
-                "item.spyglass.stop_using"
+                "item.spyglass.stop_using", "block.basalt.break", "block.basalt.fall",
+                "block.basalt.hit", "block.basalt.place", "block.basalt.step"
         };
         for (String name : names) {
             assertNotNull(name, sounds.get(name));
@@ -94,9 +98,51 @@ public class AmethystContentResourceTest {
                     "assets/cavesnotcliffs/textures/blocks/" + block + ".png"));
         }
         assertNotNull(loader.getResource("assets/cavesnotcliffs/models/item/spyglass.json"));
+        assertNotNull(loader.getResource("assets/cavesnotcliffs/models/block/smooth_basalt.json"));
+        assertNotNull(loader.getResource("assets/cavesnotcliffs/models/item/smooth_basalt.json"));
+        assertNotNull(loader.getResource("assets/cavesnotcliffs/textures/blocks/smooth_basalt.png"));
         assertNotNull(loader.getResource("assets/cavesnotcliffs/textures/items/spyglass.png"));
         assertNotNull(loader.getResource(
                 "assets/cavesnotcliffs/textures/misc/spyglass_scope.png"));
+    }
+
+    @Test
+    public void waterloggedStagesHaveBlockOnlyModelsAndUseTheRuntimeWaterTexture() {
+        ClassLoader loader = getClass().getClassLoader();
+        for (String publicStage : AmethystWaterlogging.PUBLIC_STAGES) {
+            String companion = AmethystWaterlogging.companionPath(publicStage);
+            assertNotNull(companion, loader.getResource(
+                    "assets/cavesnotcliffs/blockstates/" + companion + ".json"));
+            assertNull(companion, loader.getResource(
+                    "assets/cavesnotcliffs/models/item/" + companion + ".json"));
+        }
+        JsonObject overlay = json(
+                "assets/cavesnotcliffs/models/block/amethyst_water_overlay.json");
+        assertEquals("minecraft:blocks/water_still",
+                overlay.getAsJsonObject("textures").get("water").getAsString());
+        assertEquals(0, overlay.getAsJsonArray("elements").get(0).getAsJsonObject()
+                .getAsJsonObject("faces").getAsJsonObject("up")
+                .get("tintindex").getAsInt());
+    }
+
+    @Test
+    public void canonicalBudTransformsAndBasaltAssetsArePackaged() {
+        JsonObject small = json(
+                "assets/cavesnotcliffs/models/item/small_amethyst_bud.json");
+        assertEquals("cavesnotcliffs:item/amethyst_bud",
+                small.get("parent").getAsString());
+        JsonObject clusterState = json(
+                "assets/cavesnotcliffs/blockstates/amethyst_cluster.json");
+        assertEquals(90, clusterState.getAsJsonObject("variants")
+                .getAsJsonObject("facing=north").get("x").getAsInt());
+
+        ClassLoader loader = getClass().getClassLoader();
+        for (String sound : new String[]{
+                "break1", "break2", "break3", "break4", "break5",
+                "step1", "step2", "step3", "step4", "step5", "step6"}) {
+            assertNotNull(sound, loader.getResource(
+                    "assets/cavesnotcliffs/sounds/block/basalt/" + sound + ".ogg"));
+        }
     }
 
     private static void assertType(SoundType type, String prefix) {

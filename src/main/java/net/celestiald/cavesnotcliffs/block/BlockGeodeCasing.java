@@ -9,13 +9,14 @@ import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.SoundType;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.util.ResourceLocation;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.content.AmethystSoundEvents;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockGeodeCasing extends ElementsCavesNotCliffs.ModElement {
@@ -44,10 +45,10 @@ public class BlockGeodeCasing extends ElementsCavesNotCliffs.ModElement {
 
     private static class BlockCustom extends Block {
         public BlockCustom() {
-            super(Material.ROCK);
+            super(Material.ROCK, MapColor.BLACK);
             setUnlocalizedName("smooth_basalt");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
-            setSoundType(SoundType.STONE);
+            setSoundType(AmethystSoundEvents.BASALT);
             setHardness(1.25f);
             // Modern blast resistance 4.2 translated through 1.12's 3/5 scaling.
             setResistance(7.0f);

@@ -13,6 +13,7 @@ import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.entity.ProjectileImpactEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 
 /** Java 1.18.2 amethyst sound types and projectile chimes. */
 @Mod.EventBusSubscriber(modid = CavesNotCliffs.MODID)
@@ -37,6 +38,11 @@ public final class AmethystSoundEvents {
     public static final SoundEvent LARGE_BUD_PLACE = sound("block.large_amethyst_bud.place");
     public static final SoundEvent SPYGLASS_USE = sound("item.spyglass.use");
     public static final SoundEvent SPYGLASS_STOP = sound("item.spyglass.stop_using");
+    public static final SoundEvent BASALT_BREAK = sound("block.basalt.break");
+    public static final SoundEvent BASALT_FALL = sound("block.basalt.fall");
+    public static final SoundEvent BASALT_HIT = sound("block.basalt.hit");
+    public static final SoundEvent BASALT_PLACE = sound("block.basalt.place");
+    public static final SoundEvent BASALT_STEP = sound("block.basalt.step");
 
     public static final SoundType AMETHYST = new SoundType(1.0F, 1.0F,
             BLOCK_BREAK, BLOCK_STEP, BLOCK_PLACE, BLOCK_HIT, BLOCK_FALL);
@@ -48,6 +54,8 @@ public final class AmethystSoundEvents {
             MEDIUM_BUD_BREAK, CLUSTER_STEP, MEDIUM_BUD_PLACE, CLUSTER_HIT, CLUSTER_FALL);
     public static final SoundType LARGE_AMETHYST_BUD = new SoundType(1.0F, 1.0F,
             LARGE_BUD_BREAK, CLUSTER_STEP, LARGE_BUD_PLACE, CLUSTER_HIT, CLUSTER_FALL);
+    public static final SoundType BASALT = new SoundType(1.0F, 1.0F,
+            BASALT_BREAK, BASALT_STEP, BASALT_PLACE, BASALT_HIT, BASALT_FALL);
 
     private AmethystSoundEvents() {
     }
@@ -59,10 +67,11 @@ public final class AmethystSoundEvents {
                 CLUSTER_BREAK, CLUSTER_FALL, CLUSTER_HIT, CLUSTER_PLACE, CLUSTER_STEP,
                 SMALL_BUD_BREAK, SMALL_BUD_PLACE, MEDIUM_BUD_BREAK, MEDIUM_BUD_PLACE,
                 LARGE_BUD_BREAK, LARGE_BUD_PLACE,
-                SPYGLASS_USE, SPYGLASS_STOP);
+                SPYGLASS_USE, SPYGLASS_STOP,
+                BASALT_BREAK, BASALT_FALL, BASALT_HIT, BASALT_PLACE, BASALT_STEP);
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onProjectileImpact(ProjectileImpactEvent event) {
         RayTraceResult hit = event.getRayTraceResult();
         if (hit == null || hit.typeOfHit != RayTraceResult.Type.BLOCK) {
