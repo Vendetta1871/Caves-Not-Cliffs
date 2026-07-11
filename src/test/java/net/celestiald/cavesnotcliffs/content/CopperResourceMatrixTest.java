@@ -45,16 +45,16 @@ public class CopperResourceMatrixTest {
                     throw new AssertionError(variant.getShape());
             }
 
-            assertResource("models/block/" + path + ".json");
+            json("models/block/" + path + ".json");
             if (variant.getShape() == CopperWeathering.Shape.STAIRS) {
-                assertResource("models/block/" + path + "_inner.json");
-                assertResource("models/block/" + path + "_outer.json");
+                json("models/block/" + path + "_inner.json");
+                json("models/block/" + path + "_outer.json");
             } else if (variant.getShape() == CopperWeathering.Shape.SLAB) {
-                assertResource("models/block/" + path + "_top.json");
+                json("models/block/" + path + "_top.json");
             }
 
             if (variant.hasPublicItem()) {
-                assertResource("models/item/" + path + ".json");
+                json("models/item/" + path + ".json");
             } else {
                 assertFalse("Hidden double slab gained an item model: " + path,
                         exists("models/item/" + path + ".json"));
@@ -142,9 +142,9 @@ public class CopperResourceMatrixTest {
                 assertTrue(path, variants.has("facing=" + facing + ",powered=true"));
             }
         }
-        assertResource("models/block/lightning_rod.json");
-        assertResource("models/block/lightning_rod_on.json");
-        assertResource("models/item/lightning_rod.json");
+        json("models/block/lightning_rod.json");
+        json("models/block/lightning_rod_on.json");
+        json("models/item/lightning_rod.json");
         assertFalse(exists("models/item/lightning_rod_waterlogged.json"));
         assertEquals("87690f8a45273383e0d4ba99fb8e5e6c55ab59fef5db05f69659089c74d762b6",
                 sha256("textures/blocks/lightning_rod.png"));

@@ -139,6 +139,12 @@ public final class LightningRodContent {
                 if (dx * dx + dz * dz > RANGE * RANGE) {
                     continue;
                 }
+                // A lightning event must never force-generate a 257x257 chunk area. Weather
+                // strikes originate at the loaded surface, so probing that Y is also compatible
+                // with CubicChunks' vertical load checks.
+                if (!world.isBlockLoaded(new BlockPos(x, strike.getY(), z), false)) {
+                    continue;
+                }
                 BlockPos top = world.getHeight(new BlockPos(x, 0, z)).down();
                 if (!isLightningRod(world.getBlockState(top).getBlock())
                         || !world.canSeeSky(top.up())) {
