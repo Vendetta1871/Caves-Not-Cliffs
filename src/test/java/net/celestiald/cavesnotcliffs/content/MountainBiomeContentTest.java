@@ -71,12 +71,12 @@ public class MountainBiomeContentTest {
     @Test
     public void climatePrecipitationAndEffectsMatchJava1182() {
         Object[][] rows = {
-            {Definition.MEADOW, 0.5F, 0.8F, false, 8_103_167},
-            {Definition.GROVE, -0.2F, 0.8F, true, 8_495_359},
-            {Definition.SNOWY_SLOPES, -0.3F, 0.9F, true, 8_560_639},
-            {Definition.JAGGED_PEAKS, -0.7F, 0.9F, true, 8_756_735},
-            {Definition.FROZEN_PEAKS, -0.7F, 0.9F, true, 8_756_735},
-            {Definition.STONY_PEAKS, 1.0F, 0.3F, false, 7_776_511}
+            {Definition.MEADOW, 0.5F, 0.8F, false, 8_103_167, 937_679},
+            {Definition.GROVE, -0.2F, 0.8F, true, 8_495_359, 4_159_204},
+            {Definition.SNOWY_SLOPES, -0.3F, 0.9F, true, 8_560_639, 4_159_204},
+            {Definition.JAGGED_PEAKS, -0.7F, 0.9F, true, 8_756_735, 4_159_204},
+            {Definition.FROZEN_PEAKS, -0.7F, 0.9F, true, 8_756_735, 4_159_204},
+            {Definition.STONY_PEAKS, 1.0F, 0.3F, false, 7_776_511, 4_159_204}
         };
 
         for (Object[] row : rows) {
@@ -85,6 +85,7 @@ public class MountainBiomeContentTest {
             float downfall = (Float) row[2];
             boolean snow = (Boolean) row[3];
             int skyColor = (Integer) row[4];
+            int waterColor = (Integer) row[5];
             Biome biome = definition.biome();
 
             assertEquals(definition.name(), temperature, definition.temperature(), 0.0F);
@@ -94,7 +95,8 @@ public class MountainBiomeContentTest {
             assertEquals(definition.name(), snow, definition.hasSnow());
             assertEquals(definition.name(), snow, biome.isSnowyBiome());
             assertEquals(definition.name(), !snow, biome.canRain());
-            assertEquals(definition.name(), MountainBiomeContent.NORMAL_WATER_COLOR,
+            assertEquals(definition.name(), waterColor, definition.waterColor());
+            assertEquals(definition.name(), waterColor,
                 biome.getWaterColorMultiplier());
             assertEquals(definition.name(), skyColor,
                 biome.getSkyColorByTemp(definition.temperature()));
@@ -108,6 +110,7 @@ public class MountainBiomeContentTest {
                 biome.getHeightVariation(), 0.0F);
         }
 
+        assertEquals(937_679, MountainBiomeContent.MEADOW_WATER_COLOR);
         assertEquals(329_011, MountainBiomeContent.NORMAL_WATER_FOG_COLOR);
         assertEquals(12_638_463, MountainBiomeContent.OVERWORLD_FOG_COLOR);
     }

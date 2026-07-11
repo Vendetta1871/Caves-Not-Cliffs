@@ -56,6 +56,7 @@ import java.util.Set;
 @Mod.EventBusSubscriber(modid = CavesNotCliffs.MODID)
 public final class MountainBiomeContent {
     public static final int NORMAL_WATER_COLOR = 4_159_204;
+    public static final int MEADOW_WATER_COLOR = 937_679;
     public static final int NORMAL_WATER_FOG_COLOR = 329_011;
     public static final int OVERWORLD_FOG_COLOR = 12_638_463;
 
@@ -207,6 +208,11 @@ public final class MountainBiomeContent {
 
         public boolean hasSnow() {
             return snow;
+        }
+
+        public int waterColor() {
+            return virtualBiome == V118Biome.MEADOW
+                ? MEADOW_WATER_COLOR : NORMAL_WATER_COLOR;
         }
 
         public Set<BiomeDictionary.Type> dictionaryTypes() {
@@ -449,7 +455,7 @@ public final class MountainBiomeContent {
                 .setHeightVariation(0.2F)
                 .setTemperature(definition.temperature())
                 .setRainfall(definition.downfall())
-                .setWaterColor(NORMAL_WATER_COLOR);
+                .setWaterColor(definition.waterColor());
             if (definition.hasSnow()) {
                 properties.setSnowEnabled();
             }
