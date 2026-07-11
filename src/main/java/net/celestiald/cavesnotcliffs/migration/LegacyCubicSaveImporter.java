@@ -51,9 +51,14 @@ public final class LegacyCubicSaveImporter {
         try {
             LegacyCubicDimensionMetadata.Result discovery = discoverDimensions(worldRoot);
             List<Path> dimensions = discovery.getTrueDimensionRoots();
+            LegacyCubicPositionMetadata.Result positions =
+                    LegacyCubicPositionMetadata.validate(worldRoot, levelFile.toPath());
+            List<Path> additionalSources = new ArrayList<Path>(
+                    discovery.getMetadataFiles());
+            additionalSources.addAll(positions.getSourceFiles());
             List<CubicImportJournal.FileRecord> sources =
                     CubicImportJournal.captureSources(
-                            worldRoot, dimensions, discovery.getMetadataFiles());
+                            worldRoot, dimensions, additionalSources);
             Path journalPath = worldRoot.resolve(CubicImportJournal.FILE_NAME);
             if (sources.isEmpty() && !Files.exists(journalPath)) {
                 return;
@@ -74,7 +79,7 @@ public final class LegacyCubicSaveImporter {
             LegacyCubicLevelMetadata.Result metadata = LegacyCubicLevelMetadata.inspect(
                     levelFile.toPath(), !Files.exists(journalPath));
             boolean imported = importWorld(worldRoot, terrainSchema, worldInfo.getWorldTotalTime(),
-                    dimensions, discovery.getMetadataFiles(), sources);
+                    dimensions, additionalSources, sources);
             if (metadata.changed() && !imported) {
                 verifyCommittedTargets(worldRoot, CubicImportJournal.read(journalPath), true);
             }

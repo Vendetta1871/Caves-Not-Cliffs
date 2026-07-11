@@ -86,6 +86,24 @@ public class CubicImportJournalTest {
     }
 
     @Test
+    public void fingerprintsAdditionalNonRegionMigrationSources() throws Exception {
+        Path world = temporary.newFolder("additional-sources").toPath();
+        Path metadata = world.resolve("level.dat");
+        Files.write(metadata, "before".getBytes(StandardCharsets.UTF_8));
+
+        List<CubicImportJournal.FileRecord> before = CubicImportJournal.captureSources(
+                world, Collections.<Path>emptyList(), Collections.singletonList(metadata));
+        Files.write(metadata, "after".getBytes(StandardCharsets.UTF_8),
+                StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+        List<CubicImportJournal.FileRecord> after = CubicImportJournal.captureSources(
+                world, Collections.<Path>emptyList(), Collections.singletonList(metadata));
+
+        assertEquals(1, before.size());
+        assertEquals("level.dat", before.get(0).getPath());
+        assertFalse(before.equals(after));
+    }
+
+    @Test
     public void refusesSkippedOrOutOfOrderTransitions() throws Exception {
         CubicImportJournal journal = CubicImportJournal.create(2,
                 Collections.singletonList(new CubicImportJournal.FileRecord(
