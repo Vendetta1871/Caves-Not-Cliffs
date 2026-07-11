@@ -6,6 +6,7 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -40,6 +41,23 @@ public class SchemaOnePopulationTransformerTest {
                 method.name = "func_186034_a";
             }
         }
+        ClassWriter writer = new ClassWriter(0);
+        node.accept(writer);
+
+        byte[] transformed = new SchemaOnePopulationTransformer().transform(
+                SchemaOnePopulationTransformer.TARGET,
+                SchemaOnePopulationTransformer.TARGET, writer.toByteArray());
+        assertHookShape(transformed);
+    }
+
+    @Test
+    public void ignoresMixinInvokerWithTheSameDescriptorButNoForgeCall() throws Exception {
+        ClassNode node = readNode(targetBytes());
+        MethodNode invoker = new MethodNode(Opcodes.ASM5, Opcodes.ACC_PUBLIC,
+                "cavebiomes$populate", SchemaOnePopulationTransformer.POPULATE_DESC,
+                null, null);
+        invoker.instructions.add(new InsnNode(Opcodes.RETURN));
+        node.methods.add(invoker);
         ClassWriter writer = new ClassWriter(0);
         node.accept(writer);
 

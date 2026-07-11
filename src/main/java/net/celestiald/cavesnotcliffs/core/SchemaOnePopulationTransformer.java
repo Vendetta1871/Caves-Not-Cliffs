@@ -51,21 +51,31 @@ public final class SchemaOnePopulationTransformer implements IClassTransformer {
     private static MethodNode uniqueMethod(ClassNode node) {
         MethodNode result = null;
         for (MethodNode method : node.methods) {
-            if (!POPULATE_DESC.equals(method.desc)) {
+            if (!POPULATE_DESC.equals(method.desc) || findForgeCall(method) == null) {
                 continue;
             }
             if (result != null) {
-                throw failure("multiple finite populate methods");
+                throw failure("multiple finite populate methods containing Forge world generation");
             }
             result = method;
         }
         if (result == null) {
-            throw failure("finite populate method " + POPULATE_DESC);
+            throw failure("finite populate method containing Forge world generation "
+                    + POPULATE_DESC);
         }
         return result;
     }
 
     private static MethodInsnNode uniqueForgeCall(MethodNode method) {
+        MethodInsnNode result = findForgeCall(method);
+        if (result == null) {
+            throw failure("post-Forge world-generation call in "
+                    + method.name + method.desc);
+        }
+        return result;
+    }
+
+    private static MethodInsnNode findForgeCall(MethodNode method) {
         MethodInsnNode result = null;
         for (AbstractInsnNode instruction : method.instructions.toArray()) {
             if (!(instruction instanceof MethodInsnNode)) {
@@ -82,10 +92,6 @@ public final class SchemaOnePopulationTransformer implements IClassTransformer {
                 }
                 result = call;
             }
-        }
-        if (result == null) {
-            throw failure("post-Forge world-generation call in "
-                    + method.name + method.desc);
         }
         return result;
     }
