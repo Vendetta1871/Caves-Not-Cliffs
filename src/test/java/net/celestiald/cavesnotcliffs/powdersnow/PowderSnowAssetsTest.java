@@ -77,6 +77,14 @@ public class PowderSnowAssetsTest {
     }
 
     @Test
+    public void powderSnowParticleTextureIsDirectlyResolvableByForge112() throws Exception {
+        String model = new String(readResource(
+                "assets/cavesnotcliffs/models/block/powder_snow.json"), "UTF-8");
+        assertTrue(model.contains(
+                "\"particle\": \"cavesnotcliffs:blocks/powder_snow\""));
+    }
+
+    @Test
     public void soundDefinitionsReferenceEveryOfficialClip() throws Exception {
         String json = new String(readResource("assets/cavesnotcliffs/sounds.json"), "UTF-8");
         String[] events = {
