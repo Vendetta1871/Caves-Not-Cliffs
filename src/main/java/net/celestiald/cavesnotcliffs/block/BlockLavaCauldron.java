@@ -1,11 +1,15 @@
 package net.celestiald.cavesnotcliffs.block;
 
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
-import net.celestiald.cavesnotcliffs.powdersnow.PowderSnowMechanics;
+import net.celestiald.cavesnotcliffs.content.DripstoneSoundEvents;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.Content;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.DripFluid;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.State;
+import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockCauldron;
-import net.minecraft.block.BlockLiquid;
-import net.minecraft.block.material.Material;
+import net.minecraft.block.BlockShulkerBox;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.properties.PropertyBool;
 import net.minecraft.block.state.BlockStateContainer;
@@ -13,6 +17,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.init.PotionTypes;
 import net.minecraft.init.SoundEvents;
@@ -21,11 +26,14 @@ import net.minecraft.item.ItemArmor;
 import net.minecraft.item.ItemBanner;
 import net.minecraft.item.ItemStack;
 import net.minecraft.potion.PotionUtils;
+import net.minecraft.stats.StatBase;
 import net.minecraft.stats.StatList;
 import net.minecraft.tileentity.TileEntityBanner;
+import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.SoundCategory;
+import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.IBlockAccess;
@@ -35,8 +43,8 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 import java.util.Random;
 
 /**
- * A Forge-native cauldron with water/lava state. Newly placed vanilla cauldrons are swapped to
- * this block, so passive pointed-dripstone filling works without modifying BlockCauldron itself.
+ * Hidden 1.12 storage for Java 1.18.2 empty, layered-water, and full-lava cauldrons.
+ * The vanilla cauldron remains the only obtainable item.
  */
 @ElementsCavesNotCliffs.ModElement.Tag
 public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
@@ -49,8 +57,9 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
 
     @Override
     public void initElements() {
-        // The vanilla cauldron item places this block through LavaCauldronHandler.
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("lava_cauldron"));
+        BlockCustom storage = (BlockCustom) new BlockCustom()
+                .setRegistryName(CncRegistryIds.LAVA_CAULDRON);
+        elements.blocks.add(() -> storage);
     }
 
     public static final class BlockCustom extends BlockCauldron {
@@ -69,31 +78,41 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
 
         @Override
         public IBlockState getStateFromMeta(int meta) {
-            boolean lava = meta >= 4;
-            int level = MathHelper.clamp(lava ? meta - 4 : meta, 0, 3);
-            return getDefaultState().withProperty(IS_LAVA, lava).withProperty(LEVEL, level);
+            if (meta >= 4) {
+                return getDefaultState().withProperty(IS_LAVA, true)
+                        .withProperty(LEVEL, CauldronMechanics.MAX_LEVEL);
+            }
+            return getDefaultState().withProperty(IS_LAVA, false)
+                    .withProperty(LEVEL, MathHelper.clamp(meta, 0, 3));
         }
 
         @Override
         public int getMetaFromState(IBlockState state) {
-            int level = state.getValue(LEVEL);
-            return state.getValue(IS_LAVA) ? 4 + level : level;
+            return state.getValue(IS_LAVA) ? 7 : state.getValue(LEVEL);
         }
 
-        @Override
-        public void onBlockAdded(World world, BlockPos pos, IBlockState state) {
-            scheduleIfFillable(world, pos, state);
-        }
-
-        @Override
-        public int tickRate(World world) {
-            return 100;
-        }
-
-        private void scheduleIfFillable(World world, BlockPos pos, IBlockState state) {
-            if (!world.isRemote && state.getValue(LEVEL) < 3) {
-                world.scheduleUpdate(pos, this, tickRate(world));
+        public State mechanicsState(IBlockState state) {
+            if (state.getValue(IS_LAVA)) {
+                return CauldronMechanics.lava();
             }
+            int level = state.getValue(LEVEL);
+            return level == 0 ? CauldronMechanics.empty() : CauldronMechanics.water(level);
+        }
+
+        public IBlockState blockState(State state) {
+            if (state.content == Content.LAVA) {
+                return getDefaultState().withProperty(IS_LAVA, true)
+                        .withProperty(LEVEL, 3);
+            }
+            if (state.content == Content.EMPTY) {
+                return getDefaultState().withProperty(IS_LAVA, false)
+                        .withProperty(LEVEL, 0);
+            }
+            if (state.content != Content.WATER) {
+                throw new IllegalArgumentException("Powder snow uses its block-only companion");
+            }
+            return getDefaultState().withProperty(IS_LAVA, false)
+                    .withProperty(LEVEL, state.level);
         }
 
         @Override
@@ -101,164 +120,163 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
                 EntityPlayer player, EnumHand hand, EnumFacing facing,
                 float hitX, float hitY, float hitZ) {
             ItemStack held = player.getHeldItem(hand);
-            if (held.isEmpty()) {
+            if (held.isEmpty() || !world.isBlockModifiable(player, pos)
+                    || !player.canPlayerEdit(pos, facing, held)) {
                 return false;
             }
 
-            int level = state.getValue(LEVEL);
-            boolean lava = state.getValue(IS_LAVA);
+            State contents = mechanicsState(state);
             Item item = held.getItem();
 
             if (item == Items.WATER_BUCKET) {
-                if (!lava && level < 3 && !world.isRemote) {
-                    replaceHeldBucket(player, hand, Items.BUCKET);
-                    player.addStat(StatList.CAULDRON_FILLED);
-                    setWaterLevel(world, pos, state, 3);
+                if (!world.isRemote) {
+                    consumeFilledContainer(player, hand, held);
+                    fill(world, pos, CauldronMechanics.water(3));
+                    used(player, item, StatList.CAULDRON_FILLED);
                     play(world, pos, SoundEvents.ITEM_BUCKET_EMPTY);
                 }
                 return true;
             }
 
             if (item == Items.LAVA_BUCKET) {
-                if ((lava && level < 3 || !lava && level == 0) && !world.isRemote) {
-                    replaceHeldBucket(player, hand, Items.BUCKET);
-                    player.addStat(StatList.CAULDRON_FILLED);
-                    setLavaLevel(world, pos, state, 3);
-                    play(world, pos, SoundEvents.ITEM_BUCKET_EMPTY);
+                if (!world.isRemote) {
+                    consumeFilledContainer(player, hand, held);
+                    fill(world, pos, CauldronMechanics.lava());
+                    used(player, item, StatList.CAULDRON_FILLED);
+                    play(world, pos, SoundEvents.ITEM_BUCKET_EMPTY_LAVA);
+                }
+                return true;
+            }
+
+            if (BlockPowderSnow.bucket != null && item == BlockPowderSnow.bucket) {
+                if (!world.isRemote && BlockPowderSnowCauldron.block != null) {
+                    consumeFilledContainer(player, hand, held);
+                    world.setBlockState(pos, BlockPowderSnowCauldron.block.getDefaultState()
+                            .withProperty(LEVEL, 3), 3);
+                    world.updateComparatorOutputLevel(pos, BlockPowderSnowCauldron.block);
+                    used(player, item, StatList.CAULDRON_FILLED);
+                    play(world, pos, BlockPowderSnow.BUCKET_EMPTY_SOUND);
                 }
                 return true;
             }
 
             if (item == Items.BUCKET) {
-                if (level == 3 && !world.isRemote) {
-                    Item filled = lava ? Items.LAVA_BUCKET : Items.WATER_BUCKET;
-                    giveFilledContainer(player, hand, held, new ItemStack(filled));
-                    player.addStat(StatList.CAULDRON_USED);
-                    setWaterLevel(world, pos, state, 0);
-                    play(world, pos, SoundEvents.ITEM_BUCKET_FILL);
+                if (!CauldronMechanics.canFillBucket(contents)) {
+                    return false;
+                }
+                if (!world.isRemote) {
+                    Item filled = contents.content == Content.LAVA
+                            ? Items.LAVA_BUCKET : Items.WATER_BUCKET;
+                    giveFilledResult(player, hand, held, new ItemStack(filled));
+                    fill(world, pos, CauldronMechanics.empty());
+                    used(player, item, StatList.CAULDRON_USED);
+                    play(world, pos, contents.content == Content.LAVA
+                            ? SoundEvents.ITEM_BUCKET_FILL_LAVA : SoundEvents.ITEM_BUCKET_FILL);
                 }
                 return true;
             }
 
             if (item == Items.GLASS_BOTTLE) {
-                if (!lava && level > 0 && !world.isRemote) {
-                    ItemStack bottle = PotionUtils.addPotionToItemStack(
+                if (contents.content != Content.WATER) {
+                    return false;
+                }
+                if (!world.isRemote) {
+                    ItemStack waterBottle = PotionUtils.addPotionToItemStack(
                             new ItemStack(Items.POTIONITEM), PotionTypes.WATER);
-                    giveFilledContainer(player, hand, held, bottle);
-                    player.addStat(StatList.CAULDRON_USED);
-                    setWaterLevel(world, pos, state, level - 1);
+                    giveFilledResult(player, hand, held, waterBottle);
+                    fill(world, pos, CauldronMechanics.lowerLayer(contents));
+                    used(player, item, StatList.CAULDRON_USED);
                     play(world, pos, SoundEvents.ITEM_BOTTLE_FILL);
-                    syncInventory(player);
                 }
                 return true;
             }
 
-            if (item == Items.POTIONITEM && PotionUtils.getPotionFromItem(held) == PotionTypes.WATER) {
-                if (!lava && level < 3 && !world.isRemote) {
-                    if (!player.capabilities.isCreativeMode) {
-                        player.setHeldItem(hand, new ItemStack(Items.GLASS_BOTTLE));
-                    }
-                    player.addStat(StatList.CAULDRON_USED);
-                    setWaterLevel(world, pos, state, level + 1);
+            if (item == Items.POTIONITEM
+                    && PotionUtils.getPotionFromItem(held) == PotionTypes.WATER) {
+                if (contents.content != Content.EMPTY && contents.content != Content.WATER
+                        || contents.content == Content.WATER && contents.level == 3) {
+                    return false;
+                }
+                if (!world.isRemote) {
+                    giveFilledResult(player, hand, held, new ItemStack(Items.GLASS_BOTTLE));
+                    fill(world, pos, CauldronMechanics.water(
+                            contents.content == Content.EMPTY ? 1 : contents.level + 1));
+                    used(player, item, StatList.CAULDRON_USED);
                     play(world, pos, SoundEvents.ITEM_BOTTLE_EMPTY);
-                    syncInventory(player);
                 }
                 return true;
             }
 
-            if (!lava && level > 0 && item instanceof ItemArmor) {
+            if (contents.content == Content.WATER && item instanceof ItemArmor) {
                 ItemArmor armor = (ItemArmor) item;
                 if (armor.getArmorMaterial() == ItemArmor.ArmorMaterial.LEATHER
-                        && armor.hasColor(held) && !world.isRemote) {
-                    armor.removeColor(held);
-                    setWaterLevel(world, pos, state, level - 1);
-                    player.addStat(StatList.ARMOR_CLEANED);
+                        && armor.hasColor(held)) {
+                    if (!world.isRemote) {
+                        armor.removeColor(held);
+                        fill(world, pos, CauldronMechanics.lowerLayer(contents));
+                        player.addStat(StatList.ARMOR_CLEANED);
+                    }
                     return true;
                 }
             }
 
-            if (!lava && level > 0 && item instanceof ItemBanner
-                    && TileEntityBanner.getPatterns(held) > 0 && !world.isRemote) {
-                ItemStack clean = held.copy();
-                clean.setCount(1);
-                TileEntityBanner.removeBannerData(clean);
-                player.addStat(StatList.BANNER_CLEANED);
-                if (!player.capabilities.isCreativeMode) {
-                    held.shrink(1);
-                    setWaterLevel(world, pos, state, level - 1);
+            if (contents.content == Content.WATER && item instanceof ItemBanner
+                    && TileEntityBanner.getPatterns(held) > 0) {
+                if (!world.isRemote) {
+                    ItemStack clean = held.copy();
+                    clean.setCount(1);
+                    TileEntityBanner.removeBannerData(clean);
+                    if (!player.capabilities.isCreativeMode) {
+                        held.shrink(1);
+                    }
+                    deliverResult(player, hand, held, clean);
+                    fill(world, pos, CauldronMechanics.lowerLayer(contents));
+                    player.addStat(StatList.BANNER_CLEANED);
                 }
-                if (held.isEmpty()) {
-                    player.setHeldItem(hand, clean);
-                } else if (!player.inventory.addItemStackToInventory(clean)) {
-                    player.dropItem(clean, false);
+                return true;
+            }
+
+            Block heldBlock = Block.getBlockFromItem(item);
+            if (contents.content == Content.WATER && heldBlock instanceof BlockShulkerBox) {
+                if (!world.isRemote) {
+                    ItemStack clean = new ItemStack(Blocks.PURPLE_SHULKER_BOX);
+                    if (held.hasTagCompound()) {
+                        clean.setTagCompound(held.getTagCompound().copy());
+                    }
+                    if (!player.capabilities.isCreativeMode) {
+                        held.shrink(1);
+                    }
+                    deliverResult(player, hand, held, clean);
+                    fill(world, pos, CauldronMechanics.lowerLayer(contents));
                 }
-                syncInventory(player);
                 return true;
             }
             return false;
         }
 
-        private void replaceHeldBucket(EntityPlayer player, EnumHand hand, Item replacement) {
-            if (!player.capabilities.isCreativeMode) {
-                player.setHeldItem(hand, new ItemStack(replacement));
-            }
-        }
-
-        private void giveFilledContainer(EntityPlayer player, EnumHand hand,
-                ItemStack held, ItemStack filled) {
-            if (player.capabilities.isCreativeMode) {
-                return;
-            }
-            held.shrink(1);
-            if (held.isEmpty()) {
-                player.setHeldItem(hand, filled);
-            } else if (!player.inventory.addItemStackToInventory(filled)) {
-                player.dropItem(filled, false);
-            }
-        }
-
-        private void syncInventory(EntityPlayer player) {
-            if (player instanceof EntityPlayerMP) {
-                ((EntityPlayerMP) player).sendContainerToPlayer(player.inventoryContainer);
-            }
-        }
-
-        private void play(World world, BlockPos pos, net.minecraft.util.SoundEvent sound) {
-            world.playSound(null, pos, sound, SoundCategory.BLOCKS, 1.0F, 1.0F);
-        }
-
-        @Override
-        public void setWaterLevel(World world, BlockPos pos, IBlockState state, int level) {
-            int clamped = MathHelper.clamp(level, 0, 3);
-            IBlockState next = state.withProperty(IS_LAVA, false).withProperty(LEVEL, clamped);
-            world.setBlockState(pos, next, 2);
-            world.updateComparatorOutputLevel(pos, this);
-            scheduleIfFillable(world, pos, next);
-        }
-
-        private void setLavaLevel(World world, BlockPos pos, IBlockState state, int level) {
-            int clamped = MathHelper.clamp(level, 0, 3);
-            IBlockState next = state.withProperty(IS_LAVA, clamped > 0).withProperty(LEVEL, clamped);
-            world.setBlockState(pos, next, 2);
-            world.updateComparatorOutputLevel(pos, this);
-            scheduleIfFillable(world, pos, next);
-        }
-
         @Override
         public void onEntityCollidedWithBlock(World world, BlockPos pos,
                 IBlockState state, Entity entity) {
-            int level = state.getValue(LEVEL);
-            boolean lava = state.getValue(IS_LAVA);
-            float liquidTop = pos.getY() + (6.0F + 3.0F * level) / 16.0F;
-            if (!world.isRemote && level > 0
-                    && entity.getEntityBoundingBox().minY <= liquidTop) {
-                if (lava) {
-                    entity.setFire(5);
-                } else if (entity.isBurning()) {
-                    entity.extinguish();
-                    setWaterLevel(world, pos, state, level - 1);
+            State contents = mechanicsState(state);
+            if (world.isRemote || contents.content == Content.EMPTY
+                    || !insideContents(contents, pos, entity)) {
+                return;
+            }
+            if (contents.content == Content.LAVA) {
+                entity.setFire(15);
+                entity.attackEntityFrom(DamageSource.LAVA, 4.0F);
+            } else if (entity.isBurning()) {
+                entity.extinguish();
+                if (!(entity instanceof EntityPlayer)
+                        || world.isBlockModifiable((EntityPlayer) entity, pos)) {
+                    fill(world, pos, CauldronMechanics.lowerLayer(contents));
                 }
             }
+        }
+
+        private boolean insideContents(State contents, BlockPos pos, Entity entity) {
+            return entity.posY < pos.getY() + CauldronMechanics.contentHeight(contents)
+                    && entity.getEntityBoundingBox().maxY > pos.getY() + 0.25D;
         }
 
         @Override
@@ -266,84 +284,73 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
             if (world.isRemote || world.getBlockState(pos).getBlock() != this) {
                 return;
             }
-
-            int level = state.getValue(LEVEL);
-            boolean lava = state.getValue(IS_LAVA);
-            Material source = findDripSource(world, pos);
-            if (level < 3 && source == Material.LAVA && (lava || level == 0)) {
-                setLavaLevel(world, pos, state, level + 1);
+            BlockPos tip = BlockPointedDripstone.findStalactiteTipAboveCauldron(world, pos);
+            if (tip == null) {
                 return;
             }
-            if (level < 3 && source == Material.WATER && !lava) {
-                setWaterLevel(world, pos, state, level + 1);
-                return;
+            DripFluid fluid = BlockPointedDripstone.cauldronFillFluid(world, tip);
+            if (fluid != null && CauldronMechanics.canReceiveDrip(mechanicsState(state), fluid)) {
+                receiveStalactiteDrip(world, pos, state, fluid);
             }
-            scheduleIfFillable(world, pos, state);
         }
 
-        private Material findDripSource(World world, BlockPos cauldronPos) {
-            int maxY = world.getActualHeight();
-            BlockPos cursor = cauldronPos.up();
-            while (cursor.getY() < maxY && world.isAirBlock(cursor)) {
-                cursor = cursor.up();
-            }
-            if (world.getBlockState(cursor).getBlock() != BlockTopStalactite.block) {
-                return null;
-            }
+        public boolean canReceiveStalactiteDrip(IBlockState state, DripFluid fluid) {
+            return CauldronMechanics.canReceiveDrip(mechanicsState(state), fluid);
+        }
 
-            cursor = cursor.up();
-            while (cursor.getY() < maxY
-                    && world.getBlockState(cursor).getBlock() == BlockMiddleStalactite.block) {
-                cursor = cursor.up();
-            }
-            BlockPos support;
-            if (world.getBlockState(cursor).getBlock() == BlockBottomStalactite.block) {
-                support = cursor.up();
-            } else if (world.getBlockState(cursor).isSideSolid(world, cursor, EnumFacing.DOWN)) {
-                // A single tip can hang directly from its support without base/middle segments.
-                support = cursor;
-            } else {
-                return null;
-            }
-            if (!world.getBlockState(support).isSideSolid(world, support, EnumFacing.DOWN)) {
-                return null;
-            }
-            IBlockState sourceState = world.getBlockState(support.up());
-            Material sourceMaterial = sourceState.getMaterial();
-            if ((sourceMaterial == Material.LAVA || sourceMaterial == Material.WATER)
-                    && sourceState.getBlock() instanceof BlockLiquid
-                    && sourceState.getValue(BlockLiquid.LEVEL) == 0) {
-                return sourceMaterial;
-            }
-            return null;
+        public void receiveStalactiteDrip(World world, BlockPos pos, IBlockState state,
+                DripFluid fluid) {
+            State next = CauldronMechanics.receiveDrip(mechanicsState(state), fluid);
+            fill(world, pos, next);
+            world.playSound(null, pos, fluid == DripFluid.LAVA
+                            ? DripstoneSoundEvents.DRIP_LAVA_CAULDRON
+                            : DripstoneSoundEvents.DRIP_WATER_CAULDRON,
+                    SoundCategory.BLOCKS, 1.0F, 1.0F);
         }
 
         @Override
         public void fillWithRain(World world, BlockPos pos) {
-            IBlockState state = world.getBlockState(pos);
-            int level = state.getValue(LEVEL);
-            if (state.getValue(IS_LAVA) || level >= 3) {
+            IBlockState current = world.getBlockState(pos);
+            if (current.getBlock() != this) {
+                return;
+            }
+            State contents = mechanicsState(current);
+            if (contents.content == Content.LAVA) {
                 return;
             }
             float temperature = world.getBiome(pos).getTemperature(pos);
-            float adjusted = world.getBiomeProvider()
-                    .getTemperatureAtHeight(temperature, pos.getY());
-            float precipitationRoll = world.rand.nextFloat();
-            if (adjusted < 0.15F) {
-                if (level == 0 && BlockPowderSnowCauldron.block != null
-                        && PowderSnowMechanics.shouldFillFromSnow(precipitationRoll)) {
+            boolean snow = world.getBiomeProvider()
+                    .getTemperatureAtHeight(temperature, pos.getY()) < 0.15F;
+            State next = CauldronMechanics.precipitation(contents, snow,
+                    world.rand.nextFloat());
+            if (next.equals(contents)) {
+                return;
+            }
+            if (next.content == Content.POWDER_SNOW) {
+                if (BlockPowderSnowCauldron.block != null) {
                     world.setBlockState(pos, BlockPowderSnowCauldron.block.getDefaultState()
-                            .withProperty(LEVEL, 1), 2);
+                            .withProperty(LEVEL, next.level), 2);
                     world.updateComparatorOutputLevel(pos, BlockPowderSnowCauldron.block);
                 }
-            } else if (precipitationRoll < 0.05F) {
-                    setWaterLevel(world, pos, state, level + 1);
+            } else {
+                fill(world, pos, next);
             }
+        }
+
+        private void fill(World world, BlockPos pos, State state) {
+            IBlockState next = blockState(state);
+            world.setBlockState(pos, next, 2);
+            world.updateComparatorOutputLevel(pos, this);
+        }
+
+        @Override
+        public int getComparatorInputOverride(IBlockState state, World world, BlockPos pos) {
+            return CauldronMechanics.comparatorSignal(mechanicsState(state));
         }
 
         @Override
         public int getLightValue(IBlockState state, IBlockAccess world, BlockPos pos) {
-            return state.getValue(IS_LAVA) && state.getValue(LEVEL) > 0 ? 15 : 0;
+            return state.getValue(IS_LAVA) ? 15 : 0;
         }
 
         @Override
@@ -354,6 +361,47 @@ public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {
         @Override
         public ItemStack getItem(World world, BlockPos pos, IBlockState state) {
             return new ItemStack(Items.CAULDRON);
+        }
+
+        private static void consumeFilledContainer(EntityPlayer player, EnumHand hand,
+                ItemStack filled) {
+            giveFilledResult(player, hand, filled, new ItemStack(Items.BUCKET));
+        }
+
+        private static void giveFilledResult(EntityPlayer player, EnumHand hand,
+                ItemStack original, ItemStack result) {
+            if (player.capabilities.isCreativeMode) {
+                if (!player.inventory.hasItemStack(result)) {
+                    player.inventory.addItemStackToInventory(result);
+                }
+                return;
+            }
+            original.shrink(1);
+            deliverResult(player, hand, original, result);
+        }
+
+        private static void deliverResult(EntityPlayer player, EnumHand hand,
+                ItemStack original, ItemStack result) {
+            if (original.isEmpty()) {
+                player.setHeldItem(hand, result);
+            } else if (!player.inventory.addItemStackToInventory(result)) {
+                player.dropItem(result, false);
+            }
+            if (player instanceof EntityPlayerMP) {
+                ((EntityPlayerMP) player).sendContainerToPlayer(player.inventoryContainer);
+            }
+        }
+
+        private static void used(EntityPlayer player, Item item, StatBase cauldronStat) {
+            player.addStat(cauldronStat);
+            StatBase itemUse = StatList.getObjectUseStats(item);
+            if (itemUse != null) {
+                player.addStat(itemUse);
+            }
+        }
+
+        private static void play(World world, BlockPos pos, SoundEvent sound) {
+            world.playSound(null, pos, sound, SoundCategory.BLOCKS, 1.0F, 1.0F);
         }
     }
 }

@@ -9,6 +9,7 @@ import net.minecraft.init.Items;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemStack;
 import net.minecraft.stats.StatList;
+import net.minecraft.stats.StatBase;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.world.World;
@@ -54,7 +55,11 @@ public final class LavaCauldronHandler {
             player.setHeldItem(event.getHand(), new ItemStack(Items.BUCKET));
         }
         player.addStat(StatList.CAULDRON_FILLED);
-        world.playSound(null, event.getPos(), SoundEvents.ITEM_BUCKET_EMPTY,
+        StatBase itemUse = StatList.getObjectUseStats(Items.LAVA_BUCKET);
+        if (itemUse != null) {
+            player.addStat(itemUse);
+        }
+        world.playSound(null, event.getPos(), SoundEvents.ITEM_BUCKET_EMPTY_LAVA,
                 SoundCategory.BLOCKS, 1.0F, 1.0F);
         event.setCancellationResult(EnumActionResult.SUCCESS);
         event.setCanceled(true);

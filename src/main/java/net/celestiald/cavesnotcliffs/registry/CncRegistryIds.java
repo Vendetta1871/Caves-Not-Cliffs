@@ -33,6 +33,8 @@ public final class CncRegistryIds {
     /** Hidden storage identity for source-water pointed-dripstone states. */
     public static final ResourceLocation POINTED_DRIPSTONE_WATERLOGGED =
             id("pointed_dripstone_waterlogged");
+    /** Hidden storage for empty, layered-water, and full-lava cauldron states. */
+    public static final ResourceLocation LAVA_CAULDRON = id("lava_cauldron");
     public static final ResourceLocation POWDER_SNOW = id("powder_snow");
     public static final ResourceLocation POWDER_SNOW_BUCKET = id("powder_snow_bucket");
     /** Hidden state companion; the vanilla cauldron remains the only obtainable item. */

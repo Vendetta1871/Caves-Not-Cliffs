@@ -4,24 +4,21 @@ import io.github.opencubicchunks.cubicchunks.api.util.CubePos;
 import net.celestiald.cavesnotcliffs.block.BlockBabyAzaleaTree;
 import net.celestiald.cavesnotcliffs.block.BlockBabyDripleaf;
 import net.celestiald.cavesnotcliffs.block.BlockBloomingBabyAzaleaTree;
-import net.celestiald.cavesnotcliffs.block.BlockBottomStalactite;
-import net.celestiald.cavesnotcliffs.block.BlockBottomStalagmite;
 import net.celestiald.cavesnotcliffs.block.BlockDarkStone;
 import net.celestiald.cavesnotcliffs.block.BlockDripleafPlant;
 import net.celestiald.cavesnotcliffs.block.BlockDripstone;
+import net.celestiald.cavesnotcliffs.block.BlockPointedDripstone;
 import net.celestiald.cavesnotcliffs.block.BlockGlowBerryMiddleFill;
 import net.celestiald.cavesnotcliffs.block.BlockGlowBerryVines;
-import net.celestiald.cavesnotcliffs.block.BlockMiddleStalactite;
-import net.celestiald.cavesnotcliffs.block.BlockMiddleStalagmite;
 import net.celestiald.cavesnotcliffs.block.BlockMoss;
 import net.celestiald.cavesnotcliffs.block.BlockMossLayer;
 import net.celestiald.cavesnotcliffs.block.BlockSporeBlossom;
-import net.celestiald.cavesnotcliffs.block.BlockTopStalactite;
-import net.celestiald.cavesnotcliffs.block.BlockTopStalagmite;
+import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness;
 import net.celestiald.cavesnotcliffs.block.BlockUnnamedStone;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -147,34 +144,36 @@ final class CaveBiomeDecorator {
 
     private static void placeStalactite(World world, CubePos cube, BlockPos start, int requestedLength) {
         int length = availableAir(world, cube, start, requestedLength, -1);
-        if (length <= 0 || BlockTopStalactite.block == null) {
+        if (length <= 0) {
             return;
         }
-        if (length == 1 || BlockBottomStalactite.block == null) {
-            world.setBlockState(start, BlockTopStalactite.block.getDefaultState(), 2);
-            return;
+        for (int index = 0; index < length; ++index) {
+            Thickness thickness = segmentThickness(index, length);
+            BlockPointedDripstone.createDripstone(world, start.down(index),
+                    EnumFacing.DOWN, thickness);
         }
-        world.setBlockState(start, BlockBottomStalactite.block.getDefaultState(), 2);
-        if (length == 3 && BlockMiddleStalactite.block != null) {
-            world.setBlockState(start.down(), BlockMiddleStalactite.block.getDefaultState(), 2);
-        }
-        world.setBlockState(start.down(length - 1), BlockTopStalactite.block.getDefaultState(), 2);
     }
 
     private static void placeStalagmite(World world, CubePos cube, BlockPos start, int requestedLength) {
         int length = availableAir(world, cube, start, requestedLength, 1);
-        if (length <= 0 || BlockTopStalagmite.block == null) {
+        if (length <= 0) {
             return;
         }
-        if (length == 1 || BlockBottomStalagmite.block == null) {
-            world.setBlockState(start, BlockTopStalagmite.block.getDefaultState(), 2);
-            return;
+        for (int index = 0; index < length; ++index) {
+            Thickness thickness = segmentThickness(index, length);
+            BlockPointedDripstone.createDripstone(world, start.up(index),
+                    EnumFacing.UP, thickness);
         }
-        world.setBlockState(start, BlockBottomStalagmite.block.getDefaultState(), 2);
-        if (length == 3 && BlockMiddleStalagmite.block != null) {
-            world.setBlockState(start.up(), BlockMiddleStalagmite.block.getDefaultState(), 2);
+    }
+
+    private static Thickness segmentThickness(int index, int length) {
+        if (index == length - 1) {
+            return Thickness.TIP;
         }
-        world.setBlockState(start.up(length - 1), BlockTopStalagmite.block.getDefaultState(), 2);
+        if (index == 0) {
+            return length == 2 ? Thickness.FRUSTUM : Thickness.BASE;
+        }
+        return Thickness.MIDDLE;
     }
 
     private static int availableAir(World world, CubePos cube, BlockPos start,

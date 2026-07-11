@@ -118,7 +118,8 @@ public final class BlockPowderSnowCauldron extends ElementsCavesNotCliffs.ModEle
             double contentTop = pos.getY()
                 + PowderSnowMechanics.cauldronContentHeight(level);
             if (world.isRemote || !entity.isBurning()
-                    || entity.getEntityBoundingBox().minY > contentTop) {
+                    || entity.posY >= contentTop
+                    || entity.getEntityBoundingBox().maxY <= pos.getY() + 0.25D) {
                 return;
             }
             entity.extinguish();

@@ -2,6 +2,7 @@ package net.celestiald.cavesnotcliffs.block;
 
 import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
 import net.celestiald.cavesnotcliffs.content.DripstoneSoundEvents;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.DripFluid;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Neighbor;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness;
@@ -17,6 +18,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.item.EntityFallingBlock;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
@@ -40,6 +42,7 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -176,6 +179,33 @@ public final class BlockPointedDripstone extends Block {
         }
         if (!world.isRemote && waterloggedStorage) {
             emitWater(world, pos);
+        }
+    }
+
+    @Override
+    public void updateTick(World world, BlockPos pos, IBlockState state, Random random) {
+        if (world.isRemote || world.getBlockState(pos).getBlock() != this) {
+            return;
+        }
+        if (state.getValue(TIP_DIRECTION) == EnumFacing.UP) {
+            if (!validPlacement(world, pos, EnumFacing.UP)) {
+                world.destroyBlock(pos, true);
+            }
+            return;
+        }
+        if (!validPlacement(world, pos, EnumFacing.DOWN)) {
+            spawnFallingStalactite(world, pos, state);
+        } else if (waterloggedStorage) {
+            emitWater(world, pos);
+        }
+    }
+
+    @Override
+    public void randomTick(World world, BlockPos pos, IBlockState state, Random random) {
+        maybeFillCauldron(state, world, pos, random.nextFloat());
+        if (random.nextFloat() < PointedDripstoneMechanics.GROWTH_CHANCE
+                && isStalactiteStart(state, world, pos)) {
+            growStalactiteOrStalagmiteIfPossible(state, world, pos, random);
         }
     }
 
@@ -376,10 +406,10 @@ public final class BlockPointedDripstone extends Block {
         if (roll > 0.12F) {
             return;
         }
-        Material fluid = fluidAboveStalactite(world, pos, state);
-        if (roll < 0.02F || fluid == Material.WATER || fluid == Material.LAVA) {
+        DripFluid fluid = cauldronFillFluid(world, pos);
+        if (roll < 0.02F || fluid != null) {
             Vec3d offset = getOffset(state, world, pos);
-            world.spawnParticle(fluid == Material.LAVA
+            world.spawnParticle(fluid == DripFluid.LAVA
                             ? EnumParticleTypes.DRIP_LAVA : EnumParticleTypes.DRIP_WATER,
                     pos.getX() + 0.5D + offset.x,
                     pos.getY() + 0.25D,
@@ -432,21 +462,287 @@ public final class BlockPointedDripstone extends Block {
                 && !((BlockPointedDripstone) state.getBlock()).waterloggedStorage;
     }
 
-    private static Material fluidAboveStalactite(World world, BlockPos start,
-            IBlockState state) {
-        if (!pointedInDirection(state, EnumFacing.DOWN)) {
-            return Material.AIR;
+    private static void spawnFallingStalactite(World world, BlockPos root,
+            IBlockState rootState) {
+        BlockPos cursor = root;
+        IBlockState state = rootState;
+        while (pointedInDirection(state, EnumFacing.DOWN)) {
+            EntityFallingBlock falling = new EntityFallingBlock(world,
+                    cursor.getX() + 0.5D, cursor.getY(), cursor.getZ() + 0.5D, state);
+            world.spawnEntity(falling);
+            if (isTip(state, true)) {
+                falling.setHurtEntities(true);
+                ObfuscationReflectionHelper.setPrivateValue(EntityFallingBlock.class, falling,
+                        PointedDripstoneMechanics.fallingDamagePerDistance(
+                                root.getY(), cursor.getY()), "field_145816_i");
+                ObfuscationReflectionHelper.setPrivateValue(EntityFallingBlock.class, falling,
+                        PointedDripstoneMechanics.FALLING_STALACTITE_MAX_DAMAGE,
+                        "field_145815_h");
+                break;
+            }
+            cursor = cursor.down();
+            state = world.getBlockState(cursor);
         }
-        BlockPos cursor = start;
+    }
+
+    public static void maybeFillCauldron(IBlockState state, World world, BlockPos pos,
+            float randomValue) {
+        if (randomValue > PointedDripstoneMechanics.WATER_CAULDRON_FILL_CHANCE
+                && randomValue > PointedDripstoneMechanics.LAVA_CAULDRON_FILL_CHANCE) {
+            return;
+        }
+        if (!isStalactiteStart(state, world, pos)) {
+            return;
+        }
+        DripFluid fluid = cauldronFillFluid(world, pos);
+        if (fluid == null || !PointedDripstoneMechanics.shouldAttemptCauldronFill(
+                fluid == DripFluid.LAVA, randomValue)) {
+            return;
+        }
+        BlockPos tip = findTip(state, world, pos,
+                PointedDripstoneMechanics.MAX_DRIP_TYPE_SEARCH, false);
+        if (tip == null) {
+            return;
+        }
+        BlockPos cauldron = findFillableCauldronBelowTip(world, tip, fluid);
+        if (cauldron == null) {
+            return;
+        }
+        world.playSound(null, tip,
+                fluid == DripFluid.LAVA
+                        ? DripstoneSoundEvents.DRIP_LAVA : DripstoneSoundEvents.DRIP_WATER,
+                SoundCategory.BLOCKS, 1.0F, 1.0F);
+        IBlockState cauldronState = world.getBlockState(cauldron);
+        world.scheduleUpdate(cauldron, cauldronState.getBlock(),
+                PointedDripstoneMechanics.cauldronDelay(tip.getY(), cauldron.getY()));
+    }
+
+    @Nullable
+    public static BlockPos findStalactiteTipAboveCauldron(World world, BlockPos cauldron) {
+        BlockPos cursor = cauldron;
+        for (int distance = 1;
+                distance < PointedDripstoneMechanics.MAX_CAULDRON_SEARCH; ++distance) {
+            cursor = cursor.up();
+            IBlockState state = world.getBlockState(cursor);
+            if (canDrip(state)) {
+                return cursor;
+            }
+            if (!canDripThrough(world, cursor, state)) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    public static DripFluid cauldronFillFluid(World world, BlockPos pointedPos) {
+        IBlockState pointed = world.getBlockState(pointedPos);
+        if (!pointedInDirection(pointed, EnumFacing.DOWN)) {
+            return null;
+        }
+        BlockPos cursor = pointedPos;
         for (int distance = 1;
                 distance < PointedDripstoneMechanics.MAX_DRIP_TYPE_SEARCH; ++distance) {
             cursor = cursor.up();
-            IBlockState candidate = world.getBlockState(cursor);
-            if (!pointedInDirection(candidate, EnumFacing.DOWN)) {
-                return world.getBlockState(cursor.up()).getMaterial();
+            IBlockState state = world.getBlockState(cursor);
+            if (pointedInDirection(state, EnumFacing.DOWN)) {
+                continue;
+            }
+            Material material = world.getBlockState(cursor.up()).getMaterial();
+            if (material == Material.WATER) {
+                return DripFluid.WATER;
+            }
+            if (material == Material.LAVA) {
+                return DripFluid.LAVA;
+            }
+            return null;
+        }
+        return null;
+    }
+
+    @Nullable
+    private static BlockPos findFillableCauldronBelowTip(World world, BlockPos tip,
+            DripFluid fluid) {
+        BlockPos cursor = tip;
+        for (int distance = 1;
+                distance < PointedDripstoneMechanics.MAX_CAULDRON_SEARCH; ++distance) {
+            cursor = cursor.down();
+            IBlockState state = world.getBlockState(cursor);
+            if (state.getBlock() instanceof BlockLavaCauldron.BlockCustom) {
+                BlockLavaCauldron.BlockCustom cauldron =
+                        (BlockLavaCauldron.BlockCustom) state.getBlock();
+                return cauldron.canReceiveStalactiteDrip(state, fluid) ? cursor : null;
+            }
+            if (state.getBlock() == Blocks.CAULDRON && BlockLavaCauldron.block != null) {
+                int level = state.getValue(net.minecraft.block.BlockCauldron.LEVEL);
+                boolean accepts = fluid == DripFluid.WATER && level < 3
+                        || fluid == DripFluid.LAVA && level == 0;
+                if (!accepts) {
+                    return null;
+                }
+                IBlockState storage = BlockLavaCauldron.block.getDefaultState()
+                        .withProperty(net.minecraft.block.BlockCauldron.LEVEL, level)
+                        .withProperty(BlockLavaCauldron.BlockCustom.IS_LAVA, false);
+                world.setBlockState(cursor, storage, 2);
+                return cursor;
+            }
+            if (!canDripThrough(world, cursor, state)) {
+                return null;
             }
         }
-        return Material.AIR;
+        return null;
+    }
+
+    private static boolean canDripThrough(IBlockAccess world, BlockPos pos,
+            IBlockState state) {
+        if (state.getMaterial() == Material.AIR) {
+            return true;
+        }
+        if (state.isOpaqueCube() || state.getMaterial().isLiquid()) {
+            return false;
+        }
+        AxisAlignedBB collision = state.getCollisionBoundingBox(world, pos);
+        if (collision == null) {
+            return true;
+        }
+        AxisAlignedBB required = new AxisAlignedBB(pos.getX() + 6.0D / 16.0D,
+                pos.getY(), pos.getZ() + 6.0D / 16.0D,
+                pos.getX() + 10.0D / 16.0D, pos.getY() + 1.0D,
+                pos.getZ() + 10.0D / 16.0D);
+        return !collision.intersects(required);
+    }
+
+    private static boolean isStalactiteStart(IBlockState state, IBlockAccess world,
+            BlockPos pos) {
+        return pointedInDirection(state, EnumFacing.DOWN)
+                && !(world.getBlockState(pos.up()).getBlock() instanceof BlockPointedDripstone);
+    }
+
+    @Nullable
+    private static BlockPos findTip(IBlockState state, IBlockAccess world, BlockPos pos,
+            int maxLength, boolean allowMerged) {
+        if (isTip(state, allowMerged)) {
+            return pos;
+        }
+        EnumFacing direction = state.getValue(TIP_DIRECTION);
+        BlockPos cursor = pos;
+        for (int distance = 1; distance < maxLength; ++distance) {
+            cursor = cursor.offset(direction);
+            IBlockState candidate = world.getBlockState(cursor);
+            if (!pointedInDirection(candidate, direction)) {
+                return null;
+            }
+            if (isTip(candidate, allowMerged)) {
+                return cursor;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isTip(IBlockState state, boolean allowMerged) {
+        if (!(state.getBlock() instanceof BlockPointedDripstone)) {
+            return false;
+        }
+        Thickness thickness = state.getValue(THICKNESS);
+        return thickness == Thickness.TIP
+                || allowMerged && thickness == Thickness.TIP_MERGE;
+    }
+
+    public static void growStalactiteOrStalagmiteIfPossible(IBlockState state,
+            World world, BlockPos pos, Random random) {
+        if (world.getBlockState(pos.up()).getBlock() != BlockDripstone.block
+                || !sourceWater(world.getBlockState(pos.up(2)))) {
+            return;
+        }
+        BlockPos tip = findTip(state, world, pos,
+                PointedDripstoneMechanics.MAX_GROWTH_LENGTH, false);
+        if (tip == null) {
+            return;
+        }
+        IBlockState tipState = world.getBlockState(tip);
+        if (!canDrip(tipState) || !canTipGrow(tipState, world, tip)) {
+            return;
+        }
+        if (random.nextBoolean()) {
+            grow(world, tip, EnumFacing.DOWN);
+        } else {
+            growStalagmiteBelow(world, tip);
+        }
+    }
+
+    private static boolean canTipGrow(IBlockState state, World world, BlockPos pos) {
+        EnumFacing direction = state.getValue(TIP_DIRECTION);
+        IBlockState forward = world.getBlockState(pos.offset(direction));
+        if (forward.getMaterial().isLiquid()) {
+            return false;
+        }
+        return forward.getMaterial() == Material.AIR
+                || isTip(forward, false)
+                && forward.getValue(TIP_DIRECTION) == direction.getOpposite();
+    }
+
+    private static void growStalagmiteBelow(World world, BlockPos tip) {
+        BlockPos cursor = tip;
+        for (int distance = 0;
+                distance < PointedDripstoneMechanics.MAX_STALAGMITE_GROWTH_SEARCH;
+                ++distance) {
+            cursor = cursor.down();
+            IBlockState state = world.getBlockState(cursor);
+            if (state.getMaterial().isLiquid()) {
+                return;
+            }
+            if (isTip(state, false) && state.getValue(TIP_DIRECTION) == EnumFacing.UP
+                    && canTipGrow(state, world, cursor)) {
+                grow(world, cursor, EnumFacing.UP);
+                return;
+            }
+            if (validPlacement(world, cursor, EnumFacing.UP)
+                    && world.getBlockState(cursor.down()).getMaterial() != Material.WATER) {
+                grow(world, cursor.down(), EnumFacing.UP);
+                return;
+            }
+            if (!canDripThrough(world, cursor, state)) {
+                return;
+            }
+        }
+    }
+
+    private static void grow(World world, BlockPos tip, EnumFacing direction) {
+        BlockPos target = tip.offset(direction);
+        IBlockState targetState = world.getBlockState(target);
+        if (isTip(targetState, false)
+                && targetState.getValue(TIP_DIRECTION) == direction.getOpposite()) {
+            createMergedTips(world, target, targetState);
+        } else if (targetState.getMaterial() == Material.AIR
+                || targetState.getBlock() == Blocks.WATER) {
+            createDripstone(world, target, direction, Thickness.TIP);
+        }
+    }
+
+    private static void createMergedTips(World world, BlockPos target,
+            IBlockState existing) {
+        BlockPos down;
+        BlockPos up;
+        if (existing.getValue(TIP_DIRECTION) == EnumFacing.UP) {
+            down = target;
+            up = target.up();
+        } else {
+            down = target.down();
+            up = target;
+        }
+        createDripstone(world, down, EnumFacing.DOWN, Thickness.TIP_MERGE);
+        createDripstone(world, up, EnumFacing.UP, Thickness.TIP_MERGE);
+    }
+
+    public static void createDripstone(World world, BlockPos pos, EnumFacing direction,
+            Thickness thickness) {
+        BlockPointedDripstone target = sourceWater(world.getBlockState(pos))
+                ? waterloggedBlock() : dryBlock();
+        if (target != null) {
+            world.setBlockState(pos, target.getDefaultState()
+                    .withProperty(TIP_DIRECTION, direction)
+                    .withProperty(THICKNESS, thickness), 3);
+        }
     }
 
     private static boolean sourceWater(IBlockState state) {

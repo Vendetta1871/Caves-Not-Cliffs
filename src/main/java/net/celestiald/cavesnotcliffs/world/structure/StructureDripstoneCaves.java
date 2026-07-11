@@ -1,13 +1,9 @@
 
 package net.celestiald.cavesnotcliffs.world.structure;
 
-import net.celestiald.cavesnotcliffs.block.BlockBottomStalactite;
-import net.celestiald.cavesnotcliffs.block.BlockBottomStalagmite;
-import net.celestiald.cavesnotcliffs.block.BlockMiddleStalactite;
-import net.celestiald.cavesnotcliffs.block.BlockMiddleStalagmite;
-import net.celestiald.cavesnotcliffs.block.BlockTopStalactite;
-import net.celestiald.cavesnotcliffs.block.BlockTopStalagmite;
 import net.celestiald.cavesnotcliffs.block.BlockDripstone;
+import net.celestiald.cavesnotcliffs.block.BlockPointedDripstone;
+import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness;
 
 import net.minecraft.world.gen.structure.template.Template;
 import net.minecraft.world.gen.structure.template.PlacementSettings;
@@ -24,6 +20,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockClay;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.entity.Entity;
 
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
@@ -50,36 +47,25 @@ public class StructureDripstoneCaves extends ElementsCavesNotCliffs.ModElement {
 
 	private void generateStalactite(Random random, World world, int x, int y, int z) {
 		int len = getDripstoneLength(random, world, x, y, z, -1);
-
-		if (len == 1) {
-			world.setBlockState(new BlockPos(x, y, z), BlockTopStalactite.block.getDefaultState(), 3);
-		}
-		else if (len == 2) {
-			world.setBlockState(new BlockPos(x, y, z), BlockBottomStalactite.block.getDefaultState(), 3);
-			world.setBlockState(new BlockPos(x, y - 1, z), BlockTopStalactite.block.getDefaultState(), 3);
-		}
-		else {
-			world.setBlockState(new BlockPos(x, y, z), BlockBottomStalactite.block.getDefaultState(), 3);
-			world.setBlockState(new BlockPos(x, y - 1, z), BlockMiddleStalactite.block.getDefaultState(), 3);
-			world.setBlockState(new BlockPos(x, y - 2, z), BlockTopStalactite.block.getDefaultState(), 3);
+		for (int index = 0; index < len; ++index) {
+			BlockPointedDripstone.createDripstone(world, new BlockPos(x, y - index, z),
+					EnumFacing.DOWN, segmentThickness(index, len));
 		}
 	}
 
 	private void generateStalagmite(Random random, World world, int x, int y, int z) {
 	  int len = getDripstoneLength(random, world, x, y, z, +1);
 
-		if (len == 1) {
-			world.setBlockState(new BlockPos(x, y, z), BlockTopStalagmite.block.getDefaultState(), 3);
+		for (int index = 0; index < len; ++index) {
+			BlockPointedDripstone.createDripstone(world, new BlockPos(x, y + index, z),
+					EnumFacing.UP, segmentThickness(index, len));
 		}
-		else if (len == 2) {
-			world.setBlockState(new BlockPos(x, y, z), BlockBottomStalagmite.block.getDefaultState(), 3);
-			world.setBlockState(new BlockPos(x, y + 1, z), BlockTopStalagmite.block.getDefaultState(), 3);
-		}
-		else {
-			world.setBlockState(new BlockPos(x, y, z), BlockBottomStalagmite.block.getDefaultState(), 3);
-			world.setBlockState(new BlockPos(x, y + 1, z), BlockMiddleStalagmite.block.getDefaultState(), 3);
-			world.setBlockState(new BlockPos(x, y + 2, z), BlockTopStalagmite.block.getDefaultState(), 3);
-		}
+	}
+
+	private Thickness segmentThickness(int index, int length) {
+		if (index == length - 1) return Thickness.TIP;
+		if (index == 0) return length == 2 ? Thickness.FRUSTUM : Thickness.BASE;
+		return Thickness.MIDDLE;
 	}
 
 	private void generateLake(Random random, World world, int x, int y, int z, int depth, int cx, int cz) {
