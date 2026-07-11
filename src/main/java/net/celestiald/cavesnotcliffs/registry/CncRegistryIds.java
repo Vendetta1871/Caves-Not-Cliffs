@@ -23,6 +23,7 @@ public final class CncRegistryIds {
     public static final ResourceLocation POWDER_SNOW_BUCKET = id("powder_snow_bucket");
     /** Hidden state companion; the vanilla cauldron remains the only obtainable item. */
     public static final ResourceLocation POWDER_SNOW_CAULDRON = id("powder_snow_cauldron");
+    public static final ResourceLocation COMPOSTER = id("composter");
 
     /**
      * The released pre-v2 geode-shell identity is intentionally retained as an internal marker.
