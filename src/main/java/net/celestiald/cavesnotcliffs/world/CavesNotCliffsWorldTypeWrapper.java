@@ -49,12 +49,12 @@ public final class CavesNotCliffsWorldTypeWrapper extends WorldType
         }
         data.validateGeneratorContract(getTerrainSchema(), baseType, terrainProfile);
         TerrainProfile persistedProfile = data.getTerrainProfile();
-        if (V118CubicChunksGenerator.isNativeProfile(persistedProfile)) {
-            return new V118CubicChunksGenerator(world, persistedProfile);
-        }
         String options = data.getGeneratorOptions();
         IChunkGenerator baseGenerator = delegate(world,
                 () -> baseType.getChunkGenerator(world, options == null ? "" : options));
+        if (V118CubicChunksGenerator.isNativeProfile(persistedProfile)) {
+            return new V118CubicChunksGenerator(world, persistedProfile, baseGenerator);
+        }
         return new CavesNotCliffsCubeGenerator(world, baseGenerator, persistedProfile);
     }
 

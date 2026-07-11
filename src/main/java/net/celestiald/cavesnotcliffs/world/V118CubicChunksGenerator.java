@@ -15,15 +15,17 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.gen.IChunkGenerator;
 
 import java.util.List;
 
 /**
  * Native schema-2 CubicChunks bridge for the Java 1.18.2 density columns.
  *
- * <p>This generator intentionally does not invoke the selected 1.12 chunk generator, legacy cave
- * carver, legacy deep ores, or legacy decorators. Structure bridging and 1.18 feature population
- * are separate checkpoints.</p>
+ * <p>This generator retains the selected 1.12 chunk generator for the later structure-only bridge,
+ * but intentionally does not invoke its terrain or population methods. It also does not invoke the
+ * legacy cave carver, legacy deep ores, or legacy decorators. Structure bridging and 1.18 feature
+ * population are separate checkpoints.</p>
  */
 public final class V118CubicChunksGenerator implements ICubeGenerator {
     private static final int CUBE_SIZE = 16;
@@ -31,29 +33,35 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
 
     private final World world;
     private final TerrainProfile terrainProfile;
+    private final IChunkGenerator structureGenerator;
     private final V118TerrainColumnGenerator columns;
     private final V118BlockStateMapper blockStates;
     private final V118BiomeMapper biomes;
     private final V118CubeSlicer slicer;
 
-    V118CubicChunksGenerator(World world, TerrainProfile terrainProfile) {
-        this(world, terrainProfile,
+    V118CubicChunksGenerator(World world, TerrainProfile terrainProfile,
+            IChunkGenerator structureGenerator) {
+        this(world, terrainProfile, structureGenerator,
             new V118TerrainColumnGenerator(world.getSeed(), nativeProfileFor(terrainProfile)),
             V118BlockStateMapper.fromRegisteredBlocks(),
             V118BiomeMapper.fromRegisteredBiomes());
     }
 
     V118CubicChunksGenerator(World world, TerrainProfile terrainProfile,
-            V118TerrainColumnGenerator columns, V118BlockStateMapper blockStates,
-            V118BiomeMapper biomes) {
+            IChunkGenerator structureGenerator, V118TerrainColumnGenerator columns,
+            V118BlockStateMapper blockStates, V118BiomeMapper biomes) {
         if (world == null) {
             throw new NullPointerException("world");
         }
         if (columns == null) {
             throw new NullPointerException("columns");
         }
+        if (structureGenerator == null) {
+            throw new NullPointerException("structureGenerator");
+        }
         this.world = world;
         this.terrainProfile = requireNativeProfile(terrainProfile);
+        this.structureGenerator = structureGenerator;
         this.columns = columns;
         this.blockStates = blockStates;
         this.biomes = biomes;
@@ -62,6 +70,10 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
 
     public TerrainProfile getTerrainProfile() {
         return terrainProfile;
+    }
+
+    IChunkGenerator getStructureGenerator() {
+        return structureGenerator;
     }
 
     public V118Biome getVirtualBiome(int blockX, int blockY, int blockZ) {
