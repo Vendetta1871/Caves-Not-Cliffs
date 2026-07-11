@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -148,5 +149,24 @@ public class CopperWeatheringTest {
         assertTrue(CopperContent.isTopSlabMetadata(1));
         assertTrue(CopperContent.isTopSlabMetadata(8));
         assertTrue(CopperContent.isTopSlabMetadata(9));
+    }
+
+    @Test
+    public void explosionDecayRollsEveryDroppedItemIndependently() {
+        Random alternating = new Random() {
+            private int index;
+
+            @Override
+            public float nextFloat() {
+                return (index++ & 1) == 0 ? 0.25F : 0.75F;
+            }
+        };
+        assertEquals(3, OreDropLogic.applyExplosionDecay(6, 0.5F, alternating));
+        assertEquals(1, OreDropLogic.applyExplosionDecay(1, 0.0F, new Random() {
+            @Override
+            public float nextFloat() {
+                return 0.0F;
+            }
+        }));
     }
 }

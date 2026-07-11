@@ -197,6 +197,15 @@ public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement 
         }
 
         @Override
+        public void dropBlockAsItemWithChance(World world, BlockPos pos, IBlockState state,
+                float chance, int fortune) {
+            if (!OreDropLogic.dropWithExplosionDecay(this, world, pos, state,
+                    chance, fortune, harvesters.get())) {
+                super.dropBlockAsItemWithChance(world, pos, state, chance, fortune);
+            }
+        }
+
+        @Override
         public int getExpDrop(IBlockState state, IBlockAccess world, BlockPos pos, int fortune) {
             switch (drop) {
                 case COAL:

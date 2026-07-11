@@ -396,6 +396,15 @@ public final class CopperContent {
         }
 
         @Override
+        public void dropBlockAsItemWithChance(World world, BlockPos pos, IBlockState state,
+                float chance, int fortune) {
+            if (!OreDropLogic.dropWithExplosionDecay(this, world, pos, state,
+                    chance, fortune, harvesters.get())) {
+                super.dropBlockAsItemWithChance(world, pos, state, chance, fortune);
+            }
+        }
+
+        @Override
         public void randomTick(World world, BlockPos pos, IBlockState state, Random random) {
             CopperContent.randomTick(variant, world, pos, state, random);
         }

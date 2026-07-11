@@ -66,6 +66,16 @@ public class BlockCopperOre extends ElementsCavesNotCliffs.ModElement {
         }
 
         @Override
+        public void dropBlockAsItemWithChance(net.minecraft.world.World world,
+                net.minecraft.util.math.BlockPos pos, IBlockState state,
+                float chance, int fortune) {
+            if (!OreDropLogic.dropWithExplosionDecay(this, world, pos, state,
+                    chance, fortune, harvesters.get())) {
+                super.dropBlockAsItemWithChance(world, pos, state, chance, fortune);
+            }
+        }
+
+        @Override
         protected boolean canSilkHarvest() {
             return true;
         }
