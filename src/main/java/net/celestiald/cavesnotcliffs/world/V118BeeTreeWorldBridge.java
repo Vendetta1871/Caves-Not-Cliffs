@@ -16,13 +16,7 @@ import net.celestiald.cavesnotcliffs.worldgen.v118.V118WorldgenRandom;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLeaves;
-import net.minecraft.block.BlockLog;
 import net.minecraft.block.BlockDoublePlant;
-import net.minecraft.block.BlockFlower;
-import net.minecraft.block.BlockOldLeaf;
-import net.minecraft.block.BlockOldLog;
-import net.minecraft.block.BlockPlanks;
-import net.minecraft.block.BlockTallGrass;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
@@ -33,9 +27,8 @@ import java.util.Set;
 /**
  * Schema-2 bridge for the six Java 1.18.2 tree features that can generate bee nests.
  *
- * <p>The target runtime's oak, fancy-oak, birch, and tall-birch generators are the direct legacy
- * peers of the corresponding 1.18 trunk/foliage configurations. Only these individual configured
- * features are invoked; the old biome decorator remains disabled.</p>
+ * <p>The tree and prerequisite-vegetation algorithms are isolated Java 8 ports of the matching
+ * 1.18.2 configured features. The old biome decorator remains disabled.</p>
  */
 final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
         V118BeeTreeVegetation.WorldAccess {
@@ -238,51 +231,36 @@ final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
 
     @Override
     public void setLog(BlockPos pos, LogAxis axis, TreeKind kind) {
-        BlockLog.EnumAxis legacyAxis;
-        switch (axis) {
-            case X:
-                legacyAxis = BlockLog.EnumAxis.X;
-                break;
-            case Z:
-                legacyAxis = BlockLog.EnumAxis.Z;
-                break;
-            case Y:
-            default:
-                legacyAxis = BlockLog.EnumAxis.Y;
-                break;
-        }
-        IBlockState state = Blocks.LOG.getDefaultState()
-                .withProperty(BlockOldLog.VARIANT, wood(kind))
-                .withProperty(BlockLog.LOG_AXIS, legacyAxis);
+        int axisMetadata = axis == LogAxis.X ? 4 : axis == LogAxis.Z ? 8 : 0;
+        IBlockState state = Blocks.LOG.getStateFromMeta(woodMetadata(kind) | axisMetadata);
         world.setBlockState(pos, state, 2);
     }
 
     @Override
     public void setLeaves(BlockPos pos, TreeKind kind) {
-        IBlockState state = Blocks.LEAVES.getDefaultState()
-                .withProperty(BlockOldLeaf.VARIANT, wood(kind))
+        IBlockState state = Blocks.LEAVES.getStateFromMeta(woodMetadata(kind))
                 .withProperty(BlockLeaves.CHECK_DECAY, false)
                 .withProperty(BlockLeaves.DECAYABLE, true);
         world.setBlockState(pos, state, 2);
     }
 
-    private static BlockPlanks.EnumType wood(TreeKind kind) {
+    private static int woodMetadata(TreeKind kind) {
         return kind == TreeKind.BIRCH || kind == TreeKind.SUPER_BIRCH
-                ? BlockPlanks.EnumType.BIRCH : BlockPlanks.EnumType.OAK;
+                ? 2 : 0;
     }
 
     private static BlockDoublePlant.EnumPlantType doublePlant(Plant plant) {
         switch (plant) {
             case LILAC:
-                return BlockDoublePlant.EnumPlantType.SYRINGA;
+                return BlockDoublePlant.EnumPlantType.byMetadata(1);
             case ROSE_BUSH:
-                return BlockDoublePlant.EnumPlantType.ROSE;
+                return BlockDoublePlant.EnumPlantType.byMetadata(4);
             case PEONY:
-                return BlockDoublePlant.EnumPlantType.PAEONIA;
+                return BlockDoublePlant.EnumPlantType.byMetadata(5);
             case SUNFLOWER:
-                return BlockDoublePlant.EnumPlantType.SUNFLOWER;
+                return BlockDoublePlant.EnumPlantType.byMetadata(0);
             case TALL_GRASS:
-                return BlockDoublePlant.EnumPlantType.GRASS;
+                return BlockDoublePlant.EnumPlantType.byMetadata(2);
             default:
                 throw new IllegalArgumentException("Not a double plant: " + plant);
         }
@@ -291,31 +269,30 @@ final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
     private static IBlockState singlePlant(Plant plant) {
         switch (plant) {
             case SHORT_GRASS:
-                return Blocks.TALLGRASS.getDefaultState().withProperty(BlockTallGrass.TYPE,
-                        BlockTallGrass.EnumType.GRASS);
+                return Blocks.TALLGRASS.getStateFromMeta(1);
             case DANDELION:
                 return Blocks.YELLOW_FLOWER.getDefaultState();
             case ALLIUM:
-                return redFlower(BlockFlower.EnumFlowerType.ALLIUM);
+                return redFlower(2);
             case POPPY:
-                return redFlower(BlockFlower.EnumFlowerType.POPPY);
+                return redFlower(0);
             case AZURE_BLUET:
-                return redFlower(BlockFlower.EnumFlowerType.HOUSTONIA);
+                return redFlower(3);
             case OXEYE_DAISY:
-                return redFlower(BlockFlower.EnumFlowerType.OXEYE_DAISY);
+                return redFlower(8);
             // Java 1.12 has no canonical states for these two later flowers. These legacy flower
             // states preserve survival, occupancy, bee-pollination, and patch geometry.
             case CORNFLOWER:
-                return redFlower(BlockFlower.EnumFlowerType.BLUE_ORCHID);
+                return redFlower(1);
             case LILY_OF_THE_VALLEY:
-                return redFlower(BlockFlower.EnumFlowerType.WHITE_TULIP);
+                return redFlower(6);
             default:
                 throw new IllegalArgumentException("Not a single plant: " + plant);
         }
     }
 
-    private static IBlockState redFlower(BlockFlower.EnumFlowerType type) {
-        return Blocks.RED_FLOWER.getStateFromMeta(type.getMeta());
+    private static IBlockState redFlower(int metadata) {
+        return Blocks.RED_FLOWER.getStateFromMeta(metadata);
     }
 
     private static boolean isDirtTag(Block block) {
