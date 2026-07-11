@@ -18,6 +18,7 @@ import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import java.util.Random;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDripleafStem extends ElementsCavesNotCliffs.ModElement {
@@ -29,14 +30,6 @@ public class BlockDripleafStem extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void initElements() {
         elements.blocks.add(() -> new BlockCustom().setRegistryName("dripleaf_stem"));
-        elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
-    }
-
-    @SideOnly(Side.CLIENT)
-    @Override
-    public void registerModels(ModelRegistryEvent event) {
-        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:dripleaf_stem", "inventory"));
     }
 
     public static class BlockCustom extends Block {
@@ -45,7 +38,6 @@ public class BlockDripleafStem extends ElementsCavesNotCliffs.ModElement {
         public BlockCustom() {
             super(Material.PLANTS);
             setUnlocalizedName("dripleaf_stem");
-            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.PLANT);
             setHardness(0.0f);
             setResistance(0.0f);
@@ -55,5 +47,10 @@ public class BlockDripleafStem extends ElementsCavesNotCliffs.ModElement {
         @Override public boolean isFullCube(IBlockState state) { return false; }
         @Override public AxisAlignedBB getCollisionBoundingBox(IBlockState s, IBlockAccess w, BlockPos p) { return NULL_AABB; }
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
+
+        @Override
+        public Item getItemDropped(IBlockState state, Random random, int fortune) {
+            return Item.getItemFromBlock(BlockDripleafPlant.block);
+        }
     }
 }

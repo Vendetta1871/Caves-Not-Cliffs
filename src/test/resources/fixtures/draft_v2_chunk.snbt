@@ -12,5 +12,10 @@
     { x: -15, y: -64, z: 16, id: "cavesnotcliffs:amethyst_block" },
     { x: -14, y: -64, z: 16, id: "cavesnotcliffs:dripleaf_stem" },
     { x: -13, y: -64, z: 16, id: "cavesnotcliffs:pointed_dripstone" }
+  ],
+  inventory: [
+    { Slot: 0b, id: "cavesnotcliffs:amethyst_block", Count: 1b },
+    { Slot: 1b, id: "cavesnotcliffs:glow_berry_middle_fill", Count: 3b },
+    { Slot: 2b, id: "cavesnotcliffs:big_dripleaf", Count: 1b }
   ]
 }

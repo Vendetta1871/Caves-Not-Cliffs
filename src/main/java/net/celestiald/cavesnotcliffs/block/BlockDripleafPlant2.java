@@ -30,14 +30,6 @@ public class BlockDripleafPlant2 extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void initElements() {
         elements.blocks.add(() -> new BlockCustom().setRegistryName("dripleaf_plant_2"));
-        elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
-    }
-
-    @SideOnly(Side.CLIENT)
-    @Override
-    public void registerModels(ModelRegistryEvent event) {
-        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:dripleaf_plant_2", "inventory"));
     }
 
     private static class BlockCustom extends Block {
@@ -53,6 +45,11 @@ public class BlockDripleafPlant2 extends ElementsCavesNotCliffs.ModElement {
         @Override public boolean isFullCube(IBlockState state) { return false; }
         @Override public net.minecraft.util.math.AxisAlignedBB getCollisionBoundingBox(IBlockState s, IBlockAccess w, BlockPos p) { return NULL_AABB; }
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
+
+        @Override
+        public Item getItemDropped(IBlockState state, Random random, int fortune) {
+            return Item.getItemFromBlock(BlockDripleafPlant.block);
+        }
 
         @Override
         public void updateTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {

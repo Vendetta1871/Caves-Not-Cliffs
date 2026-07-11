@@ -29,6 +29,22 @@ public class LegacyContentMappingsTest {
     }
 
     @Test
+    public void canonicalizesHiddenCompanionItemsWithoutRenamingTheirBlocks() {
+        assertEquals("glow_berry_vines",
+                LegacyContentMappings.canonicalBlockPath("glow_berry_vines"));
+        assertEquals("glow_berries",
+                LegacyContentMappings.canonicalItemPath("glow_berry_vines"));
+        assertEquals("dripleaf_stem",
+                LegacyContentMappings.canonicalBlockPath("dripleaf_stem"));
+        assertEquals("big_dripleaf",
+                LegacyContentMappings.canonicalItemPath("dripleaf_stem"));
+        assertEquals("top_stalagmite",
+                LegacyContentMappings.canonicalBlockPath("top_stalagmite"));
+        assertEquals("pointed_dripstone",
+                LegacyContentMappings.canonicalItemPath("top_stalagmite"));
+    }
+
+    @Test
     public void doesNotRewriteAnotherNamespace() {
         ResourceLocation other = new ResourceLocation("example", "dark_stone");
         assertEquals(other, LegacyContentMappings.canonicalLocation(other));

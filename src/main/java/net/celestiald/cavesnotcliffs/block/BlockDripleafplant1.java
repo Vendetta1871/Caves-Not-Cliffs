@@ -31,14 +31,6 @@ public class BlockDripleafplant1 extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void initElements() {
         elements.blocks.add(() -> new BlockCustom().setRegistryName("dripleafplant_1"));
-        elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
-    }
-
-    @SideOnly(Side.CLIENT)
-    @Override
-    public void registerModels(ModelRegistryEvent event) {
-        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:dripleafplant_1", "inventory"));
     }
 
     private static class BlockCustom extends Block {
@@ -56,6 +48,11 @@ public class BlockDripleafplant1 extends ElementsCavesNotCliffs.ModElement {
             return new net.minecraft.util.math.AxisAlignedBB(0, 0, 0, 1, 0.8125, 1);
         }
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
+
+        @Override
+        public Item getItemDropped(IBlockState state, Random random, int fortune) {
+            return Item.getItemFromBlock(BlockDripleafPlant.block);
+        }
 
         @Override
         public void onEntityWalk(World worldIn, BlockPos pos, Entity entityIn) {

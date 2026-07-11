@@ -34,14 +34,6 @@ public class BlockMiddleStalactite extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void initElements() {
         elements.blocks.add(() -> new BlockCustom().setRegistryName("middle_stalactite"));
-        elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
-    }
-
-    @SideOnly(Side.CLIENT)
-    @Override
-    public void registerModels(ModelRegistryEvent event) {
-        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:middle_stalactite", "inventory"));
     }
 
     public static class BlockCustom extends Block {
@@ -50,7 +42,6 @@ public class BlockMiddleStalactite extends ElementsCavesNotCliffs.ModElement {
         public BlockCustom() {
             super(Material.ROCK);
             setUnlocalizedName("middle_stalactite");
-            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(1.5f);
             setResistance(6.0f);

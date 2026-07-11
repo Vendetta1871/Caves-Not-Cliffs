@@ -16,6 +16,9 @@ public final class CncRegistryIds {
     public static final ResourceLocation SMALL_AMETHYST_BUD = id("small_amethyst_bud");
     public static final ResourceLocation MEDIUM_AMETHYST_BUD = id("medium_amethyst_bud");
     public static final ResourceLocation AMETHYST_CLUSTER = id("amethyst_cluster");
+    public static final ResourceLocation GLOW_BERRIES = id("glow_berries");
+    public static final ResourceLocation BIG_DRIPLEAF = id("big_dripleaf");
+    public static final ResourceLocation POINTED_DRIPSTONE = id("pointed_dripstone");
 
     /**
      * The released pre-v2 geode-shell identity is intentionally retained as an internal marker.

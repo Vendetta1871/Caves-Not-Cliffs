@@ -81,6 +81,24 @@ public class LegacyChunkMigrationTest {
         assertEquals(CncDataVersions.LEGACY_CONTENT_VERSION, result.getResultingVersion());
     }
 
+    @Test
+    public void canonicalizesV15InventoryFixtureExactlyOnce() throws Exception {
+        NBTTagCompound fixture = loadFixture("fixtures/v1_5_chunk.snbt");
+        NBTTagList inventory = fixture.getTagList("inventory", 10);
+
+        assertEquals(4, LegacyInventoryMigration.migrateSerializedStacks(inventory));
+        assertEquals("cavesnotcliffs:amethyst_block",
+                inventory.getCompoundTagAt(0).getString("id"));
+        assertEquals("cavesnotcliffs:glow_berries",
+                inventory.getCompoundTagAt(1).getString("id"));
+        assertEquals("cavesnotcliffs:big_dripleaf",
+                inventory.getCompoundTagAt(2).getString("id"));
+        assertEquals("cavesnotcliffs:pointed_dripstone",
+                inventory.getCompoundTagAt(3).getString("id"));
+        assertEquals("minecraft:stone", inventory.getCompoundTagAt(4).getString("id"));
+        assertEquals(0, LegacyInventoryMigration.migrateSerializedStacks(inventory));
+    }
+
     private static NBTTagCompound loadFixture(String resource) throws Exception {
         InputStream stream = LegacyChunkMigrationTest.class.getClassLoader()
                 .getResourceAsStream(resource);

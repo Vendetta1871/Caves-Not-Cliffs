@@ -43,6 +43,7 @@ public final class LegacyContentMappings {
         map(blocks, "baby_azalea_tree", "azalea");
         map(blocks, "blooming_baby_azalea_tree", "flowering_azalea");
         map(blocks, "baby_dripleaf", "small_dripleaf");
+        map(blocks, "dripleaf_plant", "big_dripleaf");
         map(blocks, "copper_block_stage1", "exposed_copper");
         map(blocks, "copper_block_stage2", "weathered_copper");
         map(blocks, "copper_block_stage3", "oxidized_copper");
@@ -63,6 +64,19 @@ public final class LegacyContentMappings {
         Map<String, String> items = new LinkedHashMap<>(blocks);
         // The old block identity is retained for chunk recognition, but its obtainable item is not.
         map(items, "amethyst_geode", "amethyst_block");
+        // State-split companion blocks remain registered, but their old ItemBlocks do not.
+        map(items, "glow_berry_vines", "glow_berries");
+        map(items, "glow_berry_middle_fill", "glow_berries");
+        map(items, "dripleafplant_1", "big_dripleaf");
+        map(items, "dripleaf_plant_2", "big_dripleaf");
+        map(items, "dripleaf_stem", "big_dripleaf");
+        map(items, "stalagmite", "pointed_dripstone");
+        map(items, "bottom_stalactite", "pointed_dripstone");
+        map(items, "middle_stalactite", "pointed_dripstone");
+        map(items, "top_stalactite", "pointed_dripstone");
+        map(items, "bottom_stalagmite", "pointed_dripstone");
+        map(items, "middle_stalagmite", "pointed_dripstone");
+        map(items, "top_stalagmite", "pointed_dripstone");
         ITEM_PATHS = Collections.unmodifiableMap(items);
     }
 
