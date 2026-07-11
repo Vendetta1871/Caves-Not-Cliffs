@@ -24,6 +24,7 @@ public final class CubicColumnConverter {
     private static final String CONTENT_ROOT = "cavesnotcliffs";
     private static final String CONTENT_VERSION = "contentVersion";
     private static final String CAULDRON_BRIDGE = "CavesNotCliffsCauldronBridge";
+    static final String REBUILD_HEIGHT_MAP = "CavesNotCliffsRebuildHeightMap";
 
     private static final Set<String> KNOWN_CUBE_ROOT_KEYS = new HashSet<String>(Arrays.asList(
             "DataVersion", "ForgeDataVersion", "Level", CONTENT_ROOT, CAULDRON_BRIDGE));
@@ -79,7 +80,7 @@ public final class CubicColumnConverter {
         for (Map.Entry<Integer, NBTTagCompound> entry : cubeRoots.entrySet()) {
             NBTTagCompound cube = validateCube(
                     entry.getValue(), chunkX, entry.getKey(), chunkZ);
-            if (!isLogicallyEmpty(cube)) {
+            if (!isDiscardableGeneratedLookahead(cube, chunkX, entry.getKey(), chunkZ)) {
                 throw fail(chunkX, chunkZ, "is a cube-only lookahead column with stateful cube Y="
                         + entry.getKey());
             }
@@ -88,7 +89,8 @@ public final class CubicColumnConverter {
 
     private static NBTTagCompound convert(NBTTagCompound columnRoot,
             Map<Integer, NBTTagCompound> cubeRoots, int terrainSchema, long lastUpdate,
-            boolean cavesNotCliffsOverworld) throws CubicColumnConversionException {
+            boolean cavesNotCliffsOverworld)
+            throws CubicColumnConversionException {
         NBTTagCompound column = requireCompound(columnRoot, "Level", "column root");
         rejectUnknownKeys(column, KNOWN_COLUMN_LEVEL_KEYS, "column Level");
         requireVersion(column, "column");
@@ -98,12 +100,12 @@ public final class CubicColumnConverter {
         if (column.hasKey("ForgeCaps") && !column.hasKey("ForgeCaps", 10)) {
             throw fail(chunkX, chunkZ, "has a non-compound column ForgeCaps tag");
         }
-        int[] heightMap = decodeHeightMap(column, chunkX, chunkZ);
-
         TreeMap<Integer, NBTTagCompound> cubes = new TreeMap<Integer, NBTTagCompound>(cubeRoots);
         validateRequiredCubes(cubes, terrainSchema, chunkX, chunkZ,
                 cavesNotCliffsOverworld);
         validateOutOfRangeCubes(cubes, chunkX, chunkZ);
+        validateOpacityIndex(column, chunkX, chunkZ);
+        int[] heightMap = rebuildNonAirHeightMap(cubes, chunkX, chunkZ);
 
         NBTTagList sections = new NBTTagList();
         NBTTagList entities = new NBTTagList();
@@ -175,6 +177,10 @@ public final class CubicColumnConverter {
                 result.removeTag(CAULDRON_BRIDGE);
             }
         }
+        // Numeric block-state IDs are remapped from level.dat only after this pre-world import.
+        // The initial non-air height map is safe for loading; the marker makes the first real
+        // chunk load rebuild exact opacity/skylight with the post-remap registry and world context.
+        result.setInteger(REBUILD_HEIGHT_MAP, 1);
         return result;
     }
 
@@ -202,7 +208,7 @@ public final class CubicColumnConverter {
             }
             NBTTagCompound cube = validateCube(
                     entry.getValue(), chunkX, entry.getKey(), chunkZ);
-            if (!isLogicallyEmpty(cube)) {
+            if (!isOutOfRangePayloadEmpty(cube, chunkX, entry.getKey(), chunkZ)) {
                 throw fail(chunkX, chunkZ, "has nonempty cube Y=" + entry.getKey()
                         + " outside the finite -64..319 range");
             }
@@ -377,12 +383,11 @@ public final class CubicColumnConverter {
         return first;
     }
 
-    private static int[] decodeHeightMap(NBTTagCompound column, int chunkX, int chunkZ)
+    private static void validateOpacityIndex(NBTTagCompound column, int chunkX, int chunkZ)
             throws CubicColumnConversionException {
         byte[] encoded = requireBytes(column, "OpacityIndex", -1, describe(chunkX, chunkZ));
-        int[] result = new int[256];
         try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(encoded))) {
-            for (int index = 0; index < result.length; index++) {
+            for (int index = 0; index < 256; index++) {
                 int min = input.readInt();
                 int max = input.readInt();
                 int segmentCount = input.readUnsignedShort();
@@ -391,7 +396,7 @@ public final class CubicColumnConverter {
                         throw fail(chunkX, chunkZ, "has an inconsistent empty opacity column at "
                                 + localPosition(index));
                     }
-                    throw fail(chunkX, chunkZ, "has no opaque terrain at " + localPosition(index));
+                    continue;
                 }
                 if (min > max || segmentCount > 0 && (segmentCount & 1) == 0) {
                     throw fail(chunkX, chunkZ, "has an invalid opacity segment header at "
@@ -407,16 +412,10 @@ public final class CubicColumnConverter {
                     }
                     previous = value;
                 }
-                if (min < MIN_SECTION_Y * 16 || max >= MAX_SECTION_Y_EXCLUSIVE * 16) {
-                    throw fail(chunkX, chunkZ, "has height " + max + " outside the finite range at "
-                            + localPosition(index));
-                }
-                result[index] = max + 1;
             }
             if (input.read() != -1) {
                 throw fail(chunkX, chunkZ, "has trailing bytes in OpacityIndex");
             }
-            return result;
         } catch (EOFException exception) {
             throw new CubicColumnConversionException(
                     describe(chunkX, chunkZ) + " has a truncated OpacityIndex", exception);
@@ -426,22 +425,71 @@ public final class CubicColumnConverter {
         }
     }
 
-    private static boolean isLogicallyEmpty(NBTTagCompound cube)
+    private static int[] rebuildNonAirHeightMap(Map<Integer, NBTTagCompound> cubes,
+            int chunkX, int chunkZ)
             throws CubicColumnConversionException {
-        if (cube.getBoolean("populated") || cube.getBoolean("fullyPopulated")) {
-            return false;
-        }
-        if (cube.hasKey("ForgeCaps", 10) && !cube.getCompoundTag("ForgeCaps").hasNoTags()) {
-            return false;
-        }
-        for (String key : Arrays.asList("Entities", "TileEntities", "TileTicks")) {
-            if (cube.hasKey(key) && !cube.hasKey(key, 9)) {
-                throw new CubicColumnConversionException(
-                        "An out-of-range cube has a non-list " + key + " tag");
+        int[] result = new int[256];
+        Arrays.fill(result, MIN_SECTION_Y * 16);
+        for (Map.Entry<Integer, NBTTagCompound> entry : cubes.entrySet()) {
+            int cubeY = entry.getKey();
+            if (!isInTargetRange(cubeY)) {
+                continue;
             }
-            if (cube.hasKey(key, 9) && cube.getTagList(key, 10).tagCount() > 0) {
-                return false;
+            NBTTagCompound cube = validateCube(entry.getValue(), chunkX, cubeY, chunkZ);
+            if (!cube.hasKey("Sections", 9)) {
+                continue;
             }
+            NBTTagList sections = cube.getTagList("Sections", 10);
+            if (sections.tagCount() == 0) {
+                continue;
+            }
+            if (sections.tagCount() != 1) {
+                throw fail(chunkX, chunkZ, "cube Y=" + cubeY + " has more than one section");
+            }
+            NBTTagCompound section = sections.getCompoundTagAt(0);
+            byte[] blocks = requireBytes(section, "Blocks", 4096,
+                    "cube " + describe(chunkX, cubeY, chunkZ));
+            byte[] data = requireBytes(section, "Data", 2048,
+                    "cube " + describe(chunkX, cubeY, chunkZ));
+            byte[] add = section.hasKey("Add")
+                    ? requireBytes(section, "Add", 2048,
+                    "cube " + describe(chunkX, cubeY, chunkZ)) : null;
+            byte[] add2 = section.hasKey("Add2")
+                    ? requireBytes(section, "Add2", 2048,
+                    "cube " + describe(chunkX, cubeY, chunkZ)) : null;
+            if (add2 != null && hasNonZero(add2)) {
+                throw fail(chunkX, chunkZ, "cube Y=" + cubeY
+                        + " uses Add2 block-state IDs that Anvil cannot represent");
+            }
+            for (int index = 0; index < 4096; index++) {
+                int stateId = (blocks[index] & 0xFF) << 4 | nibble(data, index)
+                        | (add == null ? 0 : nibble(add, index) << 12);
+                if (stateId == 0) {
+                    continue;
+                }
+                int localX = index & 15;
+                int localY = index >> 8 & 15;
+                int localZ = index >> 4 & 15;
+                int height = (cubeY << 4) + localY + 1;
+                int heightIndex = localZ << 4 | localX;
+                if (height > result[heightIndex]) {
+                    result[heightIndex] = height;
+                }
+            }
+        }
+        return result;
+    }
+
+    private static int nibble(byte[] array, int index) {
+        int packed = array[index >> 1] & 0xFF;
+        return index % 2 == 0 ? packed & 15 : packed >> 4 & 15;
+    }
+
+    private static boolean isOutOfRangePayloadEmpty(NBTTagCompound cube,
+            int chunkX, int cubeY, int chunkZ)
+            throws CubicColumnConversionException {
+        if (hasDynamicPayload(cube)) {
+            return false;
         }
         if (cube.hasKey("Sections") && !cube.hasKey("Sections", 9)) {
             throw new CubicColumnConversionException(
@@ -458,13 +506,68 @@ public final class CubicColumnConverter {
             return false;
         }
         NBTTagCompound section = sections.getCompoundTagAt(0);
-        if (section.hasKey("Add2", 7) && hasNonZero(section.getByteArray("Add2"))) {
-            throw new CubicColumnConversionException(
-                    "An out-of-range cube uses unrepresentable Add2 block-state IDs");
+        rejectUnknownKeys(section, KNOWN_SECTION_KEYS,
+                "cube " + describe(chunkX, cubeY, chunkZ) + " section");
+        byte[] blocks = requireBytes(section, "Blocks", 4096,
+                "cube " + describe(chunkX, cubeY, chunkZ));
+        byte[] data = requireBytes(section, "Data", 2048,
+                "cube " + describe(chunkX, cubeY, chunkZ));
+        byte[] add = section.hasKey("Add") ? requireBytes(section, "Add", 2048,
+                "cube " + describe(chunkX, cubeY, chunkZ)) : new byte[0];
+        byte[] add2 = section.hasKey("Add2") ? requireBytes(section, "Add2", 2048,
+                "cube " + describe(chunkX, cubeY, chunkZ)) : new byte[0];
+        return !hasNonZero(blocks) && !hasNonZero(data)
+                && !hasNonZero(add) && !hasNonZero(add2);
+    }
+
+    private static boolean isDiscardableGeneratedLookahead(NBTTagCompound cube,
+            int chunkX, int cubeY, int chunkZ) throws CubicColumnConversionException {
+        if (cube.getBoolean("populated") || cube.getBoolean("fullyPopulated")
+                || hasDynamicPayload(cube)) {
+            return false;
         }
-        return !hasNonZero(section.getByteArray("Blocks"))
-                && !hasNonZero(section.getByteArray("Data"))
-                && !hasNonZero(section.getByteArray("Add"));
+        if (!cube.hasKey("Sections")) {
+            return true;
+        }
+        if (!cube.hasKey("Sections", 9)) {
+            throw fail(chunkX, chunkZ, "cube-only Y=" + cubeY + " has non-list Sections");
+        }
+        NBTTagList sections = cube.getTagList("Sections", 10);
+        if (sections.tagCount() > 1) {
+            return false;
+        }
+        if (sections.tagCount() == 1) {
+            NBTTagCompound section = sections.getCompoundTagAt(0);
+            rejectUnknownKeys(section, KNOWN_SECTION_KEYS,
+                    "cube " + describe(chunkX, cubeY, chunkZ) + " section");
+            requireBytes(section, "Blocks", 4096,
+                    "cube " + describe(chunkX, cubeY, chunkZ));
+            requireBytes(section, "Data", 2048,
+                    "cube " + describe(chunkX, cubeY, chunkZ));
+            validateOptionalNibble(section, "Add", chunkX, cubeY, chunkZ);
+            validateOptionalNibble(section, "Add2", chunkX, cubeY, chunkZ);
+            requireBytes(section, "BlockLight", 2048,
+                    "cube " + describe(chunkX, cubeY, chunkZ));
+            validateOptionalNibble(section, "SkyLight", chunkX, cubeY, chunkZ);
+        }
+        return true;
+    }
+
+    private static boolean hasDynamicPayload(NBTTagCompound cube)
+            throws CubicColumnConversionException {
+        if (cube.hasKey("ForgeCaps", 10) && !cube.getCompoundTag("ForgeCaps").hasNoTags()) {
+            return true;
+        }
+        for (String key : Arrays.asList("Entities", "TileEntities", "TileTicks")) {
+            if (cube.hasKey(key) && !cube.hasKey(key, 9)) {
+                throw new CubicColumnConversionException(
+                        "A cubic save has a non-list " + key + " tag");
+            }
+            if (cube.hasKey(key, 9) && cube.getTagList(key, 10).tagCount() > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static int contentVersion(NBTTagCompound cubeRoot) {

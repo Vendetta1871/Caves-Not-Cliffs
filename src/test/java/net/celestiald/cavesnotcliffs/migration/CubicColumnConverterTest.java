@@ -37,7 +37,7 @@ public class CubicColumnConverterTest {
         section.setByteArray("Add2", new byte[2048]);
         cube(cubes, 5).getCompoundTag("cavesnotcliffs").setInteger("contentVersion", 2);
 
-        NBTTagCompound converted = CubicColumnConverter.convertOverworld(
+        NBTTagCompound converted = convertOverworld(
                 column, cubes, CavesNotCliffsWorldData.CURRENT_SCHEMA, 91234L);
         NBTTagCompound level = converted.getCompoundTag("Level");
 
@@ -51,8 +51,8 @@ public class CubicColumnConverterTest {
         assertFalse(level.getBoolean("LightPopulated"));
         assertArrayEquals(column.getCompoundTag("Level").getByteArray("Biomes"),
                 level.getByteArray("Biomes"));
-        assertEquals(101, level.getIntArray("HeightMap")[0]);
-        assertEquals(103, level.getIntArray("HeightMap")[2]);
+        assertEquals(305, level.getIntArray("HeightMap")[0]);
+        assertEquals(-64, level.getIntArray("HeightMap")[2]);
 
         NBTTagList sections = level.getTagList("Sections", 10);
         assertEquals(24, sections.tagCount());
@@ -66,12 +66,13 @@ public class CubicColumnConverterTest {
         assertEquals(2, converted.getCompoundTag("cavesnotcliffs")
                 .getInteger("contentVersion"));
         assertEquals(1, converted.getInteger("CavesNotCliffsCauldronBridge"));
+        assertEquals(1, converted.getInteger(CubicColumnConverter.REBUILD_HEIGHT_MAP));
     }
 
     @Test
     public void schemaOneSynthesizesOnlyDocumentedEmptyTopSections() throws Exception {
         Map<Integer, NBTTagCompound> cubes = completeCubes(-4, 16, false);
-        NBTTagCompound converted = CubicColumnConverter.convertOverworld(
+        NBTTagCompound converted = convertOverworld(
                 column(), cubes, CavesNotCliffsWorldData.LEGACY_SCHEMA, 0L);
         assertEquals(20, converted.getCompoundTag("Level")
                 .getTagList("Sections", 10).tagCount());
@@ -125,12 +126,14 @@ public class CubicColumnConverterTest {
     }
 
     @Test
-    public void permitsOnlyTrulyEmptyOutOfRangeLookaheadCubes() throws Exception {
+    public void ignoresGenerationFlagsOnPayloadFreeOutOfRangeCubes() throws Exception {
         Map<Integer, NBTTagCompound> cubes = completeCubes(-4, 20, true);
         NBTTagCompound lookahead = cubeRoot(-6, false);
         lookahead.getCompoundTag("Level").removeTag("Sections");
+        lookahead.getCompoundTag("Level").setBoolean("populated", true);
+        lookahead.getCompoundTag("Level").setBoolean("fullyPopulated", true);
         cubes.put(-6, lookahead);
-        CubicColumnConverter.convertOverworld(
+        convertOverworld(
                 column(), cubes, CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L);
 
         lookahead.getCompoundTag("Level").setTag("TileEntities",
@@ -156,6 +159,21 @@ public class CubicColumnConverterTest {
     }
 
     @Test
+    public void rebuildsHeightFromBlocksWhenCubicOpacityMetadataIsStale() throws Exception {
+        NBTTagCompound column = column();
+        byte[] opacity = column.getCompoundTag("Level").getByteArray("OpacityIndex");
+        java.nio.ByteBuffer.wrap(opacity).putInt(0, Integer.MIN_VALUE + 32)
+                .putInt(4, Integer.MIN_VALUE + 32).putShort(8, (short) 0);
+        column.getCompoundTag("Level").setByteArray("OpacityIndex", opacity);
+
+        NBTTagCompound converted = convertOverworld(column,
+                completeCubes(-4, 20, true), CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L);
+
+        assertEquals(305, converted.getCompoundTag("Level").getIntArray("HeightMap")[0]);
+        assertEquals(-64, converted.getCompoundTag("Level").getIntArray("HeightMap")[1]);
+    }
+
+    @Test
     public void convertsCoherentVanillaCompatibilityDimension() throws Exception {
         Map<Integer, NBTTagCompound> cubes = completeCubes(0, 16, true);
         for (NBTTagCompound root : cubes.values()) {
@@ -163,7 +181,7 @@ public class CubicColumnConverterTest {
             root.removeTag("CavesNotCliffsCauldronBridge");
             root.getCompoundTag("Level").removeTag("Biomes3D");
         }
-        NBTTagCompound converted = CubicColumnConverter.convertVanillaDimension(
+        NBTTagCompound converted = convertVanillaDimension(
                 column(), cubes, 15L);
         assertEquals(16, converted.getCompoundTag("Level")
                 .getTagList("Sections", 10).tagCount());
@@ -192,7 +210,6 @@ public class CubicColumnConverterTest {
     public void validatesCubeOnlyLookaheadColumnsIndependently() throws Exception {
         Map<Integer, NBTTagCompound> cubes = new TreeMap<Integer, NBTTagCompound>();
         NBTTagCompound empty = cubeRoot(-6, false);
-        empty.getCompoundTag("Level").removeTag("Sections");
         cubes.put(-6, empty);
         CubicColumnConverter.validateDiscardableLookahead(cubes);
 
@@ -201,6 +218,15 @@ public class CubicColumnConverterTest {
         try {
             CubicColumnConverter.validateDiscardableLookahead(cubes);
             fail("Expected stateful lookahead rejection");
+        } catch (CubicColumnConversionException expected) {
+            assertTrue(expected.getMessage().contains("stateful cube Y=-6"));
+        }
+
+        empty.getCompoundTag("Level").setTag("Entities", new NBTTagList());
+        empty.getCompoundTag("Level").setBoolean("populated", true);
+        try {
+            CubicColumnConverter.validateDiscardableLookahead(cubes);
+            fail("Expected populated lookahead rejection");
         } catch (CubicColumnConversionException expected) {
             assertTrue(expected.getMessage().contains("stateful cube Y=-6"));
         }
@@ -325,7 +351,7 @@ public class CubicColumnConverterTest {
     private static void expectFailure(String message, NBTTagCompound column,
             Map<Integer, NBTTagCompound> cubes, int schema) throws Exception {
         try {
-            CubicColumnConverter.convertOverworld(column, cubes, schema, 0L);
+            convertOverworld(column, cubes, schema, 0L);
             fail("Expected conversion failure containing: " + message);
         } catch (CubicColumnConversionException expected) {
             assertTrue("actual message: " + expected.getMessage(),
@@ -336,11 +362,25 @@ public class CubicColumnConverterTest {
     private static void expectVanillaFailure(String message, NBTTagCompound column,
             Map<Integer, NBTTagCompound> cubes) throws Exception {
         try {
-            CubicColumnConverter.convertVanillaDimension(column, cubes, 0L);
+            convertVanillaDimension(column, cubes, 0L);
             fail("Expected vanilla-dimension conversion failure containing: " + message);
         } catch (CubicColumnConversionException expected) {
             assertTrue("actual message: " + expected.getMessage(),
                     expected.getMessage().contains(message));
         }
+    }
+
+    private static NBTTagCompound convertOverworld(NBTTagCompound column,
+            Map<Integer, NBTTagCompound> cubes, int schema, long lastUpdate)
+            throws CubicColumnConversionException {
+        return CubicColumnConverter.convertOverworld(
+                column, cubes, schema, lastUpdate);
+    }
+
+    private static NBTTagCompound convertVanillaDimension(NBTTagCompound column,
+            Map<Integer, NBTTagCompound> cubes, long lastUpdate)
+            throws CubicColumnConversionException {
+        return CubicColumnConverter.convertVanillaDimension(
+                column, cubes, lastUpdate);
     }
 }

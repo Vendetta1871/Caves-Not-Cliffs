@@ -33,8 +33,9 @@ public class CubicDimensionStagerTest {
             writeCube(source, 0, cubeY, 0, cube(0, cubeY, 0, true, true));
         }
         // CubicChunks can persist unpopulated generator lookahead without a column record. It is
-        // deliberately scanned and discarded only after the converter proves it has no state.
-        writeCube(source, 1, 0, 0, cube(1, 0, 0, false, false));
+        // deliberately scanned and discarded only after the converter proves it is unpopulated
+        // generated lookahead with no dynamic/player state.
+        writeCube(source, 1, 0, 0, cube(1, 0, 0, false, true));
 
         Path staging = temporary.getRoot().toPath().resolve("stage");
         CubicDimensionStager.Result result = CubicDimensionStager.stage(source, staging,

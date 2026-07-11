@@ -46,6 +46,7 @@ import net.celestiald.cavesnotcliffs.command.CommandCaveBiome;
 import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
 import net.celestiald.cavesnotcliffs.handler.LavaCauldronHandler;
 import net.celestiald.cavesnotcliffs.migration.LegacyCubicSaveImporter;
+import net.celestiald.cavesnotcliffs.migration.ImportedHeightMapRebuildHandler;
 import net.celestiald.cavesnotcliffs.stonecutter.CncGuiHandler;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldTypes;
@@ -83,6 +84,7 @@ public class CavesNotCliffs {
 		BiomeLayerAPI.register(verticalBiomeProvider);
 		TerrainContractNetwork.initialize();
 		MinecraftForge.EVENT_BUS.register(LavaCauldronHandler.INSTANCE);
+		MinecraftForge.EVENT_BUS.register(ImportedHeightMapRebuildHandler.INSTANCE);
 		MinecraftForge.EVENT_BUS.register(this);
 		GameRegistry.registerWorldGenerator(elements, 5);
 		GameRegistry.registerFuelHandler(elements);
