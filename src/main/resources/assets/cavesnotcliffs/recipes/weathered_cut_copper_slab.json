@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "cavesnotcliffs:weathered_cut_copper"
+    }
+  },
+  "result": {
+    "item": "cavesnotcliffs:weathered_cut_copper_slab",
+    "count": 6
+  }
+}

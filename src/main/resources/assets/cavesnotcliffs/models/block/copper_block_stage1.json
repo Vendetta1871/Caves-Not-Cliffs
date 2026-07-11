@@ -1,7 +1,7 @@
 {
   "parent": "block/cube_all",
   "textures": {
-    "all": "cavesnotcliffs:blocks/copper_block_stage1",
-    "particle": "cavesnotcliffs:blocks/copper_block_stage1"
+    "all": "cavesnotcliffs:blocks/exposed_copper",
+    "particle": "cavesnotcliffs:blocks/exposed_copper"
   }
 }

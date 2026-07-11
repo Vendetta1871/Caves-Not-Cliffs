@@ -72,3 +72,16 @@ the dedicated 1.18 composter particle type does not exist in the target runtime.
 - Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
 - Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
 - Asset base: <https://resources.download.minecraft.net/>
+
+The copper ore, deepslate copper ore, raw copper block, copper block oxidation stages, cut-copper
+oxidation stages, raw copper, and copper ingot textures are unmodified Java 1.18.2 client assets.
+The ten copper block sounds, six axe scrape/wax-off sounds, and two trident thunder sounds are
+unmodified objects from the official 1.18 asset index. Models and blockstates preserve Mojang's
+texture selection and stair rotations with only the Java 1.12 slab property names and resource
+paths adapted. Waxed variants intentionally reuse the matching unwaxed-stage texture, as in
+Java 1.18.2.
+
+- Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
+- Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
+- Asset base: <https://resources.download.minecraft.net/>

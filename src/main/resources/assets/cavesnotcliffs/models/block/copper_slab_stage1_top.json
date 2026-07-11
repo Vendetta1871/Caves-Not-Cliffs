@@ -1,1 +1,1 @@
-{ "parent": "block/upper_slab", "textures": { "bottom": "cavesnotcliffs:blocks/copper_block_stage1", "top": "cavesnotcliffs:blocks/copper_block_stage1", "side": "cavesnotcliffs:blocks/copper_block_stage1" } }
+{ "parent": "block/upper_slab", "textures": { "bottom": "cavesnotcliffs:blocks/exposed_cut_copper", "top": "cavesnotcliffs:blocks/exposed_cut_copper", "side": "cavesnotcliffs:blocks/exposed_cut_copper" } }

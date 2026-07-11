@@ -523,5 +523,90 @@
       "cavesnotcliffs:block/composter/ready4"
     ],
     "subtitle": "subtitles.block.composter.ready"
+  },
+  "block.copper.break": {
+    "sounds": [
+      "cavesnotcliffs:block/copper/break1",
+      "cavesnotcliffs:block/copper/break2",
+      "cavesnotcliffs:block/copper/break3",
+      "cavesnotcliffs:block/copper/break4"
+    ],
+    "subtitle": "subtitles.block.generic.break"
+  },
+  "block.copper.fall": {
+    "sounds": [
+      "cavesnotcliffs:block/copper/step1",
+      "cavesnotcliffs:block/copper/step2",
+      "cavesnotcliffs:block/copper/step3",
+      "cavesnotcliffs:block/copper/step4",
+      "cavesnotcliffs:block/copper/step5",
+      "cavesnotcliffs:block/copper/step6"
+    ]
+  },
+  "block.copper.hit": {
+    "sounds": [
+      "cavesnotcliffs:block/copper/step1",
+      "cavesnotcliffs:block/copper/step2",
+      "cavesnotcliffs:block/copper/step3",
+      "cavesnotcliffs:block/copper/step4",
+      "cavesnotcliffs:block/copper/step5",
+      "cavesnotcliffs:block/copper/step6"
+    ],
+    "subtitle": "subtitles.block.generic.hit"
+  },
+  "block.copper.place": {
+    "sounds": [
+      "cavesnotcliffs:block/copper/break1",
+      "cavesnotcliffs:block/copper/break2",
+      "cavesnotcliffs:block/copper/break3",
+      "cavesnotcliffs:block/copper/break4"
+    ],
+    "subtitle": "subtitles.block.generic.place"
+  },
+  "block.copper.step": {
+    "sounds": [
+      "cavesnotcliffs:block/copper/step1",
+      "cavesnotcliffs:block/copper/step2",
+      "cavesnotcliffs:block/copper/step3",
+      "cavesnotcliffs:block/copper/step4",
+      "cavesnotcliffs:block/copper/step5",
+      "cavesnotcliffs:block/copper/step6"
+    ],
+    "subtitle": "subtitles.block.generic.footsteps"
+  },
+  "item.axe.scrape": {
+    "sounds": [
+      "cavesnotcliffs:item/axe/scrape1",
+      { "name": "cavesnotcliffs:item/axe/scrape1", "pitch": 0.9 },
+      { "name": "cavesnotcliffs:item/axe/scrape1", "pitch": 1.1 },
+      "cavesnotcliffs:item/axe/scrape2",
+      { "name": "cavesnotcliffs:item/axe/scrape2", "pitch": 0.9 },
+      { "name": "cavesnotcliffs:item/axe/scrape2", "pitch": 1.1 },
+      "cavesnotcliffs:item/axe/scrape3",
+      { "name": "cavesnotcliffs:item/axe/scrape3", "pitch": 0.9 },
+      { "name": "cavesnotcliffs:item/axe/scrape3", "pitch": 1.1 }
+    ],
+    "subtitle": "subtitles.item.axe.scrape"
+  },
+  "item.axe.wax_off": {
+    "sounds": [
+      "cavesnotcliffs:item/axe/wax_off1",
+      { "name": "cavesnotcliffs:item/axe/wax_off1", "pitch": 0.9 },
+      { "name": "cavesnotcliffs:item/axe/wax_off1", "pitch": 1.1 },
+      "cavesnotcliffs:item/axe/wax_off2",
+      { "name": "cavesnotcliffs:item/axe/wax_off2", "pitch": 0.9 },
+      { "name": "cavesnotcliffs:item/axe/wax_off2", "pitch": 1.1 },
+      "cavesnotcliffs:item/axe/wax_off3",
+      { "name": "cavesnotcliffs:item/axe/wax_off3", "pitch": 0.9 },
+      { "name": "cavesnotcliffs:item/axe/wax_off3", "pitch": 1.1 }
+    ],
+    "subtitle": "subtitles.item.axe.wax_off"
+  },
+  "item.trident.thunder": {
+    "sounds": [
+      "cavesnotcliffs:item/trident/thunder1",
+      "cavesnotcliffs:item/trident/thunder2"
+    ],
+    "subtitle": "subtitles.item.trident.thunder"
   }
 }
