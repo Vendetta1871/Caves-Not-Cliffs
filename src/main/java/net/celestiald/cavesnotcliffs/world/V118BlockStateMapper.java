@@ -23,8 +23,9 @@ public final class V118BlockStateMapper {
     private static final String DEEPSLATE = "cavesnotcliffs:deepslate";
     private static final String TUFF = "cavesnotcliffs:tuff";
     private static final String COPPER_ORE = "cavesnotcliffs:copper_ore";
-    private static final String COPPER_BLOCK = "cavesnotcliffs:copper_block";
+    private static final String RAW_COPPER_BLOCK = "cavesnotcliffs:raw_copper_block";
     private static final String DEEPSLATE_IRON_ORE = "cavesnotcliffs:deepslate_iron_ore";
+    private static final String RAW_IRON_BLOCK = "cavesnotcliffs:raw_iron_block";
     private static final String CALCITE = "cavesnotcliffs:calcite";
 
     private final IBlockState[] states = new IBlockState[V118Material.values().length];
@@ -35,15 +36,15 @@ public final class V118BlockStateMapper {
             registeredState(DEEPSLATE),
             registeredState(TUFF),
             registeredState(COPPER_ORE),
-            registeredState(COPPER_BLOCK),
+            registeredState(RAW_COPPER_BLOCK),
             registeredState(DEEPSLATE_IRON_ORE),
-            Blocks.IRON_BLOCK.getDefaultState(),
+            registeredState(RAW_IRON_BLOCK),
             registeredState(CALCITE));
     }
 
     V118BlockStateMapper(IBlockState deepslate, IBlockState tuff,
-            IBlockState copperOre, IBlockState copperBlock,
-            IBlockState deepslateIronOre, IBlockState ironBlock, IBlockState calcite) {
+            IBlockState copperOre, IBlockState rawCopperBlock,
+            IBlockState deepslateIronOre, IBlockState rawIronBlock, IBlockState calcite) {
         states[V118Material.AIR.ordinal()] = Blocks.AIR.getDefaultState();
         states[V118Material.STONE.ordinal()] = Blocks.STONE.getDefaultState();
         states[V118Material.WATER.ordinal()] = Blocks.WATER.getDefaultState();
@@ -55,15 +56,12 @@ public final class V118BlockStateMapper {
             .withProperty(BlockStone.VARIANT, BlockStone.EnumType.GRANITE);
         states[V118Material.COPPER_ORE.ordinal()] = requireState(copperOre, COPPER_ORE);
 
-        // Raw metal blocks have not yet landed in this checkpoint. These registered blocks retain
-        // the same nine-ingot resource value and are deterministic until their canonical peers are
-        // added by the content checkpoint.
         states[V118Material.RAW_COPPER_BLOCK.ordinal()] =
-            requireState(copperBlock, COPPER_BLOCK);
+            requireState(rawCopperBlock, RAW_COPPER_BLOCK);
         states[V118Material.DEEPSLATE_IRON_ORE.ordinal()] =
             requireState(deepslateIronOre, DEEPSLATE_IRON_ORE);
         states[V118Material.RAW_IRON_BLOCK.ordinal()] =
-            requireState(ironBlock, "minecraft:iron_block");
+            requireState(rawIronBlock, RAW_IRON_BLOCK);
         states[V118Material.DIRT.ordinal()] = Blocks.DIRT.getDefaultState()
             .withProperty(BlockDirt.VARIANT, BlockDirt.DirtType.DIRT);
         states[V118Material.PODZOL.ordinal()] = Blocks.DIRT.getDefaultState()

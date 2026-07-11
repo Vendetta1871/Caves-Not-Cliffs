@@ -22,12 +22,12 @@ public class V118BlockStateMapperTest {
         IBlockState deepslate = Blocks.COAL_BLOCK.getDefaultState();
         IBlockState tuff = Blocks.BRICK_BLOCK.getDefaultState();
         IBlockState copperOre = Blocks.GOLD_ORE.getDefaultState();
-        IBlockState copperBlock = Blocks.GOLD_BLOCK.getDefaultState();
+        IBlockState rawCopperBlock = Blocks.GOLD_BLOCK.getDefaultState();
         IBlockState deepslateIronOre = Blocks.IRON_ORE.getDefaultState();
-        IBlockState ironBlock = Blocks.IRON_BLOCK.getDefaultState();
+        IBlockState rawIronBlock = Blocks.IRON_BLOCK.getDefaultState();
         IBlockState calcite = Blocks.QUARTZ_BLOCK.getDefaultState();
         V118BlockStateMapper mapper = new V118BlockStateMapper(deepslate, tuff,
-            copperOre, copperBlock, deepslateIronOre, ironBlock, calcite);
+            copperOre, rawCopperBlock, deepslateIronOre, rawIronBlock, calcite);
 
         assertSame(Blocks.AIR.getDefaultState(), mapper.stateFor(V118Material.AIR));
         assertSame(Blocks.STONE.getDefaultState(), mapper.stateFor(V118Material.STONE));
@@ -39,10 +39,10 @@ public class V118BlockStateMapperTest {
         assertEquals(BlockStone.EnumType.GRANITE,
             mapper.stateFor(V118Material.GRANITE).getValue(BlockStone.VARIANT));
         assertSame(copperOre, mapper.stateFor(V118Material.COPPER_ORE));
-        assertSame(copperBlock, mapper.stateFor(V118Material.RAW_COPPER_BLOCK));
+        assertSame(rawCopperBlock, mapper.stateFor(V118Material.RAW_COPPER_BLOCK));
         assertSame(deepslateIronOre,
             mapper.stateFor(V118Material.DEEPSLATE_IRON_ORE));
-        assertSame(ironBlock, mapper.stateFor(V118Material.RAW_IRON_BLOCK));
+        assertSame(rawIronBlock, mapper.stateFor(V118Material.RAW_IRON_BLOCK));
         assertSame(calcite, mapper.stateFor(V118Material.CALCITE));
 
         for (V118Material material : V118Material.values()) {
