@@ -19,6 +19,10 @@ public final class CncRegistryIds {
     public static final ResourceLocation GLOW_BERRIES = id("glow_berries");
     public static final ResourceLocation BIG_DRIPLEAF = id("big_dripleaf");
     public static final ResourceLocation POINTED_DRIPSTONE = id("pointed_dripstone");
+    public static final ResourceLocation POWDER_SNOW = id("powder_snow");
+    public static final ResourceLocation POWDER_SNOW_BUCKET = id("powder_snow_bucket");
+    /** Hidden state companion; the vanilla cauldron remains the only obtainable item. */
+    public static final ResourceLocation POWDER_SNOW_CAULDRON = id("powder_snow_cauldron");
 
     /**
      * The released pre-v2 geode-shell identity is intentionally retained as an internal marker.
