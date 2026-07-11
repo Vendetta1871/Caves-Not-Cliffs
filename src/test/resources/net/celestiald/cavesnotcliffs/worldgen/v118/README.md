@@ -86,3 +86,16 @@ the top and bottom build boundaries. The independent harness is
   `8330dfca538ed1035d67150c85df547ecfca5f7164589d8be693281ff9768aee`
 - Noise-settings TSV SHA-256:
   `57957bc2f791da5245646c574aa05372a39faeb1860b36984e86b5a7dcfd9f58`
+
+## Seeded Overworld noise router
+
+`noise-router-oracle-1.18.2.tsv` executes the official seeded router for default, large-biomes,
+and amplified worlds. It samples all 15 density outputs at 25 negative, density-cell, cube,
+build-height, and Perlin-wrap boundaries for all six edge seeds. The resulting 6,750 values are
+compared as raw IEEE-754 bits by `V118NoiseRouterOracleTest`; the independent official harness is
+`Cnc118NoiseRouterOracle.java.txt`.
+
+- Noise-router harness SHA-256:
+  `1f5446795b0d9b4185a0f465a678e76fb6b20fd5271d44c0820dc2e5cc335e29`
+- Noise-router TSV SHA-256:
+  `79444c4a20c41bead9e1061f1265ef3fb795e73c92a3fc11557134b6a9c43d22`
