@@ -2,6 +2,7 @@ package net.celestiald.cavesnotcliffs.block;
 
 import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
 import net.celestiald.cavesnotcliffs.content.DripstoneSoundEvents;
+import net.celestiald.cavesnotcliffs.client.ParticleDripstone;
 import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.DripFluid;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Neighbor;
@@ -30,7 +31,6 @@ import net.minecraft.stats.StatList;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -428,12 +428,9 @@ public final class BlockPointedDripstone extends Block {
             Vec3d offset = getOffset(state, world, pos);
             boolean lavaParticle = fluid == DripFluid.LAVA
                     || fluid == null && world.provider.doesWaterVaporize();
-            world.spawnParticle(lavaParticle
-                            ? EnumParticleTypes.DRIP_LAVA : EnumParticleTypes.DRIP_WATER,
-                    pos.getX() + 0.5D + offset.x,
+            ParticleDripstone.spawn(world, pos.getX() + 0.5D + offset.x,
                     pos.getY() + 0.25D,
-                    pos.getZ() + 0.5D + offset.z,
-                    0.0D, 0.0D, 0.0D);
+                    pos.getZ() + 0.5D + offset.z, lavaParticle);
         }
     }
 
