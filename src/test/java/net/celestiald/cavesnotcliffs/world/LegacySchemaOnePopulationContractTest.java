@@ -7,8 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -26,7 +24,16 @@ public class LegacySchemaOnePopulationContractTest {
 
         String generator = new String(readFully(generatorInput),
                 StandardCharsets.ISO_8859_1);
-        assertTrue(generator.contains("CaveBiomeDecorator"));
+        assertTrue(generator.contains("LegacySchemaOnePopulationHandler"));
+
+        String handlerResource = '/' + LegacySchemaOnePopulationHandler.class.getName()
+                .replace('.', '/') + ".class";
+        InputStream handlerInput = LegacySchemaOnePopulationHandler.class
+                .getResourceAsStream(handlerResource);
+        assertNotNull(handlerInput);
+        String handler = new String(readFully(handlerInput),
+                StandardCharsets.ISO_8859_1);
+        assertTrue(handler.contains("CaveBiomeDecorator"));
 
         String decoratorResource = '/' + CaveBiomeDecorator.class.getName()
                 .replace('.', '/') + ".class";
@@ -56,21 +63,6 @@ public class LegacySchemaOnePopulationContractTest {
         assertTrue(CaveBiomeDecorator.legacyVineBerryRoll(random, 0, 1));
         assertFalse(CaveBiomeDecorator.legacyVineBerryRoll(random, 0, 2));
         assertEquals(4, random.calls);
-    }
-
-    @Test
-    public void finitePopulationReplaysEveryDraftCubicDecoratorSection() throws IOException {
-        String source = readSource("src/main/java/net/celestiald/cavesnotcliffs/world/"
-                + "LegacyFiniteChunkGenerator.java");
-        Matcher loop = Pattern.compile(
-                "for \\(int sectionY = -4; sectionY < 4; \\+\\+sectionY\\)\\s*\\{")
-                .matcher(source);
-        assertTrue("schema-1 population must replay cubic sections -4 through 3", loop.find());
-    }
-
-    private static String readSource(String path) throws IOException {
-        return new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(path)),
-                StandardCharsets.UTF_8);
     }
 
     private static byte[] readFully(InputStream input) throws IOException {

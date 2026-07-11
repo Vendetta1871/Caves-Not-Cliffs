@@ -138,6 +138,9 @@ task verifyReleaseJar(dependsOn: reobfJar) {
             if (zip.getEntry('net/celestiald/cavesnotcliffs/core/HoneyPistonTransformer.class') == null) {
                 throw new GradleException('Production jar is missing the honey piston transformer')
             }
+            if (zip.getEntry('net/celestiald/cavesnotcliffs/core/SchemaOnePopulationTransformer.class') == null) {
+                throw new GradleException('Production jar is missing the schema-one population transformer')
+            }
 
             def metadata = new groovy.json.JsonSlurper().parseText(readText('mcmod.info'))
             if (!(metadata instanceof List) || metadata.isEmpty() || metadata[0].version != project.version.toString()) {

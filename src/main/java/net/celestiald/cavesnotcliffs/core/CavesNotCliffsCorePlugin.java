@@ -11,7 +11,10 @@ import java.util.Map;
 public final class CavesNotCliffsCorePlugin implements IFMLLoadingPlugin {
     @Override
     public String[] getASMTransformerClass() {
-        return new String[]{HoneyPistonTransformer.class.getName()};
+        return new String[]{
+                HoneyPistonTransformer.class.getName(),
+                SchemaOnePopulationTransformer.class.getName()
+        };
     }
 
     @Override

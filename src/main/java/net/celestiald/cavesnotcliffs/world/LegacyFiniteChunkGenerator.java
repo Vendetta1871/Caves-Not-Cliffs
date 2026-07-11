@@ -170,19 +170,12 @@ public final class LegacyFiniteChunkGenerator implements IChunkGenerator {
 
     @Override
     public void populate(int chunkX, int chunkZ) {
+        Chunk chunk = world.getChunkFromChunkCoords(chunkX, chunkZ);
+        LegacySchemaOnePopulationHandler.INSTANCE.beginVanillaPopulation(chunk);
         vanillaGenerator.populate(chunkX, chunkZ);
-        // The draft-v2 cubic generator ran this decorator once for every populated cube. Its
-        // own Y clamp therefore made sections -4..3 authoritative, including the cave band in
-        // vanilla terrain up through Y=63. Replaying only the new negative sections creates a
-        // visible population seam when an old schema-1 column is converted to finite storage.
-        for (int sectionY = -4; sectionY < 4; ++sectionY) {
-            FiniteSectionPos position = new FiniteSectionPos(chunkX, sectionY, chunkZ);
-            Random random = new Random(CaveBiomeSampler.mix64(world.getSeed()
-                    ^ (long) chunkX * 341873128712L
-                    ^ (long) sectionY * 132897987541L
-                    ^ (long) chunkZ * 42317861L));
-            CaveBiomeDecorator.decorate(world, random, position);
-        }
+        // Forge's Chunk.populate call invokes GameRegistry.generateWorld after this method.
+        // The coremod's post-Forge hook then queues -4..3 with a loaded 3x3, matching the old
+        // CubicChunks order for both imported partial columns and newly explored schema-1 terrain.
     }
 
     @Override

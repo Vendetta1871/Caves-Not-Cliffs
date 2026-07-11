@@ -77,10 +77,13 @@ public class CubicColumnConverterTest {
         assertEquals(20, converted.getCompoundTag("Level")
                 .getTagList("Sections", 10).tagCount());
         assertFalse(converted.getCompoundTag("Level").getBoolean("TerrainPopulated"));
-        assertEquals(1, converted.getCompoundTag(
+        assertEquals(CubicColumnConverter.SCHEMA_ONE_POPULATION_VERSION,
+                converted.getCompoundTag(
                 CubicColumnConverter.SCHEMA_ONE_POPULATION).getInteger("version"));
         assertEquals(0, converted.getCompoundTag(
                 CubicColumnConverter.SCHEMA_ONE_POPULATION).getInteger("mask"));
+        assertEquals(0, converted.getCompoundTag(
+                CubicColumnConverter.SCHEMA_ONE_POPULATION).getInteger("phase"));
     }
 
     @Test
@@ -94,6 +97,8 @@ public class CubicColumnConverterTest {
         assertEquals(0xff & ~CubicColumnConverter.populationBit(1),
                 converted.getCompoundTag(CubicColumnConverter.SCHEMA_ONE_POPULATION)
                         .getInteger("mask"));
+        assertEquals(2, converted.getCompoundTag(
+                CubicColumnConverter.SCHEMA_ONE_POPULATION).getInteger("phase"));
     }
 
     @Test
@@ -108,6 +113,8 @@ public class CubicColumnConverterTest {
         assertEquals(0xff & ~CubicColumnConverter.populationBit(0),
                 converted.getCompoundTag(CubicColumnConverter.SCHEMA_ONE_POPULATION)
                         .getInteger("mask"));
+        assertEquals(0, converted.getCompoundTag(
+                CubicColumnConverter.SCHEMA_ONE_POPULATION).getInteger("phase"));
     }
 
     @Test

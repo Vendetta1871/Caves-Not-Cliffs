@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.migration;
 
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldData;
+import net.celestiald.cavesnotcliffs.world.LegacySchemaOnePopulationHandler;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 
@@ -25,9 +26,8 @@ public final class CubicColumnConverter {
     private static final String CONTENT_VERSION = "contentVersion";
     private static final String CAULDRON_BRIDGE = "CavesNotCliffsCauldronBridge";
     static final String REBUILD_HEIGHT_MAP = "CavesNotCliffsRebuildHeightMap";
-    static final String SCHEMA_ONE_POPULATION = "CavesNotCliffsSchema1Population";
-    static final int SCHEMA_ONE_POPULATION_VERSION = 1;
-    static final int SCHEMA_ONE_POPULATION_COMPLETE_MASK = 0xff;
+    static final String SCHEMA_ONE_POPULATION = LegacySchemaOnePopulationHandler.NBT_KEY;
+    static final int SCHEMA_ONE_POPULATION_VERSION = LegacySchemaOnePopulationHandler.VERSION;
 
     private static final Set<String> KNOWN_CUBE_ROOT_KEYS = new HashSet<String>(Arrays.asList(
             "DataVersion", "ForgeDataVersion", "Level", CONTENT_ROOT, CAULDRON_BRIDGE));
@@ -198,10 +198,8 @@ public final class CubicColumnConverter {
         result.setTag("Level", target);
 
         if (schemaOnePopulation >= 0) {
-            NBTTagCompound progress = new NBTTagCompound();
-            progress.setInteger("version", SCHEMA_ONE_POPULATION_VERSION);
-            progress.setInteger("mask", schemaOnePopulation);
-            result.setTag(SCHEMA_ONE_POPULATION, progress);
+            LegacySchemaOnePopulationHandler.writeInitialMarker(
+                    result, schemaOnePopulation);
         }
 
         if (cavesNotCliffsOverworld || sawContentMarker) {
@@ -445,11 +443,7 @@ public final class CubicColumnConverter {
     }
 
     static int populationBit(int cubeY) {
-        if (cubeY < MIN_SECTION_Y || cubeY >= 4) {
-            throw new IllegalArgumentException("Schema-1 population cube is outside -4..3: "
-                    + cubeY);
-        }
-        return 1 << (cubeY - MIN_SECTION_Y);
+        return LegacySchemaOnePopulationHandler.bit(cubeY);
     }
 
     private static void validateOpacityIndex(NBTTagCompound column, int chunkX, int chunkZ)
