@@ -7,16 +7,24 @@ import net.celestiald.cavesnotcliffs.content.OreDropLogic;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.properties.PropertyBool;
+import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.init.Items;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -70,13 +78,19 @@ public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement 
     }
 
     private void register(final String name, final Drop drop, final int harvestLevel) {
-        elements.blocks.add(() -> new DeepslateOreBlock(name, drop, harvestLevel)
+        elements.blocks.add(() -> createOreBlock(name, drop, harvestLevel)
                 .setRegistryName(new ResourceLocation("cavesnotcliffs", name)));
         elements.items.add(() -> {
             Block block = GameRegistry.findRegistry(Block.class)
                     .getValue(new ResourceLocation("cavesnotcliffs", name));
             return new ItemBlock(block).setRegistryName(block.getRegistryName());
         });
+    }
+
+    private static Block createOreBlock(String name, Drop drop, int harvestLevel) {
+        return drop == Drop.REDSTONE
+                ? new DeepslateRedstoneOreBlock()
+                : new DeepslateOreBlock(name, drop, harvestLevel);
     }
 
     @Override
@@ -116,7 +130,7 @@ public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement 
         RAW_IRON, RAW_COPPER, RAW_GOLD, COAL, REDSTONE, LAPIS, DIAMOND, EMERALD
     }
 
-    private static final class DeepslateOreBlock extends Block {
+    private static class DeepslateOreBlock extends Block {
         private final Drop drop;
 
         DeepslateOreBlock(String name, Drop drop, int harvestLevel) {
@@ -202,6 +216,97 @@ public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement 
         @Override
         protected boolean canSilkHarvest() {
             return true;
+        }
+    }
+
+    /** One-block-state backport of 1.18.2's {@code RedStoneOreBlock}. */
+    static final class DeepslateRedstoneOreBlock extends DeepslateOreBlock {
+        static final PropertyBool LIT = PropertyBool.create("lit");
+        private static final double PARTICLE_OFFSET = 0.5625D;
+
+        DeepslateRedstoneOreBlock() {
+            super("deepslate_redstone_ore", Drop.REDSTONE, 2);
+            setTickRandomly(true);
+            setDefaultState(blockState.getBaseState().withProperty(LIT, false));
+        }
+
+        @Override
+        public void onBlockClicked(World world, BlockPos pos, EntityPlayer player) {
+            interact(world.getBlockState(pos), world, pos);
+            super.onBlockClicked(world, pos, player);
+        }
+
+        @Override
+        public void onEntityWalk(World world, BlockPos pos, Entity entity) {
+            interact(world.getBlockState(pos), world, pos);
+            super.onEntityWalk(world, pos, entity);
+        }
+
+        @Override
+        public boolean onBlockActivated(World world, BlockPos pos, IBlockState state,
+                EntityPlayer player, EnumHand hand, EnumFacing facing,
+                float hitX, float hitY, float hitZ) {
+            interact(state, world, pos);
+            return super.onBlockActivated(world, pos, state, player, hand, facing,
+                    hitX, hitY, hitZ);
+        }
+
+        private static void interact(IBlockState state, World world, BlockPos pos) {
+            spawnParticles(world, pos);
+            if (!state.getValue(LIT)) {
+                world.setBlockState(pos, state.withProperty(LIT, true), 3);
+            }
+        }
+
+        @Override
+        public void updateTick(World world, BlockPos pos, IBlockState state, Random random) {
+            if (state.getValue(LIT)) {
+                world.setBlockState(pos, state.withProperty(LIT, false), 3);
+            }
+        }
+
+        @Override
+        public void randomDisplayTick(IBlockState state, World world, BlockPos pos, Random random) {
+            if (state.getValue(LIT)) {
+                spawnParticles(world, pos);
+            }
+        }
+
+        private static void spawnParticles(World world, BlockPos pos) {
+            for (EnumFacing direction : EnumFacing.values()) {
+                BlockPos neighbor = pos.offset(direction);
+                if (world.getBlockState(neighbor).isOpaqueCube()) {
+                    continue;
+                }
+                double x = pos.getX() + 0.5D
+                        + PARTICLE_OFFSET * direction.getDirectionVec().getX();
+                double y = pos.getY() + 0.5D
+                        + PARTICLE_OFFSET * direction.getDirectionVec().getY();
+                double z = pos.getZ() + 0.5D
+                        + PARTICLE_OFFSET * direction.getDirectionVec().getZ();
+                world.spawnParticle(EnumParticleTypes.REDSTONE, x, y, z,
+                        0.0D, 0.0D, 0.0D);
+            }
+        }
+
+        @Override
+        public int getLightValue(IBlockState state, IBlockAccess world, BlockPos pos) {
+            return state.getValue(LIT) ? 9 : 0;
+        }
+
+        @Override
+        protected BlockStateContainer createBlockState() {
+            return new BlockStateContainer(this, LIT);
+        }
+
+        @Override
+        public IBlockState getStateFromMeta(int meta) {
+            return getDefaultState().withProperty(LIT, (meta & 1) != 0);
+        }
+
+        @Override
+        public int getMetaFromState(IBlockState state) {
+            return state.getValue(LIT) ? 1 : 0;
         }
     }
 }
