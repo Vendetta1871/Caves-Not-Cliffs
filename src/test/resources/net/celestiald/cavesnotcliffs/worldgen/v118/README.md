@@ -38,6 +38,35 @@ java -cp .:<unsigned-inner-server.jar>:<extracted-libraries/*> \
 
 The production sources and tests remain Java 8 and have no dependency on the oracle jars.
 
+## Native Overworld carvers
+
+`carver-oracle-1.18.2.tsv` executes Mojang's mapped `CaveWorldCarver`,
+`CanyonWorldCarver`, `WorldgenRandom`, `CarvingMask`, and noise aquifer directly. Its catalog rows
+record the raw configured values and indices for `cave`, `cave_extra_underground`, and `canyon`.
+The six required edge seeds cover negative source and target chunks, the complete `-8..8` source
+halo, mask collisions, every 16-block vertical boundary, the `-64..319` build range, the carver
+lava anchor, and all three native terrain profiles.
+
+Each seed first carves a deterministic stone/deepslate/tuff/calcite/water scaffold through a
+coordinate-hashed aquifer. Those rows independently verify exact geometry, replacement rules,
+barriers, water/lava scheduling, and mask bits without relying on this backport's terrain. The
+terrain rows then run the same official carvers after official raw density and surface generation
+and record complete-column material hashes and histograms. The harness is
+`Cnc118CarverOracle.java.txt`.
+
+- Carver harness SHA-256:
+  `97c31b3b38e14114cde4ba11d3ebb7b453efa6d6f153982cf995ada52fb36f08`
+- Carver TSV SHA-256:
+  `7effd3bee64b751598b8c6682074d57130c17d23388bab58fa09971e7da8a1dd`
+
+Regenerate it with Java 17 against the mapped official server jar and its extracted libraries:
+
+```text
+javac -cp <mapped-server.jar>:<extracted-libraries/*> Cnc118CarverOracle.java
+java -cp .:<mapped-server.jar>:<extracted-libraries/*> \
+  net.minecraft.world.level.levelgen.Cnc118CarverOracle carver-oracle-1.18.2.tsv
+```
+
 ## Seeded Overworld surface primitives
 
 `surface-primitives-oracle-1.18.2.tsv` executes Mojang's mapped official `SurfaceSystem`

@@ -1,0 +1,415 @@
+package net.minecraft.world.level.levelgen;
+
+import it.unimi.dsi.fastutil.shorts.ShortList;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.TreeMap;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.data.worldgen.Carvers;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.NoiseColumn;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.BiomeManager;
+import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.CarvingMask;
+import net.minecraft.world.level.chunk.ProtoChunk;
+import net.minecraft.world.level.chunk.UpgradeData;
+import net.minecraft.world.level.levelgen.blending.Blender;
+import net.minecraft.world.level.levelgen.carver.CarvingContext;
+import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver;
+
+/** Emits native Overworld carver schedules, deterministic shapes, and full terrain digests. */
+public final class Cnc118CarverOracle {
+    private static final long[] SEEDS = {
+        0L, 1L, -1L, 123456789L, Long.MIN_VALUE, Long.MAX_VALUE
+    };
+    private static final int[][] CHUNKS = {
+        {0, 0}, {-1, 0}, {0, -1}, {-1, -1}, {17, -33}, {-33, 17}
+    };
+    private static final String[] PROFILES = {
+        "normal", "large", "amplified", "amplified", "large", "normal"
+    };
+    private static final String[] IDS = {
+        "cave", "cave_extra_underground", "canyon"
+    };
+
+    public static void main(String[] args) throws Exception {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        BuiltinRegistries.bootstrap();
+        PrintWriter out = new PrintWriter(args[0], "UTF-8");
+        out.println("# official Minecraft Java 1.18.2 Overworld carver oracle");
+        emitCatalog(out);
+        for (int index = 0; index < SEEDS.length; ++index) {
+            emitScaffold(out, SEEDS[index], CHUNKS[index][0], CHUNKS[index][1]);
+            emitTerrain(out, PROFILES[index], SEEDS[index], CHUNKS[index][0],
+                CHUNKS[index][1]);
+            out.flush();
+            System.err.println("finished carvers " + PROFILES[index] + " seed="
+                + SEEDS[index] + " chunk=" + CHUNKS[index][0] + ',' + CHUNKS[index][1]);
+        }
+        out.close();
+    }
+
+    private static void emitCatalog(PrintWriter out) {
+        out.println("catalog\tcave\t0\t" + Float.floatToRawIntBits(0.15F)
+            + "\t-56\t180\t" + Float.floatToRawIntBits(0.1F) + "\t"
+            + Float.floatToRawIntBits(0.9F) + "\t-56\t"
+            + Float.floatToRawIntBits(0.7F) + "\t" + Float.floatToRawIntBits(1.4F)
+            + "\t" + Float.floatToRawIntBits(0.8F) + "\t"
+            + Float.floatToRawIntBits(1.3F) + "\t" + Float.floatToRawIntBits(-1.0F)
+            + "\t" + Float.floatToRawIntBits(-0.4F));
+        out.println("catalog\tcave_extra_underground\t1\t"
+            + Float.floatToRawIntBits(0.07F) + "\t-56\t47\t"
+            + Float.floatToRawIntBits(0.1F) + "\t" + Float.floatToRawIntBits(0.9F)
+            + "\t-56\t" + Float.floatToRawIntBits(0.7F) + "\t"
+            + Float.floatToRawIntBits(1.4F) + "\t" + Float.floatToRawIntBits(0.8F)
+            + "\t" + Float.floatToRawIntBits(1.3F) + "\t"
+            + Float.floatToRawIntBits(-1.0F) + "\t" + Float.floatToRawIntBits(-0.4F));
+        out.println("catalog\tcanyon\t2\t" + Float.floatToRawIntBits(0.01F)
+            + "\t10\t67\t" + Float.floatToRawIntBits(3.0F) + "\t"
+            + Float.floatToRawIntBits(3.0F) + "\t-56\t"
+            + Float.floatToRawIntBits(-0.125F) + "\t" + Float.floatToRawIntBits(0.125F)
+            + "\t" + Float.floatToRawIntBits(0.75F) + "\t"
+            + Float.floatToRawIntBits(1.0F) + "\t" + Float.floatToRawIntBits(0.0F)
+            + "\t" + Float.floatToRawIntBits(6.0F) + "\t"
+            + Float.floatToRawIntBits(2.0F) + "\t3\t"
+            + Float.floatToRawIntBits(0.75F) + "\t" + Float.floatToRawIntBits(1.0F)
+            + "\t" + Float.floatToRawIntBits(1.0F) + "\t"
+            + Float.floatToRawIntBits(0.0F));
+    }
+
+    private static void emitScaffold(PrintWriter out, long seed, int chunkX, int chunkZ)
+            throws Exception {
+        Environment environment = new Environment("normal", seed, chunkX, chunkZ, false);
+        fillScaffold(environment.chunk, chunkX, chunkZ);
+        FakeAquifer aquifer = new FakeAquifer();
+        Run run = carve(environment, seed, aquifer);
+        int changed = 0;
+        int minChangedY = Integer.MAX_VALUE;
+        int maxChangedY = Integer.MIN_VALUE;
+        Map<String, Integer> changedCounts = new TreeMap<String, Integer>();
+        int minX = chunkX << 4;
+        int minZ = chunkZ << 4;
+        for (int localX = 0; localX < 16; ++localX) {
+            for (int y = -64; y < 320; ++y) {
+                for (int localZ = 0; localZ < 16; ++localZ) {
+                    int x = minX + localX;
+                    int z = minZ + localZ;
+                    String actual = name(environment.chunk.getBlockState(new BlockPos(x, y, z)));
+                    String before = name(scaffold(x, y, z));
+                    if (!actual.equals(before)) {
+                        ++changed;
+                        minChangedY = Math.min(minChangedY, y);
+                        maxChangedY = Math.max(maxChangedY, y);
+                        changedCounts.put(actual, changedCounts.getOrDefault(actual, 0) + 1);
+                    }
+                }
+            }
+        }
+        out.println("scaffold\t" + seed + "\t" + chunkX + "\t" + chunkZ + "\t"
+            + run.starts.size() + "\t" + run.startCounts() + "\t" + run.startHash()
+            + "\t" + maskCardinality(run.mask) + "\t" + hashMask(run.mask) + "\t"
+            + changed + "\t" + minChangedY + "\t" + maxChangedY + "\t"
+            + encodeCounts(changedCounts) + "\t" + hashChunk(environment.chunk, chunkX, chunkZ)
+            + "\t" + countPostprocessing(environment.chunk) + "\t"
+            + hashPostprocessing(environment.chunk));
+    }
+
+    private static void emitTerrain(PrintWriter out, String profile, long seed, int chunkX,
+            int chunkZ) throws Exception {
+        Environment environment = new Environment(profile, seed, chunkX, chunkZ, true);
+        Run run = carve(environment, seed, environment.noiseChunk.aquifer());
+        out.println("terrain\t" + profile + "\t" + seed + "\t" + chunkX + "\t"
+            + chunkZ + "\t" + run.starts.size() + "\t" + run.startCounts() + "\t"
+            + run.startHash() + "\t" + maskCardinality(run.mask) + "\t"
+            + hashMask(run.mask) + "\t" + hashChunk(environment.chunk, chunkX, chunkZ)
+            + "\t" + encodeCounts(countChunk(environment.chunk, chunkX, chunkZ)));
+    }
+
+    private static Run carve(Environment environment, long seed, Aquifer aquifer) {
+        WorldgenRandom random = new WorldgenRandom(new LegacyRandomSource(0L));
+        CarvingMask mask = new CarvingMask(384, -64);
+        CarvingContext context = new CarvingContext(environment.generator,
+            RegistryAccess.BUILTIN.get(), environment.height, environment.noiseChunk);
+        List<String> starts = new ArrayList<String>();
+        ConfiguredWorldCarver<?>[] carvers = {
+            Carvers.CAVE.value(), Carvers.CAVE_EXTRA_UNDERGROUND.value(), Carvers.CANYON.value()
+        };
+        for (int offsetX = -8; offsetX <= 8; ++offsetX) {
+            for (int offsetZ = -8; offsetZ <= 8; ++offsetZ) {
+                ChunkPos source = new ChunkPos(environment.chunkX + offsetX,
+                    environment.chunkZ + offsetZ);
+                for (int index = 0; index < carvers.length; ++index) {
+                    random.setLargeFeatureSeed(seed + index, source.x, source.z);
+                    if (carvers[index].isStartChunk(random)) {
+                        starts.add(IDS[index] + ',' + index + ',' + source.x + ',' + source.z
+                            + ',' + largeFeatureSeed(seed + index, source.x, source.z));
+                        carvers[index].carve(context, environment.chunk,
+                            environment.biomeManager::getBiome, random, aquifer, source, mask);
+                    }
+                }
+            }
+        }
+        return new Run(starts, mask);
+    }
+
+    private static long largeFeatureSeed(long seed, int chunkX, int chunkZ) {
+        Random random = new Random(seed);
+        long xMultiplier = random.nextLong();
+        long zMultiplier = random.nextLong();
+        return (long) chunkX * xMultiplier ^ (long) chunkZ * zMultiplier ^ seed;
+    }
+
+    private static void fillScaffold(ProtoChunk chunk, int chunkX, int chunkZ) {
+        int minX = chunkX << 4;
+        int minZ = chunkZ << 4;
+        for (int localX = 0; localX < 16; ++localX) {
+            for (int y = -64; y < 320; ++y) {
+                for (int localZ = 0; localZ < 16; ++localZ) {
+                    int x = minX + localX;
+                    int z = minZ + localZ;
+                    chunk.setBlockState(new BlockPos(x, y, z), scaffold(x, y, z), false);
+                }
+            }
+        }
+    }
+
+    private static BlockState scaffold(int x, int y, int z) {
+        int selector = Math.floorMod((long) x * 73428767L ^ (long) y * 912931L
+            ^ (long) z * 42317861L, 37);
+        if (selector == 0) return Blocks.BEDROCK.defaultBlockState();
+        if (selector == 1) return Blocks.WATER.defaultBlockState();
+        if (selector == 2) return Blocks.TUFF.defaultBlockState();
+        if (selector == 3) return Blocks.CALCITE.defaultBlockState();
+        return y < 0 ? Blocks.DEEPSLATE.defaultBlockState() : Blocks.STONE.defaultBlockState();
+    }
+
+    private static String hashChunk(ProtoChunk chunk, int chunkX, int chunkZ) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        int minX = chunkX << 4;
+        int minZ = chunkZ << 4;
+        for (int localX = 0; localX < 16; ++localX) {
+            for (int y = -64; y < 320; ++y) {
+                for (int localZ = 0; localZ < 16; ++localZ) {
+                    String value = localX + "," + y + "," + localZ + ","
+                        + name(chunk.getBlockState(new BlockPos(minX + localX, y,
+                            minZ + localZ))) + "\n";
+                    digest.update(value.getBytes(StandardCharsets.UTF_8));
+                }
+            }
+        }
+        return hex(digest.digest());
+    }
+
+    private static Map<String, Integer> countChunk(ProtoChunk chunk, int chunkX, int chunkZ) {
+        Map<String, Integer> result = new TreeMap<String, Integer>();
+        int minX = chunkX << 4;
+        int minZ = chunkZ << 4;
+        for (int localX = 0; localX < 16; ++localX) {
+            for (int y = -64; y < 320; ++y) {
+                for (int localZ = 0; localZ < 16; ++localZ) {
+                    String material = name(chunk.getBlockState(new BlockPos(minX + localX, y,
+                        minZ + localZ)));
+                    result.put(material, result.getOrDefault(material, 0) + 1);
+                }
+            }
+        }
+        return result;
+    }
+
+    private static String hashMask(CarvingMask mask) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        for (long value : mask.toArray()) updateLong(digest, value);
+        return hex(digest.digest());
+    }
+
+    private static int maskCardinality(CarvingMask mask) {
+        int result = 0;
+        for (long value : mask.toArray()) result += Long.bitCount(value);
+        return result;
+    }
+
+    private static int countPostprocessing(ProtoChunk chunk) {
+        int count = 0;
+        for (ShortList list : chunk.getPostProcessing()) if (list != null) count += list.size();
+        return count;
+    }
+
+    private static String hashPostprocessing(ProtoChunk chunk) throws Exception {
+        List<String> positions = new ArrayList<String>();
+        ShortList[] sections = chunk.getPostProcessing();
+        for (int section = 0; section < sections.length; ++section) {
+            if (sections[section] == null) continue;
+            int sectionY = chunk.getSectionYFromSectionIndex(section);
+            for (short packed : sections[section]) {
+                BlockPos position = ProtoChunk.unpackOffsetCoordinates(packed, sectionY,
+                    chunk.getPos());
+                positions.add(position.getX() + "," + position.getY() + "," + position.getZ());
+            }
+        }
+        java.util.Collections.sort(positions);
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        for (String position : positions) {
+            digest.update((position + "\n").getBytes(StandardCharsets.UTF_8));
+        }
+        return hex(digest.digest());
+    }
+
+    private static String encodeCounts(Map<String, Integer> counts) {
+        StringBuilder result = new StringBuilder();
+        for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+            if (result.length() > 0) result.append(',');
+            result.append(entry.getKey()).append('=').append(entry.getValue());
+        }
+        return result.length() == 0 ? "-" : result.toString();
+    }
+
+    private static String name(BlockState state) {
+        return Registry.BLOCK.getKey(state.getBlock()).getPath();
+    }
+
+    private static void updateLong(MessageDigest digest, long value) {
+        for (int shift = 56; shift >= 0; shift -= 8) digest.update((byte) (value >>> shift));
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder result = new StringBuilder();
+        for (byte value : bytes) result.append(String.format("%02x", value & 255));
+        return result.toString();
+    }
+
+    private static ResourceKey<NoiseGeneratorSettings> profileKey(String profile) {
+        if ("large".equals(profile)) return NoiseGeneratorSettings.LARGE_BIOMES;
+        if ("amplified".equals(profile)) return NoiseGeneratorSettings.AMPLIFIED;
+        return NoiseGeneratorSettings.OVERWORLD;
+    }
+
+    private static final class Environment {
+        final long seed;
+        final int chunkX;
+        final int chunkZ;
+        final LevelHeightAccessor height = LevelHeightAccessor.create(-64, 384);
+        final NoiseBasedChunkGenerator generator;
+        final ProtoChunk chunk;
+        final NoiseChunk noiseChunk;
+        final BiomeManager biomeManager;
+
+        Environment(String profile, long seed, int chunkX, int chunkZ, boolean terrain) {
+            this.seed = seed;
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
+            Holder<NoiseGeneratorSettings> holder = BuiltinRegistries.NOISE_GENERATOR_SETTINGS
+                .getHolderOrThrow(profileKey(profile));
+            NoiseGeneratorSettings settings = holder.value();
+            MultiNoiseBiomeSource biomes = MultiNoiseBiomeSource.Preset.OVERWORLD
+                .biomeSource(BuiltinRegistries.BIOME);
+            generator = new NoiseBasedChunkGenerator(BuiltinRegistries.STRUCTURE_SETS,
+                BuiltinRegistries.NOISE, biomes, seed, holder);
+            chunk = new ProtoChunk(new ChunkPos(chunkX, chunkZ), UpgradeData.EMPTY, height,
+                BuiltinRegistries.BIOME, null);
+            if (terrain) {
+                int minX = chunkX << 4;
+                int minZ = chunkZ << 4;
+                for (int localX = 0; localX < 16; ++localX) {
+                    for (int localZ = 0; localZ < 16; ++localZ) {
+                        int x = minX + localX;
+                        int z = minZ + localZ;
+                        NoiseColumn column = generator.getBaseColumn(x, z, height);
+                        for (int y = -64; y < 320; ++y) {
+                            BlockState state = column.getBlock(y);
+                            if (!state.isAir()) {
+                                chunk.setBlockState(new BlockPos(x, y, z), state, false);
+                            }
+                        }
+                    }
+                }
+            }
+            Aquifer.FluidStatus lava = new Aquifer.FluidStatus(-54,
+                Blocks.LAVA.defaultBlockState());
+            Aquifer.FluidStatus fluid = new Aquifer.FluidStatus(settings.seaLevel(),
+                settings.defaultFluid());
+            Aquifer.FluidPicker picker = (x, y, z) -> y < Math.min(-54, settings.seaLevel())
+                ? lava : fluid;
+            noiseChunk = NoiseChunk.forChunk(chunk, generator.router(),
+                () -> DensityFunctions.BeardifierMarker.INSTANCE, settings, picker,
+                Blender.empty());
+            biomeManager = new BiomeManager(generator, BiomeManager.obfuscateSeed(seed));
+            if (terrain) {
+                SurfaceSystem surfaces = new SurfaceSystem(BuiltinRegistries.NOISE,
+                    settings.defaultBlock(), settings.seaLevel(), seed,
+                    settings.getRandomSource());
+                surfaces.buildSurface(biomeManager, BuiltinRegistries.BIOME,
+                    settings.useLegacyRandomSource(), new WorldGenerationContext(generator,
+                        height), chunk, noiseChunk, settings.surfaceRule());
+                for (ShortList list : chunk.getPostProcessing()) if (list != null) list.clear();
+            }
+        }
+    }
+
+    private static final class FakeAquifer implements Aquifer {
+        private boolean schedule;
+
+        @Override
+        public BlockState computeSubstance(DensityFunction.FunctionContext context,
+                double density) {
+            int selector = Math.floorMod((long) context.blockX() * 912931L
+                ^ (long) context.blockY() * 42317861L
+                ^ (long) context.blockZ() * 73428767L, 17);
+            schedule = selector == 1 || selector == 3 || selector == 5;
+            if (selector == 0) return null;
+            if (selector == 1 || selector == 2) return Blocks.WATER.defaultBlockState();
+            if (selector == 3 || selector == 4) return Blocks.LAVA.defaultBlockState();
+            return Blocks.AIR.defaultBlockState();
+        }
+
+        @Override
+        public boolean shouldScheduleFluidUpdate() {
+            return schedule;
+        }
+    }
+
+    private static final class Run {
+        final List<String> starts;
+        final CarvingMask mask;
+
+        Run(List<String> starts, CarvingMask mask) {
+            this.starts = starts;
+            this.mask = mask;
+        }
+
+        String startCounts() {
+            Map<String, Integer> counts = new TreeMap<String, Integer>();
+            for (String start : starts) {
+                String id = start.substring(0, start.indexOf(','));
+                counts.put(id, counts.getOrDefault(id, 0) + 1);
+            }
+            return encodeCounts(counts);
+        }
+
+        String startHash() throws Exception {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            for (String start : starts) {
+                digest.update((start + "\n").getBytes(StandardCharsets.UTF_8));
+            }
+            return hex(digest.digest());
+        }
+    }
+}
