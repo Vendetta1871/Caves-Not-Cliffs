@@ -6,6 +6,7 @@ import net.celestiald.cavesnotcliffs.stonecutter.StonecutterMenuLogic;
 import net.celestiald.cavesnotcliffs.stonecutter.StonecutterRecipeCatalog;
 import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -89,6 +90,7 @@ public final class GuiStonecutter extends GuiContainer {
     @Override
     protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX,
             int mouseY) {
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         mc.getTextureManager().bindTexture(BACKGROUND);
         drawTexturedModalRect(guiLeft, guiTop, 0, 0, xSize, ySize);
 
@@ -139,7 +141,6 @@ public final class GuiStonecutter extends GuiContainer {
                     * RECIPE_HEIGHT + 2;
             ItemStack result = recipes.get(index).result();
             itemRender.renderItemAndEffectIntoGUI(result, x, y);
-            itemRender.renderItemOverlayIntoGUI(fontRenderer, result, x, y, null);
         }
     }
 
@@ -150,9 +151,11 @@ public final class GuiStonecutter extends GuiContainer {
         if (displayRecipes) {
             int recipesX = guiLeft + RECIPE_X;
             int recipesY = guiTop + RECIPE_Y;
-            int limit = Math.min(startIndex + StonecutterMenuLogic.VISIBLE_RECIPES,
-                    container.getNumRecipes());
-            for (int index = startIndex; index < limit; ++index) {
+            // The 1.18.2 screen delegates every visible cell to the menu. Empty
+            // cells still produce its UI click and packet; the authoritative
+            // menu validates the index before changing the selected recipe.
+            int end = startIndex + StonecutterMenuLogic.VISIBLE_RECIPES;
+            for (int index = startIndex; index < end; ++index) {
                 int relative = index - startIndex;
                 double x = mouseX - (recipesX
                         + relative % StonecutterMenuLogic.VISIBLE_COLUMNS * RECIPE_WIDTH);

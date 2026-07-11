@@ -191,7 +191,10 @@ public final class ContainerStonecutter extends Container {
                 StonecutterMenuLogic.quickMoveRoute(index, hasRecipe);
         switch (route) {
             case RESULT_TO_PLAYER:
-                stack.onCrafting(player.world, player, stack.getCount());
+                // StonecutterMenu.quickMoveStack calls the item's crafted hook
+                // before moving the result, but leaves crafted-stat accounting
+                // to the result slot's onTake callback after the move.
+                stack.getItem().onCreated(stack, player.world, player);
                 if (!mergeItemStack(stack, StonecutterMenuLogic.PLAYER_MAIN_START,
                         StonecutterMenuLogic.HOTBAR_END, true)) {
                     return ItemStack.EMPTY;
