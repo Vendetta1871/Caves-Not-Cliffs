@@ -51,7 +51,9 @@ jar {
     manifest {
         attributes(
             'Implementation-Title': 'Caves Not Cliffs',
-            'Implementation-Version': project.version
+            'Implementation-Version': project.version,
+            'FMLCorePlugin': 'net.celestiald.cavesnotcliffs.core.CavesNotCliffsCorePlugin',
+            'FMLCorePluginContainsFMLMod': 'true'
         )
     }
 }
@@ -120,6 +122,15 @@ task verifyReleaseJar(dependsOn: reobfJar) {
             def manifestText = readText('META-INF/MANIFEST.MF')
             if (!manifestText.contains('Implementation-Version: ' + project.version)) {
                 throw new GradleException('Production manifest does not contain the release version')
+            }
+            if (!manifestText.contains('FMLCorePlugin: net.celestiald.cavesnotcliffs.core.CavesNotCliffsCorePlugin')) {
+                throw new GradleException('Production manifest does not declare the piston core plugin')
+            }
+            if (!manifestText.contains('FMLCorePluginContainsFMLMod: true')) {
+                throw new GradleException('Production manifest does not retain the regular Forge mod container')
+            }
+            if (zip.getEntry('net/celestiald/cavesnotcliffs/core/HoneyPistonTransformer.class') == null) {
+                throw new GradleException('Production jar is missing the honey piston transformer')
             }
 
             def metadata = new groovy.json.JsonSlurper().parseText(readText('mcmod.info'))
