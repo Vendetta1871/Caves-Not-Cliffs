@@ -3,6 +3,7 @@ package net.celestiald.cavesnotcliffs.content;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.minecraft.block.SoundType;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
 
 import java.util.ArrayList;
@@ -45,7 +46,8 @@ public final class LushCaveSounds {
     }
 
     private static SoundEvent event(String path) {
-        SoundEvent sound = new SoundEvent(CncRegistryIds.id(path));
+        ResourceLocation id = CncRegistryIds.id(path);
+        SoundEvent sound = new SoundEvent(id).setRegistryName(id);
         EVENTS.add(sound);
         return sound;
     }
@@ -56,7 +58,7 @@ public final class LushCaveSounds {
 
     public static void registerAll() {
         for (SoundEvent event : EVENTS) {
-            ElementsCavesNotCliffs.sounds.put(event.getSoundName(), event);
+            ElementsCavesNotCliffs.sounds.put(event.getRegistryName(), event);
         }
     }
 }

@@ -27,6 +27,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.SoundEvent;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
@@ -103,11 +104,12 @@ public final class BlockPowderSnow extends ElementsCavesNotCliffs.ModElement {
     }
 
     private static SoundEvent sound(String path) {
-        return new SoundEvent(CncRegistryIds.id(path));
+        ResourceLocation id = CncRegistryIds.id(path);
+        return new SoundEvent(id).setRegistryName(id);
     }
 
     private static void registerSound(SoundEvent sound) {
-        ElementsCavesNotCliffs.sounds.put(sound.getSoundName(), sound);
+        ElementsCavesNotCliffs.sounds.put(sound.getRegistryName(), sound);
     }
 
     public static final class BlockCustom extends Block {

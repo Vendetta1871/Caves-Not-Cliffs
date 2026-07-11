@@ -29,7 +29,7 @@ public final class HoneyDrinkSoundHandler {
         ISound sound = event.getResultSound();
         Minecraft minecraft = Minecraft.getMinecraft();
         if (sound == null || minecraft.world == null || HoneyContent.honeyBottle == null
-                || !SoundEvents.ENTITY_GENERIC_DRINK.getSoundName()
+                || !SoundEvents.ENTITY_GENERIC_DRINK.getRegistryName()
                     .equals(sound.getSoundLocation())
                 || !hasHoneyDrinkerAt(sound, minecraft.world.loadedEntityList)) {
             return;

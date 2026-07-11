@@ -45,9 +45,9 @@ public final class BlockStonecutter extends ElementsCavesNotCliffs.ModElement {
     public static final Block block = null;
 
     public static final SoundEvent SELECT_RECIPE_SOUND =
-            new SoundEvent(CncRegistryIds.id("ui.stonecutter.select_recipe"));
+            sound("ui.stonecutter.select_recipe");
     public static final SoundEvent TAKE_RESULT_SOUND =
-            new SoundEvent(CncRegistryIds.id("ui.stonecutter.take_result"));
+            sound("ui.stonecutter.take_result");
     public static final StatBase INTERACT_STAT = new StatBasic(
             "stat.interactWithStonecutter",
             new TextComponentTranslation("stat.interactWithStonecutter")).registerStat();
@@ -58,14 +58,19 @@ public final class BlockStonecutter extends ElementsCavesNotCliffs.ModElement {
 
     @Override
     public void initElements() {
-        ElementsCavesNotCliffs.sounds.put(SELECT_RECIPE_SOUND.getSoundName(),
+        ElementsCavesNotCliffs.sounds.put(SELECT_RECIPE_SOUND.getRegistryName(),
                 SELECT_RECIPE_SOUND);
-        ElementsCavesNotCliffs.sounds.put(TAKE_RESULT_SOUND.getSoundName(),
+        ElementsCavesNotCliffs.sounds.put(TAKE_RESULT_SOUND.getRegistryName(),
                 TAKE_RESULT_SOUND);
         elements.blocks.add(() -> new BlockCustom()
                 .setRegistryName(CncRegistryIds.STONECUTTER));
         elements.items.add(() -> new ItemBlock(block)
                 .setRegistryName(CncRegistryIds.STONECUTTER));
+    }
+
+    private static SoundEvent sound(String path) {
+        net.minecraft.util.ResourceLocation id = CncRegistryIds.id(path);
+        return new SoundEvent(id).setRegistryName(id);
     }
 
     @SideOnly(Side.CLIENT)

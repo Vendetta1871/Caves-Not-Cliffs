@@ -30,6 +30,7 @@ import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.SoundEvent;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -89,11 +90,12 @@ public final class BlockComposter extends ElementsCavesNotCliffs.ModElement {
     }
 
     private static SoundEvent sound(String path) {
-        return new SoundEvent(CncRegistryIds.id(path));
+        ResourceLocation id = CncRegistryIds.id(path);
+        return new SoundEvent(id).setRegistryName(id);
     }
 
     private static void registerSound(SoundEvent sound) {
-        ElementsCavesNotCliffs.sounds.put(sound.getSoundName(), sound);
+        ElementsCavesNotCliffs.sounds.put(sound.getRegistryName(), sound);
     }
 
     public static final class BlockCustom extends Block {

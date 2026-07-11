@@ -2,6 +2,7 @@ package net.celestiald.cavesnotcliffs.content;
 
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
 
 /** Canonical Java 1.18.2 bee and beehive sound identities. */
@@ -37,10 +38,11 @@ public final class BeeSoundEvents {
     }
 
     private static SoundEvent sound(String path) {
-        return new SoundEvent(CncRegistryIds.id(path));
+        ResourceLocation id = CncRegistryIds.id(path);
+        return new SoundEvent(id).setRegistryName(id);
     }
 
     private static void register(SoundEvent event) {
-        ElementsCavesNotCliffs.sounds.put(event.getSoundName(), event);
+        ElementsCavesNotCliffs.sounds.put(event.getRegistryName(), event);
     }
 }
