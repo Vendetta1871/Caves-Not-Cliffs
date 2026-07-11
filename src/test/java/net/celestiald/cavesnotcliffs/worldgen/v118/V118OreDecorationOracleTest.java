@@ -66,41 +66,41 @@ public class V118OreDecorationOracleTest {
 
     @Test
     public void targetReplacementFamiliesCoverAllVanillaBaseStoneMembers() {
-        V118Material[] natural = {
-            V118Material.STONE, V118Material.DEEPSLATE, V118Material.GRANITE,
-            V118Material.DIORITE, V118Material.ANDESITE, V118Material.TUFF
+        V118OreMaterial[] natural = {
+            V118OreMaterial.STONE, V118OreMaterial.DEEPSLATE, V118OreMaterial.GRANITE,
+            V118OreMaterial.DIORITE, V118OreMaterial.ANDESITE, V118OreMaterial.TUFF
         };
-        for (V118Material material : natural) {
+        for (V118OreMaterial material : natural) {
             assertTrue(material.name(),
                 V118OreFeature.TargetRule.NATURAL_STONE.matches(material));
         }
-        V118Material[] shallow = {
-            V118Material.STONE, V118Material.GRANITE,
-            V118Material.DIORITE, V118Material.ANDESITE
+        V118OreMaterial[] shallow = {
+            V118OreMaterial.STONE, V118OreMaterial.GRANITE,
+            V118OreMaterial.DIORITE, V118OreMaterial.ANDESITE
         };
-        for (V118Material material : shallow) {
+        for (V118OreMaterial material : shallow) {
             assertTrue(material.name(),
                 V118OreFeature.TargetRule.STONE_ORE_REPLACEABLES.matches(material));
         }
-        V118Material[] deep = {V118Material.DEEPSLATE, V118Material.TUFF};
-        for (V118Material material : deep) {
+        V118OreMaterial[] deep = {V118OreMaterial.DEEPSLATE, V118OreMaterial.TUFF};
+        for (V118OreMaterial material : deep) {
             assertTrue(material.name(),
                 V118OreFeature.TargetRule.DEEPSLATE_ORE_REPLACEABLES.matches(material));
         }
-        assertFalse(V118OreFeature.TargetRule.NATURAL_STONE.matches(V118Material.DIRT));
-        assertFalse(V118OreFeature.TargetRule.NATURAL_STONE.matches(V118Material.GRAVEL));
+        assertFalse(V118OreFeature.TargetRule.NATURAL_STONE.matches(V118OreMaterial.DIRT));
+        assertFalse(V118OreFeature.TargetRule.NATURAL_STONE.matches(V118OreMaterial.GRAVEL));
         assertFalse(V118OreFeature.TargetRule.STONE_ORE_REPLACEABLES.matches(
-            V118Material.DEEPSLATE));
+            V118OreMaterial.DEEPSLATE));
         assertFalse(V118OreFeature.TargetRule.STONE_ORE_REPLACEABLES.matches(
-            V118Material.TUFF));
+            V118OreMaterial.TUFF));
         assertFalse(V118OreFeature.TargetRule.DEEPSLATE_ORE_REPLACEABLES.matches(
-            V118Material.STONE));
+            V118OreMaterial.STONE));
         assertFalse(V118OreFeature.TargetRule.DEEPSLATE_ORE_REPLACEABLES.matches(
-            V118Material.GRANITE));
+            V118OreMaterial.GRANITE));
     }
 
     private static final class SparseWorld implements V118OrePlacements.WorldAccess {
-        private final Map<Long, V118Material> overrides = new HashMap<Long, V118Material>();
+        private final Map<Long, V118OreMaterial> overrides = new HashMap<Long, V118OreMaterial>();
         private final int minBlockX;
         private final int maxBlockX;
         private final int minBlockZ;
@@ -126,16 +126,16 @@ public class V118OreDecorationOracleTest {
         }
 
         @Override
-        public V118Material getMaterial(int x, int y, int z) {
+        public V118OreMaterial getMaterial(int x, int y, int z) {
             if (!inside(x, y, z)) {
-                return V118Material.AIR;
+                return V118OreMaterial.AIR;
             }
-            V118Material override = overrides.get(pack(x, y, z));
+            V118OreMaterial override = overrides.get(pack(x, y, z));
             return override == null ? base(x, y, z) : override;
         }
 
         @Override
-        public void setMaterial(int x, int y, int z, V118Material material) {
+        public void setMaterial(int x, int y, int z, V118OreMaterial material) {
             overrides.put(pack(x, y, z), material);
         }
 
@@ -161,7 +161,7 @@ public class V118OreDecorationOracleTest {
             for (int x = minBlockX; x <= maxBlockX; ++x) {
                 for (int y = -64; y < 320; ++y) {
                     for (int z = minBlockZ; z <= maxBlockZ; ++z) {
-                        V118Material material = getMaterial(x, y, z);
+                        V118OreMaterial material = getMaterial(x, y, z);
                         if (material == base(x, y, z)) {
                             continue;
                         }
@@ -189,11 +189,11 @@ public class V118OreDecorationOracleTest {
                 && y >= -64 && y < 320;
         }
 
-        private static V118Material base(int x, int y, int z) {
+        private static V118OreMaterial base(int x, int y, int z) {
             if (cavity(x, y, z)) {
-                return V118Material.AIR;
+                return V118OreMaterial.AIR;
             }
-            return y < 0 ? V118Material.DEEPSLATE : V118Material.STONE;
+            return y < 0 ? V118OreMaterial.DEEPSLATE : V118OreMaterial.STONE;
         }
 
         private static boolean cavity(int x, int y, int z) {

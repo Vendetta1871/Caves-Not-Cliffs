@@ -128,7 +128,7 @@ public final class V118OreFeature {
                         if (!world.ensureCanWrite(x, y, z)) {
                             continue;
                         }
-                        V118Material current = world.getMaterial(x, y, z);
+                        V118OreMaterial current = world.getMaterial(x, y, z);
                         for (Target target : configuration.targets) {
                             if (!target.rule.matches(current)
                                     || !canPlaceOre(world, random, configuration, x, y, z)) {
@@ -156,7 +156,7 @@ public final class V118OreFeature {
         }
         for (int[] neighbor : NEIGHBORS) {
             if (world.getMaterial(x + neighbor[0], y + neighbor[1], z + neighbor[2])
-                    == V118Material.AIR) {
+                    == V118OreMaterial.AIR) {
                 return false;
             }
         }
@@ -166,34 +166,34 @@ public final class V118OreFeature {
     public enum TargetRule {
         NATURAL_STONE {
             @Override
-            boolean matches(V118Material material) {
-                return material == V118Material.STONE || material == V118Material.GRANITE
-                    || material == V118Material.DIORITE || material == V118Material.ANDESITE
-                    || material == V118Material.TUFF || material == V118Material.DEEPSLATE;
+            boolean matches(V118OreMaterial material) {
+                return material == V118OreMaterial.STONE || material == V118OreMaterial.GRANITE
+                    || material == V118OreMaterial.DIORITE || material == V118OreMaterial.ANDESITE
+                    || material == V118OreMaterial.TUFF || material == V118OreMaterial.DEEPSLATE;
             }
         },
         STONE_ORE_REPLACEABLES {
             @Override
-            boolean matches(V118Material material) {
-                return material == V118Material.STONE || material == V118Material.GRANITE
-                    || material == V118Material.DIORITE || material == V118Material.ANDESITE;
+            boolean matches(V118OreMaterial material) {
+                return material == V118OreMaterial.STONE || material == V118OreMaterial.GRANITE
+                    || material == V118OreMaterial.DIORITE || material == V118OreMaterial.ANDESITE;
             }
         },
         DEEPSLATE_ORE_REPLACEABLES {
             @Override
-            boolean matches(V118Material material) {
-                return material == V118Material.DEEPSLATE || material == V118Material.TUFF;
+            boolean matches(V118OreMaterial material) {
+                return material == V118OreMaterial.DEEPSLATE || material == V118OreMaterial.TUFF;
             }
         };
 
-        abstract boolean matches(V118Material material);
+        abstract boolean matches(V118OreMaterial material);
     }
 
     public static final class Target {
         private final TargetRule rule;
-        private final V118Material result;
+        private final V118OreMaterial result;
 
-        public Target(TargetRule rule, V118Material result) {
+        public Target(TargetRule rule, V118OreMaterial result) {
             if (rule == null || result == null) {
                 throw new NullPointerException("target rule and result are required");
             }
@@ -205,7 +205,7 @@ public final class V118OreFeature {
             return rule;
         }
 
-        public V118Material result() {
+        public V118OreMaterial result() {
             return result;
         }
     }
@@ -249,9 +249,9 @@ public final class V118OreFeature {
 
         int maxBuildHeight();
 
-        V118Material getMaterial(int blockX, int blockY, int blockZ);
+        V118OreMaterial getMaterial(int blockX, int blockY, int blockZ);
 
-        void setMaterial(int blockX, int blockY, int blockZ, V118Material material);
+        void setMaterial(int blockX, int blockY, int blockZ, V118OreMaterial material);
 
         int oceanFloorHeight(int blockX, int blockZ);
 

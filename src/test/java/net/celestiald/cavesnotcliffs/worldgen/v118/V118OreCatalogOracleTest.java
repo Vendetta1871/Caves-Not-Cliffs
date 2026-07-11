@@ -118,7 +118,7 @@ public class V118OreCatalogOracleTest {
         throw new AssertionError("unexpected tag " + tag);
     }
 
-    private static V118Material material(String id) {
-        return V118Material.valueOf(id.toUpperCase(Locale.ROOT));
+    private static V118OreMaterial material(String id) {
+        return V118OreMaterial.valueOf(id.toUpperCase(Locale.ROOT));
     }
 }

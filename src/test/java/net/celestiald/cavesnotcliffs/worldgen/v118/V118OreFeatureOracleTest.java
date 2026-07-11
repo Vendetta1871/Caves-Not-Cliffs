@@ -50,10 +50,10 @@ public class V118OreFeatureOracleTest {
                     Arrays.asList(
                         new V118OreFeature.Target(
                             V118OreFeature.TargetRule.STONE_ORE_REPLACEABLES,
-                            V118Material.GOLD_ORE),
+                            V118OreMaterial.GOLD_ORE),
                         new V118OreFeature.Target(
                             V118OreFeature.TargetRule.DEEPSLATE_ORE_REPLACEABLES,
-                            V118Material.DEEPSLATE_GOLD_ORE)),
+                            V118OreMaterial.DEEPSLATE_GOLD_ORE)),
                     size, Float.intBitsToFloat(rawDiscard));
                 V118WorldgenRandom random = new V118WorldgenRandom(0L);
                 long decorationSeed = random.setDecorationSeed(seed, chunkX << 4, chunkZ << 4);
@@ -77,7 +77,7 @@ public class V118OreFeatureOracleTest {
     }
 
     private static final class SparseWorld implements V118OreFeature.WorldAccess {
-        private final Map<Long, V118Material> blocks = new HashMap<Long, V118Material>();
+        private final Map<Long, V118OreMaterial> blocks = new HashMap<Long, V118OreMaterial>();
         private final Set<Long> chunks = new HashSet<Long>();
         private final int minX;
         private final int maxX;
@@ -105,7 +105,7 @@ public class V118OreFeatureOracleTest {
                     for (int blockY = minY; blockY <= maxY; ++blockY) {
                         if (!cavity(blockX, blockY, blockZ)) {
                             setMaterial(blockX, blockY, blockZ,
-                                blockY < 0 ? V118Material.DEEPSLATE : V118Material.STONE);
+                                blockY < 0 ? V118OreMaterial.DEEPSLATE : V118OreMaterial.STONE);
                         }
                     }
                 }
@@ -123,14 +123,14 @@ public class V118OreFeatureOracleTest {
         }
 
         @Override
-        public V118Material getMaterial(int x, int y, int z) {
-            V118Material material = blocks.get(blockKey(x, y, z));
-            return material == null ? V118Material.AIR : material;
+        public V118OreMaterial getMaterial(int x, int y, int z) {
+            V118OreMaterial material = blocks.get(blockKey(x, y, z));
+            return material == null ? V118OreMaterial.AIR : material;
         }
 
         @Override
-        public void setMaterial(int x, int y, int z, V118Material material) {
-            if (material == V118Material.AIR) {
+        public void setMaterial(int x, int y, int z, V118OreMaterial material) {
+            if (material == V118OreMaterial.AIR) {
                 blocks.remove(blockKey(x, y, z));
             } else {
                 blocks.put(blockKey(x, y, z), material);
@@ -153,9 +153,9 @@ public class V118OreFeatureOracleTest {
             for (int x = minX; x <= maxX; ++x) {
                 for (int y = minY; y <= maxY; ++y) {
                     for (int z = minZ; z <= maxZ; ++z) {
-                        V118Material material = getMaterial(x, y, z);
-                        if (material != V118Material.GOLD_ORE
-                                && material != V118Material.DEEPSLATE_GOLD_ORE) {
+                        V118OreMaterial material = getMaterial(x, y, z);
+                        if (material != V118OreMaterial.GOLD_ORE
+                                && material != V118OreMaterial.DEEPSLATE_GOLD_ORE) {
                             continue;
                         }
                         if (result.length() > 0) {

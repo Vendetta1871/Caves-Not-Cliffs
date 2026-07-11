@@ -38,27 +38,7 @@ public enum V118Material {
     PACKED_ICE,
     SNOW_BLOCK,
     POWDER_SNOW,
-    ICE,
-
-    // Ordinary configured ore/blob outputs. Append-only for draft-v2 storage compatibility.
-    DIORITE,
-    ANDESITE,
-    COAL_ORE,
-    DEEPSLATE_COAL_ORE,
-    IRON_ORE,
-    GOLD_ORE,
-    DEEPSLATE_GOLD_ORE,
-    DEEPSLATE_COPPER_ORE,
-    REDSTONE_ORE,
-    DEEPSLATE_REDSTONE_ORE,
-    LAPIS_ORE,
-    DEEPSLATE_LAPIS_ORE,
-    DIAMOND_ORE,
-    DEEPSLATE_DIAMOND_ORE,
-    EMERALD_ORE,
-    DEEPSLATE_EMERALD_ORE,
-    INFESTED_STONE,
-    INFESTED_DEEPSLATE;
+    ICE;
 
     private static final V118Material[] VALUES = values();
 
