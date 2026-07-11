@@ -4,6 +4,7 @@ import net.celestiald.cavesnotcliffs.entity.EntityBee;
 import net.minecraft.client.model.ModelBase;
 import net.minecraft.client.model.ModelRenderer;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -20,6 +21,7 @@ public final class ModelBee extends ModelBase {
     private final ModelRenderer frontLegs;
     private final ModelRenderer middleLegs;
     private final ModelRenderer backLegs;
+    private float rollAmount;
 
     public ModelBee() {
         textureWidth = 64;
@@ -77,6 +79,13 @@ public final class ModelBee extends ModelBase {
     }
 
     @Override
+    public void setLivingAnimations(EntityLivingBase entity, float limbSwing,
+            float limbSwingAmount, float partialTickTime) {
+        super.setLivingAnimations(entity, limbSwing, limbSwingAmount, partialTickTime);
+        rollAmount = ((EntityBee.EntityCustom) entity).getRollAmount(partialTickTime);
+    }
+
+    @Override
     public void setRotationAngles(float limbSwing, float limbSwingAmount,
             float ageInTicks, float netHeadYaw, float headPitch,
             float scaleFactor, Entity entity) {
@@ -107,8 +116,8 @@ public final class ModelBee extends ModelBase {
             float y = 19.0F - bob * 0.9F;
             setRootY(y);
         }
-        if (bee.isRolling()) {
-            body.rotateAngleX = 3.0915928F;
+        if (rollAmount > 0.0F) {
+            body.rotateAngleX += (3.0915928F - body.rotateAngleX) * rollAmount;
         }
     }
 

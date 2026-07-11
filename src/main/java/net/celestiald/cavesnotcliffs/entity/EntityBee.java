@@ -41,6 +41,7 @@ import net.minecraft.pathfinding.PathNavigateFlying;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -90,9 +91,12 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
         private int remainingCooldownBeforeLocatingNewHive;
         private int remainingCooldownBeforeLocatingNewFlower;
         private int underWaterTicks;
+        private float rollAmount;
+        private float previousRollAmount;
         private BlockPos savedFlowerPos;
         private BlockPos hivePos;
         private BeePollinateGoal pollinateGoal;
+        private final List<BlockPos> blacklistedHives = new ArrayList<>();
 
         public EntityCustom(World world) {
             super(world);
@@ -155,6 +159,19 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
         @Override
         public void onLivingUpdate() {
             super.onLivingUpdate();
+            previousRollAmount = rollAmount;
+            rollAmount = isRolling() ? Math.min(1.0F, rollAmount + 0.2F)
+                    : Math.max(0.0F, rollAmount - 0.24F);
+            if (hasNectar() && cropsGrownSincePollination
+                    < BeeMechanics.MAX_CROPS_GROWN && rand.nextFloat() < 0.05F) {
+                for (int index = 0; index < rand.nextInt(2) + 1; index++) {
+                    world.spawnParticle(EnumParticleTypes.DRIP_LAVA,
+                            posX + (rand.nextDouble() * 0.6D - 0.3D),
+                            posY + height * 0.5D,
+                            posZ + (rand.nextDouble() * 0.6D - 0.3D),
+                            0.0D, 0.0D, 0.0D);
+                }
+            }
             if (world.isRemote) {
                 return;
             }
@@ -376,6 +393,11 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
             return getBeeFlag(FLAG_ROLL);
         }
 
+        public float getRollAmount(float partialTicks) {
+            return previousRollAmount
+                    + (rollAmount - previousRollAmount) * partialTicks;
+        }
+
         public boolean isAngry() {
             return getRemainingAngerTime() > 0;
         }
@@ -418,6 +440,24 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
 
         public int getTicksWithoutNectarSinceExitingHive() {
             return ticksWithoutNectarSinceExitingHive;
+        }
+
+        boolean isHiveBlacklisted(BlockPos pos) {
+            return blacklistedHives.contains(pos);
+        }
+
+        void blacklistHive(BlockPos pos) {
+            if (pos == null || blacklistedHives.contains(pos)) {
+                return;
+            }
+            blacklistedHives.add(pos.toImmutable());
+            while (blacklistedHives.size() > 3) {
+                blacklistedHives.remove(0);
+            }
+        }
+
+        void clearHiveBlacklist() {
+            blacklistedHives.clear();
         }
 
         private void setBeeFlag(int bit, boolean value) {
@@ -789,9 +829,17 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
             }
             Collections.sort(candidates, Comparator.comparingDouble(
                     hive -> bee.getDistanceSqToCenter(hive.getPos())));
-            if (!candidates.isEmpty()) {
-                bee.hivePos = candidates.get(0).getPos();
+            if (candidates.isEmpty()) {
+                return;
             }
+            for (TileEntityBeehive candidate : candidates) {
+                if (!bee.isHiveBlacklisted(candidate.getPos())) {
+                    bee.hivePos = candidate.getPos();
+                    return;
+                }
+            }
+            bee.clearHiveBlacklist();
+            bee.hivePos = candidates.get(0).getPos();
         }
     }
 
@@ -817,16 +865,28 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
         @Override
         public void updateTask() {
             travellingTicks++;
-            if (travellingTicks > 600
-                    || bee.getDistanceSqToCenter(bee.hivePos)
+            if (travellingTicks > 600) {
+                bee.blacklistHive(bee.hivePos);
+                bee.hivePos = null;
+                bee.remainingCooldownBeforeLocatingNewHive =
+                        BeeMechanics.LOCATE_HIVE_COOLDOWN;
+                return;
+            }
+            if (bee.getDistanceSqToCenter(bee.hivePos)
                     > BeeMechanics.TOO_FAR_DISTANCE * BeeMechanics.TOO_FAR_DISTANCE) {
                 bee.hivePos = null;
                 bee.remainingCooldownBeforeLocatingNewHive =
                         BeeMechanics.LOCATE_HIVE_COOLDOWN;
                 return;
             }
-            bee.getNavigator().tryMoveToXYZ(bee.hivePos.getX() + 0.5D,
-                    bee.hivePos.getY() + 0.5D, bee.hivePos.getZ() + 0.5D, 1.0D);
+            if (!bee.getNavigator().tryMoveToXYZ(bee.hivePos.getX() + 0.5D,
+                    bee.hivePos.getY() + 0.5D,
+                    bee.hivePos.getZ() + 0.5D, 1.0D)) {
+                bee.blacklistHive(bee.hivePos);
+                bee.hivePos = null;
+                bee.remainingCooldownBeforeLocatingNewHive =
+                        BeeMechanics.LOCATE_HIVE_COOLDOWN;
+            }
         }
 
         @Override
