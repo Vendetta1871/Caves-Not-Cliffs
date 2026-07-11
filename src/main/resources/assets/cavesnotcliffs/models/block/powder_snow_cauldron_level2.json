@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cauldron_level2",
+  "textures": {
+    "water": "cavesnotcliffs:blocks/powder_snow"
+  }
+}

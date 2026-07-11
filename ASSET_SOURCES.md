@@ -45,3 +45,19 @@ references the animated `minecraft:blocks/water_still` texture supplied by the r
 
 Minecraft assets remain the property of Mojang Studios. They are included only as required
 backport resources and are not covered by this project's source-code license.
+
+The powder-snow block and bucket textures, plus all powder-snow block and bucket sounds, are
+unmodified Minecraft 1.18.2 assets from Mojang's official client and asset-index artifacts:
+
+- Version: `1.18.2`
+- Client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Version metadata: <https://piston-meta.mojang.com/mc/game/version_manifest_v2.json>
+- Asset paths: `minecraft/textures/block/powder_snow.png`,
+  `minecraft/textures/item/powder_snow_bucket.png`,
+  `minecraft/sounds/block/powder_snow/*.ogg`, and
+  `minecraft/sounds/item/bucket/*_powder_snow*.ogg`
+
+The powder-snow block model is a syntax-only 1.12 adaptation of Mojang's 1.18.2 model. The
+cauldron models reuse Minecraft 1.12.2 cauldron geometry with the official powder-snow texture.
+These assets remain the property of Mojang Studios and are not covered by this project's
+source-code license.

@@ -398,5 +398,95 @@
       {"name": "cavesnotcliffs:item/spyglass/use", "pitch": 1.55, "volume": 0.5}
     ],
     "subtitle": "subtitles.item.spyglass.use"
+  },
+  "block.powder_snow.break": {
+    "sounds": [
+      "cavesnotcliffs:block/powder_snow/break1",
+      "cavesnotcliffs:block/powder_snow/break2",
+      "cavesnotcliffs:block/powder_snow/break3",
+      "cavesnotcliffs:block/powder_snow/break4",
+      "cavesnotcliffs:block/powder_snow/break5",
+      "cavesnotcliffs:block/powder_snow/break6",
+      "cavesnotcliffs:block/powder_snow/break7"
+    ],
+    "subtitle": "subtitles.block.generic.break"
+  },
+  "block.powder_snow.fall": {
+    "sounds": [
+      "cavesnotcliffs:block/powder_snow/step1",
+      "cavesnotcliffs:block/powder_snow/step2",
+      "cavesnotcliffs:block/powder_snow/step3",
+      "cavesnotcliffs:block/powder_snow/step4",
+      "cavesnotcliffs:block/powder_snow/step5",
+      "cavesnotcliffs:block/powder_snow/step6",
+      "cavesnotcliffs:block/powder_snow/step7",
+      "cavesnotcliffs:block/powder_snow/step8",
+      "cavesnotcliffs:block/powder_snow/step9",
+      "cavesnotcliffs:block/powder_snow/step10"
+    ]
+  },
+  "block.powder_snow.hit": {
+    "sounds": [
+      { "name": "cavesnotcliffs:block/powder_snow/step1", "pitch": 1.3, "volume": 0.83 },
+      { "name": "cavesnotcliffs:block/powder_snow/step2", "pitch": 1.3, "volume": 0.83 },
+      { "name": "cavesnotcliffs:block/powder_snow/step3", "pitch": 1.3, "volume": 0.83 },
+      { "name": "cavesnotcliffs:block/powder_snow/step4", "pitch": 1.3, "volume": 0.83 },
+      { "name": "cavesnotcliffs:block/powder_snow/step5", "pitch": 1.3, "volume": 0.83 },
+      { "name": "cavesnotcliffs:block/powder_snow/step6", "pitch": 1.3, "volume": 0.83 },
+      { "name": "cavesnotcliffs:block/powder_snow/step7", "pitch": 1.3, "volume": 0.83 },
+      { "name": "cavesnotcliffs:block/powder_snow/step8", "pitch": 1.3, "volume": 0.83 },
+      { "name": "cavesnotcliffs:block/powder_snow/step9", "pitch": 1.3, "volume": 0.83 },
+      { "name": "cavesnotcliffs:block/powder_snow/step10", "pitch": 1.3, "volume": 0.83 }
+    ],
+    "subtitle": "subtitles.block.generic.hit"
+  },
+  "block.powder_snow.place": {
+    "sounds": [
+      "cavesnotcliffs:block/powder_snow/break1",
+      "cavesnotcliffs:block/powder_snow/break2",
+      "cavesnotcliffs:block/powder_snow/break3",
+      "cavesnotcliffs:block/powder_snow/break4",
+      "cavesnotcliffs:block/powder_snow/break5",
+      "cavesnotcliffs:block/powder_snow/break6",
+      "cavesnotcliffs:block/powder_snow/break7"
+    ],
+    "subtitle": "subtitles.block.generic.place"
+  },
+  "block.powder_snow.step": {
+    "sounds": [
+      "cavesnotcliffs:block/powder_snow/step1",
+      "cavesnotcliffs:block/powder_snow/step2",
+      "cavesnotcliffs:block/powder_snow/step3",
+      "cavesnotcliffs:block/powder_snow/step4",
+      "cavesnotcliffs:block/powder_snow/step5",
+      "cavesnotcliffs:block/powder_snow/step6",
+      "cavesnotcliffs:block/powder_snow/step7",
+      "cavesnotcliffs:block/powder_snow/step8",
+      "cavesnotcliffs:block/powder_snow/step9",
+      "cavesnotcliffs:block/powder_snow/step10"
+    ],
+    "subtitle": "subtitles.block.generic.footsteps"
+  },
+  "item.bucket.empty_powder_snow": {
+    "sounds": [
+      "cavesnotcliffs:item/bucket/empty_powder_snow1",
+      { "name": "cavesnotcliffs:item/bucket/empty_powder_snow1", "pitch": 0.95 },
+      { "name": "cavesnotcliffs:item/bucket/empty_powder_snow1", "pitch": 1.1 },
+      "cavesnotcliffs:item/bucket/empty_powder_snow2",
+      { "name": "cavesnotcliffs:item/bucket/empty_powder_snow2", "pitch": 0.95 },
+      { "name": "cavesnotcliffs:item/bucket/empty_powder_snow2", "pitch": 1.1 }
+    ],
+    "subtitle": "subtitles.item.bucket.empty"
+  },
+  "item.bucket.fill_powder_snow": {
+    "sounds": [
+      "cavesnotcliffs:item/bucket/fill_powder_snow1",
+      { "name": "cavesnotcliffs:item/bucket/fill_powder_snow1", "pitch": 0.9 },
+      { "name": "cavesnotcliffs:item/bucket/fill_powder_snow1", "pitch": 1.1 },
+      "cavesnotcliffs:item/bucket/fill_powder_snow2",
+      { "name": "cavesnotcliffs:item/bucket/fill_powder_snow2", "pitch": 0.9 },
+      { "name": "cavesnotcliffs:item/bucket/fill_powder_snow2", "pitch": 1.1 }
+    ],
+    "subtitle": "subtitles.item.bucket.fill"
   }
 }
