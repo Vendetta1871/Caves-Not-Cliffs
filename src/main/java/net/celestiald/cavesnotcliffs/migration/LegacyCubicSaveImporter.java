@@ -50,6 +50,13 @@ public final class LegacyCubicSaveImporter {
         }
 
         try {
+            CubicImportJournal completed = existingJournal(worldRoot);
+            if (completed != null) {
+                verifyCommittedTargets(worldRoot, completed);
+                LegacyCubicLevelMetadata.inspect(levelFile.toPath(), false);
+                cleanLevelMetadata(levelFile.toPath());
+                return;
+            }
             LegacyCubicDimensionMetadata.Result discovery = discoverDimensions(worldRoot);
             List<Path> dimensions = discovery.getTrueDimensionRoots();
             LegacyCubicPositionMetadata.Result positions =
@@ -66,8 +73,7 @@ public final class LegacyCubicSaveImporter {
             List<CubicImportJournal.FileRecord> sources =
                     CubicImportJournal.captureSources(
                             worldRoot, dimensions, additionalSources);
-            Path journalPath = worldRoot.resolve(CubicImportJournal.FILE_NAME);
-            if (sources.isEmpty() && !Files.exists(journalPath)) {
+            if (sources.isEmpty()) {
                 return;
             }
 
@@ -84,23 +90,16 @@ public final class LegacyCubicSaveImporter {
             // Fail before committing finite regions if this CubicChunks version left metadata
             // that the narrow, deterministic cleaner does not understand.
             LegacyCubicLevelMetadata.Result metadata = LegacyCubicLevelMetadata.inspect(
-                    levelFile.toPath(), !Files.exists(journalPath));
+                    levelFile.toPath(), true);
             CubicDimensionStager.CubeVerifier lookaheadVerifier = lookaheadVerifier(
                     terrainSchema, worldInfo, levelFile.toPath());
             boolean imported = importWorld(worldRoot, terrainSchema, worldInfo.getWorldTotalTime(),
                     dimensions, additionalSources, sources, lookaheadVerifier);
             if (metadata.changed() && !imported) {
-                verifyCommittedTargets(worldRoot, CubicImportJournal.read(journalPath), true);
+                verifyCommittedTargets(worldRoot, CubicImportJournal.read(
+                        worldRoot.resolve(CubicImportJournal.FILE_NAME)), true);
             }
-            LegacyCubicLevelMetadata.Result cleaned = LegacyCubicLevelMetadata.clean(
-                    levelFile.toPath());
-            if (cleaned.changed()) {
-                LOGGER.info("Removed {} CubicChunks registries, {} stale mod entries, and the "
-                                + "cubic-world flag={} from level.dat. The byte-identical original "
-                                + "is preserved as {}.",
-                        cleaned.getRemovedRegistries(), cleaned.getRemovedMods(),
-                        cleaned.removedWorldFlag(), LegacyCubicLevelMetadata.BACKUP_FILE_NAME);
-            }
+            cleanLevelMetadata(levelFile.toPath());
         } catch (IOException exception) {
             throw new IllegalStateException("Caves Not Cliffs could not safely import legacy "
                     + "CubicChunks storage in " + worldRoot + ": " + exception.getMessage(), exception);
@@ -110,6 +109,11 @@ public final class LegacyCubicSaveImporter {
     static boolean importWorld(Path worldRoot, int terrainSchema, long lastUpdate)
             throws IOException {
         Path normalizedRoot = worldRoot.toAbsolutePath().normalize();
+        CubicImportJournal completed = existingJournal(normalizedRoot);
+        if (completed != null) {
+            verifyCommittedTargets(normalizedRoot, completed);
+            return false;
+        }
         LegacyCubicDimensionMetadata.Result discovery = discoverDimensions(normalizedRoot);
         List<Path> dimensions = discovery.getTrueDimensionRoots();
         List<Path> additionalSources = new ArrayList<Path>(discovery.getMetadataFiles());
@@ -129,23 +133,11 @@ public final class LegacyCubicSaveImporter {
             List<CubicImportJournal.FileRecord> sources,
             CubicDimensionStager.CubeVerifier lookaheadVerifier) throws IOException {
         Path journalPath = worldRoot.resolve(CubicImportJournal.FILE_NAME);
-        Path temporaryJournal = worldRoot.resolve(CubicImportJournal.TEMP_FILE_NAME);
         Path stagingRoot = worldRoot.resolve(STAGING_DIRECTORY);
-        if (Files.exists(temporaryJournal)) {
-            throw new IOException("An interrupted journal update remains at " + temporaryJournal
-                    + "; inspect the save backup before retrying");
-        }
-        if (Files.exists(journalPath)) {
-            CubicImportJournal existing = CubicImportJournal.read(journalPath);
-            if (existing.getState() == CubicImportJournal.State.COMMITTED) {
-                verifyCommittedTargets(worldRoot, existing);
-                return false;
-            }
-            throw incomplete(existing.getState(), journalPath, stagingRoot);
-        }
-        if (Files.exists(stagingRoot)) {
-            throw new IOException("Cubic import staging exists without a journal at " + stagingRoot
-                    + "; inspect and remove only that importer-owned directory before retrying");
+        CubicImportJournal completed = existingJournal(worldRoot);
+        if (completed != null) {
+            verifyCommittedTargets(worldRoot, completed);
+            return false;
         }
         if (sources.isEmpty()) {
             return false;
@@ -290,6 +282,39 @@ public final class LegacyCubicSaveImporter {
                 + journal + "). World startup is blocked. Source region2d/region3d files were not "
                 + "modified; restore the save backup, or remove only importer-owned finite region "
                 + "outputs plus " + staging + " and the journal after verifying rollback.");
+    }
+
+    private static CubicImportJournal existingJournal(Path worldRoot) throws IOException {
+        Path journal = worldRoot.resolve(CubicImportJournal.FILE_NAME);
+        Path temporary = worldRoot.resolve(CubicImportJournal.TEMP_FILE_NAME);
+        Path staging = worldRoot.resolve(STAGING_DIRECTORY);
+        if (Files.exists(temporary)) {
+            throw new IOException("An interrupted journal update remains at " + temporary
+                    + "; inspect the save backup before retrying");
+        }
+        if (!Files.exists(journal)) {
+            if (Files.exists(staging)) {
+                throw new IOException("Cubic import staging exists without a journal at " + staging
+                        + "; inspect and remove only that importer-owned directory before retrying");
+            }
+            return null;
+        }
+        CubicImportJournal existing = CubicImportJournal.read(journal);
+        if (existing.getState() != CubicImportJournal.State.COMMITTED) {
+            throw incomplete(existing.getState(), journal, staging);
+        }
+        return existing;
+    }
+
+    private static void cleanLevelMetadata(Path levelFile) throws IOException {
+        LegacyCubicLevelMetadata.Result cleaned = LegacyCubicLevelMetadata.clean(levelFile);
+        if (cleaned.changed()) {
+            LOGGER.info("Removed {} CubicChunks registries, {} stale mod entries, and the "
+                            + "cubic-world flag={} from level.dat. The byte-identical original "
+                            + "is preserved as {}.",
+                    cleaned.getRemovedRegistries(), cleaned.getRemovedMods(),
+                    cleaned.removedWorldFlag(), LegacyCubicLevelMetadata.BACKUP_FILE_NAME);
+        }
     }
 
     private static int terrainSchema(WorldInfo worldInfo) {

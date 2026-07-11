@@ -56,6 +56,13 @@ public class LegacyCubicSaveImporterTest {
             recordedStructure |= "data/Mineshaft.dat".equals(source.getPath());
         }
         assertTrue(recordedStructure);
+
+        NBTTagCompound vanillaStructure = LegacyCubicStructureMetadataTest.feature(
+                0, 0, 0, LegacyCubicStructureMetadataTest.box(
+                        0, 0, 0, 15, 20, 15));
+        vanillaStructure.removeTag("ChunkY");
+        LegacyCubicStructureMetadataTest.write(world, "Mineshaft.dat",
+                LegacyCubicStructureMetadataTest.structureRoot(vanillaStructure));
         assertFalse(LegacyCubicSaveImporter.importWorld(
                 world, CavesNotCliffsWorldData.CURRENT_SCHEMA, 100L));
     }
