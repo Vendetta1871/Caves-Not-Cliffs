@@ -5,6 +5,8 @@ import net.celestiald.cavesnotcliffs.CavesNotCliffs;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.content.BeeMechanics;
 import net.celestiald.cavesnotcliffs.content.BeeSoundEvents;
+import net.celestiald.cavesnotcliffs.content.BeeFlowerPredicate;
+import net.celestiald.cavesnotcliffs.content.BeeCropGrowth;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.celestiald.cavesnotcliffs.tile.TileEntityBeehive;
 import net.minecraft.block.Block;
@@ -282,30 +284,17 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
         }
 
         public static boolean isFlower(ItemStack stack) {
-            if (stack.isEmpty() || !(stack.getItem() instanceof ItemBlock)) {
-                return false;
-            }
-            Block block = ((ItemBlock) stack.getItem()).getBlock();
-            if (block instanceof BlockFlower || block instanceof BlockDoublePlant) {
-                return true;
-            }
-            return block.getRegistryName() != null
-                    && block.getRegistryName().getResourcePath().contains("flowering_azalea");
+            return BeeFlowerPredicate.isFlowerItem(stack);
         }
 
-        public static boolean isFlowerState(IBlockState state) {
-            Block block = state.getBlock();
-            if (block instanceof BlockFlower || block instanceof BlockDoublePlant) {
-                if (block instanceof BlockDoublePlant
-                        && state.getValue(BlockDoublePlant.VARIANT)
-                        == BlockDoublePlant.EnumPlantType.SUNFLOWER) {
-                    return state.getValue(BlockDoublePlant.HALF)
-                            == BlockDoublePlant.EnumBlockHalf.UPPER;
-                }
-                return true;
-            }
-            return block.getRegistryName() != null
-                    && block.getRegistryName().getResourcePath().contains("flowering_azalea");
+        public static boolean isFlowerAt(net.minecraft.world.IBlockAccess world,
+                BlockPos pos) {
+            return BeeFlowerPredicate.isFlower(world, pos);
+        }
+
+        public static boolean isPollinationTargetAt(
+                net.minecraft.world.IBlockAccess world, BlockPos pos) {
+            return BeeFlowerPredicate.isPollinationTarget(world, pos);
         }
 
         @Override
@@ -717,8 +706,7 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
                 return bee.randomSource().nextFloat() < 0.2F;
             }
             if (bee.ticksExisted % 20 == 0
-                    && !EntityCustom.isFlowerState(
-                            bee.world.getBlockState(bee.savedFlowerPos))) {
+                    && !EntityCustom.isFlowerAt(bee.world, bee.savedFlowerPos)) {
                 bee.savedFlowerPos = null;
                 return false;
             }
@@ -792,8 +780,8 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
                         BlockPos candidate = origin.add(x, y, z);
                         double distance = origin.distanceSq(candidate);
                         if (distance <= 25.0D && distance < bestDistance
-                                && EntityCustom.isFlowerState(
-                                        bee.world.getBlockState(candidate))) {
+                                && EntityCustom.isPollinationTargetAt(
+                                        bee.world, candidate)) {
                             best = candidate;
                             bestDistance = distance;
                         }
@@ -946,8 +934,7 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
             return bee.savedFlowerPos != null
                     && bee.ticksWithoutNectarSinceExitingHive
                             > BeeMechanics.TICKS_BEFORE_GOING_TO_KNOWN_FLOWER
-                    && EntityCustom.isFlowerState(
-                            bee.world.getBlockState(bee.savedFlowerPos))
+                    && EntityCustom.isFlowerAt(bee.world, bee.savedFlowerPos)
                     && bee.getDistanceSqToCenter(bee.savedFlowerPos) > 4.0D;
         }
 
@@ -989,22 +976,8 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
             }
             for (int depth = 1; depth <= 2; depth++) {
                 BlockPos pos = bee.getPosition().down(depth);
-                IBlockState state = bee.world.getBlockState(pos);
-                Block block = state.getBlock();
-                IBlockState grown = null;
-                if (block instanceof BlockCrops
-                        && state.getValue(BlockCrops.AGE)
-                        < ((BlockCrops) block).getMaxAge()) {
-                    grown = state.withProperty(BlockCrops.AGE,
-                            state.getValue(BlockCrops.AGE) + 1);
-                } else if (block instanceof BlockStem
-                        && state.getValue(BlockStem.AGE) < 7) {
-                    grown = state.withProperty(BlockStem.AGE,
-                            state.getValue(BlockStem.AGE) + 1);
-                }
-                if (grown != null) {
-                    bee.world.playEvent(2005, pos, 0);
-                    bee.world.setBlockState(pos, grown, 3);
+                BeeCropGrowth.Result result = BeeCropGrowth.grow(bee.world, pos);
+                if (result.incrementsPollinationCount()) {
                     bee.incrementCropsGrownSincePollination();
                 }
             }

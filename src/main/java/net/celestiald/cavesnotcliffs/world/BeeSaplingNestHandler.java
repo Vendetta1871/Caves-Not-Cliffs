@@ -96,7 +96,7 @@ public final class BeeSaplingNestHandler {
     private static boolean hasFlowers(World world, BlockPos sapling) {
         for (BlockPos candidate : BlockPos.getAllInBox(sapling.add(-2, -1, -2),
                 sapling.add(2, 1, 2))) {
-            if (EntityBee.EntityCustom.isFlowerState(world.getBlockState(candidate))) {
+            if (EntityBee.EntityCustom.isFlowerAt(world, candidate)) {
                 return true;
             }
         }
