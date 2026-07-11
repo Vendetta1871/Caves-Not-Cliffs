@@ -68,6 +68,10 @@ through Y=319, while existing worlds keep their saved generator contract.
   smoke-safe harvesting, Silk Touch occupant preservation, comparators, and dispensers
 - Honeycomb waxing through interaction, crafting, and dispensers, plus honey-block movement and
   piston adhesion including honey/slime incompatibility
+- Normal and soul campfires with four-slot cooking, smoke and signal-smoke columns, projectile
+  lighting, water dousing, hive calming, container handling, drops, sounds, and particles
+- All sixteen dyed candles plus the undyed candle, one-to-four candle stacking, waterlogging,
+  lighting and extinguishing, and the complete hidden candle-cake state family
 
 ### World and save compatibility
 
@@ -112,6 +116,8 @@ Use `/cncbiome` in-game to identify the cave-biome region at your current positi
 - Existing schema-1 draft-v2 saves intentionally retain their original vanilla surface, deep worm
   caves, and upper headroom to prevent chunk seams.
 - Nether and End generation remain unchanged.
+- The tested CubicChunks 0.0.1301 snapshot logs a nonfatal missing optional `MixinItemMap` warning;
+  dedicated-server generation, commands, saving, and clean shutdown still complete normally.
 
 ## Requirements
 
@@ -125,10 +131,10 @@ Caves Not Cliffs 2.0.0 targets Minecraft 1.12.2 and requires:
 Use a Java 8 JDK and the checked-in wrapper; no system Gradle installation is needed:
 
 ```bash
-./gradlew clean build
+./gradlew clean test build verifyReleaseJar
 ```
 
-On Windows, run `gradlew.bat clean build`. The release artifact is
+On Windows, run `gradlew.bat clean test build verifyReleaseJar`. The release artifact is
 `build/libs/cavesnotcliffs-2.0.0.jar`. The build fails if that jar is not reobfuscated, if its
 release metadata is wrong, or if CubicChunks API classes were accidentally bundled.
 

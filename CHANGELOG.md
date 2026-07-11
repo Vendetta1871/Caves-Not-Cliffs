@@ -40,6 +40,14 @@
 - Add bees, generated and sapling-grown nests, three-occupant hives, residence and honey
   production, smoke-safe harvesting, Silk Touch NBT preservation, comparators, dispensers, honey
   products, honey physics, and piston adhesion.
+- Add normal and soul campfires with four-slot cooking, smoke and signal smoke, projectile
+  lighting, water dousing, hive calming, container handling, drops, sounds, particles, and exact
+  recipe contracts.
+- Add all seventeen candle colors and their hidden candle-cake states with one-to-four stacking,
+  waterlogging, lighting, extinguishing, eating, projectiles, drops, sounds, particles, recipes,
+  and canonical resources.
+- Make every Forge 1.12 slab recipe declare subtype metadata and add the standard tuff and retained
+  calcite slab, stair, and wall recipes.
 - Add exhaustive official-oracle, registry, mechanics, migration, asset-graph, dedicated-server
   linkage, reobfuscation, and release-jar verification.
 - Require Forge 14.23.5.2860+ and CubicChunks 1.12.2-0.0.1301.0-SNAPSHOT+ at runtime.
