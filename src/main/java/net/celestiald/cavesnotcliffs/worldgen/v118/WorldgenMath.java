@@ -46,6 +46,16 @@ public final class WorldgenMath {
         return start + delta * (end - start);
     }
 
+    public static double clampedLerp(double start, double end, double delta) {
+        if (delta < 0.0D) {
+            return start;
+        }
+        if (delta > 1.0D) {
+            return end;
+        }
+        return lerp(delta, start, end);
+    }
+
     public static double lerp2(double deltaX, double deltaY,
             double x0y0, double x1y0, double x0y1, double x1y1) {
         return lerp(deltaY, lerp(deltaX, x0y0, x1y0), lerp(deltaX, x0y1, x1y1));
