@@ -213,10 +213,6 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
             boolean rolling = isAngry() && !hasStung() && getAttackTarget() != null
                     && getDistanceSq(getAttackTarget()) < 4.0D;
             setBeeFlag(FLAG_ROLL, rolling);
-            if (ticksExisted % 80 == 0) {
-                playSound(isAngry() ? BeeSoundEvents.BEE_LOOP_AGGRESSIVE
-                        : BeeSoundEvents.BEE_LOOP, 0.6F, 1.0F);
-            }
         }
 
         @Override

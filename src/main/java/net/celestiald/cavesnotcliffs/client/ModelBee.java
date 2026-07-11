@@ -3,6 +3,7 @@ package net.celestiald.cavesnotcliffs.client;
 import net.celestiald.cavesnotcliffs.entity.EntityBee;
 import net.minecraft.client.model.ModelBase;
 import net.minecraft.client.model.ModelRenderer;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.util.math.MathHelper;
@@ -12,6 +13,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 /** Java 1.12 rendering adaptation of Java 1.18.2's exact 64x64 bee geometry. */
 @SideOnly(Side.CLIENT)
 public final class ModelBee extends ModelBase {
+    public static final float CHILD_BODY_SCALE = 0.5F;
+    public static final float CHILD_BODY_Y_OFFSET = 24.0F / 16.0F;
     private final ModelRenderer body;
     private final ModelRenderer stinger;
     private final ModelRenderer leftAntenna;
@@ -67,6 +70,19 @@ public final class ModelBee extends ModelBase {
             float ageInTicks, float netHeadYaw, float headPitch, float scale) {
         setRotationAngles(limbSwing, limbSwingAmount, ageInTicks,
                 netHeadYaw, headPitch, scale, entity);
+        if (isChild) {
+            GlStateManager.pushMatrix();
+            GlStateManager.scale(CHILD_BODY_SCALE, CHILD_BODY_SCALE,
+                    CHILD_BODY_SCALE);
+            GlStateManager.translate(0.0F, CHILD_BODY_Y_OFFSET, 0.0F);
+            renderParts(scale);
+            GlStateManager.popMatrix();
+            return;
+        }
+        renderParts(scale);
+    }
+
+    private void renderParts(float scale) {
         body.render(scale);
         stinger.render(scale);
         leftAntenna.render(scale);
