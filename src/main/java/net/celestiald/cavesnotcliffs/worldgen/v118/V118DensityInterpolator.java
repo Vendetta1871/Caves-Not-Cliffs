@@ -55,6 +55,9 @@ public final class V118DensityInterpolator {
 
     private static final class FlatCache implements DensityFunction.SimpleFunction {
         private final DensityFunction wrapped;
+        private int lastQuartX = Integer.MIN_VALUE;
+        private int lastQuartZ = Integer.MIN_VALUE;
+        private double lastValue;
 
         private FlatCache(DensityFunction wrapped) {
             this.wrapped = wrapped;
@@ -64,7 +67,12 @@ public final class V118DensityInterpolator {
         public double compute(DensityFunction.FunctionContext context) {
             int quartX = Math.floorDiv(context.blockX(), 4) * 4;
             int quartZ = Math.floorDiv(context.blockZ(), 4) * 4;
-            return wrapped.compute(quartX, 0, quartZ);
+            if (quartX != lastQuartX || quartZ != lastQuartZ) {
+                lastQuartX = quartX;
+                lastQuartZ = quartZ;
+                lastValue = wrapped.compute(quartX, 0, quartZ);
+            }
+            return lastValue;
         }
 
         @Override
@@ -82,6 +90,10 @@ public final class V118DensityInterpolator {
         private final DensityFunction wrapped;
         private final int cellWidth;
         private final int cellHeight;
+        private int lastCellX = Integer.MIN_VALUE;
+        private int lastCellY = Integer.MIN_VALUE;
+        private int lastCellZ = Integer.MIN_VALUE;
+        private final double[] corners = new double[8];
 
         private Interpolated(DensityFunction wrapped, int cellWidth, int cellHeight) {
             this.wrapped = wrapped;
@@ -94,17 +106,33 @@ public final class V118DensityInterpolator {
             int x0 = Math.floorDiv(context.blockX(), cellWidth) * cellWidth;
             int y0 = Math.floorDiv(context.blockY(), cellHeight) * cellHeight;
             int z0 = Math.floorDiv(context.blockZ(), cellWidth) * cellWidth;
-            int x1 = x0 + cellWidth;
-            int y1 = y0 + cellHeight;
-            int z1 = z0 + cellWidth;
+            ensureCell(x0, y0, z0);
             double deltaX = Math.floorMod(context.blockX(), cellWidth) / (double) cellWidth;
             double deltaY = Math.floorMod(context.blockY(), cellHeight) / (double) cellHeight;
             double deltaZ = Math.floorMod(context.blockZ(), cellWidth) / (double) cellWidth;
             return WorldgenMath.lerp3(deltaX, deltaY, deltaZ,
-                wrapped.compute(x0, y0, z0), wrapped.compute(x1, y0, z0),
-                wrapped.compute(x0, y1, z0), wrapped.compute(x1, y1, z0),
-                wrapped.compute(x0, y0, z1), wrapped.compute(x1, y0, z1),
-                wrapped.compute(x0, y1, z1), wrapped.compute(x1, y1, z1));
+                corners[0], corners[1], corners[2], corners[3],
+                corners[4], corners[5], corners[6], corners[7]);
+        }
+
+        private void ensureCell(int x0, int y0, int z0) {
+            if (x0 == lastCellX && y0 == lastCellY && z0 == lastCellZ) {
+                return;
+            }
+            lastCellX = x0;
+            lastCellY = y0;
+            lastCellZ = z0;
+            int x1 = x0 + cellWidth;
+            int y1 = y0 + cellHeight;
+            int z1 = z0 + cellWidth;
+            corners[0] = wrapped.compute(x0, y0, z0);
+            corners[1] = wrapped.compute(x1, y0, z0);
+            corners[2] = wrapped.compute(x0, y1, z0);
+            corners[3] = wrapped.compute(x1, y1, z0);
+            corners[4] = wrapped.compute(x0, y0, z1);
+            corners[5] = wrapped.compute(x1, y0, z1);
+            corners[6] = wrapped.compute(x0, y1, z1);
+            corners[7] = wrapped.compute(x1, y1, z1);
         }
 
         @Override
