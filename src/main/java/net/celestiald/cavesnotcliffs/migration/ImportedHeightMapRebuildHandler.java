@@ -14,7 +14,9 @@ public final class ImportedHeightMapRebuildHandler {
     private ImportedHeightMapRebuildHandler() {
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    // Canonical block-state migrations run on the same event and may change opacity.
+    // Relight only after every normal-priority migration has finished mutating the chunk.
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onChunkDataLoad(ChunkDataEvent.Load event) {
         if (event.getWorld().isRemote || !consumeMarker(event.getData())) {
             return;
