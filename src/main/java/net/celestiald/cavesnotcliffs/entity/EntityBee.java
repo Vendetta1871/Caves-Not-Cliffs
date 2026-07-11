@@ -7,6 +7,8 @@ import net.celestiald.cavesnotcliffs.content.BeeMechanics;
 import net.celestiald.cavesnotcliffs.content.BeeSoundEvents;
 import net.celestiald.cavesnotcliffs.content.BeeFlowerPredicate;
 import net.celestiald.cavesnotcliffs.content.BeeCropGrowth;
+import net.celestiald.cavesnotcliffs.content.BeeAngerTargetResolver;
+import net.celestiald.cavesnotcliffs.content.BeeHiveRouting;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.celestiald.cavesnotcliffs.tile.TileEntityBeehive;
 import net.minecraft.block.Block;
@@ -202,11 +204,17 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
             }
             int anger = getRemainingAngerTime();
             if (anger > 0) {
-                setRemainingAngerTime(anger - 1);
-            } else if (getAttackTarget() != null) {
+                int remaining = anger - 1;
+                setRemainingAngerTime(remaining);
+                if (remaining == 0) {
+                    setAttackTarget(null);
+                    persistentAngerTarget = null;
+                }
+            } else if (getAttackTarget() != null || persistentAngerTarget != null) {
                 setAttackTarget(null);
                 persistentAngerTarget = null;
             }
+            abandonBurningHive();
             if (ticksExisted % 20 == 0 && !isHiveValid()) {
                 hivePos = null;
             }
@@ -345,6 +353,18 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
             net.minecraft.tileentity.TileEntity tile = world.getTileEntity(hivePos);
             return tile instanceof TileEntityBeehive
                     && ((TileEntityBeehive) tile).isFireNearby();
+        }
+
+        private void abandonBurningHive() {
+            if (!BeeHiveRouting.shouldAbandonSelectedHive(
+                    hivePos != null, isHiveNearFire())) {
+                return;
+            }
+            blacklistHive(hivePos);
+            hivePos = null;
+            remainingCooldownBeforeLocatingNewHive =
+                    BeeHiveRouting.RETRY_COOLDOWN_AFTER_FIRE;
+            getNavigator().clearPath();
         }
 
         public boolean isHiveValid() {
@@ -614,16 +634,12 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
             if (!bee.isAngry() || bee.hasStung()) {
                 return false;
             }
-            EntityPlayer target = bee.persistentAngerTarget == null ? null
-                    : bee.world.getPlayerEntityByUUID(bee.persistentAngerTarget);
-            if (target == null) {
-                target = bee.world.getNearestAttackablePlayer(bee, 48.0D, 48.0D);
-            }
+            EntityLivingBase target = BeeAngerTargetResolver.resolve(
+                    bee.world, bee.persistentAngerTarget);
             if (target == null) {
                 return false;
             }
             bee.setAttackTarget(target);
-            bee.persistentAngerTarget = target.getUniqueID();
             return true;
         }
     }
@@ -805,7 +821,10 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
                     BeeMechanics.LOCATE_HIVE_COOLDOWN;
             List<TileEntityBeehive> candidates = new ArrayList<>();
             for (net.minecraft.tileentity.TileEntity tile : bee.world.loadedTileEntityList) {
-                if (tile instanceof TileEntityBeehive && !((TileEntityBeehive) tile).isFull()
+                if (tile instanceof TileEntityBeehive
+                        && BeeHiveRouting.canSelectHive(
+                                ((TileEntityBeehive) tile).isFull(),
+                                ((TileEntityBeehive) tile).isFireNearby())
                         && bee.getDistanceSqToCenter(tile.getPos())
                         <= BeeMechanics.HIVE_SEARCH_DISTANCE
                                 * BeeMechanics.HIVE_SEARCH_DISTANCE) {
