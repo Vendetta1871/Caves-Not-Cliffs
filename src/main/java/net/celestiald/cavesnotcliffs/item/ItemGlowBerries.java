@@ -63,6 +63,7 @@ public final class ItemGlowBerries extends ElementsCavesNotCliffs.ModElement {
             IBlockState support = world.getBlockState(supportPos);
             if (!world.isAirBlock(target)
                     || !support.isSideSolid(world, supportPos, EnumFacing.DOWN)
+                    && !LushCaveVinesBlock.isVine(support.getBlock())
                     || !player.canPlayerEdit(target, facing, held)) {
                 return EnumActionResult.FAIL;
             }

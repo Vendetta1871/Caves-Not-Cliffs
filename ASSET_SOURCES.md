@@ -115,6 +115,14 @@ The lava-cauldron model uses the target runtime's matching vanilla cauldron geom
 with its content surface switched to the animated runtime lava texture; no copied lava texture is
 distributed.
 
+The lush-cave block and item textures, blockstates, model geometry, and ninety-four Ogg Vorbis
+files are unmodified Java 1.18.2 client and Java 1.18 asset-index resources. This includes cave
+vines and glow berries; azalea bushes, leaves, roots, and potted variants; moss; both dripleaf
+families; spore blossom; the exact big-dripleaf tilt sounds; and the sweet-berry picking sounds
+used by cave vines. Resource namespaces, no-property variant keys, and the 1.12 item texture path
+are syntax-only adaptations required by Forge 1.12.2. Hidden age-band and waterlogged storage
+blockstates reuse the matching canonical model exactly.
+
 - Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
 - Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
 - Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`

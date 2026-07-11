@@ -1,6 +1,6 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "cavesnotcliffs:blocks/glow_berry_vines"
+    "layer0": "cavesnotcliffs:items/glow_berries"
   }
 }

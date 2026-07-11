@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cross",
+  "textures": {
+    "cross": "cavesnotcliffs:block/cave_vines_lit"
+  }
+}

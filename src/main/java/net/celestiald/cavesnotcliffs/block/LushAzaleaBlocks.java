@@ -193,7 +193,7 @@ public final class LushAzaleaBlocks {
             int distance = 7;
             for (EnumFacing facing : EnumFacing.values()) {
                 IBlockState neighbor = world.getBlockState(pos.offset(facing));
-                int neighborDistance = isLog(neighbor) ? 0
+                int neighborDistance = isLog(neighbor, world, pos.offset(facing)) ? 0
                         : neighbor.getBlock() instanceof AzaleaLeaves
                         ? neighbor.getValue(DISTANCE) : 7;
                 distance = Math.min(distance, neighborDistance + 1);
@@ -204,8 +204,8 @@ public final class LushAzaleaBlocks {
             return state.withProperty(DISTANCE, distance);
         }
 
-        private static boolean isLog(IBlockState state) {
-            return state.getBlock().isWood(null, null);
+        private static boolean isLog(IBlockState state, IBlockAccess world, BlockPos pos) {
+            return state.getBlock().isWood(world, pos);
         }
 
         @Override

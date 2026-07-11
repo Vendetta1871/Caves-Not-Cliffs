@@ -70,6 +70,7 @@ public class LushCaveRuntimeContractTest {
 
     @Test
     public void soundCatalogHasEveryUniqueCanonicalEvent() {
+        net.minecraft.init.Bootstrap.register();
         Set<String> ids = new HashSet<>();
         LushCaveSounds.events().forEach(sound ->
                 assertTrue(ids.add(sound.getSoundName().toString())));

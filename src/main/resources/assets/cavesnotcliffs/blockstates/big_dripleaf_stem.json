@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "cavesnotcliffs:block/big_dripleaf_stem",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "cavesnotcliffs:block/big_dripleaf_stem"
+    },
+    "facing=south": {
+      "model": "cavesnotcliffs:block/big_dripleaf_stem",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "cavesnotcliffs:block/big_dripleaf_stem",
+      "y": 270
+    }
+  }
+}
