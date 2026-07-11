@@ -115,8 +115,9 @@ public final class LegacyChunkMigrationHandler {
                             + "loaded boundary halo is unavailable; migration remains at version {}",
                     result.getDeferredBlocks(), result.getResultingVersion());
         } else if (result.getPreservedBlocks() > 0) {
-            // An absolute-top small dripleaf has no lossless canonical two-block representation.
-            // Keep the legacy source and honest schema version, but do not queue futile retries.
+            // A top-edge or obstructed small dripleaf has no lossless canonical two-block
+            // representation. Keep both world states and the honest schema version, but do not
+            // queue futile retries; a later load can converge if the obstruction changes.
             rememberPreserved(storage, result.getResultingVersion());
         }
     }

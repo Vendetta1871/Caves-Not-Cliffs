@@ -150,7 +150,7 @@ public final class LegacyChunkMigration {
 
         /**
          * Legacy blocks intentionally retained because their canonical multi-block state cannot
-         * fit inside the absolute build height without moving or deleting world content.
+         * be represented without moving or deleting world content.
          */
         public int getPreservedBlocks() {
             return preservedBlocks;
@@ -372,7 +372,7 @@ public final class LegacyChunkMigration {
                     ? new int[]{1, 0, 0} : new int[]{0, 1, 0};
         }
         if (!volume.isAirAt(x, upperY, z)) {
-            return new int[]{0, 1, 0};
+            return new int[]{0, 0, 1};
         }
 
         int upperMeta = LushCaveMechanics.smallDripleafMeta(

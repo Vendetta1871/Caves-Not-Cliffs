@@ -371,6 +371,44 @@ public class LegacyChunkMigrationTest {
     }
 
     @Test
+    public void preservesObstructedSmallDripleafUntilAReplayCanBuildThePair() {
+        NBTTagCompound fixture = emptyCubeFixture(
+                CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION);
+        NBTTagList blocks = fixture.getTagList("blocks", 10);
+        addBlock(blocks, 0, 31, 0, "baby_dripleaf");
+        addBlock(blocks, 0, 32, 0, "calcite");
+        FixtureVolume volume = new FixtureVolume(fixture, "small_dripleaf");
+
+        LegacyChunkMigration.Result first = LegacyChunkMigration.migrate(
+                ContentMigrationVersion.read(fixture), 0L, bounds(fixture), volume);
+        assertFalse(first.isComplete());
+        assertEquals(CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION,
+                first.getResultingVersion());
+        assertEquals(0, first.getConvertedBlocks());
+        assertEquals(0, first.getDeferredBlocks());
+        assertEquals(1, first.getPreservedBlocks());
+        assertEquals("baby_dripleaf", volume.pathAt(0, 31, 0));
+        assertEquals("calcite", volume.pathAt(0, 32, 0));
+
+        LegacyChunkMigration.Result blockedReload = LegacyChunkMigration.migrate(
+                first.getResultingVersion(), 0L, bounds(fixture), volume);
+        assertEquals(0, blockedReload.getDeferredBlocks());
+        assertEquals(1, blockedReload.getPreservedBlocks());
+        assertEquals("baby_dripleaf", volume.pathAt(0, 31, 0));
+        assertEquals("calcite", volume.pathAt(0, 32, 0));
+
+        volume.removeAt(0, 32, 0);
+        LegacyChunkMigration.Result unblockedReload = LegacyChunkMigration.migrate(
+                blockedReload.getResultingVersion(), 0L, bounds(fixture), volume);
+        assertTrue(unblockedReload.isComplete());
+        assertEquals(2, unblockedReload.getConvertedBlocks());
+        assertEquals(0, unblockedReload.getDeferredBlocks());
+        assertEquals(0, unblockedReload.getPreservedBlocks());
+        assertEquals("small_dripleaf", volume.pathAt(0, 31, 0));
+        assertEquals("small_dripleaf", volume.pathAt(0, 32, 0));
+    }
+
+    @Test
     public void absoluteEdgesDoNotDeferPointedDripstoneOrBottomCaveVines() {
         for (int[] height : new int[][]{{0, 256}, {-64, 384}}) {
             int minY = height[0];
@@ -587,6 +625,17 @@ public class LegacyChunkMigrationTest {
 
         private void makeUnstorable(int x, int y, int z) {
             unstorable.add(coordinates(x, y, z));
+        }
+
+        private void removeAt(int x, int y, int z) {
+            for (int index = 0; index < blocks.tagCount(); index++) {
+                NBTTagCompound block = blocks.getCompoundTagAt(index);
+                if (block.getInteger("x") == x && block.getInteger("y") == y
+                        && block.getInteger("z") == z) {
+                    blocks.removeTag(index);
+                    return;
+                }
+            }
         }
 
         private String coordinates(int x, int y, int z) {
