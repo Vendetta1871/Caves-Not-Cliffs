@@ -1,6 +1,10 @@
 package net.celestiald.cavesnotcliffs.world;
 
+import net.minecraft.block.BlockFalling;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkPrimer;
 import net.minecraft.world.gen.ChunkGeneratorOverworld;
 import net.minecraft.world.gen.ChunkGeneratorSettings;
@@ -11,6 +15,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Invokes only the six structure-map stages retained from the 1.12 Overworld generator.
@@ -25,6 +30,7 @@ final class VanillaStructureBridge {
     private static final String SETTINGS_SRG_FIELD = "field_186000_s";
 
     private final World world;
+    private final IChunkGenerator delegate;
     private final List<MapGenStructure> generators;
     private final List<String> names;
 
@@ -38,6 +44,7 @@ final class VanillaStructureBridge {
                 + (generator == null ? "null" : generator.getClass().getName()));
         }
         this.world = world;
+        delegate = generator;
         ChunkGeneratorOverworld overworld = (ChunkGeneratorOverworld) generator;
         ChunkGeneratorSettings settings = readField(overworld, ChunkGeneratorOverworld.class,
             SETTINGS_FIELD, SETTINGS_SRG_FIELD, ChunkGeneratorSettings.class);
@@ -64,6 +71,32 @@ final class VanillaStructureBridge {
         }
     }
 
+    /** Runs only MapGenStructure's population stage with vanilla's chunk seed. */
+    void populate(int chunkX, int chunkZ) {
+        if (generators.isEmpty()) {
+            return;
+        }
+        Random random = new Random(populationSeed(world.getSeed(), chunkX, chunkZ));
+        ChunkPos position = new ChunkPos(chunkX, chunkZ);
+        boolean previousFallInstantly = BlockFalling.fallInstantly;
+        BlockFalling.fallInstantly = true;
+        try {
+            for (MapGenStructure generator : generators) {
+                generator.generateStructure(world, random, position);
+            }
+        } finally {
+            BlockFalling.fallInstantly = previousFallInstantly;
+        }
+    }
+
+    void recreateStructures(Chunk column) {
+        delegate.recreateStructures(column, column.x, column.z);
+    }
+
+    BlockPos getClosestStructure(String name, BlockPos position, boolean findUnexplored) {
+        return delegate.getNearestStructurePos(world, name, position, findUnexplored);
+    }
+
     int structureCount() {
         return generators.size();
     }
@@ -88,6 +121,13 @@ final class VanillaStructureBridge {
             resolveField(ChunkGeneratorOverworld.class, definition.mcpField,
                 definition.srgField);
         }
+    }
+
+    static long populationSeed(long worldSeed, int chunkX, int chunkZ) {
+        Random random = new Random(worldSeed);
+        long xMultiplier = random.nextLong() / 2L * 2L + 1L;
+        long zMultiplier = random.nextLong() / 2L * 2L + 1L;
+        return ((long) chunkX * xMultiplier + (long) chunkZ * zMultiplier) ^ worldSeed;
     }
 
     private static List<StructureDefinition> enabledDefinitions(boolean mapFeaturesEnabled,

@@ -41,6 +41,26 @@ public class VanillaStructureBridgeTest {
     }
 
     @Test
+    public void structurePopulationUsesVanillasOddMultiplierChunkSeed() {
+        long[] worldSeeds = {
+            0L, 1L, -1L, 123456789L, Long.MIN_VALUE, Long.MAX_VALUE
+        };
+        int[][] chunks = {
+            {0, 0}, {1, -1}, {-17, 31}, {12345, -98765},
+            {Integer.MIN_VALUE, Integer.MAX_VALUE}, {33554432, -33554433}
+        };
+        long[] expected = {
+            0L, 5917667254063506247L, 3535419369914194609L,
+            -5396765933884790277L, 2710116157784231745L, 5286005299613532062L
+        };
+        for (int index = 0; index < worldSeeds.length; ++index) {
+            assertEquals("seed=" + worldSeeds[index], expected[index],
+                VanillaStructureBridge.populationSeed(worldSeeds[index], chunks[index][0],
+                    chunks[index][1]));
+        }
+    }
+
+    @Test
     public void rejectsMissingSettingsInsteadOfSilentlyEnablingStructures() {
         try {
             VanillaStructureBridge.enabledStructureNames(true, null);
