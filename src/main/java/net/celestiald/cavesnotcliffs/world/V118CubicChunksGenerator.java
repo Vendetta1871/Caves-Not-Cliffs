@@ -32,8 +32,8 @@ import java.util.Set;
  *
  * <p>This generator retains the selected 1.12 chunk generator for the structure-only bridge, but
  * intentionally does not invoke its terrain or general decorator pipeline. It also does not invoke
- * the legacy cave carver or legacy deep ores. Native ordinary 1.18 ore/blob features run through
- * their isolated decoration bridge after structure population.</p>
+ * the legacy cave carver or legacy deep ores. Native ordinary 1.18 ore/blob and lush-cave
+ * features run through isolated decoration bridges after structure population.</p>
  */
 public final class V118CubicChunksGenerator implements ICubeGenerator {
     private static final int CUBE_SIZE = 16;
@@ -51,6 +51,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
     private final V118GeodeWorldBridge geodes;
     private final V118DripstoneWorldBridge dripstones;
     private final V118OreWorldBridge ordinaryOres;
+    private final V118LushCaveWorldBridge lushCaves;
     private ChunkPrimer cachedStructureColumn;
     private int cachedStructureX;
     private int cachedStructureZ;
@@ -88,6 +89,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         V118OreBlockMapper oreBlocks = V118OreBlockMapper.fromRegisteredBlocks();
         dripstones = new V118DripstoneWorldBridge(world, this, oreBlocks);
         ordinaryOres = new V118OreWorldBridge(world, this, oreBlocks);
+        lushCaves = new V118LushCaveWorldBridge(world, this);
         registerActiveGenerator(world, this);
     }
 
@@ -155,11 +157,12 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
             return;
         }
         if (cube.getY() == 0) {
+            Set<V118Biome> decorationBiomes = decorationBiomeUnion(cube.getX(), cube.getZ());
             structures.populate(cube.getX(), cube.getZ());
             geodes.populate(cube.getX(), cube.getZ());
-            Set<V118Biome> regionBiomes = decorationBiomeUnion(cube.getX(), cube.getZ());
-            dripstones.populateLarge(cube.getX(), cube.getZ(), regionBiomes);
-            ordinaryOres.populate(cube.getX(), cube.getZ(), regionBiomes, dripstones);
+            dripstones.populateLarge(cube.getX(), cube.getZ(), decorationBiomes);
+            ordinaryOres.populate(cube.getX(), cube.getZ(), decorationBiomes, dripstones);
+            lushCaves.populate(cube.getX(), cube.getZ(), decorationBiomes);
         }
         TerrainColumn column = columns.column(cube.getX(), cube.getZ());
 
@@ -263,7 +266,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
 
     static Box fullPopulationRequirements(int cubeY) {
         if (isGeneratedCube(cubeY)) {
-            // Ordinary features are executed by cube Y=0 and can cross one X/Z cube boundary.
+            // Native features are executed by cube Y=0 and can cross one X/Z cube boundary.
             // Requiring all nine sources here makes every vertical target complete before it can
             // be exposed, independent of which target cube was requested first.
             return new Box(-1, -cubeY, -1, 1, -cubeY, 1);
