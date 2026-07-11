@@ -2,6 +2,7 @@ package net.celestiald.cavesnotcliffs.migration;
 
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsFiniteWorldType;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldData;
+import net.celestiald.cavesnotcliffs.world.V118BlockStateMapper;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
@@ -84,8 +85,10 @@ public final class LegacyCubicSaveImporter {
             // that the narrow, deterministic cleaner does not understand.
             LegacyCubicLevelMetadata.Result metadata = LegacyCubicLevelMetadata.inspect(
                     levelFile.toPath(), !Files.exists(journalPath));
+            CubicDimensionStager.CubeVerifier lookaheadVerifier = lookaheadVerifier(
+                    terrainSchema, worldInfo, levelFile.toPath());
             boolean imported = importWorld(worldRoot, terrainSchema, worldInfo.getWorldTotalTime(),
-                    dimensions, additionalSources, sources);
+                    dimensions, additionalSources, sources, lookaheadVerifier);
             if (metadata.changed() && !imported) {
                 verifyCommittedTargets(worldRoot, CubicImportJournal.read(journalPath), true);
             }
@@ -118,12 +121,13 @@ public final class LegacyCubicSaveImporter {
                 CubicImportJournal.captureSources(
                         normalizedRoot, dimensions, additionalSources);
         return importWorld(normalizedRoot, terrainSchema, lastUpdate, dimensions,
-                additionalSources, sources);
+                additionalSources, sources, null);
     }
 
     private static boolean importWorld(Path worldRoot, int terrainSchema, long lastUpdate,
             List<Path> dimensions, List<Path> metadataFiles,
-            List<CubicImportJournal.FileRecord> sources) throws IOException {
+            List<CubicImportJournal.FileRecord> sources,
+            CubicDimensionStager.CubeVerifier lookaheadVerifier) throws IOException {
         Path journalPath = worldRoot.resolve(CubicImportJournal.FILE_NAME);
         Path temporaryJournal = worldRoot.resolve(CubicImportJournal.TEMP_FILE_NAME);
         Path stagingRoot = worldRoot.resolve(STAGING_DIRECTORY);
@@ -167,14 +171,17 @@ public final class LegacyCubicSaveImporter {
             Path stagingDimension = stagingRoot.resolve(String.format("dimension-%04d", index));
             LOGGER.info("Staging legacy cubic dimension {} from {}", name, dimension);
             CubicDimensionStager.Result result = CubicDimensionStager.stage(
-                    dimension, stagingDimension, ".".equals(name), terrainSchema, lastUpdate);
+                    dimension, stagingDimension, ".".equals(name), terrainSchema, lastUpdate,
+                    ".".equals(name) ? lookaheadVerifier : null);
             journal.recordDimension(name, result.getColumns(), result.getCubes(),
                     result.getOutputs());
             journal.writeAtomic(journalPath);
             staged.put(name, new StagedDimension(dimension, stagingDimension, result));
-            LOGGER.info("Verified {} columns and {} cubes in {}; discarded {} empty lookahead columns",
+            LOGGER.info("Verified {} columns and {} cubes in {}; discarded {} empty lookahead "
+                            + "columns and approved {} native terrain columns for regeneration",
                     result.getColumns(), result.getCubes(), name,
-                    result.getDiscardedLookaheadColumns());
+                    result.getDiscardedLookaheadColumns(),
+                    result.getVerifiedRegenerationColumns());
         }
 
         journal.transition(CubicImportJournal.State.DISCOVERED,
@@ -293,6 +300,41 @@ public final class LegacyCubicSaveImporter {
         WorldType selected = worldInfo.getTerrainType();
         return selected instanceof CavesNotCliffsFiniteWorldType
                 ? ((CavesNotCliffsFiniteWorldType) selected).getTerrainSchema() : 0;
+    }
+
+    private static CubicDimensionStager.CubeVerifier lookaheadVerifier(int terrainSchema,
+            WorldInfo worldInfo, Path levelFile) throws IOException {
+        if (terrainSchema != CavesNotCliffsWorldData.CURRENT_SCHEMA) {
+            return null;
+        }
+        final CavesNotCliffsWorldData contract = CavesNotCliffsWorldData.read(worldInfo);
+        if (contract == null) {
+            throw new IOException("Schema-2 cubic storage has no persisted Caves Not Cliffs "
+                    + "generator contract in level.dat");
+        }
+        final LegacyCubicRegistrySnapshot registry =
+                LegacyCubicRegistrySnapshot.read(levelFile);
+        final long seed = worldInfo.getSeed();
+        return new CubicDimensionStager.CubeVerifier() {
+            private LegacySchema2LookaheadOracle oracle;
+
+            @Override
+            public void verifyCube(int cubeX, int cubeY, int cubeZ,
+                    NBTTagCompound cubeRoot) throws CubicColumnConversionException {
+                if (oracle == null) {
+                    V118BlockStateMapper mapper;
+                    try {
+                        mapper = V118BlockStateMapper.fromRegisteredBlocks();
+                    } catch (RuntimeException exception) {
+                        throw new CubicColumnConversionException(
+                                "Could not resolve registered schema-2 terrain states", exception);
+                    }
+                    oracle = LegacySchema2LookaheadOracle.create(
+                            contract, seed, registry, mapper);
+                }
+                oracle.verifyCube(cubeX, cubeY, cubeZ, cubeRoot);
+            }
+        };
     }
 
     private static WorldInfo readWorldInfo(Path levelFile) throws IOException {
