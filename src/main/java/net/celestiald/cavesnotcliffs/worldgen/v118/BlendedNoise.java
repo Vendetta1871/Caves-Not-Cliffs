@@ -1,7 +1,7 @@
 package net.celestiald.cavesnotcliffs.worldgen.v118;
 
 /** Exact Java 1.18.2 legacy three-Perlin base-density sampler. */
-public final class BlendedNoise {
+public final class BlendedNoise implements DensityFunction.SimpleFunction {
     private static final int[] LIMIT_OCTAVES = range(-15, 0);
     private static final int[] MAIN_OCTAVES = range(-7, 0);
 
@@ -73,6 +73,11 @@ public final class BlendedNoise {
             octaveScale /= 2.0D;
         }
         return clampedLerp(minValue / 512.0D, maxValue / 512.0D, blend) / 128.0D;
+    }
+
+    @Override
+    public double compute(DensityFunction.FunctionContext context) {
+        return compute(context.blockX(), context.blockY(), context.blockZ());
     }
 
     public double minValue() {
