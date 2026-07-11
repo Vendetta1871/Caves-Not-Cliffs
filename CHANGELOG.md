@@ -4,6 +4,8 @@
 
 - Add the opt-in `Caves Not Cliffs` CubicChunks world type with finite Y=-64..319 bounds.
 - Add deterministic 3D normal, lush, and dripstone cave-biome regions.
+- Generate schema-2 lush caves with the exact 1.18.2 moss, clay, cave-vine, dripleaf,
+  root-system, azalea-tree, spore-blossom, and classic-vine feature pipelines.
 - Add deepslate, tuff, bottom bedrock, deep caves, and all vanilla deepslate ore variants below Y=0.
 - Add `/cncbiome` for inspecting cave-biome regions.
 - Add a visible animated axolotl model and aquatic movement.

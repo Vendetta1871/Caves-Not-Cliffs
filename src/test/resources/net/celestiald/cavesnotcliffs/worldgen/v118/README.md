@@ -249,3 +249,26 @@ inside `OreFeature`.
   `d0f6c6ea79b865c11d1e556aee36611972725636ea4276294bbcc40d0f3ab4ea`
 - Ore-decoration TSV SHA-256:
   `3ee4112bdfaf8e0c18ff253d13ba7abeda106bac78e29d9773e59f9493a29261`
+
+## Lush-cave vegetal decoration
+
+`lush-cave-placement-oracle-1.18.2.tsv` discovers and executes the complete placement-modifier
+chains for the seven lush-cave entries in the official `VEGETAL_DECORATION` step. Its 126 cases
+cover every native terrain profile, all six edge seeds, negative chunks, the exact global feature
+indices 22 through 28, environment scans, height anchors, counts, and terminal biome filters.
+
+`lush-cave-decoration-oracle-1.18.2.tsv` then runs those registered placed features against a
+deterministic 5-by-5 sparse chunk region. It hashes every final moss, clay, water, plant, cave-vine,
+dripleaf, root-system, azalea-tree, spore-blossom, and vine state after their configured-feature
+random calls have been interleaved with placement sampling. The standalone bootstrap explicitly
+binds the flattened contents of the official 1.18.2 block and fluid tag JSON used by these
+features; no production backport classes are on the oracle classpath.
+
+- Lush-placement harness SHA-256:
+  `fa5141c5f9d920bcbb15c080a6dc541628eac95ce00ee1ba8b2b5bb992eda358`
+- Lush-placement TSV SHA-256:
+  `d304e4b24169d0ff9eff519f946627344dc2c31e1c2bd5e1087a9aa07f633f78`
+- Lush-decoration harness SHA-256:
+  `7c1b944c04f260797d519aa78e66caabb279619c92f1958034702704cdc1d35c`
+- Lush-decoration TSV SHA-256:
+  `e51587ee5daf51590a4e626df52c716b78496c3e0c561b44609a31f1e4ab74df`
