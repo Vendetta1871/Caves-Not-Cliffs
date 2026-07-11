@@ -52,6 +52,14 @@ public final class LegacyChunkMigration {
             return blockPathAt(x, y, z) == null;
         }
 
+        /**
+         * Reports whether the position can be inspected without forcing another chunk/cube to
+         * load. Boundary-sensitive conversions must defer while their one-block halo is absent.
+         */
+        default boolean isPositionAvailable(int x, int y, int z) {
+            return true;
+        }
+
         /** Replaces the position with the target's default state and reports success. */
         boolean replace(int x, int y, int z, String targetRegistryPath);
 
@@ -65,6 +73,16 @@ public final class LegacyChunkMigration {
         default boolean replaceState(int x, int y, int z, String targetRegistryPath,
                 int metadata) {
             return replace(x, y, z, targetRegistryPath, metadata);
+        }
+
+        /**
+         * Atomically replaces two positions. Implementations must leave both original states
+         * intact on failure; the default fails closed because a partial plant is never valid.
+         */
+        default boolean replacePair(int firstX, int firstY, int firstZ,
+                String firstTarget, int firstMetadata, int secondX, int secondY, int secondZ,
+                String secondTarget, int secondMetadata) {
+            return false;
         }
 
         default void scheduleUpdate(int x, int y, int z, String targetRegistryPath,
@@ -192,13 +210,13 @@ public final class LegacyChunkMigration {
     }
 
     private static int[] migratePointedDripstone(Bounds bounds, Volume volume) {
-        List<Conversion> conversions = collectPointedConversions(bounds, volume);
-        if (!conversions.isEmpty() && !volume.hasTarget(POINTED_DRIPSTONE_PATH)) {
-            return new int[]{0, conversions.size()};
+        ConversionPlan plan = collectPointedConversions(bounds, volume);
+        if (!plan.conversions.isEmpty() && !volume.hasTarget(POINTED_DRIPSTONE_PATH)) {
+            return new int[]{0, plan.deferred + plan.conversions.size()};
         }
         int converted = 0;
-        int deferred = 0;
-        for (Conversion conversion : conversions) {
+        int deferred = plan.deferred;
+        for (Conversion conversion : plan.conversions) {
             if (volume.replaceState(conversion.x, conversion.y, conversion.z,
                     POINTED_DRIPSTONE_PATH, conversion.metadata)) {
                 converted++;
@@ -209,29 +227,31 @@ public final class LegacyChunkMigration {
         return new int[]{converted, deferred};
     }
 
-    private static List<Conversion> collectPointedConversions(Bounds bounds, Volume volume) {
+    private static ConversionPlan collectPointedConversions(Bounds bounds, Volume volume) {
         List<Conversion> conversions = new ArrayList<>();
+        int deferred = 0;
         for (int x = bounds.minX; x < bounds.minX + bounds.sizeX; x++) {
             for (int y = bounds.minY; y < bounds.minY + bounds.sizeY; y++) {
                 for (int z = bounds.minZ; z < bounds.minZ + bounds.sizeZ; z++) {
                     String path = volume.blockPathAt(x, y, z);
                     if (isLegacyPointedDripstone(path)) {
+                        int forwardY = legacyRootForwardY(path, y);
+                        if (forwardY != y
+                                && !volume.isPositionAvailable(x, forwardY, z)) {
+                            deferred++;
+                            continue;
+                        }
                         conversions.add(new Conversion(x, y, z,
-                                metadataForLegacySegment(path, x, y, z, bounds, volume)));
+                                metadataForLegacySegment(path, x, y, z, volume)));
                     }
                 }
             }
         }
-        return conversions;
+        return new ConversionPlan(conversions, deferred);
     }
 
     public static int metadataForLegacySegment(String path, int x, int y, int z,
             Volume volume) {
-        return metadataForLegacySegment(path, x, y, z, null, volume);
-    }
-
-    private static int metadataForLegacySegment(String path, int x, int y, int z,
-            Bounds bounds, Volume volume) {
         if ("stalactite".equals(path) || "top_stalactite".equals(path)) {
             return PointedDripstoneMechanics.metadata(false, Thickness.TIP);
         }
@@ -239,8 +259,7 @@ public final class LegacyChunkMigration {
             return PointedDripstoneMechanics.metadata(false, Thickness.MIDDLE);
         }
         if ("bottom_stalactite".equals(path)) {
-            String forward = inside(bounds, x, y - 1, z)
-                    ? volume.blockPathAt(x, y - 1, z) : null;
+            String forward = volume.blockPathAt(x, y - 1, z);
             Thickness thickness = "top_stalactite".equals(forward)
                     || "stalactite".equals(forward) ? Thickness.FRUSTUM : Thickness.BASE;
             return PointedDripstoneMechanics.metadata(false, thickness);
@@ -252,13 +271,22 @@ public final class LegacyChunkMigration {
             return PointedDripstoneMechanics.metadata(true, Thickness.MIDDLE);
         }
         if ("bottom_stalagmite".equals(path)) {
-            String forward = inside(bounds, x, y + 1, z)
-                    ? volume.blockPathAt(x, y + 1, z) : null;
+            String forward = volume.blockPathAt(x, y + 1, z);
             Thickness thickness = "top_stalagmite".equals(forward)
                     || "stalagmite".equals(forward) ? Thickness.FRUSTUM : Thickness.BASE;
             return PointedDripstoneMechanics.metadata(true, thickness);
         }
         throw new IllegalArgumentException("Not a legacy pointed-dripstone segment: " + path);
+    }
+
+    private static int legacyRootForwardY(String path, int y) {
+        if ("bottom_stalactite".equals(path)) {
+            return y - 1;
+        }
+        if ("bottom_stalagmite".equals(path)) {
+            return y + 1;
+        }
+        return y;
     }
 
     private static int[] migrateLushStates(Bounds bounds, Volume volume) {
@@ -268,8 +296,19 @@ public final class LegacyChunkMigration {
             for (int y = bounds.minY; y < bounds.minY + bounds.sizeY; y++) {
                 for (int z = bounds.minZ; z < bounds.minZ + bounds.sizeZ; z++) {
                     String source = volume.blockPathAt(x, y, z);
-                    Target target = lushTarget(source, x, y, z, volume,
-                            y > bounds.minY);
+                    if ((LEGACY_GLOWING_VINE.equals(source)
+                            || LEGACY_PLAIN_VINE.equals(source))
+                            && !volume.isPositionAvailable(x, y - 1, z)) {
+                        deferred++;
+                        continue;
+                    }
+                    if (LEGACY_SMALL_DRIPLEAF.equals(source)) {
+                        int[] smallDripleaf = migrateSmallDripleaf(x, y, z, volume);
+                        converted += smallDripleaf[0];
+                        deferred += smallDripleaf[1];
+                        continue;
+                    }
+                    Target target = lushTarget(source, x, y, z, volume);
                     if (target == null) {
                         continue;
                     }
@@ -286,31 +325,46 @@ public final class LegacyChunkMigration {
                             volume.scheduleUpdate(x, y, z, target.path, tilt.getDelay());
                         }
                     }
-                    if (LEGACY_SMALL_DRIPLEAF.equals(source)
-                            && y + 1 < bounds.minY + bounds.sizeY
-                            && volume.isAirAt(x, y + 1, z)) {
-                        int upperMeta = LushCaveMechanics.smallDripleafMeta(
-                                NORTH_HORIZONTAL_INDEX, true, false);
-                        if (volume.replaceState(x, y + 1, z, "small_dripleaf", upperMeta)) {
-                            converted++;
-                        } else {
-                            deferred++;
-                        }
-                    }
                 }
             }
         }
         return new int[]{converted, deferred};
     }
 
-    private static Target lushTarget(String source, int x, int y, int z, Volume volume,
-            boolean belowInBounds) {
+    private static int[] migrateSmallDripleaf(int x, int y, int z, Volume volume) {
+        int upperY = y + 1;
+        if (!volume.isPositionAvailable(x, upperY, z)
+                || !volume.hasTarget("small_dripleaf")) {
+            return new int[]{0, 1};
+        }
+
+        int lowerMeta = LushCaveMechanics.smallDripleafMeta(
+                NORTH_HORIZONTAL_INDEX, false, false);
+        String upperPath = volume.blockPathAt(x, upperY, z);
+        if ("small_dripleaf".equals(upperPath)
+                && LushCaveMechanics.dripleafUpper(
+                        volume.blockMetadataAt(x, upperY, z))) {
+            return volume.replaceState(x, y, z, "small_dripleaf", lowerMeta)
+                    ? new int[]{1, 0} : new int[]{0, 1};
+        }
+        if (!volume.isAirAt(x, upperY, z)) {
+            return new int[]{0, 1};
+        }
+
+        int upperMeta = LushCaveMechanics.smallDripleafMeta(
+                NORTH_HORIZONTAL_INDEX, true, false);
+        return volume.replacePair(x, y, z, "small_dripleaf", lowerMeta,
+                x, upperY, z, "small_dripleaf", upperMeta)
+                ? new int[]{2, 0} : new int[]{0, 1};
+    }
+
+    private static Target lushTarget(String source, int x, int y, int z, Volume volume) {
         if (LEGACY_GLOWING_VINE.equals(source) || LEGACY_PLAIN_VINE.equals(source)) {
             boolean berries = LEGACY_GLOWING_VINE.equals(source);
-            String below = belowInBounds ? volume.blockPathAt(x, y - 1, z) : null;
-            boolean body = belowInBounds && (LEGACY_GLOWING_VINE.equals(below)
+            String below = volume.blockPathAt(x, y - 1, z);
+            boolean body = LEGACY_GLOWING_VINE.equals(below)
                     || LEGACY_PLAIN_VINE.equals(below)
-                    || LushCaveMechanics.isCaveVine(below));
+                    || LushCaveMechanics.isCaveVine(below);
             if (body) {
                 return new Target(LushCaveMechanics.CAVE_VINES_PLANT,
                         LushCaveMechanics.caveVinePlantMeta(berries));
@@ -318,10 +372,6 @@ public final class LegacyChunkMigration {
             int age = LushCaveMechanics.CAVE_VINE_MAX_AGE;
             return new Target(LushCaveMechanics.caveVineHeadPath(age),
                     LushCaveMechanics.caveVineHeadMeta(age, berries));
-        }
-        if (LEGACY_SMALL_DRIPLEAF.equals(source)) {
-            return new Target("small_dripleaf", LushCaveMechanics.smallDripleafMeta(
-                    NORTH_HORIZONTAL_INDEX, false, false));
         }
         if (LEGACY_BIG_DRIPLEAF_STEM.equals(source)) {
             return new Target("big_dripleaf_stem",
@@ -336,12 +386,6 @@ public final class LegacyChunkMigration {
                     NORTH_HORIZONTAL_INDEX, LushCaveMechanics.Tilt.FULL));
         }
         return null;
-    }
-
-    private static boolean inside(Bounds bounds, int x, int y, int z) {
-        return bounds == null || x >= bounds.minX && x < bounds.minX + bounds.sizeX
-                && y >= bounds.minY && y < bounds.minY + bounds.sizeY
-                && z >= bounds.minZ && z < bounds.minZ + bounds.sizeZ;
     }
 
     public static boolean isLegacyPointedDripstone(String path) {
@@ -422,6 +466,16 @@ public final class LegacyChunkMigration {
             this.y = y;
             this.z = z;
             this.metadata = metadata;
+        }
+    }
+
+    private static final class ConversionPlan {
+        private final List<Conversion> conversions;
+        private final int deferred;
+
+        private ConversionPlan(List<Conversion> conversions, int deferred) {
+            this.conversions = conversions;
+            this.deferred = deferred;
         }
     }
 

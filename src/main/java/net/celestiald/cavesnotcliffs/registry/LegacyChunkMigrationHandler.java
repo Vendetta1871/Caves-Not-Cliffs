@@ -5,6 +5,7 @@ import io.github.opencubicchunks.cubicchunks.api.world.CubeDataEvent;
 import io.github.opencubicchunks.cubicchunks.api.world.ICube;
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld;
 import net.celestiald.cavesnotcliffs.CavesNotCliffs;
+import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -193,18 +194,30 @@ public final class LegacyChunkMigrationHandler {
 
         @Override
         public String blockPathAt(int x, int y, int z) {
+            if (outsideBuildHeight(y)) {
+                return null;
+            }
             return path(chunk.getBlockState(new BlockPos(x, y, z)));
         }
 
         @Override
         public int blockMetadataAt(int x, int y, int z) {
+            if (outsideBuildHeight(y)) {
+                return 0;
+            }
             IBlockState state = chunk.getBlockState(new BlockPos(x, y, z));
             return state.getBlock().getMetaFromState(state);
         }
 
         @Override
         public boolean isAirAt(int x, int y, int z) {
-            return chunk.getBlockState(new BlockPos(x, y, z)).getBlock() == Blocks.AIR;
+            return outsideBuildHeight(y)
+                    || chunk.getBlockState(new BlockPos(x, y, z)).getBlock() == Blocks.AIR;
+        }
+
+        @Override
+        public boolean isPositionAvailable(int x, int y, int z) {
+            return outsideBuildHeight(y) || isStoredPosition(x, y, z);
         }
 
         @Override
@@ -220,6 +233,42 @@ public final class LegacyChunkMigrationHandler {
             IBlockState target = target(targetRegistryPath, metadata);
             return target != null
                     && chunk.setBlockState(new BlockPos(x, y, z), target) != null;
+        }
+
+        @Override
+        public boolean replacePair(int firstX, int firstY, int firstZ,
+                String firstTarget, int firstMetadata, int secondX, int secondY, int secondZ,
+                String secondTarget, int secondMetadata) {
+            if (!isStoredPosition(firstX, firstY, firstZ)
+                    || !isStoredPosition(secondX, secondY, secondZ)) {
+                return false;
+            }
+            IBlockState firstState = target(firstTarget, firstMetadata);
+            IBlockState secondState = target(secondTarget, secondMetadata);
+            if (firstState == null || secondState == null) {
+                return false;
+            }
+            BlockPos firstPos = new BlockPos(firstX, firstY, firstZ);
+            BlockPos secondPos = new BlockPos(secondX, secondY, secondZ);
+            IBlockState secondBefore = chunk.getBlockState(secondPos);
+            if (chunk.setBlockState(secondPos, secondState) == null) {
+                return false;
+            }
+            if (chunk.setBlockState(firstPos, firstState) == null) {
+                chunk.setBlockState(secondPos, secondBefore);
+                chunk.markDirty();
+                return false;
+            }
+            chunk.markDirty();
+            return true;
+        }
+
+        private boolean isStoredPosition(int x, int y, int z) {
+            return !outsideBuildHeight(y) && (x >> 4) == chunk.x && (z >> 4) == chunk.z;
+        }
+
+        private boolean outsideBuildHeight(int y) {
+            return y < 0 || y >= 256;
         }
 
         @Override
@@ -243,33 +292,73 @@ public final class LegacyChunkMigrationHandler {
 
         @Override
         public String blockPathAt(int x, int y, int z) {
-            return path(cube.getBlockState(new BlockPos(x, y, z)));
+            IBlockState state = stateAt(x, y, z);
+            return state == null ? null : path(state);
         }
 
         @Override
         public int blockMetadataAt(int x, int y, int z) {
-            IBlockState state = cube.getBlockState(new BlockPos(x, y, z));
-            return state.getBlock().getMetaFromState(state);
+            IBlockState state = stateAt(x, y, z);
+            return state == null ? 0 : state.getBlock().getMetaFromState(state);
         }
 
         @Override
         public boolean isAirAt(int x, int y, int z) {
-            return cube.getBlockState(new BlockPos(x, y, z)).getBlock() == Blocks.AIR;
+            IBlockState state = stateAt(x, y, z);
+            return state == null || state.getBlock() == Blocks.AIR;
+        }
+
+        @Override
+        public boolean isPositionAvailable(int x, int y, int z) {
+            return outsideFiniteHeight(y) || cubeAt(x, y, z) != null;
         }
 
         @Override
         public boolean replace(int x, int y, int z, String targetRegistryPath) {
             IBlockState target = target(targetRegistryPath);
-            return target != null
-                    && cube.setBlockState(new BlockPos(x, y, z), target) != null;
+            ICube targetCube = cubeAt(x, y, z);
+            return target != null && targetCube != null
+                    && targetCube.setBlockState(new BlockPos(x, y, z), target) != null;
         }
 
         @Override
         public boolean replace(int x, int y, int z, String targetRegistryPath,
                 int metadata) {
             IBlockState target = target(targetRegistryPath, metadata);
-            return target != null
-                    && cube.setBlockState(new BlockPos(x, y, z), target) != null;
+            ICube targetCube = cubeAt(x, y, z);
+            return target != null && targetCube != null
+                    && targetCube.setBlockState(new BlockPos(x, y, z), target) != null;
+        }
+
+        @Override
+        public boolean replacePair(int firstX, int firstY, int firstZ,
+                String firstTarget, int firstMetadata, int secondX, int secondY, int secondZ,
+                String secondTarget, int secondMetadata) {
+            ICube firstCube = cubeAt(firstX, firstY, firstZ);
+            ICube secondCube = cubeAt(secondX, secondY, secondZ);
+            IBlockState firstState = target(firstTarget, firstMetadata);
+            IBlockState secondState = target(secondTarget, secondMetadata);
+            if (firstCube == null || secondCube == null
+                    || firstState == null || secondState == null) {
+                return false;
+            }
+
+            BlockPos firstPos = new BlockPos(firstX, firstY, firstZ);
+            BlockPos secondPos = new BlockPos(secondX, secondY, secondZ);
+            IBlockState secondBefore = secondCube.getBlockState(secondPos);
+            if (secondCube.setBlockState(secondPos, secondState) == null) {
+                return false;
+            }
+            if (firstCube.setBlockState(firstPos, firstState) == null) {
+                secondCube.setBlockState(secondPos, secondBefore);
+                markDirty(secondCube);
+                return false;
+            }
+            markDirty(firstCube);
+            if (secondCube != firstCube) {
+                markDirty(secondCube);
+            }
+            return true;
         }
 
         @Override
@@ -279,6 +368,29 @@ public final class LegacyChunkMigrationHandler {
             if (block != null) {
                 world.scheduleUpdate(new BlockPos(x, y, z), block, delay);
             }
+        }
+
+        private IBlockState stateAt(int x, int y, int z) {
+            ICube targetCube = cubeAt(x, y, z);
+            return targetCube == null ? null
+                    : targetCube.getBlockState(new BlockPos(x, y, z));
+        }
+
+        private ICube cubeAt(int x, int y, int z) {
+            if (outsideFiniteHeight(y)) {
+                return null;
+            }
+            BlockPos position = new BlockPos(x, y, z);
+            if (cube.containsBlockPos(position)) {
+                return cube;
+            }
+            return ((ICubicWorld) world).getCubeCache().getLoadedCube(
+                    x >> 4, y >> 4, z >> 4);
+        }
+
+        private boolean outsideFiniteHeight(int y) {
+            return y < CavesNotCliffsWorldType.MIN_HEIGHT
+                    || y >= CavesNotCliffsWorldType.MAX_HEIGHT;
         }
     }
 }

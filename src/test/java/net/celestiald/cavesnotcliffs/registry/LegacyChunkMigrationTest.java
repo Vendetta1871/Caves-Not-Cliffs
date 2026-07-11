@@ -16,6 +16,7 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class LegacyChunkMigrationTest {
@@ -204,6 +205,143 @@ public class LegacyChunkMigrationTest {
         assertEquals("bottom_stalactite", volume.pathAt(0, 3, 0));
     }
 
+    @Test
+    public void readsPointedTopologyAcrossBothVerticalCubeBoundaries() {
+        NBTTagCompound fixture = emptyCubeFixture(
+                CncDataVersions.CANONICAL_REGISTRY_CONTENT_VERSION);
+        NBTTagList blocks = fixture.getTagList("blocks", 10);
+        addBlock(blocks, 0, 16, 0, "bottom_stalactite");
+        addBlock(blocks, 0, 15, 0, "top_stalactite");
+        addBlock(blocks, 1, 31, 0, "bottom_stalagmite");
+        addBlock(blocks, 1, 32, 0, "top_stalagmite");
+
+        FixtureVolume volume = new FixtureVolume(fixture,
+                LegacyChunkMigration.POINTED_DRIPSTONE_PATH);
+        LegacyChunkMigration.Result result = LegacyChunkMigration.migrate(
+                ContentMigrationVersion.read(fixture), 0L, bounds(fixture), volume);
+
+        assertTrue(result.isComplete());
+        assertEquals(2, result.getConvertedBlocks());
+        assertState(volume, 0, 16, 0, false,
+                net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness.FRUSTUM);
+        assertState(volume, 1, 31, 0, true,
+                net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness.FRUSTUM);
+        assertEquals("top_stalactite", volume.pathAt(0, 15, 0));
+        assertEquals("top_stalagmite", volume.pathAt(1, 32, 0));
+    }
+
+    @Test
+    public void defersPointedRootsUntilTheirBoundaryHaloIsLoaded() {
+        NBTTagCompound fixture = emptyCubeFixture(
+                CncDataVersions.CANONICAL_REGISTRY_CONTENT_VERSION);
+        NBTTagList blocks = fixture.getTagList("blocks", 10);
+        addBlock(blocks, 0, 16, 0, "bottom_stalactite");
+        addBlock(blocks, 1, 31, 0, "bottom_stalagmite");
+
+        FixtureVolume volume = new FixtureVolume(fixture,
+                LegacyChunkMigration.POINTED_DRIPSTONE_PATH);
+        volume.makeUnavailable(0, 15, 0);
+        volume.makeUnavailable(1, 32, 0);
+        LegacyChunkMigration.Result result = LegacyChunkMigration.migrate(
+                ContentMigrationVersion.read(fixture), 0L, bounds(fixture), volume);
+
+        assertFalse(result.isComplete());
+        assertEquals(CncDataVersions.CANONICAL_REGISTRY_CONTENT_VERSION,
+                result.getResultingVersion());
+        assertEquals(0, result.getConvertedBlocks());
+        assertEquals(2, result.getDeferredBlocks());
+        assertEquals("bottom_stalactite", volume.pathAt(0, 16, 0));
+        assertEquals("bottom_stalagmite", volume.pathAt(1, 31, 0));
+        assertTrue(LegacyChunkMigration.containsLegacyContent(bounds(fixture), volume));
+    }
+
+    @Test
+    public void classifiesCaveVineAtCubeBottomFromLoadedHalo() {
+        NBTTagCompound fixture = emptyCubeFixture(
+                CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION);
+        NBTTagList blocks = fixture.getTagList("blocks", 10);
+        addBlock(blocks, 0, 16, 0, "glow_berry_vines");
+        addBlock(blocks, 0, 15, 0, "glow_berry_middle_fill");
+
+        FixtureVolume volume = new FixtureVolume(fixture, "cave_vines_plant");
+        LegacyChunkMigration.Result result = LegacyChunkMigration.migrate(
+                ContentMigrationVersion.read(fixture), 0L, bounds(fixture), volume);
+
+        assertTrue(result.isComplete());
+        assertEquals(1, result.getConvertedBlocks());
+        assertEquals("cave_vines_plant", volume.pathAt(0, 16, 0));
+        assertEquals(1, volume.metadataAt(0, 16, 0));
+        assertEquals("glow_berry_middle_fill", volume.pathAt(0, 15, 0));
+    }
+
+    @Test
+    public void defersBottomCaveVineInsteadOfMisclassifyingMissingHaloAsAir() {
+        NBTTagCompound fixture = emptyCubeFixture(
+                CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION);
+        addBlock(fixture.getTagList("blocks", 10), 0, 16, 0, "glow_berry_vines");
+
+        FixtureVolume volume = new FixtureVolume(fixture,
+                "cave_vines_plant", "cave_vines_age_24_25");
+        volume.makeUnavailable(0, 15, 0);
+        LegacyChunkMigration.Result result = LegacyChunkMigration.migrate(
+                ContentMigrationVersion.read(fixture), 0L, bounds(fixture), volume);
+
+        assertFalse(result.isComplete());
+        assertEquals(CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION,
+                result.getResultingVersion());
+        assertEquals(0, result.getConvertedBlocks());
+        assertEquals(1, result.getDeferredBlocks());
+        assertEquals("glow_berry_vines", volume.pathAt(0, 16, 0));
+        assertTrue(LegacyChunkMigration.containsLegacyContent(bounds(fixture), volume));
+    }
+
+    @Test
+    public void atomicallyCreatesSmallDripleafUpperHalfAcrossCubeTop() {
+        NBTTagCompound fixture = emptyCubeFixture(
+                CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION);
+        addBlock(fixture.getTagList("blocks", 10), 0, 31, 0, "baby_dripleaf");
+
+        FixtureVolume volume = new FixtureVolume(fixture, "small_dripleaf");
+        LegacyChunkMigration.Result result = LegacyChunkMigration.migrate(
+                ContentMigrationVersion.read(fixture), 0L, bounds(fixture), volume);
+
+        assertTrue(result.isComplete());
+        assertEquals(2, result.getConvertedBlocks());
+        assertEquals("small_dripleaf", volume.pathAt(0, 31, 0));
+        assertEquals(2, volume.metadataAt(0, 31, 0));
+        assertEquals("small_dripleaf", volume.pathAt(0, 32, 0));
+        assertEquals(6, volume.metadataAt(0, 32, 0));
+    }
+
+    @Test
+    public void defersSmallDripleafPairWithoutChangingLowerHalfWhenTopCubeIsAbsent() {
+        NBTTagCompound fixture = emptyCubeFixture(
+                CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION);
+        addBlock(fixture.getTagList("blocks", 10), 0, 31, 0, "baby_dripleaf");
+
+        FixtureVolume volume = new FixtureVolume(fixture, "small_dripleaf");
+        volume.makeUnavailable(0, 32, 0);
+        LegacyChunkMigration.Result result = LegacyChunkMigration.migrate(
+                ContentMigrationVersion.read(fixture), 0L, bounds(fixture), volume);
+
+        assertFalse(result.isComplete());
+        assertEquals(CncDataVersions.POINTED_DRIPSTONE_CONTENT_VERSION,
+                result.getResultingVersion());
+        assertEquals(0, result.getConvertedBlocks());
+        assertEquals(1, result.getDeferredBlocks());
+        assertEquals("baby_dripleaf", volume.pathAt(0, 31, 0));
+        assertNull(volume.pathAt(0, 32, 0));
+        assertTrue(LegacyChunkMigration.containsLegacyContent(bounds(fixture), volume));
+
+        volume.makeAvailable(0, 32, 0);
+        LegacyChunkMigration.Result retry = LegacyChunkMigration.migrate(
+                result.getResultingVersion(), 0L, bounds(fixture), volume);
+        assertTrue(retry.isComplete());
+        assertEquals(2, retry.getConvertedBlocks());
+        assertEquals("small_dripleaf", volume.pathAt(0, 31, 0));
+        assertEquals("small_dripleaf", volume.pathAt(0, 32, 0));
+    }
+
     private static void assertState(FixtureVolume volume, int x, int y, int z,
             boolean tipUp,
             net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness thickness) {
@@ -228,6 +366,19 @@ public class LegacyChunkMigrationTest {
         }
     }
 
+    private static NBTTagCompound emptyCubeFixture(int contentVersion) {
+        NBTTagCompound fixture = new NBTTagCompound();
+        fixture.setInteger("minX", 0);
+        fixture.setInteger("minY", 16);
+        fixture.setInteger("minZ", 0);
+        fixture.setInteger("sizeX", 2);
+        fixture.setInteger("sizeY", 16);
+        fixture.setInteger("sizeZ", 1);
+        fixture.setTag("blocks", new NBTTagList());
+        ContentMigrationVersion.write(fixture, contentVersion);
+        return fixture;
+    }
+
     private static LegacyChunkMigration.Bounds bounds(NBTTagCompound fixture) {
         return new LegacyChunkMigration.Bounds(
                 fixture.getInteger("minX"), fixture.getInteger("minY"),
@@ -248,6 +399,7 @@ public class LegacyChunkMigrationTest {
         private final NBTTagList blocks;
         private final Set<String> targets;
         private final List<String> scheduled = new ArrayList<>();
+        private final Set<String> unavailable = new HashSet<>();
 
         private FixtureVolume(NBTTagCompound fixture, String... targets) {
             this.blocks = fixture.getTagList("blocks", 10);
@@ -285,6 +437,11 @@ public class LegacyChunkMigrationTest {
         }
 
         @Override
+        public boolean isPositionAvailable(int x, int y, int z) {
+            return !unavailable.contains(coordinates(x, y, z));
+        }
+
+        @Override
         public boolean hasTarget(String registryPath) {
             return targets.contains(registryPath);
         }
@@ -314,6 +471,22 @@ public class LegacyChunkMigrationTest {
         }
 
         @Override
+        public boolean replacePair(int firstX, int firstY, int firstZ,
+                String firstTarget, int firstMetadata, int secondX, int secondY, int secondZ,
+                String secondTarget, int secondMetadata) {
+            if (!isPositionAvailable(firstX, firstY, firstZ)
+                    || !isPositionAvailable(secondX, secondY, secondZ)
+                    || !hasTarget(firstTarget) || !hasTarget(secondTarget)) {
+                return false;
+            }
+            // Both writes are now guaranteed for this in-memory fixture; write the created upper
+            // half first so the source lower remains legacy until the pair can be completed.
+            replace(secondX, secondY, secondZ, secondTarget, secondMetadata);
+            replace(firstX, firstY, firstZ, firstTarget, firstMetadata);
+            return true;
+        }
+
+        @Override
         public void scheduleUpdate(int x, int y, int z, String targetRegistryPath,
                 int delay) {
             scheduled.add(x + "," + y + "," + z + ':' + targetRegistryPath + '#'
@@ -329,6 +502,18 @@ public class LegacyChunkMigrationTest {
                 }
             }
             return null;
+        }
+
+        private void makeUnavailable(int x, int y, int z) {
+            unavailable.add(coordinates(x, y, z));
+        }
+
+        private void makeAvailable(int x, int y, int z) {
+            unavailable.remove(coordinates(x, y, z));
+        }
+
+        private String coordinates(int x, int y, int z) {
+            return x + "," + y + "," + z;
         }
     }
 }
