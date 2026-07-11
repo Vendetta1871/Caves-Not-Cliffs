@@ -8,7 +8,7 @@ import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.audio.SoundEventAccessor;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.init.SoundEvents;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.sound.PlaySoundEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -20,6 +20,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 public final class HoneyDrinkSoundHandler {
     public static final HoneyDrinkSoundHandler INSTANCE = new HoneyDrinkSoundHandler();
     private static final double POSITION_EPSILON = 0.01D;
+    private static final ResourceLocation GENERIC_DRINK =
+            new ResourceLocation("minecraft", "entity.generic.drink");
 
     private HoneyDrinkSoundHandler() {
     }
@@ -29,8 +31,7 @@ public final class HoneyDrinkSoundHandler {
         ISound sound = event.getResultSound();
         Minecraft minecraft = Minecraft.getMinecraft();
         if (sound == null || minecraft.world == null || HoneyContent.honeyBottle == null
-                || !SoundEvents.ENTITY_GENERIC_DRINK.getRegistryName()
-                    .equals(sound.getSoundLocation())
+                || !GENERIC_DRINK.equals(sound.getSoundLocation())
                 || !hasHoneyDrinkerAt(sound, minecraft.world.loadedEntityList)) {
             return;
         }

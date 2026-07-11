@@ -60,11 +60,11 @@ public final class BlockPowderSnowCauldron extends ElementsCavesNotCliffs.ModEle
 
         @Override
         public int getMetaFromState(IBlockState state) {
-            // BlockCauldron's inherited state container includes its level-zero sentinel.
-            // Forge enumerates every valid state while assigning block-state IDs at registry
-            // time, even though this hidden companion exposes only levels one through three.
-            // Canonicalize that unreachable sentinel to level one instead of crashing startup.
-            return Math.max(1, Math.min(3, state.getValue(LEVEL)));
+            int level = state.getValue(LEVEL);
+            // Forge registers every BlockStateContainer state, including BlockCauldron's
+            // inherited level-0 base state. It is never emitted by this hidden companion, but it
+            // must remain serializable during registry bootstrap.
+            return level == 0 ? 0 : PowderSnowMechanics.requireCauldronLevel(level);
         }
 
         @Override

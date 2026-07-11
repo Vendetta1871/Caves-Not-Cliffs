@@ -24,17 +24,7 @@ public final class BeeSoundEvents {
     }
 
     public static void registerAll() {
-        register(BEE_DEATH);
-        register(BEE_HURT);
-        register(BEE_LOOP);
-        register(BEE_LOOP_AGGRESSIVE);
-        register(BEE_POLLINATE);
-        register(BEE_STING);
-        register(BEEHIVE_DRIP);
-        register(BEEHIVE_ENTER);
-        register(BEEHIVE_EXIT);
-        register(BEEHIVE_SHEAR);
-        register(BEEHIVE_WORK);
+        // Events are queued by sound(String) during this class's one-time initialization.
     }
 
     private static SoundEvent sound(String path) {

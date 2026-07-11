@@ -186,7 +186,7 @@ task verifyReleaseJar(dependsOn: reobfJar) {
                                         // development merged jar contains it, but dedicated servers
                                         // strip it and fail with NoSuchMethodError at mod loading.
                                         if (owner == 'net/minecraft/util/SoundEvent' &&
-                                                methodName == 'func_187503_a') {
+                                                (methodName == 'getSoundName' || methodName == 'func_187503_a')) {
                                             badReferences << "${entry.name}: ${owner}.${methodName}${methodDescriptor}"
                                         }
                                     }

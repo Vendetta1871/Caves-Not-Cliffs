@@ -172,4 +172,11 @@ public final class BlockStonecutter extends ElementsCavesNotCliffs.ModElement {
             return true;
         }
     }
+
+    private static SoundEvent sound(String path) {
+        net.minecraft.util.ResourceLocation id = CncRegistryIds.id(path);
+        SoundEvent sound = new SoundEvent(id);
+        ElementsCavesNotCliffs.sounds.put(id, sound);
+        return sound;
+    }
 }
