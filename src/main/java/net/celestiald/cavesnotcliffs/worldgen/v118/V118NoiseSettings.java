@@ -1,7 +1,7 @@
 package net.celestiald.cavesnotcliffs.worldgen.v118;
 
 /** Immutable Java 1.18.2 Overworld density settings for normal and amplified profiles. */
-public final class V118NoiseSettings {
+public final class V118NoiseSettings implements DensityFunctions.SlideSettings {
     public static final int OVERWORLD_MIN_Y = -64;
     public static final int OVERWORLD_HEIGHT = 384;
 
@@ -49,6 +49,21 @@ public final class V118NoiseSettings {
         double cellY = (int) blockY / getCellHeight() - getMinCellY();
         value = topSlide.applySlide(value, getCellCountY() - cellY);
         return bottomSlide.applySlide(value, cellY);
+    }
+
+    @Override
+    public double applySlide(double value, int blockY) {
+        return applySlide(value, (double) blockY);
+    }
+
+    @Override
+    public double topSlideTarget() {
+        return topSlide.target();
+    }
+
+    @Override
+    public double bottomSlideTarget() {
+        return bottomSlide.target();
     }
 
     public int minY() {
