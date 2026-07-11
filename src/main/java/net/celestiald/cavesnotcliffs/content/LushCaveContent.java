@@ -164,8 +164,6 @@ public final class LushCaveContent extends ElementsCavesNotCliffs.ModElement {
         ignore(CAVE_VINES_AGE_8_15, LushCaveVinesBlock.LOCAL_AGE);
         ignore(CAVE_VINES_AGE_16_23, LushCaveVinesBlock.LOCAL_AGE);
         ignore(CAVE_VINES_AGE_24_25, LushCaveVinesBlock.LOCAL_AGE);
-        ignore(SMALL_DRIPLEAF, LushDripleafBlocks.WATERLOGGED);
-        ignore(BIG_DRIPLEAF_STEM, LushDripleafBlocks.WATERLOGGED);
     }
 
     @SideOnly(Side.CLIENT)

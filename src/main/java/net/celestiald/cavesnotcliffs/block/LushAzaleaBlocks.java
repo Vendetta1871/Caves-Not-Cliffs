@@ -296,7 +296,8 @@ public final class LushAzaleaBlocks {
         }
     }
 
-    public static final class HangingRoots extends Block implements IShearable {
+    public static final class HangingRoots extends LushWaterloggedBlock
+            implements IShearable {
         private static final AxisAlignedBB SHAPE =
                 new AxisAlignedBB(2.0D / 16.0D, 10.0D / 16.0D, 2.0D / 16.0D,
                         14.0D / 16.0D, 1.0D, 14.0D / 16.0D);
@@ -330,11 +331,21 @@ public final class LushAzaleaBlocks {
         @Override
         public void neighborChanged(IBlockState state, World world, BlockPos pos,
                 Block changed, BlockPos changedPos) {
+            scheduleRetainedWater(world, pos, state);
             if (!canPlaceBlockAt(world, pos)) {
                 dropBlockAsItem(world, pos, state, 0);
                 world.setBlockState(pos, waterlogged ? Blocks.WATER.getDefaultState()
                         : Blocks.AIR.getDefaultState(), 3);
             }
+        }
+
+        @Override
+        protected boolean hasRetainedWater(IBlockState state) {
+            return waterlogged;
+        }
+
+        public boolean isWaterloggedStorage() {
+            return waterlogged;
         }
 
         @Override
@@ -390,7 +401,13 @@ public final class LushAzaleaBlocks {
         @Override public boolean isFullCube(IBlockState state) { return false; }
         @Override public EnumOffsetType getOffsetType() { return EnumOffsetType.XZ; }
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() {
-            return BlockRenderLayer.CUTOUT;
+            return waterlogged ? BlockRenderLayer.TRANSLUCENT : BlockRenderLayer.CUTOUT;
+        }
+
+        @Override
+        public boolean canRenderInLayer(IBlockState state, BlockRenderLayer layer) {
+            return layer == (waterlogged
+                    ? BlockRenderLayer.TRANSLUCENT : BlockRenderLayer.CUTOUT);
         }
     }
 

@@ -1,19 +1,9 @@
 {
-  "variants": {
-    "facing=east": {
-      "model": "cavesnotcliffs:block/big_dripleaf_stem",
-      "y": 90
-    },
-    "facing=north": {
-      "model": "cavesnotcliffs:block/big_dripleaf_stem"
-    },
-    "facing=south": {
-      "model": "cavesnotcliffs:block/big_dripleaf_stem",
-      "y": 180
-    },
-    "facing=west": {
-      "model": "cavesnotcliffs:block/big_dripleaf_stem",
-      "y": 270
-    }
-  }
+  "multipart": [
+    {"when":{"facing":"east"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf_stem","y":90}},
+    {"when":{"facing":"north"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf_stem"}},
+    {"when":{"facing":"south"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf_stem","y":180}},
+    {"when":{"facing":"west"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf_stem","y":270}},
+    {"when":{"waterlogged":"true"},"apply":{"model":"cavesnotcliffs:amethyst_water_overlay"}}
+  ]
 }

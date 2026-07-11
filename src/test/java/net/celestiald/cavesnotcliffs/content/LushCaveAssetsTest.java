@@ -183,6 +183,42 @@ public class LushCaveAssetsTest {
         assertFalse(language.contains("Glow Berry Vine (Fill)"));
     }
 
+    @Test
+    public void retainedWaterStatesRenderTheSharedTintedOverlay() {
+        JsonObject small = json("assets/cavesnotcliffs/blockstates/small_dripleaf.json");
+        assertOverlay(small, true);
+        JsonObject stem = json(
+                "assets/cavesnotcliffs/blockstates/big_dripleaf_stem.json");
+        assertOverlay(stem, true);
+        JsonObject head = json(
+                "assets/cavesnotcliffs/blockstates/big_dripleaf_waterlogged.json");
+        assertOverlay(head, false);
+        JsonObject roots = json(
+                "assets/cavesnotcliffs/blockstates/hanging_roots_waterlogged.json");
+        assertOverlay(roots, false);
+        resource("assets/cavesnotcliffs/models/block/amethyst_water_overlay.json");
+    }
+
+    private static void assertOverlay(JsonObject blockstate, boolean conditional) {
+        int overlays = 0;
+        for (JsonElement element : blockstate.getAsJsonArray("multipart")) {
+            JsonObject part = element.getAsJsonObject();
+            JsonObject apply = part.getAsJsonObject("apply");
+            if (!"cavesnotcliffs:amethyst_water_overlay".equals(
+                    apply.get("model").getAsString())) {
+                continue;
+            }
+            overlays++;
+            if (conditional) {
+                assertEquals("true", part.getAsJsonObject("when")
+                        .get("waterlogged").getAsString());
+            } else {
+                assertFalse(part.has("when"));
+            }
+        }
+        assertEquals(1, overlays);
+    }
+
     private static JsonObject json(String path) {
         return new JsonParser().parse(new InputStreamReader(resource(path),
                 StandardCharsets.UTF_8)).getAsJsonObject();

@@ -1,7 +1,6 @@
 {
-  "variants": {
-    "normal": {
-      "model": "cavesnotcliffs:block/hanging_roots"
-    }
-  }
+  "multipart": [
+    {"apply":{"model":"cavesnotcliffs:block/hanging_roots"}},
+    {"apply":{"model":"cavesnotcliffs:amethyst_water_overlay"}}
+  ]
 }

@@ -1,64 +1,21 @@
 {
-  "variants": {
-    "facing=east,tilt=full": {
-      "y": 90,
-      "model": "cavesnotcliffs:block/big_dripleaf_full_tilt"
-    },
-    "facing=east,tilt=none": {
-      "y": 90,
-      "model": "cavesnotcliffs:block/big_dripleaf"
-    },
-    "facing=east,tilt=partial": {
-      "y": 90,
-      "model": "cavesnotcliffs:block/big_dripleaf_partial_tilt"
-    },
-    "facing=east,tilt=unstable": {
-      "y": 90,
-      "model": "cavesnotcliffs:block/big_dripleaf"
-    },
-    "facing=north,tilt=full": {
-      "model": "cavesnotcliffs:block/big_dripleaf_full_tilt"
-    },
-    "facing=north,tilt=none": {
-      "model": "cavesnotcliffs:block/big_dripleaf"
-    },
-    "facing=north,tilt=partial": {
-      "model": "cavesnotcliffs:block/big_dripleaf_partial_tilt"
-    },
-    "facing=north,tilt=unstable": {
-      "model": "cavesnotcliffs:block/big_dripleaf"
-    },
-    "facing=south,tilt=full": {
-      "y": 180,
-      "model": "cavesnotcliffs:block/big_dripleaf_full_tilt"
-    },
-    "facing=south,tilt=none": {
-      "y": 180,
-      "model": "cavesnotcliffs:block/big_dripleaf"
-    },
-    "facing=south,tilt=partial": {
-      "y": 180,
-      "model": "cavesnotcliffs:block/big_dripleaf_partial_tilt"
-    },
-    "facing=south,tilt=unstable": {
-      "y": 180,
-      "model": "cavesnotcliffs:block/big_dripleaf"
-    },
-    "facing=west,tilt=full": {
-      "y": 270,
-      "model": "cavesnotcliffs:block/big_dripleaf_full_tilt"
-    },
-    "facing=west,tilt=none": {
-      "y": 270,
-      "model": "cavesnotcliffs:block/big_dripleaf"
-    },
-    "facing=west,tilt=partial": {
-      "y": 270,
-      "model": "cavesnotcliffs:block/big_dripleaf_partial_tilt"
-    },
-    "facing=west,tilt=unstable": {
-      "y": 270,
-      "model": "cavesnotcliffs:block/big_dripleaf"
-    }
-  }
+  "multipart": [
+    {"when":{"facing":"east","tilt":"full"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf_full_tilt","y":90}},
+    {"when":{"facing":"east","tilt":"none"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf","y":90}},
+    {"when":{"facing":"east","tilt":"partial"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf_partial_tilt","y":90}},
+    {"when":{"facing":"east","tilt":"unstable"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf","y":90}},
+    {"when":{"facing":"north","tilt":"full"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf_full_tilt"}},
+    {"when":{"facing":"north","tilt":"none"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf"}},
+    {"when":{"facing":"north","tilt":"partial"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf_partial_tilt"}},
+    {"when":{"facing":"north","tilt":"unstable"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf"}},
+    {"when":{"facing":"south","tilt":"full"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf_full_tilt","y":180}},
+    {"when":{"facing":"south","tilt":"none"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf","y":180}},
+    {"when":{"facing":"south","tilt":"partial"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf_partial_tilt","y":180}},
+    {"when":{"facing":"south","tilt":"unstable"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf","y":180}},
+    {"when":{"facing":"west","tilt":"full"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf_full_tilt","y":270}},
+    {"when":{"facing":"west","tilt":"none"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf","y":270}},
+    {"when":{"facing":"west","tilt":"partial"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf_partial_tilt","y":270}},
+    {"when":{"facing":"west","tilt":"unstable"},"apply":{"model":"cavesnotcliffs:block/big_dripleaf","y":270}},
+    {"apply":{"model":"cavesnotcliffs:amethyst_water_overlay"}}
+  ]
 }

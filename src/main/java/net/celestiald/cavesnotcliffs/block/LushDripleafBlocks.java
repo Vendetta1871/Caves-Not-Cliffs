@@ -68,7 +68,8 @@ public final class LushDripleafBlocks {
         public Tilt next() { return values()[mechanics.next().ordinal()]; }
     }
 
-    public static final class Small extends Block implements IGrowable, IShearable {
+    public static final class Small extends LushWaterloggedBlock
+            implements IGrowable, IShearable {
         private static final AxisAlignedBB SHAPE =
                 new AxisAlignedBB(2.0D / 16.0D, 0.0D, 2.0D / 16.0D,
                         14.0D / 16.0D, 13.0D / 16.0D, 14.0D / 16.0D);
@@ -133,9 +134,15 @@ public final class LushDripleafBlocks {
         @Override
         public void neighborChanged(IBlockState state, World world, BlockPos pos,
                 Block changed, BlockPos changedPos) {
+            scheduleRetainedWater(world, pos, state);
             if (!canSurvive(world, pos, state)) {
                 breakHalf(world, pos, state, false);
             }
+        }
+
+        @Override
+        protected boolean hasRetainedWater(IBlockState state) {
+            return state.getValue(WATERLOGGED);
         }
 
         private boolean canSurvive(World world, BlockPos pos, IBlockState state) {
@@ -222,9 +229,15 @@ public final class LushDripleafBlocks {
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() {
             return BlockRenderLayer.CUTOUT;
         }
+
+        @Override
+        public boolean canRenderInLayer(IBlockState state, BlockRenderLayer layer) {
+            return layer == (state.getValue(WATERLOGGED)
+                    ? BlockRenderLayer.TRANSLUCENT : BlockRenderLayer.CUTOUT);
+        }
     }
 
-    public static final class Head extends Block implements IGrowable {
+    public static final class Head extends LushWaterloggedBlock implements IGrowable {
         private static final AxisAlignedBB STABLE =
                 new AxisAlignedBB(0.0D, 11.0D / 16.0D, 0.0D,
                         1.0D, 15.0D / 16.0D, 1.0D);
@@ -293,6 +306,7 @@ public final class LushDripleafBlocks {
         @Override
         public void neighborChanged(IBlockState state, World world, BlockPos pos,
                 Block changed, BlockPos changedPos) {
+            scheduleRetainedWater(world, pos, state);
             if (world.isBlockPowered(pos)) {
                 resetTilt(world, pos, state);
             }
@@ -303,6 +317,15 @@ public final class LushDripleafBlocks {
             if (isHead(world.getBlockState(pos.up()).getBlock())) {
                 world.setBlockState(pos, stemState(state.getValue(FACING), waterlogged), 3);
             }
+        }
+
+        @Override
+        protected boolean hasRetainedWater(IBlockState state) {
+            return waterlogged;
+        }
+
+        public boolean isWaterloggedStorage() {
+            return waterlogged;
         }
 
         @Override
@@ -426,7 +449,13 @@ public final class LushDripleafBlocks {
         @Override public boolean isOpaqueCube(IBlockState state) { return false; }
         @Override public boolean isFullCube(IBlockState state) { return false; }
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() {
-            return BlockRenderLayer.CUTOUT;
+            return waterlogged ? BlockRenderLayer.TRANSLUCENT : BlockRenderLayer.CUTOUT;
+        }
+
+        @Override
+        public boolean canRenderInLayer(IBlockState state, BlockRenderLayer layer) {
+            return layer == (waterlogged
+                    ? BlockRenderLayer.TRANSLUCENT : BlockRenderLayer.CUTOUT);
         }
 
         /** Envelope of Java 1.18's directional stem plus its tilt-dependent leaf. */
@@ -459,7 +488,7 @@ public final class LushDripleafBlocks {
         }
     }
 
-    public static final class Stem extends Block implements IGrowable {
+    public static final class Stem extends LushWaterloggedBlock implements IGrowable {
         private static final AxisAlignedBB NORTH = new AxisAlignedBB(
                 5.0D / 16.0D, 0.0D, 9.0D / 16.0D,
                 11.0D / 16.0D, 1.0D, 15.0D / 16.0D);
@@ -500,9 +529,15 @@ public final class LushDripleafBlocks {
         @Override
         public void neighborChanged(IBlockState state, World world, BlockPos pos,
                 Block changed, BlockPos changedPos) {
+            scheduleRetainedWater(world, pos, state);
             if (!canSurvive(world, pos)) {
                 world.scheduleUpdate(pos, this, 1);
             }
+        }
+
+        @Override
+        protected boolean hasRetainedWater(IBlockState state) {
+            return state.getValue(WATERLOGGED);
         }
 
         @Override
@@ -596,6 +631,12 @@ public final class LushDripleafBlocks {
         @Override public boolean isFullCube(IBlockState state) { return false; }
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() {
             return BlockRenderLayer.CUTOUT;
+        }
+
+        @Override
+        public boolean canRenderInLayer(IBlockState state, BlockRenderLayer layer) {
+            return layer == (state.getValue(WATERLOGGED)
+                    ? BlockRenderLayer.TRANSLUCENT : BlockRenderLayer.CUTOUT);
         }
     }
 
