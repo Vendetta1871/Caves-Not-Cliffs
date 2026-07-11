@@ -141,4 +141,12 @@ public class CopperWeatheringTest {
         assertFalse(CopperWeathering.shouldAdvance(CopperWeathering.Stage.UNAFFECTED,
                 Collections.<CopperWeathering.Stage>emptyList(), 0.0F, 0.75F));
     }
+
+    @Test
+    public void slabMetadataPreservesDraftV2TopHalvesAndWritesVanillaBitEight() {
+        assertFalse(CopperContent.isTopSlabMetadata(0));
+        assertTrue(CopperContent.isTopSlabMetadata(1));
+        assertTrue(CopperContent.isTopSlabMetadata(8));
+        assertTrue(CopperContent.isTopSlabMetadata(9));
+    }
 }

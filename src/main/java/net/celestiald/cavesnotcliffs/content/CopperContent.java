@@ -148,6 +148,11 @@ public final class CopperContent {
         return result;
     }
 
+    /** Accepts both vanilla's bit-8 slab encoding and the draft-v2 MCreator ordinal encoding. */
+    public static boolean isTopSlabMetadata(int meta) {
+        return (meta & 8) != 0 || (meta & 1) != 0;
+    }
+
     private static Block createBlock(CopperWeathering.Variant variant) {
         switch (variant.getShape()) {
             case BLOCK:
@@ -382,7 +387,7 @@ public final class CopperContent {
         @Override
         public IBlockState getStateFromMeta(int meta) {
             return isDouble() ? getDefaultState() : getDefaultState().withProperty(HALF,
-                    (meta & 8) == 0 ? EnumBlockHalf.BOTTOM : EnumBlockHalf.TOP);
+                    isTopSlabMetadata(meta) ? EnumBlockHalf.TOP : EnumBlockHalf.BOTTOM);
         }
 
         @Override
