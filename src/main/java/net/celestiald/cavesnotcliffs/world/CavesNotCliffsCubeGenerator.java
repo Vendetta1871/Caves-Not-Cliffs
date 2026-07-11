@@ -1,13 +1,6 @@
 package net.celestiald.cavesnotcliffs.world;
 
-import io.github.opencubicchunks.cubicchunks.api.util.Box;
-import io.github.opencubicchunks.cubicchunks.api.util.CubePos;
-import io.github.opencubicchunks.cubicchunks.api.world.ICube;
-import io.github.opencubicchunks.cubicchunks.api.worldgen.CubeGeneratorsRegistry;
-import io.github.opencubicchunks.cubicchunks.api.worldgen.CubePrimer;
-import io.github.opencubicchunks.cubicchunks.api.worldgen.ICubeGenerator;
-import io.github.opencubicchunks.cubicchunks.api.worldgen.populator.CubePopulatorEvent;
-import io.github.opencubicchunks.cubicchunks.api.worldgen.populator.event.PopulateCubeEvent;
+import net.celestiald.cavebiomes.api.ExtendedChunkAPI;
 import net.celestiald.cavesnotcliffs.block.BlockDarkStone;
 import net.celestiald.cavesnotcliffs.block.BlockDeepslateOres;
 import net.celestiald.cavesnotcliffs.block.BlockUnnamedStone;
@@ -22,109 +15,68 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraftforge.common.BiomeDictionary;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.registry.GameRegistry;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Random;
 
 /**
- * Finite-height Cubic Chunks generator retained for draft-v2 schema-1 saves.
+ * Finite-column generator retained for draft-v2 schema-1 saves.
  *
  * Y=0..255 is copied from the selected vanilla 1.12 generator so surface terrain, structures and
  * seeds remain familiar.  Y=-64..-1 is a deepslate extension with worm caves and deep ores; the
  * New schema-2 worlds use {@link V118CubicChunksGenerator}; this class intentionally preserves the
  * old terrain profile to avoid seams while its population pass emits canonical content only.
  */
-public final class CavesNotCliffsCubeGenerator implements ICubeGenerator {
-    private static final int VANILLA_MIN_CUBE = 0;
-    private static final int VANILLA_MAX_CUBE = 15;
-    private static final Box DECORATOR_PREGENERATION_REQUIREMENT =
-            new Box(-1, -1, -1, 1, 1, 1);
-
+public final class CavesNotCliffsCubeGenerator implements IChunkGenerator {
     private final World world;
     private final IChunkGenerator vanillaGenerator;
     private final TerrainProfile terrainProfile;
-    private Chunk cachedVanillaChunk;
-    private Biome[] cachedBiomes;
-    private Method fakeWorldHeight;
 
     CavesNotCliffsCubeGenerator(World world, IChunkGenerator vanillaGenerator,
             TerrainProfile terrainProfile) {
         this.world = world;
         this.vanillaGenerator = vanillaGenerator;
         this.terrainProfile = terrainProfile;
+        ExtendedChunkAPI.requireRange("Caves Not Cliffs", CavesNotCliffsWorldType.MIN_HEIGHT,
+                CavesNotCliffsWorldType.MAX_HEIGHT);
     }
 
     TerrainProfile getTerrainProfile() {
         return terrainProfile;
     }
 
-    @Deprecated
     @Override
-    public CubePrimer generateCube(int cubeX, int cubeY, int cubeZ) {
-        return generateCube(cubeX, cubeY, cubeZ, new CubePrimer());
+    public Chunk generateChunk(int chunkX, int chunkZ) {
+        Chunk chunk = vanillaGenerator.generateChunk(chunkX, chunkZ);
+        boolean skylight = world.provider.hasSkyLight();
+        removeVanillaBedrock(chunk);
+        for (int sectionY = -4; sectionY < 0; ++sectionY) {
+            ExtendedBlockStorage section = ExtendedChunkAPI.getOrCreateSection(
+                    chunk, sectionY << 4, skylight);
+            generateDeepLayer(section, chunkX, sectionY, chunkZ);
+            LegacyCaveCarver.carve(section, world.getSeed(), chunkX, sectionY, chunkZ);
+            generateDeepOres(section, chunkX, sectionY, chunkZ);
+        }
+        chunk.generateSkylightMap();
+        return chunk;
     }
 
-    @Override
-    public CubePrimer generateCube(int cubeX, int cubeY, int cubeZ, CubePrimer primer) {
-        primer.reset();
-        int minY = cubeY * 16;
-        if (minY < CavesNotCliffsWorldType.MIN_HEIGHT
-                || minY >= CavesNotCliffsWorldType.MAX_HEIGHT) {
-            return primer;
-        }
-
-        if (cubeY < 0) {
-            generateDeepLayer(primer, cubeX, cubeY, cubeZ);
-            LegacyCaveCarver.carve(primer, world.getSeed(), cubeX, cubeY, cubeZ);
-            generateDeepOres(primer, cubeX, cubeY, cubeZ);
-        } else if (cubeY <= VANILLA_MAX_CUBE) {
-            copyVanillaTerrain(primer, cubeX, cubeY, cubeZ);
-        }
-        // Cubes 16..19 intentionally stay air. v3's mountain milestone can use that headroom.
-        return primer;
-    }
-
-    @Override
-    public void generateColumn(Chunk column) {
-        cachedBiomes = world.getBiomeProvider().getBiomes(cachedBiomes,
-                column.x * 16, column.z * 16, 16, 16);
-        byte[] biomeArray = column.getBiomeArray();
-        for (int index = 0; index < biomeArray.length; index++) {
-            biomeArray[index] = (byte) Biome.getIdForBiome(cachedBiomes[index]);
-        }
-    }
-
-    private void copyVanillaTerrain(CubePrimer primer, int cubeX, int cubeY, int cubeZ) {
-        Chunk chunk = getVanillaChunk(cubeX, cubeZ);
-        ExtendedBlockStorage storage = chunk.getBlockStorageArray()[cubeY];
+    private void removeVanillaBedrock(Chunk chunk) {
         IBlockState deepslate = deepslateState();
-        for (int localY = 0; localY < 16; localY++) {
+        for (int worldY = 0; worldY <= 4; ++worldY) {
             for (int localZ = 0; localZ < 16; localZ++) {
                 for (int localX = 0; localX < 16; localX++) {
-                    IBlockState state = storage == null
-                            ? Blocks.AIR.getDefaultState() : storage.get(localX, localY, localZ);
-                    // Vanilla's old Y=0 bedrock roof must be removed; the new floor is at Y=-64.
-                    if (state.getBlock() == Blocks.BEDROCK && cubeY == 0) {
-                        state = deepslate;
+                    BlockPos pos = new BlockPos((chunk.x << 4) + localX, worldY,
+                            (chunk.z << 4) + localZ);
+                    if (chunk.getBlockState(pos).getBlock() == Blocks.BEDROCK) {
+                        chunk.setBlockState(pos, deepslate);
                     }
-                    primer.setBlockState(localX, localY, localZ, state);
                 }
             }
         }
     }
 
-    private Chunk getVanillaChunk(int cubeX, int cubeZ) {
-        if (cachedVanillaChunk == null || cachedVanillaChunk.x != cubeX || cachedVanillaChunk.z != cubeZ) {
-            cachedVanillaChunk = vanillaGenerator.generateChunk(cubeX, cubeZ);
-        }
-        return cachedVanillaChunk;
-    }
-
-    private void generateDeepLayer(CubePrimer primer, int cubeX, int cubeY, int cubeZ) {
+    private void generateDeepLayer(ExtendedBlockStorage primer,
+            int cubeX, int cubeY, int cubeZ) {
         IBlockState deepslate = deepslateState();
         IBlockState tuff = BlockDarkStone.block == null
                 ? deepslate : BlockDarkStone.block.getDefaultState();
@@ -139,11 +91,11 @@ public final class CavesNotCliffsCubeGenerator implements ICubeGenerator {
                 for (int localX = 0; localX < 16; localX++) {
                     int x = minX + localX;
                     if (isBottomBedrock(x, y, z)) {
-                        primer.setBlockState(localX, localY, localZ, Blocks.BEDROCK.getDefaultState());
+                        primer.set(localX, localY, localZ, Blocks.BEDROCK.getDefaultState());
                     } else {
                         double tuffNoise = CaveBiomeSampler.valueNoise(
                                 world.getSeed() ^ 0x74A71B65L, x / 22.0, y / 18.0, z / 22.0);
-                        primer.setBlockState(localX, localY, localZ,
+                        primer.set(localX, localY, localZ,
                                 tuffNoise > 0.62 ? tuff : deepslate);
                     }
                 }
@@ -170,7 +122,8 @@ public final class CavesNotCliffsCubeGenerator implements ICubeGenerator {
                 ? Blocks.STONE.getDefaultState() : BlockUnnamedStone.block.getDefaultState();
     }
 
-    private void generateDeepOres(CubePrimer primer, int cubeX, int cubeY, int cubeZ) {
+    private void generateDeepOres(ExtendedBlockStorage primer,
+            int cubeX, int cubeY, int cubeZ) {
         Random random = new Random(CaveBiomeSampler.mix64(world.getSeed()
                 ^ (long) cubeX * 0x632BE59BD9B4E019L
                 ^ (long) cubeY * 0x9E3779B97F4A7C15L
@@ -189,7 +142,7 @@ public final class CavesNotCliffsCubeGenerator implements ICubeGenerator {
         }
     }
 
-    private void generateOre(CubePrimer primer, Random random, Block ore, int size,
+    private void generateOre(ExtendedBlockStorage primer, Random random, Block ore, int size,
             int guaranteedAttempts, double extraAttemptChance) {
         if (ore == null) {
             return;
@@ -200,9 +153,9 @@ public final class CavesNotCliffsCubeGenerator implements ICubeGenerator {
             int y = random.nextInt(16);
             int z = random.nextInt(16);
             for (int step = 0; step < size; step++) {
-                IBlockState current = primer.getBlockState(x, y, z);
+                IBlockState current = primer.get(x, y, z);
                 if (current.getBlock() == BlockUnnamedStone.block) {
-                    primer.setBlockState(x, y, z, ore.getDefaultState());
+                    primer.set(x, y, z, ore.getDefaultState());
                 }
                 x = clampLocal(x + random.nextInt(3) - 1);
                 y = clampLocal(y + random.nextInt(3) - 1);
@@ -216,81 +169,26 @@ public final class CavesNotCliffsCubeGenerator implements ICubeGenerator {
     }
 
     @Override
-    public void populate(ICube cube) {
-        if (cube.getY() == 0) {
-            populateVanillaColumn(cube.getX(), cube.getZ());
-        }
-
-        if (MinecraftForge.EVENT_BUS.post(new CubePopulatorEvent(world, cube))) {
-            return;
-        }
-
-        CubePos position = cube.getCoords();
-        Random random = new Random(CaveBiomeSampler.mix64(world.getSeed()
-                ^ (long) position.getX() * 341873128712L
-                ^ (long) position.getY() * 132897987541L
-                ^ (long) position.getZ() * 42317861L));
-        MinecraftForge.EVENT_BUS.post(new PopulateCubeEvent.Pre(world, random,
-                position.getX(), position.getY(), position.getZ(), false));
-        // Keep the draft-v2 feature positions and RNG schedule so existing schema-1 saves do not
-        // gain a decoration seam. The compatibility decorator now emits canonical complete states
-        // instead of recreating aliases after their one-time load migration.
-        CaveBiomeDecorator.decorate(world, random, position);
-        CubeGeneratorsRegistry.generateWorld(world, random, position,
-                world.getBiome(position.getCenterBlockPos()));
-        MinecraftForge.EVENT_BUS.post(new PopulateCubeEvent.Post(world, random,
-                position.getX(), position.getY(), position.getZ(), false));
-    }
-
-    private void populateVanillaColumn(int chunkX, int chunkZ) {
-        setFakeWorldHeight(256);
-        try {
-            vanillaGenerator.populate(chunkX, chunkZ);
-            GameRegistry.generateWorld(chunkX, chunkZ, world, vanillaGenerator, world.getChunkProvider());
-        } finally {
-            setFakeWorldHeight(0);
-        }
-    }
-
-    private void setFakeWorldHeight(int height) {
-        try {
-            if (fakeWorldHeight == null) {
-                fakeWorldHeight = world.getClass().getMethod("fakeWorldHeight", int.class);
-            }
-            fakeWorldHeight.invoke(world, height);
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException exception) {
-            throw new IllegalStateException("Cubic Chunks did not expose its vanilla-generation "
-                    + "height bridge; check the installed 1.12.2 build", exception);
+    public void populate(int chunkX, int chunkZ) {
+        vanillaGenerator.populate(chunkX, chunkZ);
+        for (int sectionY = -4; sectionY < 0; ++sectionY) {
+            FiniteSectionPos position = new FiniteSectionPos(chunkX, sectionY, chunkZ);
+            Random random = new Random(CaveBiomeSampler.mix64(world.getSeed()
+                    ^ (long) chunkX * 341873128712L
+                    ^ (long) sectionY * 132897987541L
+                    ^ (long) chunkZ * 42317861L));
+            CaveBiomeDecorator.decorate(world, random, position);
         }
     }
 
     @Override
-    public Box getFullPopulationRequirements(ICube cube) {
-        if (cube.getY() >= VANILLA_MIN_CUBE && cube.getY() <= VANILLA_MAX_CUBE) {
-            return new Box(-1, -cube.getY(), -1,
-                    0, VANILLA_MAX_CUBE - cube.getY(), 0);
-        }
-        return RECOMMENDED_FULL_POPULATOR_REQUIREMENT;
+    public boolean generateStructures(Chunk chunk, int chunkX, int chunkZ) {
+        return vanillaGenerator.generateStructures(chunk, chunkX, chunkZ);
     }
 
     @Override
-    public Box getPopulationPregenerationRequirements(ICube cube) {
-        if (cube.getY() >= VANILLA_MIN_CUBE && cube.getY() <= VANILLA_MAX_CUBE) {
-            // Merge vanilla's absolute section range with the decorator's symmetric neighbor reads.
-            return new Box(-1, Math.min(-1, VANILLA_MIN_CUBE - cube.getY()), -1,
-                    1, Math.max(1, VANILLA_MAX_CUBE - cube.getY()), 1);
-        }
-        return DECORATOR_PREGENERATION_REQUIREMENT;
-    }
-
-    @Override
-    public void recreateStructures(ICube cube) {
-        // Vanilla structures are column based and are recreated through the overload below.
-    }
-
-    @Override
-    public void recreateStructures(Chunk column) {
-        vanillaGenerator.recreateStructures(column, column.x, column.z);
+    public void recreateStructures(Chunk column, int chunkX, int chunkZ) {
+        vanillaGenerator.recreateStructures(column, chunkX, chunkZ);
     }
 
     @Override
@@ -299,7 +197,13 @@ public final class CavesNotCliffsCubeGenerator implements ICubeGenerator {
     }
 
     @Override
-    public BlockPos getClosestStructure(String name, BlockPos pos, boolean findUnexplored) {
+    public BlockPos getNearestStructurePos(World queriedWorld, String name, BlockPos pos,
+            boolean findUnexplored) {
         return vanillaGenerator.getNearestStructurePos(world, name, pos, findUnexplored);
+    }
+
+    @Override
+    public boolean isInsideStructure(World queriedWorld, String name, BlockPos pos) {
+        return vanillaGenerator.isInsideStructure(queriedWorld, name, pos);
     }
 }

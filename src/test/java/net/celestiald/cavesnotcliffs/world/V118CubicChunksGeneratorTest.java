@@ -1,10 +1,7 @@
 package net.celestiald.cavesnotcliffs.world;
 
-import io.github.opencubicchunks.cubicchunks.api.util.Box;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118NoiseRouterData;
 import org.junit.Test;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -35,17 +32,15 @@ public class V118CubicChunksGeneratorTest {
 
     @Test
     public void everyFiniteTargetRequiresTheNineFeatureSourceColumnsAtCubeZero() {
-        Box full = V118CubicChunksGenerator.fullPopulationRequirements(5);
-        AtomicInteger fullCount = new AtomicInteger();
-        full.forEachPoint((x, y, z) -> fullCount.incrementAndGet());
-        assertEquals(9, fullCount.get());
-        assertTrue(full.allMatch((x, y, z) -> x >= -1 && x <= 1
-            && y == -5 && z >= -1 && z <= 1));
+        PopulationBox full = V118CubicChunksGenerator.fullPopulationRequirements(5);
+        assertEquals(new PopulationBox(-1, -5, -1, 1, -5, 1), full);
 
-        Box bottom = V118CubicChunksGenerator.fullPopulationRequirements(-4);
-        assertTrue(bottom.allMatch((x, y, z) -> y == 4));
-        Box top = V118CubicChunksGenerator.fullPopulationRequirements(19);
-        assertTrue(top.allMatch((x, y, z) -> y == -19));
+        PopulationBox bottom = V118CubicChunksGenerator.fullPopulationRequirements(-4);
+        assertEquals(4, bottom.minY);
+        assertEquals(4, bottom.maxY);
+        PopulationBox top = V118CubicChunksGenerator.fullPopulationRequirements(19);
+        assertEquals(-19, top.minY);
+        assertEquals(-19, top.maxY);
 
         assertSame(V118CubicChunksGenerator.fullPopulationRequirements(-5),
             V118CubicChunksGenerator.fullPopulationRequirements(20));
@@ -53,12 +48,9 @@ public class V118CubicChunksGeneratorTest {
 
     @Test
     public void retainedStructuresPregenerateTheWholeLegacyVerticalColumn() {
-        Box pregeneration = V118CubicChunksGenerator.populationPregenerationRequirements(5);
-        AtomicInteger pregenerationCount = new AtomicInteger();
-        pregeneration.forEachPoint((x, y, z) -> pregenerationCount.incrementAndGet());
-        assertEquals(144, pregenerationCount.get());
-        assertTrue(pregeneration.allMatch((x, y, z) -> x >= -1 && x <= 1
-            && y >= -5 && y <= 10 && z >= -1 && z <= 1));
+        PopulationBox pregeneration =
+            V118CubicChunksGenerator.populationPregenerationRequirements(5);
+        assertEquals(new PopulationBox(-1, -5, -1, 1, 10, 1), pregeneration);
 
         assertSame(V118CubicChunksGenerator.populationPregenerationRequirements(-1),
             V118CubicChunksGenerator.populationPregenerationRequirements(16));
@@ -66,20 +58,12 @@ public class V118CubicChunksGeneratorTest {
 
     @Test
     public void featurePopulationLoadsTheCompleteFiniteThreeByThreeRegion() {
-        Box full = V118CubicChunksGenerator.fullPopulationRequirements(0);
-        AtomicInteger sourceCount = new AtomicInteger();
-        full.forEachPoint((x, y, z) -> sourceCount.incrementAndGet());
-        assertEquals(9, sourceCount.get());
-        assertTrue(full.allMatch((x, y, z) -> x >= -1 && x <= 1
-            && y == 0 && z >= -1 && z <= 1));
+        PopulationBox full = V118CubicChunksGenerator.fullPopulationRequirements(0);
+        assertEquals(new PopulationBox(-1, 0, -1, 1, 0, 1), full);
 
-        Box pregeneration =
+        PopulationBox pregeneration =
             V118CubicChunksGenerator.populationPregenerationRequirements(0);
-        AtomicInteger generatedCount = new AtomicInteger();
-        pregeneration.forEachPoint((x, y, z) -> generatedCount.incrementAndGet());
-        assertEquals(3 * 24 * 3, generatedCount.get());
-        assertTrue(pregeneration.allMatch((x, y, z) -> x >= -1 && x <= 1
-            && y >= -4 && y <= 19 && z >= -1 && z <= 1));
+        assertEquals(new PopulationBox(-1, -4, -1, 1, 19, 1), pregeneration);
     }
 
     @Test

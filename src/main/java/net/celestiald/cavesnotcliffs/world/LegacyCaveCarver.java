@@ -1,9 +1,9 @@
 package net.celestiald.cavesnotcliffs.world;
 
-import io.github.opencubicchunks.cubicchunks.api.worldgen.CubePrimer;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 
 import java.util.Random;
 
@@ -18,7 +18,8 @@ final class LegacyCaveCarver {
     private LegacyCaveCarver() {
     }
 
-    static void carve(CubePrimer primer, long worldSeed, int cubeX, int cubeY, int cubeZ) {
+    static void carve(ExtendedBlockStorage primer, long worldSeed,
+            int cubeX, int cubeY, int cubeZ) {
         if (cubeY < -4 || cubeY >= 0) {
             return;
         }
@@ -43,7 +44,7 @@ final class LegacyCaveCarver {
         }
     }
 
-    private static void carveTunnel(CubePrimer primer, Random random,
+    private static void carveTunnel(ExtendedBlockStorage primer, Random random,
             int cubeX, int cubeY, int cubeZ, double x, double y, double z) {
         float yaw = random.nextFloat() * ((float) Math.PI * 2.0F);
         float pitch = (random.nextFloat() - 0.5F) * 0.28F;
@@ -72,7 +73,8 @@ final class LegacyCaveCarver {
         }
     }
 
-    private static void carveEllipsoid(CubePrimer primer, int cubeX, int cubeY, int cubeZ,
+    private static void carveEllipsoid(ExtendedBlockStorage primer,
+            int cubeX, int cubeY, int cubeZ,
             double centerX, double centerY, double centerZ, double radiusXZ, double radiusY) {
         int minWorldX = cubeX * 16;
         int minWorldY = cubeY * 16;
@@ -97,12 +99,12 @@ final class LegacyCaveCarver {
                     if (dx * dx + dy * dy + dz * dz >= 1.0) {
                         continue;
                     }
-                    IBlockState state = primer.getBlockState(localX, localY, localZ);
+                    IBlockState state = primer.get(localX, localY, localZ);
                     Block block = state.getBlock();
                     if (block == Blocks.BEDROCK) {
                         continue;
                     }
-                    primer.setBlockState(localX, localY, localZ,
+                    primer.set(localX, localY, localZ,
                             worldY < -54 ? Blocks.LAVA.getDefaultState() : Blocks.AIR.getDefaultState());
                 }
             }

@@ -1,9 +1,6 @@
 package net.celestiald.cavesnotcliffs.world;
 
-import io.github.opencubicchunks.cubicchunks.api.util.Box;
-import io.github.opencubicchunks.cubicchunks.api.world.ICube;
-import io.github.opencubicchunks.cubicchunks.api.worldgen.CubePrimer;
-import io.github.opencubicchunks.cubicchunks.api.worldgen.ICubeGenerator;
+import net.celestiald.cavebiomes.api.ExtendedChunkAPI;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118BiomeDecorationUnion;
@@ -28,14 +25,14 @@ import java.util.WeakHashMap;
 import java.util.Set;
 
 /**
- * Native schema-2 CubicChunks bridge for the Java 1.18.2 density columns.
+ * Native schema-2 finite-column generator for the Java 1.18.2 density columns.
  *
  * <p>This generator retains the selected 1.12 chunk generator for the structure-only bridge, but
  * intentionally does not invoke its terrain or general decorator pipeline. It also does not invoke
  * the legacy cave carver or legacy deep ores. Native ordinary 1.18 ore/blob and lush-cave
  * features run through isolated decoration bridges after structure population.</p>
  */
-public final class V118CubicChunksGenerator implements ICubeGenerator {
+public final class V118CubicChunksGenerator implements IChunkGenerator {
     private static final int CUBE_SIZE = 16;
     private static final Map<World, WeakReference<V118CubicChunksGenerator>> ACTIVE_GENERATORS =
         new WeakHashMap<World, WeakReference<V118CubicChunksGenerator>>();
@@ -77,6 +74,8 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         if (structureGenerator == null) {
             throw new NullPointerException("structureGenerator");
         }
+        ExtendedChunkAPI.requireRange("Caves Not Cliffs", TerrainColumn.MIN_Y,
+                TerrainColumn.MAX_Y_EXCLUSIVE);
         this.world = world;
         this.terrainProfile = requireNativeProfile(terrainProfile);
         this.structureGenerator = structureGenerator;
@@ -125,94 +124,62 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         }
     }
 
-    @Deprecated
     @Override
-    public CubePrimer generateCube(int cubeX, int cubeY, int cubeZ) {
-        return generateCube(cubeX, cubeY, cubeZ, new CubePrimer());
-    }
-
-    @Override
-    public CubePrimer generateCube(int cubeX, int cubeY, int cubeZ, CubePrimer primer) {
-        primer.reset();
-        if (!isGeneratedCube(cubeY)) {
-            return primer;
-        }
-        TerrainColumn column = columns.column(cubeX, cubeZ);
-        if (cubeY >= 0 && cubeY < 16) {
-            slicer.sliceStructureBlocks(structureColumn(cubeX, cubeZ, column), column, cubeY,
-                primer);
-        } else {
-            slicer.slice(column, cubeY, primer);
-        }
-        return primer;
-    }
-
-    @Override
-    public void generateColumn(Chunk column) {
-        TerrainColumn terrain = columns.column(column.x, column.z);
-        slicer.projectSurfaceBiomes(terrain, column.getBiomeArray());
-    }
-
-    @Override
-    public void populate(ICube cube) {
-        if (!isGeneratedCube(cube.getY())) {
-            return;
-        }
-        if (cube.getY() == 0) {
-            Set<V118Biome> decorationBiomes = decorationBiomeUnion(cube.getX(), cube.getZ());
-            structures.populate(cube.getX(), cube.getZ());
-            geodes.populate(cube.getX(), cube.getZ());
-            dripstones.populateLarge(cube.getX(), cube.getZ(), decorationBiomes);
-            ordinaryOres.populate(cube.getX(), cube.getZ(), decorationBiomes, dripstones);
-            beeTrees.populateBeforeLush(cube.getX(), cube.getZ(), decorationBiomes);
-            lushCaves.populate(cube.getX(), cube.getZ(), decorationBiomes);
-            beeTrees.populateAfterLush(cube.getX(), cube.getZ(), decorationBiomes);
-        }
-        TerrainColumn column = columns.column(cube.getX(), cube.getZ());
-
-        // CubicChunks 1.12 has no proto-cube scheduled-tick list. Preserve aquifer intent at the
-        // earliest safe public seam instead: when the generated cube is populated, schedule only
-        // the water/lava positions explicitly retained by TerrainColumn.
-        slicer.forEachScheduledFluid(column, cube.getY(), (localX, localY, localZ, material) -> {
-            IBlockState state = blockStates.stateFor(material);
-            Block block = state.getBlock();
-            BlockPos position = new BlockPos(
-                cube.getX() * CUBE_SIZE + localX,
-                cube.getY() * CUBE_SIZE + localY,
-                cube.getZ() * CUBE_SIZE + localZ);
-            if (world.getBlockState(position).getBlock() == block) {
-                world.scheduleUpdate(position, block, block.tickRate(world));
+    public Chunk generateChunk(int chunkX, int chunkZ) {
+        TerrainColumn terrain = columns.column(chunkX, chunkZ);
+        Chunk chunk = new Chunk(world, chunkX, chunkZ);
+        boolean skylight = world.provider.hasSkyLight();
+        ChunkPrimer structureColumn = structureColumn(chunkX, chunkZ, terrain);
+        for (int sectionY = TerrainColumn.MIN_CUBE_Y;
+                sectionY <= TerrainColumn.MAX_CUBE_Y; ++sectionY) {
+            if (sectionY >= 0 && sectionY < 16) {
+                slicer.sliceStructureBlocks(structureColumn, terrain, sectionY, chunk, skylight);
+            } else {
+                slicer.slice(terrain, sectionY, chunk, skylight);
             }
-        });
+        }
+        slicer.projectSurfaceBiomes(terrain, chunk.getBiomeArray());
+        chunk.generateSkylightMap();
+        return chunk;
     }
 
     @Override
-    public boolean supportsConcurrentCubeGeneration() {
-        return false;
+    public void populate(int chunkX, int chunkZ) {
+        Set<V118Biome> decorationBiomes = decorationBiomeUnion(chunkX, chunkZ);
+        structures.populate(chunkX, chunkZ);
+        geodes.populate(chunkX, chunkZ);
+        dripstones.populateLarge(chunkX, chunkZ, decorationBiomes);
+        ordinaryOres.populate(chunkX, chunkZ, decorationBiomes, dripstones);
+        beeTrees.populateBeforeLush(chunkX, chunkZ, decorationBiomes);
+        lushCaves.populate(chunkX, chunkZ, decorationBiomes);
+        beeTrees.populateAfterLush(chunkX, chunkZ, decorationBiomes);
+        TerrainColumn column = columns.column(chunkX, chunkZ);
+
+        for (int sectionY = TerrainColumn.MIN_CUBE_Y;
+                sectionY <= TerrainColumn.MAX_CUBE_Y; ++sectionY) {
+            final int populatedSectionY = sectionY;
+            slicer.forEachScheduledFluid(column, sectionY,
+                    (localX, localY, localZ, material) -> {
+                IBlockState state = blockStates.stateFor(material);
+                Block block = state.getBlock();
+                BlockPos position = new BlockPos(
+                    chunkX * CUBE_SIZE + localX,
+                    populatedSectionY * CUBE_SIZE + localY,
+                    chunkZ * CUBE_SIZE + localZ);
+                if (world.getBlockState(position).getBlock() == block) {
+                    world.scheduleUpdate(position, block, block.tickRate(world));
+                }
+            });
+        }
     }
 
     @Override
-    public boolean supportsConcurrentColumnGeneration() {
-        return false;
+    public boolean generateStructures(Chunk column, int chunkX, int chunkZ) {
+        return structureGenerator.generateStructures(column, chunkX, chunkZ);
     }
 
     @Override
-    public Box getFullPopulationRequirements(ICube cube) {
-        return fullPopulationRequirements(cube.getY());
-    }
-
-    @Override
-    public Box getPopulationPregenerationRequirements(ICube cube) {
-        return populationPregenerationRequirements(cube.getY());
-    }
-
-    @Override
-    public void recreateStructures(ICube cube) {
-        // Starts are recreated once per projected 2D column below, not once per vertical cube.
-    }
-
-    @Override
-    public void recreateStructures(Chunk column) {
+    public void recreateStructures(Chunk column, int chunkX, int chunkZ) {
         structures.recreateStructures(column);
     }
 
@@ -232,8 +199,14 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
     }
 
     @Override
-    public BlockPos getClosestStructure(String name, BlockPos pos, boolean findUnexplored) {
+    public BlockPos getNearestStructurePos(World queriedWorld, String name, BlockPos pos,
+            boolean findUnexplored) {
         return structures.getClosestStructure(name, pos, findUnexplored);
+    }
+
+    @Override
+    public boolean isInsideStructure(World queriedWorld, String name, BlockPos pos) {
+        return structureGenerator.isInsideStructure(queriedWorld, name, pos);
     }
 
     private ChunkPrimer structureColumn(int columnX, int columnZ, TerrainColumn terrain) {
@@ -268,25 +241,25 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         }
     }
 
-    static Box fullPopulationRequirements(int cubeY) {
+    static PopulationBox fullPopulationRequirements(int cubeY) {
         if (isGeneratedCube(cubeY)) {
             // Native features are executed by cube Y=0 and can cross one X/Z cube boundary.
             // Requiring all nine sources here makes every vertical target complete before it can
             // be exposed, independent of which target cube was requested first.
-            return new Box(-1, -cubeY, -1, 1, -cubeY, 1);
+            return new PopulationBox(-1, -cubeY, -1, 1, -cubeY, 1);
         }
-        return NO_REQUIREMENT;
+        return PopulationBox.NONE;
     }
 
-    static Box populationPregenerationRequirements(int cubeY) {
+    static PopulationBox populationPregenerationRequirements(int cubeY) {
         if (cubeY == 0) {
             return FEATURE_POPULATION_REQUIREMENT;
         }
         if (cubeY >= 0 && cubeY < 16) {
-            return new Box(-1, Math.min(-1, -cubeY), -1,
+            return new PopulationBox(-1, Math.min(-1, -cubeY), -1,
                 1, Math.max(1, 15 - cubeY), 1);
         }
-        return NO_REQUIREMENT;
+        return PopulationBox.NONE;
     }
 
     static boolean hasVirtualBiomeY(int blockY) {
@@ -326,7 +299,7 @@ public final class V118CubicChunksGenerator implements ICubeGenerator {
         return cubeY >= TerrainColumn.MIN_CUBE_Y && cubeY <= TerrainColumn.MAX_CUBE_Y;
     }
 
-    private static final Box FEATURE_POPULATION_REQUIREMENT = new Box(-1,
+    private static final PopulationBox FEATURE_POPULATION_REQUIREMENT = new PopulationBox(-1,
         TerrainColumn.MIN_CUBE_Y, -1, 1, TerrainColumn.MAX_CUBE_Y, 1);
     private static final List<Biome.SpawnListEntry> AXOLOTL_SPAWNS =
         Collections.singletonList(new Biome.SpawnListEntry(

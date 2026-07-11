@@ -1,6 +1,5 @@
 package net.celestiald.cavesnotcliffs.world;
 
-import io.github.opencubicchunks.cubicchunks.api.worldgen.CubePrimer;
 import net.celestiald.cavesnotcliffs.content.MountainBiomeContent.Definition;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
@@ -8,6 +7,7 @@ import net.celestiald.cavesnotcliffs.worldgen.v118.V118Material;
 import net.minecraft.init.Biomes;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Bootstrap;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.ChunkPrimer;
 import org.junit.BeforeClass;
@@ -27,7 +27,7 @@ public class V118CubeSlicerTest {
     }
 
     @Test
-    public void copiesAll4096ValuesInCubePrimerYMajorOrder() {
+    public void copiesAll4096ValuesInSectionYMajorOrder() {
         int cubeY = -1;
         TerrainColumn.Builder builder = TerrainColumn.builder(3, -7)
             .fillMaterialIds(V118Material.AIR.storageId())
@@ -43,25 +43,20 @@ public class V118CubeSlicerTest {
                 }
             }
         }
-        builder.setVirtualBiomeIdAtQuart(0, -2, 0, V118Biome.DESERT.ordinal());
-        builder.setVirtualBiomeIdAtQuart(3, -2, 3, V118Biome.FROZEN_PEAKS.ordinal());
-
         V118BlockStateMapper blockMapper = blockMapper();
         V118CubeSlicer slicer = new V118CubeSlicer(blockMapper, biomeMapper());
-        CubePrimer primer = new CubePrimer();
-        slicer.slice(builder.build(), cubeY, primer);
+        IBlockState[] section = new IBlockState[TerrainColumn.BLOCKS_PER_CUBE];
+        slicer.copySectionStates(builder.build(), cubeY, section);
 
         for (int localY = 0; localY < 16; ++localY) {
             for (int localZ = 0; localZ < 16; ++localZ) {
                 for (int localX = 0; localX < 16; ++localX) {
                     int linearIndex = (localY << 8) | (localZ << 4) | localX;
                     assertEquals(blockMapper.stateFor(materials[linearIndex % materials.length]),
-                        primer.getBlockState(localX, localY, localZ));
+                        section[linearIndex]);
                 }
             }
         }
-        assertSame(Biomes.DESERT, primer.getBiome(0, 0, 0));
-        assertSame(Biomes.ICE_MOUNTAINS, primer.getBiome(3, 15, 3));
     }
 
     @Test
@@ -122,11 +117,12 @@ public class V118CubeSlicerTest {
         }
 
         structureColumn.setBlockState(3, 173, 7, Blocks.DIAMOND_BLOCK.getDefaultState());
-        CubePrimer cube = new CubePrimer();
-        slicer.sliceStructureBlocks(structureColumn, column, 10, cube);
-        assertSame(Blocks.DIAMOND_BLOCK, cube.getBlockState(3, 13, 7).getBlock());
+        IBlockState[] section = new IBlockState[TerrainColumn.BLOCKS_PER_CUBE];
+        slicer.copyStructureSectionStates(structureColumn, 10, section);
+        assertSame(Blocks.DIAMOND_BLOCK,
+            section[(13 << 8) | (7 << 4) | 3].getBlock());
         assertEquals(structureColumn.getBlockState(15, 175, 15),
-            cube.getBlockState(15, 15, 15));
+            section[(15 << 8) | (15 << 4) | 15]);
     }
 
     @Test
@@ -152,7 +148,7 @@ public class V118CubeSlicerTest {
     }
 
     @Test
-    public void projectsEveryNativeMountainBiomeThroughBothThreeDimensionalAndSurfacePaths() {
+    public void projectsEveryNativeMountainBiomeThroughTheLegacySurfacePath() {
         V118CubeSlicer slicer = new V118CubeSlicer(blockMapper(), biomeMapperWithMountains());
         for (Definition definition : Definition.values()) {
             TerrainColumn column = TerrainColumn.builder(2, -4)
@@ -160,11 +156,6 @@ public class V118CubeSlicerTest {
                 .fillSurfaceBiomeIds(definition.virtualBiome().ordinal())
                 .fillVirtualBiomeIds(definition.virtualBiome().ordinal())
                 .build();
-            CubePrimer primer = new CubePrimer();
-
-            slicer.slice(column, 0, primer);
-
-            assertSame(definition.name(), definition.biome(), primer.getBiome(0, 0, 0));
             assertSame(definition.name(), definition.biome(),
                 slicer.projectedSurfaceBiome(column, 15, 15));
         }

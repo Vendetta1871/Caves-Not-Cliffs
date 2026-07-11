@@ -1,6 +1,5 @@
 package net.celestiald.cavesnotcliffs.world;
 
-import io.github.opencubicchunks.cubicchunks.api.util.CubePos;
 import net.celestiald.cavesnotcliffs.block.BlockDarkStone;
 import net.celestiald.cavesnotcliffs.block.LushCaveVinesBlock;
 import net.celestiald.cavesnotcliffs.block.LushDripleafBlocks;
@@ -25,7 +24,7 @@ final class CaveBiomeDecorator {
     private CaveBiomeDecorator() {
     }
 
-    static void decorate(World world, Random random, CubePos cube) {
+    static void decorate(World world, Random random, FiniteSectionPos cube) {
         int minY = Math.max(CavesNotCliffsWorldType.MIN_HEIGHT + 1, cube.getMinBlockY());
         int maxY = Math.min(63, cube.getMaxBlockY());
         if (minY > maxY) {
@@ -71,7 +70,7 @@ final class CaveBiomeDecorator {
         return block == Blocks.STONE || block == BlockUnnamedStone.block || block == BlockDarkStone.block;
     }
 
-    private static void decorateLush(World world, Random random, CubePos cube, BlockPos rock,
+    private static void decorateLush(World world, Random random, FiniteSectionPos cube, BlockPos rock,
             boolean airAbove, boolean airBelow, boolean exposedSide) {
         if (LushCaveContent.MOSS_BLOCK != null) {
             double mossChance = airAbove || airBelow ? 0.88 : (exposedSide ? 0.62 : 0.0);
@@ -107,7 +106,7 @@ final class CaveBiomeDecorator {
         }
     }
 
-    private static void placeSmallDripleaf(World world, CubePos cube, BlockPos lower) {
+    private static void placeSmallDripleaf(World world, FiniteSectionPos cube, BlockPos lower) {
         BlockPos upper = lower.up();
         if (!cube.containsBlock(upper) || !world.isAirBlock(lower)
                 || !world.isAirBlock(upper)
@@ -133,7 +132,7 @@ final class CaveBiomeDecorator {
                 EnumFacing.NORTH, false, LushDripleafBlocks.Tilt.NONE), 2);
     }
 
-    private static void generateGlowBerries(World world, Random random, CubePos cube,
+    private static void generateGlowBerries(World world, Random random, FiniteSectionPos cube,
             BlockPos start, int length) {
         if (LushCaveContent.CAVE_VINES_PLANT == null
                 || LushCaveContent.CAVE_VINES_AGE_24_25 == null) {
@@ -164,7 +163,7 @@ final class CaveBiomeDecorator {
         return index == length - 1 || random.nextDouble() < 0.35D;
     }
 
-    private static void decorateDripstone(World world, Random random, CubePos cube, BlockPos rock,
+    private static void decorateDripstone(World world, Random random, FiniteSectionPos cube, BlockPos rock,
             boolean airAbove, boolean airBelow, boolean exposedSide) {
         if (BlockDripstone.block != null) {
             double chance = airAbove || airBelow ? 0.92 : (exposedSide ? 0.68 : 0.0);
@@ -180,7 +179,7 @@ final class CaveBiomeDecorator {
         }
     }
 
-    private static void placeStalactite(World world, CubePos cube, BlockPos start, int requestedLength) {
+    private static void placeStalactite(World world, FiniteSectionPos cube, BlockPos start, int requestedLength) {
         int length = availableAir(world, cube, start, requestedLength, -1);
         if (length <= 0) {
             return;
@@ -192,7 +191,7 @@ final class CaveBiomeDecorator {
         }
     }
 
-    private static void placeStalagmite(World world, CubePos cube, BlockPos start, int requestedLength) {
+    private static void placeStalagmite(World world, FiniteSectionPos cube, BlockPos start, int requestedLength) {
         int length = availableAir(world, cube, start, requestedLength, 1);
         if (length <= 0) {
             return;
@@ -214,7 +213,7 @@ final class CaveBiomeDecorator {
         return Thickness.MIDDLE;
     }
 
-    private static int availableAir(World world, CubePos cube, BlockPos start,
+    private static int availableAir(World world, FiniteSectionPos cube, BlockPos start,
             int requestedLength, int direction) {
         int available = 0;
         BlockPos current = start;
@@ -226,4 +225,3 @@ final class CaveBiomeDecorator {
         return available;
     }
 }
-

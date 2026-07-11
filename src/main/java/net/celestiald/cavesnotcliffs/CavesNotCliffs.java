@@ -49,11 +49,15 @@ import net.celestiald.cavesnotcliffs.stonecutter.CncGuiHandler;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldTypes;
 import net.celestiald.cavesnotcliffs.world.WorldHeightBootstrap;
+import net.celestiald.cavesnotcliffs.world.VirtualBiomeResolverRegistry;
+import net.celestiald.cavesnotcliffs.network.TerrainContractNetwork;
+import net.celestiald.cavebiomes.api.BiomeLayerAPI;
+import net.celestiald.cavebiomes.api.IWorldVerticalBiomeProvider;
 
 import java.util.function.Supplier;
 
 @Mod(modid = CavesNotCliffs.MODID, version = CavesNotCliffs.VERSION,
-		dependencies = "required-after:forge@[14.23.5.2860,);required-after:cubicchunks@[1.12.2-0.0.1301.0-SNAPSHOT,)")
+		dependencies = "required-after:forge@[14.23.5.2860,);required-after:cavebiomesapi@[1.1.0,)")
 public class CavesNotCliffs {
 	public static final String MODID = "cavesnotcliffs";
 	public static final String VERSION = "2.0.0";
@@ -65,14 +69,18 @@ public class CavesNotCliffs {
 	public static CavesNotCliffs instance;
 	public ElementsCavesNotCliffs elements = new ElementsCavesNotCliffs();
 	private final WorldHeightBootstrap worldHeightBootstrap = new WorldHeightBootstrap();
+	private final IWorldVerticalBiomeProvider verticalBiomeProvider =
+			(world, x, y, z, base) -> VirtualBiomeResolverRegistry.resolve(
+					world, x, y, z, base);
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
-		// Creating a WorldType registers it in 1.12's world-type table. The accompanying
-		// capability hook seeds Cubic Chunks' save metadata with the finite v2 bounds.
+		// Creating the hidden alias registers it before level.dat or server.properties is parsed.
 		if (WORLD_TYPE == null) {
 			WORLD_TYPE = new CavesNotCliffsWorldType();
 		}
 		MinecraftForge.EVENT_BUS.register(worldHeightBootstrap);
+		BiomeLayerAPI.register(verticalBiomeProvider);
+		TerrainContractNetwork.initialize();
 		MinecraftForge.EVENT_BUS.register(LavaCauldronHandler.INSTANCE);
 		MinecraftForge.EVENT_BUS.register(this);
 		GameRegistry.registerWorldGenerator(elements, 5);

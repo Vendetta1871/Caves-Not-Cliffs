@@ -2,7 +2,7 @@
   {
     "modid": "cavesnotcliffs",
     "name": "Caves Not Cliffs",
-    "description": "Backports Caves & Cliffs features to 1.12.2. Requires Forge 14.23.5.2860+ and CubicChunks 1.12.2-0.0.1301.0-SNAPSHOT+.",
+    "description": "Backports Caves & Cliffs features to 1.12.2. Requires Forge 14.23.5.2860+ and CaveBiomesAPI 1.1.0+.",
     "version": "${version}",
     "credits": "CelestialD",
     "logoFile": "",
@@ -14,7 +14,7 @@
     ],
     "dependencies": [
       "required-after:forge@[14.23.5.2860,)",
-      "required-after:cubicchunks@[1.12.2-0.0.1301.0-SNAPSHOT,)"
+      "required-after:cavebiomesapi@[1.1.0,)"
     ]
   }
 ]

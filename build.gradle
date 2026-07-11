@@ -31,10 +31,18 @@ minecraft {
 
 repositories {
     maven { url = 'https://maven.daporkchop.net/snapshot/' }
+    maven { url = 'https://jitpack.io' }
     mavenCentral()
 }
 
 dependencies {
+    compileOnly('com.github.frostdev-ops:CaveBiomesAPI:859b631') {
+        transitive = false
+    }
+    testCompile('com.github.frostdev-ops:CaveBiomesAPI:859b631') {
+        transitive = false
+    }
+
     // CubicChunks itself is a required runtime mod, but only its public API belongs on the compile
     // classpath. The API must never be bundled into the Caves Not Cliffs distributable.
     compileOnly('io.github.opencubicchunks:cubicchunks-api:1.12.2-0.0.1301.0-SNAPSHOT') {
