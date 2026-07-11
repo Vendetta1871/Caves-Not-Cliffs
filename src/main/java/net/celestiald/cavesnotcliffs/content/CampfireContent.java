@@ -203,6 +203,9 @@ public final class CampfireContent extends ElementsCavesNotCliffs.ModElement {
         public static final PropertyBool WATERLOGGED = PropertyBool.create("waterlogged");
         private static final AxisAlignedBB SHAPE = new AxisAlignedBB(
             0.0D, 0.0D, 0.0D, 1.0D, 7.0D / 16.0D, 1.0D);
+        // valueOf avoids a production MCP-field reference rejected by verifyReleaseJar.
+        private static final EnumParticleTypes LAVA_PARTICLE =
+            EnumParticleTypes.valueOf("LAVA");
 
         private final boolean soul;
 
@@ -419,7 +422,7 @@ public final class CampfireContent extends ElementsCavesNotCliffs.ModElement {
                     random.nextFloat() * 0.7F + 0.6F, false);
             }
             if (!soul && random.nextInt(5) == 0) {
-                world.spawnParticle(EnumParticleTypes.LAVA,
+                world.spawnParticle(LAVA_PARTICLE,
                     pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D,
                     random.nextFloat() / 2.0F, 5.0E-5D, random.nextFloat() / 2.0F);
             }
