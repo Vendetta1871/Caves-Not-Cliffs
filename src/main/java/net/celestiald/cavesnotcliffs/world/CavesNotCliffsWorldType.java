@@ -1,15 +1,15 @@
 package net.celestiald.cavesnotcliffs.world;
 
 import io.github.opencubicchunks.cubicchunks.api.util.IntRange;
-import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorldType;
 import io.github.opencubicchunks.cubicchunks.api.worldgen.ICubeGenerator;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.WorldServerMulti;
 import net.minecraft.world.WorldType;
 
-/** The v2 world format: vanilla 1.12 terrain in a finite 384-block Cubic Chunks world. */
-public final class CavesNotCliffsWorldType extends WorldType implements ICubicWorldType {
+/** Hidden schema-1 alias retained so worlds created by the earlier v2 draft keep their terrain. */
+public final class CavesNotCliffsWorldType extends WorldType
+        implements CavesNotCliffsCubicWorldType {
     public static final int MIN_HEIGHT = -64;
     public static final int MAX_HEIGHT = 320;
 
@@ -19,7 +19,8 @@ public final class CavesNotCliffsWorldType extends WorldType implements ICubicWo
 
     @Override
     public ICubeGenerator createCubeGenerator(World world) {
-        return new CavesNotCliffsCubeGenerator(world, world.provider.createChunkGenerator());
+        return new CavesNotCliffsCubeGenerator(world, world.provider.createChunkGenerator(),
+                TerrainProfile.DEFAULT);
     }
 
     @Override
@@ -36,10 +37,20 @@ public final class CavesNotCliffsWorldType extends WorldType implements ICubicWo
 
     @Override
     public boolean canBeCreated() {
-        return true;
+        return false;
+    }
+
+    @Override
+    public int getTerrainSchema() {
+        return CavesNotCliffsWorldData.LEGACY_SCHEMA;
+    }
+
+    @Override
+    public TerrainProfile getTerrainProfile() {
+        return TerrainProfile.DEFAULT;
     }
 
     public static boolean isCavesNotCliffs(World world) {
-        return world != null && world.getWorldType() instanceof CavesNotCliffsWorldType;
+        return world != null && world.getWorldType() instanceof CavesNotCliffsCubicWorldType;
     }
 }

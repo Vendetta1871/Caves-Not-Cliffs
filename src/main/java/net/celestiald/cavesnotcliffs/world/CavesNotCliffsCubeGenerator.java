@@ -45,13 +45,20 @@ public final class CavesNotCliffsCubeGenerator implements ICubeGenerator {
 
     private final World world;
     private final IChunkGenerator vanillaGenerator;
+    private final TerrainProfile terrainProfile;
     private Chunk cachedVanillaChunk;
     private Biome[] cachedBiomes;
     private Method fakeWorldHeight;
 
-    CavesNotCliffsCubeGenerator(World world, IChunkGenerator vanillaGenerator) {
+    CavesNotCliffsCubeGenerator(World world, IChunkGenerator vanillaGenerator,
+            TerrainProfile terrainProfile) {
         this.world = world;
         this.vanillaGenerator = vanillaGenerator;
+        this.terrainProfile = terrainProfile;
+    }
+
+    TerrainProfile getTerrainProfile() {
+        return terrainProfile;
     }
 
     @Deprecated

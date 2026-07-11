@@ -28,6 +28,7 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -42,6 +43,7 @@ import net.minecraft.block.Block;
 import net.celestiald.cavesnotcliffs.command.CommandCaveBiome;
 import net.celestiald.cavesnotcliffs.handler.LavaCauldronHandler;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
+import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldTypes;
 import net.celestiald.cavesnotcliffs.world.WorldHeightBootstrap;
 
 import java.util.function.Supplier;
@@ -87,6 +89,13 @@ public class CavesNotCliffs {
 	@Mod.EventHandler
 	public void postInit(FMLPostInitializationEvent event) {
 		proxy.postInit(event);
+	}
+
+	@Mod.EventHandler
+	public void loadComplete(FMLLoadCompleteEvent event) {
+		// All mods have completed post-init, but no server has loaded a world yet. Snapshot and
+		// wrap every compatible two-dimensional type in a deterministic order at this boundary.
+		CavesNotCliffsWorldTypes.registerWrappers();
 	}
 
 	@Mod.EventHandler

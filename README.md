@@ -1,7 +1,7 @@
 # Caves Not Cliffs [Backported]
 
 Caves Not Cliffs backports the underground half of Minecraft's Caves & Cliffs update to 1.12.2.
-Version 2.0.0 adds a dedicated finite-height CubicChunks world type, true 3D cave-biome regions,
+Version 2.0.0 adds a default-on finite-height CubicChunks world format, true 3D cave-biome regions,
 and the complete deepslate ore family.
 
 ![Caves not Cliffs](https://github.com/user-attachments/assets/b3210380-8264-4887-99dc-03522af9a10f)
@@ -27,7 +27,7 @@ and the complete deepslate ore family.
 
 4. **The v2 world format**
 
-   - Dedicated `Caves Not Cliffs` world type with buildable space from Y=-64 through Y=319
+   - Config-driven Overworld format with buildable space from Y=-64 through Y=319
    - Deepslate and tuff below Y=0, with all seven vanilla deepslate ores
    - Deterministic 3D normal, lush, and dripstone cave regions
    - Seed-stable deep caves and decorations
@@ -42,15 +42,16 @@ and the complete deepslate ore family.
 
 ## Creating a v2 world
 
-Install the requirements below and select **Caves Not Cliffs** in the World Type button when
-creating a world. For a dedicated server, set this in `server.properties`:
+Install the requirements below and create a world normally. Caves Not Cliffs applies its v2 format
+to newly created Overworlds by default while preserving the selected surface-generator family and
+its options. No `level-type` change is required on a dedicated server.
 
-```properties
-level-type=cavesnotcliffs
-```
-
-The v2 generator is opt-in. Existing vanilla and Caves Not Cliffs 1.x worlds are not silently
-converted; back up a save before testing it with a changed mod list.
+The setting is written to `config/cavesnotcliffs.cfg` as
+`world.enableForNewOverworlds=true`. Set it to `false` before creating a world to leave that new
+Overworld unchanged. The setting is evaluated only at first creation: existing vanilla worlds,
+schema-1 Caves Not Cliffs worlds, and schema-2 worlds always keep their recorded format. A stale
+`level-type=cavesnotcliffs` on a newly created server is treated like the normal default selection
+and still obeys this config.
 
 Use `/cncbiome` in-game to identify the cave-biome region at your current position, or
 `/cncbiome <x> <y> <z>` to inspect another coordinate.

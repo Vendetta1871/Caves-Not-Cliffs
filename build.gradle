@@ -40,6 +40,9 @@ dependencies {
     compileOnly('io.github.opencubicchunks:cubicchunks-api:1.12.2-0.0.1301.0-SNAPSHOT') {
         transitive = false
     }
+    testCompile('io.github.opencubicchunks:cubicchunks-api:1.12.2-0.0.1301.0-SNAPSHOT') {
+        transitive = false
+    }
 
     testCompile 'junit:junit:4.13.2'
 }
