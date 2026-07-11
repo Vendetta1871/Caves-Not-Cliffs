@@ -172,3 +172,51 @@ compared as raw IEEE-754 bits by `V118NoiseRouterOracleTest`; the independent of
   `1f5446795b0d9b4185a0f465a678e76fb6b20fd5271d44c0820dc2e5cc335e29`
 - Noise-router TSV SHA-256:
   `79444c4a20c41bead9e1061f1265ef3fb795e73c92a3fc11557134b6a9c43d22`
+
+## Ordinary Overworld ore and blob decoration
+
+Five independent harnesses cover the ordinary 1.18.2 Overworld ore pass. The decoration-random
+fixture exercises Mojang's xoroshiro-backed `WorldgenRandom` with the legacy decoration and
+feature seed formulas. The catalog fixture discovers the registered configured/placed features,
+their global step indices, exact modifier/configuration values, target outputs, and membership in
+all 50 Overworld biomes. The placement fixture runs the registered count/rarity, in-square, and
+height modifiers for every scoped feature, all six edge seeds, negative chunks, and normal,
+large-biomes, and amplified generators. Ordinary placement is intentionally profile-independent,
+which the test asserts.
+
+`ore-shape-oracle-1.18.2.tsv` invokes the official `OreFeature` against deterministic sparse
+chunks. Its 54 cases cover all configured sizes and discard probabilities, stone/deepslate
+outputs, negative chunk edges, cube boundaries, and both build limits. It records every changed
+coordinate and material. `ore-decoration-oracle-1.18.2.tsv` then executes the complete scoped
+feature sequence for plains, dripstone caves, badlands, and meadow representatives. Each case
+records per-material counts and a SHA-256 over every sorted `x,y,z,material` result.
+
+The standalone registry bootstrap does not load data-pack block tags. The decoration harness
+therefore expands the three official 1.18.2 tag JSON files (`base_stone_overworld`,
+`stone_ore_replaceables`, and `deepslate_ore_replaceables`) into equivalent official
+`BlockMatchTest` targets. Sizes, output states, exposure probabilities, and modifier chains still
+come from Mojang's registered features. It removes the terminal biome filter after applying the
+catalog-oracle membership table. Its `ensureCanWrite` emulates an ordinary, non-retrogen
+`WorldGenRegion`: horizontal write-radius validation is active, while vertical clipping remains
+inside `OreFeature`.
+
+- Decoration-random harness SHA-256:
+  `6e879863f1508cf6b84b864cfc378dc33a4f8e4e29f198f7b43c4f687d66ead7`
+- Decoration-random TSV SHA-256:
+  `abd23cba0280bf149430a3008446d859af133fe08223db373d9e9949e8f69fc4`
+- Ore-catalog harness SHA-256:
+  `1c9581f563d4ab4182a2dacccb17b7cb9d23b8c9b24d626a85153ada2b70ea84`
+- Ore-catalog TSV SHA-256:
+  `7a18a19f65c0de456fa732495538e553c93ed4528acbb8b37945f59f9318244e`
+- Ore-placement harness SHA-256:
+  `99b99ad64efd350ae6b5b59c160c418432b0cc2ad6479a26f8e3608ed3b4072c`
+- Ore-placement TSV SHA-256:
+  `e5fcc9da66cd371334fd5c61c6be533899e2db0b6b1a85165b4c8893c3aa70d7`
+- Ore-shape harness SHA-256:
+  `f8d03bae93dd3d1bd97923f5174b8bfdcde6abb3e1dc7d2328324fd98b046ca8`
+- Ore-shape TSV SHA-256:
+  `63800d4130945024699c6922dd8a8baadda8ceaf712c26edfced80db47bf288e`
+- Ore-decoration harness SHA-256:
+  `d0f6c6ea79b865c11d1e556aee36611972725636ea4276294bbcc40d0f3ab4ea`
+- Ore-decoration TSV SHA-256:
+  `3ee4112bdfaf8e0c18ff253d13ba7abeda106bac78e29d9773e59f9493a29261`

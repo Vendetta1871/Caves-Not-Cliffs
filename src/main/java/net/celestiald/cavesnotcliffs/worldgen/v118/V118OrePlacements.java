@@ -32,7 +32,14 @@ public final class V118OrePlacements {
     private V118OrePlacements() {
     }
 
-    /** Executes this scoped subset with vanilla decoration/feature seeds and global order. */
+    /**
+     * Executes this scoped subset with vanilla decoration/feature seeds and global order.
+     *
+     * <p>{@code regionBiomes} must be the vanilla decoration union from the surrounding 3x3
+     * chunks. The final candidate is filtered again through {@link WorldAccess#biomeAt}. Features
+     * outside this ordinary-ore subset retain their global seed slots but are not executed here;
+     * integration must run any such target-mutating feature in its proper global position.</p>
+     */
     public static DecorationResult decorate(WorldAccess world, long worldSeed, int chunkX,
             int chunkZ, Set<V118Biome> regionBiomes) {
         if (world == null || regionBiomes == null) {
