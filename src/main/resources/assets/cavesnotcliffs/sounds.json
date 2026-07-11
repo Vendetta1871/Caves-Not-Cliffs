@@ -609,6 +609,146 @@
     ],
     "subtitle": "subtitles.item.trident.thunder"
   },
+  "block.dripstone_block.break": {
+    "sounds": [
+      "cavesnotcliffs:block/dripstone/break1", "cavesnotcliffs:block/dripstone/break2",
+      "cavesnotcliffs:block/dripstone/break3", "cavesnotcliffs:block/dripstone/break4",
+      "cavesnotcliffs:block/dripstone/break5"
+    ],
+    "subtitle": "subtitles.block.generic.break"
+  },
+  "block.dripstone_block.fall": {
+    "sounds": [
+      "cavesnotcliffs:block/dripstone/step1", "cavesnotcliffs:block/dripstone/step2",
+      "cavesnotcliffs:block/dripstone/step3", "cavesnotcliffs:block/dripstone/step4",
+      "cavesnotcliffs:block/dripstone/step5", "cavesnotcliffs:block/dripstone/step6"
+    ]
+  },
+  "block.dripstone_block.hit": {
+    "sounds": [
+      "cavesnotcliffs:block/dripstone/step1", "cavesnotcliffs:block/dripstone/step2",
+      "cavesnotcliffs:block/dripstone/step3", "cavesnotcliffs:block/dripstone/step4",
+      "cavesnotcliffs:block/dripstone/step5", "cavesnotcliffs:block/dripstone/step6"
+    ],
+    "subtitle": "subtitles.block.generic.hit"
+  },
+  "block.dripstone_block.place": {
+    "sounds": [
+      "cavesnotcliffs:block/dripstone/break1", "cavesnotcliffs:block/dripstone/break2",
+      "cavesnotcliffs:block/dripstone/break3", "cavesnotcliffs:block/dripstone/break4",
+      "cavesnotcliffs:block/dripstone/break5"
+    ],
+    "subtitle": "subtitles.block.generic.place"
+  },
+  "block.dripstone_block.step": {
+    "sounds": [
+      "cavesnotcliffs:block/dripstone/step1", "cavesnotcliffs:block/dripstone/step2",
+      "cavesnotcliffs:block/dripstone/step3", "cavesnotcliffs:block/dripstone/step4",
+      "cavesnotcliffs:block/dripstone/step5", "cavesnotcliffs:block/dripstone/step6"
+    ],
+    "subtitle": "subtitles.block.generic.footsteps"
+  },
+  "block.pointed_dripstone.break": {
+    "sounds": [
+      "cavesnotcliffs:block/dripstone/break1", "cavesnotcliffs:block/dripstone/break2",
+      "cavesnotcliffs:block/dripstone/break3", "cavesnotcliffs:block/dripstone/break4",
+      "cavesnotcliffs:block/dripstone/break5"
+    ],
+    "subtitle": "subtitles.block.generic.break"
+  },
+  "block.pointed_dripstone.fall": {
+    "sounds": [
+      "cavesnotcliffs:block/dripstone/step1", "cavesnotcliffs:block/dripstone/step2",
+      "cavesnotcliffs:block/dripstone/step3", "cavesnotcliffs:block/dripstone/step4",
+      "cavesnotcliffs:block/dripstone/step5", "cavesnotcliffs:block/dripstone/step6"
+    ]
+  },
+  "block.pointed_dripstone.hit": {
+    "sounds": [
+      "cavesnotcliffs:block/dripstone/step1", "cavesnotcliffs:block/dripstone/step2",
+      "cavesnotcliffs:block/dripstone/step3", "cavesnotcliffs:block/dripstone/step4",
+      "cavesnotcliffs:block/dripstone/step5", "cavesnotcliffs:block/dripstone/step6"
+    ],
+    "subtitle": "subtitles.block.generic.hit"
+  },
+  "block.pointed_dripstone.place": {
+    "sounds": [
+      "cavesnotcliffs:block/dripstone/break1", "cavesnotcliffs:block/dripstone/break2",
+      "cavesnotcliffs:block/dripstone/break3", "cavesnotcliffs:block/dripstone/break4",
+      "cavesnotcliffs:block/dripstone/break5"
+    ],
+    "subtitle": "subtitles.block.generic.place"
+  },
+  "block.pointed_dripstone.step": {
+    "sounds": [
+      "cavesnotcliffs:block/dripstone/step1", "cavesnotcliffs:block/dripstone/step2",
+      "cavesnotcliffs:block/dripstone/step3", "cavesnotcliffs:block/dripstone/step4",
+      "cavesnotcliffs:block/dripstone/step5", "cavesnotcliffs:block/dripstone/step6"
+    ],
+    "subtitle": "subtitles.block.generic.footsteps"
+  },
+  "block.pointed_dripstone.land": {
+    "sounds": [
+      "cavesnotcliffs:block/pointed_dripstone/land1",
+      "cavesnotcliffs:block/pointed_dripstone/land2",
+      "cavesnotcliffs:block/pointed_dripstone/land3",
+      "cavesnotcliffs:block/pointed_dripstone/land4",
+      "cavesnotcliffs:block/pointed_dripstone/land5"
+    ]
+  },
+  "block.pointed_dripstone.drip_lava": {
+    "sounds": [
+      "cavesnotcliffs:block/pointed_dripstone/drip_lava1",
+      "cavesnotcliffs:block/pointed_dripstone/drip_lava2",
+      "cavesnotcliffs:block/pointed_dripstone/drip_lava3",
+      "cavesnotcliffs:block/pointed_dripstone/drip_lava4",
+      "cavesnotcliffs:block/pointed_dripstone/drip_lava5",
+      "cavesnotcliffs:block/pointed_dripstone/drip_lava6"
+    ],
+    "subtitle": "subtitles.block.pointed_dripstone.drip_lava"
+  },
+  "block.pointed_dripstone.drip_lava_into_cauldron": {
+    "sounds": [
+      "cavesnotcliffs:block/pointed_dripstone/drip_lava_cauldron1",
+      "cavesnotcliffs:block/pointed_dripstone/drip_lava_cauldron2",
+      "cavesnotcliffs:block/pointed_dripstone/drip_lava_cauldron3",
+      "cavesnotcliffs:block/pointed_dripstone/drip_lava_cauldron4"
+    ],
+    "subtitle": "subtitles.block.pointed_dripstone.drip_lava_into_cauldron"
+  },
+  "block.pointed_dripstone.drip_water": {
+    "sounds": [
+      "cavesnotcliffs:block/pointed_dripstone/drip_water1",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water2",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water3",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water4",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water5",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water6",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water7",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water8",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water9",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water10",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water11",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water12",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water13",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water14",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water15"
+    ],
+    "subtitle": "subtitles.block.pointed_dripstone.drip_water"
+  },
+  "block.pointed_dripstone.drip_water_into_cauldron": {
+    "sounds": [
+      "cavesnotcliffs:block/pointed_dripstone/drip_water_cauldron1",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water_cauldron2",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water_cauldron3",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water_cauldron4",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water_cauldron5",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water_cauldron6",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water_cauldron7",
+      "cavesnotcliffs:block/pointed_dripstone/drip_water_cauldron8"
+    ],
+    "subtitle": "subtitles.block.pointed_dripstone.drip_water_into_cauldron"
+  },
   "ui.stonecutter.select_recipe": {
     "sounds": [
       "minecraft:random/click"

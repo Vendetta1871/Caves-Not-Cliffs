@@ -28,7 +28,11 @@ public final class CncRegistryIds {
             id("amethyst_cluster_waterlogged");
     public static final ResourceLocation GLOW_BERRIES = id("glow_berries");
     public static final ResourceLocation BIG_DRIPLEAF = id("big_dripleaf");
+    public static final ResourceLocation DRIPSTONE_BLOCK = id("dripstone_block");
     public static final ResourceLocation POINTED_DRIPSTONE = id("pointed_dripstone");
+    /** Hidden storage identity for source-water pointed-dripstone states. */
+    public static final ResourceLocation POINTED_DRIPSTONE_WATERLOGGED =
+            id("pointed_dripstone_waterlogged");
     public static final ResourceLocation POWDER_SNOW = id("powder_snow");
     public static final ResourceLocation POWDER_SNOW_BUCKET = id("powder_snow_bucket");
     /** Hidden state companion; the vanilla cauldron remains the only obtainable item. */

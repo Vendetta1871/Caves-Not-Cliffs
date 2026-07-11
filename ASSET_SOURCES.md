@@ -106,6 +106,12 @@ the hierarchical parts to Java 1.12.2's flat `ModelRenderer` API. Sound definiti
 official per-entry pitch and volume values. The tropical-fish bucket is the documented narrow
 1.12 clownfish bridge; its artwork is still the canonical 1.18.2 item texture.
 
+The dripstone-block texture, ten directional pointed-dripstone textures, pointed-dripstone item
+texture, and their model geometry are unmodified Java 1.18.2 client assets, with only namespace
+and Java 1.12 model-path syntax adapted. The eleven shared dripstone break/step sounds, thirty-three
+water/lava drip sounds, and five pointed-dripstone landing sounds are unmodified objects from the
+official 1.18 asset index and use the Java 1.18.2 sound definitions.
+
 - Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
 - Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
 - Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
