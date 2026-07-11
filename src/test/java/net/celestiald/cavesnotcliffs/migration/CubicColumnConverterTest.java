@@ -107,6 +107,16 @@ public class CubicColumnConverterTest {
     }
 
     @Test
+    public void requiresSkylightArraysForOverworldSections() throws Exception {
+        Map<Integer, NBTTagCompound> cubes = completeCubes(-4, 20, true);
+        cube(cubes, 0).getCompoundTag("Level").getTagList("Sections", 10)
+                .getCompoundTagAt(0).removeTag("SkyLight");
+
+        expectFailure("SkyLight", column(), cubes,
+                CavesNotCliffsWorldData.CURRENT_SCHEMA);
+    }
+
+    @Test
     public void rejectsDuplicateTileEntityPositions() throws Exception {
         Map<Integer, NBTTagCompound> cubes = completeCubes(-4, 20, true);
         NBTTagCompound tile = positioned(-17, 66, 153);
@@ -181,6 +191,8 @@ public class CubicColumnConverterTest {
             root.removeTag("CavesNotCliffsCauldronBridge");
             root.getCompoundTag("Level").removeTag("Biomes3D");
         }
+        cube(cubes, 0).getCompoundTag("Level").getTagList("Sections", 10)
+                .getCompoundTagAt(0).removeTag("SkyLight");
         NBTTagCompound converted = convertVanillaDimension(
                 column(), cubes, 15L);
         assertEquals(16, converted.getCompoundTag("Level")

@@ -125,7 +125,8 @@ public final class CubicColumnConverter {
             }
             NBTTagCompound cubeRoot = entry.getValue();
             NBTTagCompound cube = validateCube(cubeRoot, chunkX, cubeY, chunkZ);
-            copySection(cube, cubeY, sections, chunkX, chunkZ);
+            copySection(cube, cubeY, sections, chunkX, chunkZ,
+                    cavesNotCliffsOverworld);
             copyEntities(cube, cubeY, entities, entityUuids, chunkX, chunkZ);
             copyPositionedList(cube, "TileEntities", cubeY, tileEntities,
                     tilePositions, chunkX, chunkZ, true);
@@ -254,7 +255,8 @@ public final class CubicColumnConverter {
     }
 
     private static void copySection(NBTTagCompound cube, int cubeY, NBTTagList target,
-            int chunkX, int chunkZ) throws CubicColumnConversionException {
+            int chunkX, int chunkZ, boolean requireSkylight)
+            throws CubicColumnConversionException {
         if (!cube.hasKey("Sections")) {
             return;
         }
@@ -276,7 +278,12 @@ public final class CubicColumnConverter {
         requireBytes(section, "BlockLight", 2048,
                 "cube " + describe(chunkX, cubeY, chunkZ));
         validateOptionalNibble(section, "Add", chunkX, cubeY, chunkZ);
-        validateOptionalNibble(section, "SkyLight", chunkX, cubeY, chunkZ);
+        if (requireSkylight) {
+            requireBytes(section, "SkyLight", 2048,
+                    "cube " + describe(chunkX, cubeY, chunkZ));
+        } else {
+            validateOptionalNibble(section, "SkyLight", chunkX, cubeY, chunkZ);
+        }
         if (section.hasKey("Add2")) {
             byte[] add2 = requireBytes(section, "Add2", 2048,
                     "cube " + describe(chunkX, cubeY, chunkZ));
