@@ -31,9 +31,13 @@ import java.util.zip.GZIPInputStream;
 public final class CubicRegionReader {
     static final int SECTOR_BYTES = 512;
 
-    private static final Pattern COLUMN_NAME = Pattern.compile("^(-?\\d+)\\.(-?\\d+)\\.2dr$");
-    private static final Pattern CUBE_NAME = Pattern.compile("^(-?\\d+)\\.(-?\\d+)\\.(-?\\d+)\\.3dr$");
+    private static final String COORDINATE = "(?:0|-?[1-9]\\d*)";
+    private static final Pattern COLUMN_NAME = Pattern.compile("^(" + COORDINATE
+            + ")\\.(" + COORDINATE + ")\\.2dr$");
+    private static final Pattern CUBE_NAME = Pattern.compile("^(" + COORDINATE
+            + ")\\.(" + COORDINATE + ")\\.(" + COORDINATE + ")\\.3dr$");
     private static final Pattern NUMERIC_ENTRY_NAME = Pattern.compile("^(0|[1-9]\\d*)$");
+    private static final Pattern NUMERIC_TEMP_ENTRY_NAME = Pattern.compile("^(0|[1-9]\\d*)\\.tmp$");
     private static final int NBT_COMPOUND = 10;
     private static final int NBT_ANY_NUMBER = 99;
 
@@ -78,17 +82,17 @@ public final class CubicRegionReader {
                 String regionName = extension ? name.substring(0, name.length() - 4) : name;
                 RegionCoordinates coordinates = parseRegionName(regionName, layout);
                 if (coordinates == null) {
-                    continue;
+                    throw format(path, "unrecognized file in " + layout.description + " directory");
                 }
 
                 RegionSources sources = regions.computeIfAbsent(coordinates, RegionSources::new);
                 if (extension) {
-                    if (!Files.isDirectory(path)) {
+                    if (Files.isSymbolicLink(path) || !Files.isDirectory(path)) {
                         throw format(path, "oversized-entry path is not a directory");
                     }
                     sources.extensionDirectory = path;
                 } else {
-                    if (!Files.isRegularFile(path)) {
+                    if (Files.isSymbolicLink(path) || !Files.isRegularFile(path)) {
                         throw format(path, "region path is not a regular file");
                     }
                     sources.regionFile = path;
@@ -212,23 +216,27 @@ public final class CubicRegionReader {
             return Collections.emptyMap();
         }
         Map<Integer, Path> entries = new HashMap<>();
+        Map<Integer, Path> temporaryEntries = new HashMap<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(sources.extensionDirectory)) {
             for (Path path : stream) {
                 String name = path.getFileName().toString();
                 if (!NUMERIC_ENTRY_NAME.matcher(name).matches()) {
+                    Matcher temporary = NUMERIC_TEMP_ENTRY_NAME.matcher(name);
+                    if (!temporary.matches() || Files.isSymbolicLink(path)
+                            || !Files.isRegularFile(path)) {
+                        throw format(path, "unrecognized oversized-entry file");
+                    }
+                    int entryId = parseExtensionId(path, temporary.group(1),
+                            sources.coordinates.layout);
+                    Path duplicate = temporaryEntries.put(entryId, path);
+                    if (duplicate != null) {
+                        throw format(path, "duplicates temporary oversized entry id " + entryId
+                                + " from " + duplicate);
+                    }
                     continue;
                 }
-                int entryId;
-                try {
-                    entryId = Integer.parseInt(name);
-                } catch (NumberFormatException exception) {
-                    throw format(path, "oversized-entry id exceeds the signed 32-bit range", exception);
-                }
-                if (entryId < 0 || entryId >= sources.coordinates.layout.entryCount) {
-                    throw format(path, "oversized-entry id " + entryId + " is outside 0.."
-                            + (sources.coordinates.layout.entryCount - 1));
-                }
-                if (!Files.isRegularFile(path)) {
+                int entryId = parseExtensionId(path, name, sources.coordinates.layout);
+                if (Files.isSymbolicLink(path) || !Files.isRegularFile(path)) {
                     throw format(path, "numeric oversized entry is not a regular file");
                 }
                 Path duplicate = entries.put(entryId, path);
@@ -237,7 +245,28 @@ public final class CubicRegionReader {
                 }
             }
         }
+        for (Map.Entry<Integer, Path> temporary : temporaryEntries.entrySet()) {
+            if (!entries.containsKey(temporary.getKey())) {
+                throw format(temporary.getValue(), "orphaned temporary oversized entry id "
+                        + temporary.getKey());
+            }
+        }
         return entries;
+    }
+
+    private static int parseExtensionId(Path path, String name, Layout layout)
+            throws CubicRegionFormatException {
+        int entryId;
+        try {
+            entryId = Integer.parseInt(name);
+        } catch (NumberFormatException exception) {
+            throw format(path, "oversized-entry id exceeds the signed 32-bit range", exception);
+        }
+        if (entryId < 0 || entryId >= layout.entryCount) {
+            throw format(path, "oversized-entry id " + entryId + " is outside 0.."
+                    + (layout.entryCount - 1));
+        }
+        return entryId;
     }
 
     private static byte[] readRegionPayload(Path path, FileChannel channel,

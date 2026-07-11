@@ -199,6 +199,34 @@ public class CubicRegionReaderTest {
         assertFormat(() -> collectColumns(directory), "outside 0..1023");
     }
 
+    @Test
+    public void rejectsUnknownRegionFilesAndCoordinateAliases() throws Exception {
+        Path unknown = temporary.newFolder("unknown-region-file").toPath();
+        Files.write(unknown.resolve("source-marker"), new byte[] {1});
+        assertFormat(() -> collectColumns(unknown), "unrecognized file");
+
+        Path negativeZero = temporary.newFolder("negative-zero-region").toPath();
+        Files.write(negativeZero.resolve("-0.0.2dr"), new byte[4096]);
+        assertFormat(() -> collectColumns(negativeZero), "unrecognized file");
+
+        Path leadingZero = temporary.newFolder("leading-zero-region").toPath();
+        Files.write(leadingZero.resolve("01.0.2dr"), new byte[4096]);
+        assertFormat(() -> collectColumns(leadingZero), "unrecognized file");
+    }
+
+    @Test
+    public void rejectsUnknownAndOrphanedExtensionFiles() throws Exception {
+        Path unknown = temporary.newFolder("unknown-extension-file").toPath();
+        Path extension = Files.createDirectory(unknown.resolve("0.0.2dr.ext"));
+        Files.write(extension.resolve("notes"), new byte[] {1});
+        assertFormat(() -> collectColumns(unknown), "unrecognized oversized-entry file");
+
+        Path orphan = temporary.newFolder("orphaned-extension-temp").toPath();
+        extension = Files.createDirectory(orphan.resolve("0.0.2dr.ext"));
+        Files.write(extension.resolve("2.tmp"), new byte[] {1});
+        assertFormat(() -> collectColumns(orphan), "orphaned temporary oversized entry id 2");
+    }
+
     private List<CubicRegionEntry> collectColumns(Path directory) throws IOException {
         List<CubicRegionEntry> entries = new ArrayList<>();
         long count = CubicRegionReader.visitColumns(directory, entries::add);
