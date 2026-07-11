@@ -1,0 +1,8 @@
+{
+  "type": "forge:ore_shaped",
+  "pattern": ["# #", "# #", "###"],
+  "key": {
+    "#": { "type": "forge:ore_dict", "ore": "slabWood" }
+  },
+  "result": { "item": "cavesnotcliffs:composter" }
+}

@@ -18,7 +18,6 @@ import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
-import net.minecraft.init.SoundEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
@@ -30,6 +29,7 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.SoundCategory;
+import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -52,12 +52,22 @@ public final class BlockComposter extends ElementsCavesNotCliffs.ModElement {
     @GameRegistry.ObjectHolder("cavesnotcliffs:composter")
     public static final Block block = null;
 
+    public static final SoundEvent EMPTY_SOUND = sound("block.composter.empty");
+    public static final SoundEvent FILL_SOUND = sound("block.composter.fill");
+    public static final SoundEvent FILL_SUCCESS_SOUND =
+        sound("block.composter.fill_success");
+    public static final SoundEvent READY_SOUND = sound("block.composter.ready");
+
     public BlockComposter(ElementsCavesNotCliffs elements) {
         super(elements, 330);
     }
 
     @Override
     public void initElements() {
+        registerSound(EMPTY_SOUND);
+        registerSound(FILL_SOUND);
+        registerSound(FILL_SUCCESS_SOUND);
+        registerSound(READY_SOUND);
         elements.blocks.add(() -> new BlockCustom()
             .setRegistryName(CncRegistryIds.COMPOSTER));
         elements.items.add(() -> new ItemBlock(block)
@@ -76,6 +86,14 @@ public final class BlockComposter extends ElementsCavesNotCliffs.ModElement {
         Item item = Item.getItemFromBlock(block);
         ModelLoader.setCustomModelResourceLocation(item, 0,
             new ModelResourceLocation(CncRegistryIds.COMPOSTER, "inventory"));
+    }
+
+    private static SoundEvent sound(String path) {
+        return new SoundEvent(CncRegistryIds.id(path));
+    }
+
+    private static void registerSound(SoundEvent sound) {
+        ElementsCavesNotCliffs.sounds.put(sound.getSoundName(), sound);
     }
 
     public static final class BlockCustom extends Block {
@@ -178,9 +196,8 @@ public final class BlockComposter extends ElementsCavesNotCliffs.ModElement {
 
         public static void playFillFeedback(World world, BlockPos pos, boolean success) {
             world.playSound(null, pos,
-                success ? SoundEvents.BLOCK_GRASS_PLACE : SoundEvents.BLOCK_SAND_PLACE,
-                SoundCategory.BLOCKS, success ? 1.0F : 0.3F,
-                success ? 1.0F : 0.8F);
+                success ? FILL_SUCCESS_SOUND : FILL_SOUND,
+                SoundCategory.BLOCKS, 1.0F, 1.0F);
             if (world instanceof WorldServer) {
                 ((WorldServer) world).spawnParticle(EnumParticleTypes.BLOCK_CRACK,
                     pos.getX() + 0.5D, pos.getY() + 0.7D, pos.getZ() + 0.5D,
@@ -205,7 +222,7 @@ public final class BlockComposter extends ElementsCavesNotCliffs.ModElement {
             }
             world.setBlockState(pos, state.withProperty(LEVEL, 0), 3);
             if (spawnItem) {
-                world.playSound(null, pos, SoundEvents.BLOCK_WOOD_BREAK,
+                world.playSound(null, pos, EMPTY_SOUND,
                     SoundCategory.BLOCKS, 1.0F, 1.0F);
             }
             return boneMeal;
@@ -217,7 +234,7 @@ public final class BlockComposter extends ElementsCavesNotCliffs.ModElement {
                     && state.getValue(LEVEL) == ComposterMechanics.MAX_FILL_LEVEL) {
                 world.setBlockState(pos, state.withProperty(LEVEL,
                     ComposterMechanics.READY_LEVEL), 3);
-                world.playSound(null, pos, SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP,
+                world.playSound(null, pos, READY_SOUND,
                     SoundCategory.BLOCKS, 1.0F, 1.0F);
             }
         }

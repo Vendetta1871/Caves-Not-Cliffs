@@ -39,4 +39,16 @@ public class BlockComposterTest {
         assertTrue(block.hasComparatorInputOverride(block.getDefaultState()));
         assertTrue(new TileEntityComposter() instanceof ISidedInventory);
     }
+
+    @Test
+    public void usesCanonicalComposterSoundEvents() {
+        assertEquals("cavesnotcliffs:block.composter.empty",
+            BlockComposter.EMPTY_SOUND.getSoundName().toString());
+        assertEquals("cavesnotcliffs:block.composter.fill",
+            BlockComposter.FILL_SOUND.getSoundName().toString());
+        assertEquals("cavesnotcliffs:block.composter.fill_success",
+            BlockComposter.FILL_SUCCESS_SOUND.getSoundName().toString());
+        assertEquals("cavesnotcliffs:block.composter.ready",
+            BlockComposter.READY_SOUND.getSoundName().toString());
+    }
 }

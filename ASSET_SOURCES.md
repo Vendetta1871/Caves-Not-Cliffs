@@ -61,3 +61,14 @@ The powder-snow block model is a syntax-only 1.12 adaptation of Mojang's 1.18.2 
 cauldron models reuse Minecraft 1.12.2 cauldron geometry with the official powder-snow texture.
 These assets remain the property of Mojang Studios and are not covered by this project's
 source-code license.
+
+The composter side/top/bottom/compost/ready textures and its fifteen Ogg Vorbis sound files are
+unmodified Minecraft 1.18.2 assets from Mojang's official client and 1.18 asset index. The base,
+contents, and item models preserve Mojang's geometry and level heights with only the resource-path
+syntax adapted for Java 1.12.2. The composter particle uses the 1.12 dirt block-crack peer because
+the dedicated 1.18 composter particle type does not exist in the target runtime.
+
+- Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
+- Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
+- Asset base: <https://resources.download.minecraft.net/>

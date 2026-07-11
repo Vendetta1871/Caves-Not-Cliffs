@@ -488,5 +488,40 @@
       { "name": "cavesnotcliffs:item/bucket/fill_powder_snow2", "pitch": 1.1 }
     ],
     "subtitle": "subtitles.item.bucket.fill"
+  },
+  "block.composter.empty": {
+    "sounds": [
+      "cavesnotcliffs:block/composter/empty1",
+      "cavesnotcliffs:block/composter/empty2",
+      "cavesnotcliffs:block/composter/empty3"
+    ],
+    "subtitle": "subtitles.block.composter.empty"
+  },
+  "block.composter.fill": {
+    "sounds": [
+      { "name": "cavesnotcliffs:block/composter/fill1", "pitch": 0.8, "volume": 0.3 },
+      { "name": "cavesnotcliffs:block/composter/fill2", "pitch": 0.8, "volume": 0.3 },
+      { "name": "cavesnotcliffs:block/composter/fill3", "pitch": 0.8, "volume": 0.3 },
+      { "name": "cavesnotcliffs:block/composter/fill4", "pitch": 0.8, "volume": 0.3 }
+    ],
+    "subtitle": "subtitles.block.composter.fill"
+  },
+  "block.composter.fill_success": {
+    "sounds": [
+      "cavesnotcliffs:block/composter/fill_success1",
+      "cavesnotcliffs:block/composter/fill_success2",
+      "cavesnotcliffs:block/composter/fill_success3",
+      "cavesnotcliffs:block/composter/fill_success4"
+    ],
+    "subtitle": "subtitles.block.composter.fill"
+  },
+  "block.composter.ready": {
+    "sounds": [
+      "cavesnotcliffs:block/composter/ready1",
+      "cavesnotcliffs:block/composter/ready2",
+      "cavesnotcliffs:block/composter/ready3",
+      "cavesnotcliffs:block/composter/ready4"
+    ],
+    "subtitle": "subtitles.block.composter.ready"
   }
 }

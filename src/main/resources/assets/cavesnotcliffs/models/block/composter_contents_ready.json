@@ -1,0 +1,4 @@
+{
+  "textures": { "particle": "cavesnotcliffs:blocks/composter_ready", "inside": "cavesnotcliffs:blocks/composter_ready" },
+  "elements": [{ "from": [2, 0, 2], "to": [14, 15, 14], "faces": { "up": { "texture": "#inside" } } }]
+}
