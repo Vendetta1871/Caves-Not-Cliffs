@@ -489,18 +489,56 @@ public final class BlockPointedDripstone extends Block {
             EntityFallingPointedDripstone.EntityCustom falling =
                     new EntityFallingPointedDripstone.EntityCustom(world,
                             cursor.getX() + 0.5D, cursor.getY(), cursor.getZ() + 0.5D,
-                            state, damageFactor);
+                            fallingState(state), damageFactor);
+            // Java 1.18's FallingBlockEntity strips WATERLOGGED from the carried state and
+            // replaces the source block with its retained fluid before adding the entity. The
+            // 1.12 entity instead tries to remove a same-identity source on its first tick, so
+            // perform the modern transition here and skip that legacy first-tick branch.
+            replaceSourceForFall(world, cursor, state);
+            falling.fallTime = 1;
             world.spawnEntity(falling);
-            // Modern FallingBlockEntity removes the source synchronously. Advancing the legacy
-            // entity once gives the same ordering and lets us restore a retained source fluid.
-            falling.onUpdate();
-            restoreWaterAfterRemoval(world, cursor, state);
             if (isTip(state, true)) {
                 break;
             }
             cursor = cursor.down();
             state = world.getBlockState(cursor);
         }
+    }
+
+    private static void replaceSourceForFall(World world, BlockPos pos,
+            IBlockState source) {
+        if (source.getBlock() instanceof BlockPointedDripstone
+                && ((BlockPointedDripstone) source.getBlock()).waterloggedStorage) {
+            world.setBlockState(pos, Blocks.WATER.getDefaultState(), 3);
+        } else {
+            world.setBlockToAir(pos);
+        }
+    }
+
+    /** Returns the dry carried state used by Java 1.18's falling-block transition. */
+    public static IBlockState fallingState(IBlockState source) {
+        BlockPointedDripstone dry = dryBlock();
+        return dry == null ? source : copyStorageState(source, dry);
+    }
+
+    /** Restores the hidden waterlogged companion after a dry state lands in water. */
+    public static IBlockState landingState(IBlockState landed, boolean landedInWater) {
+        if (!landedInWater) {
+            return landed;
+        }
+        BlockPointedDripstone wet = waterloggedBlock();
+        return wet == null ? landed : copyStorageState(landed, wet);
+    }
+
+    /** Copies the two public pointed-dripstone properties between hidden storage identities. */
+    public static IBlockState copyStorageState(IBlockState source,
+            BlockPointedDripstone target) {
+        if (!(source.getBlock() instanceof BlockPointedDripstone) || target == null) {
+            return source;
+        }
+        return target.getDefaultState()
+                .withProperty(TIP_DIRECTION, source.getValue(TIP_DIRECTION))
+                .withProperty(THICKNESS, source.getValue(THICKNESS));
     }
 
     public static void maybeFillCauldron(IBlockState state, World world, BlockPos pos,

@@ -42,6 +42,34 @@ public class PointedDripstoneMechanicsTest {
     }
 
     @Test
+    public void fallingStorageTransitionPreservesDirectionAndThicknessWithoutWater() {
+        BlockPointedDripstone dry = new BlockPointedDripstone(false);
+        BlockPointedDripstone wet = new BlockPointedDripstone(true);
+        for (EnumFacing direction : new EnumFacing[]{EnumFacing.DOWN, EnumFacing.UP}) {
+            for (Thickness thickness : Thickness.values()) {
+                net.minecraft.block.state.IBlockState source = wet.getDefaultState()
+                        .withProperty(BlockPointedDripstone.TIP_DIRECTION, direction)
+                        .withProperty(BlockPointedDripstone.THICKNESS, thickness);
+                net.minecraft.block.state.IBlockState carried =
+                        BlockPointedDripstone.copyStorageState(source, dry);
+                assertEquals(dry, carried.getBlock());
+                assertEquals(direction,
+                        carried.getValue(BlockPointedDripstone.TIP_DIRECTION));
+                assertEquals(thickness,
+                        carried.getValue(BlockPointedDripstone.THICKNESS));
+
+                net.minecraft.block.state.IBlockState landed =
+                        BlockPointedDripstone.copyStorageState(carried, wet);
+                assertEquals(wet, landed.getBlock());
+                assertEquals(direction,
+                        landed.getValue(BlockPointedDripstone.TIP_DIRECTION));
+                assertEquals(thickness,
+                        landed.getValue(BlockPointedDripstone.THICKNESS));
+            }
+        }
+    }
+
+    @Test
     public void thicknessTransitionsMatchTheJava1182Oracle() {
         Neighbor sameTip = Neighbor.pointed(false, Thickness.TIP);
         Neighbor sameMiddle = Neighbor.pointed(false, Thickness.MIDDLE);

@@ -8,6 +8,7 @@ import net.celestiald.cavesnotcliffs.block.BlockStalactite;
 import net.celestiald.cavesnotcliffs.content.DripstoneSoundEvents;
 import net.celestiald.cavesnotcliffs.handler.DripstoneDamageHandler;
 import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -25,6 +26,8 @@ import net.minecraftforge.fml.common.registry.EntityRegistry;
 import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData;
 
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /** Internal falling entity needed for exact stalactite damage, filtering, and landing behavior. */
 @ElementsCavesNotCliffs.ModElement.Tag
@@ -91,6 +94,7 @@ public final class EntityFallingPointedDripstone extends ElementsCavesNotCliffs.
 
         @Override
         public void onUpdate() {
+            Set<Long> waterBeforeMove = snapshotWaterAlongNextStep();
             boolean alive = !isDead;
             super.onUpdate();
             if (world.isRemote || !alive || !isDead || !onGround || fallTime <= 1) {
@@ -99,6 +103,12 @@ public final class EntityFallingPointedDripstone extends ElementsCavesNotCliffs.
             BlockPos landing = new BlockPos(this);
             IBlockState state = world.getBlockState(landing);
             if (state.getBlock() instanceof BlockPointedDripstone) {
+                IBlockState storage = BlockPointedDripstone.landingState(state,
+                        waterBeforeMove.contains(landing.toLong()));
+                if (storage != state) {
+                    world.setBlockState(landing, storage, 3);
+                    state = storage;
+                }
                 EnumFacing direction = state.getValue(BlockPointedDripstone.TIP_DIRECTION);
                 if (BlockPointedDripstone.validPlacement(world, landing, direction)) {
                     return;
@@ -112,6 +122,40 @@ public final class EntityFallingPointedDripstone extends ElementsCavesNotCliffs.
             }
             world.playSound(null, landing, DripstoneSoundEvents.POINTED_LAND,
                     SoundCategory.BLOCKS, 1.0F, 1.0F);
+        }
+
+        /**
+         * Captures water cells before the legacy superclass overwrites its landing cell. The
+         * one-tick swept box is deliberately small in X/Z but spans the full vertical movement,
+         * including collision rounding on either end. Pointed dripstone is spawned without
+         * horizontal velocity, while the extra one-block halo keeps the check stable if another
+         * mod nudges the entity.
+         */
+        private Set<Long> snapshotWaterAlongNextStep() {
+            Set<Long> water = new HashSet<>();
+            if (world.isRemote) {
+                return water;
+            }
+            double nextX = posX + motionX;
+            double nextY = posY + motionY - (hasNoGravity() ? 0.0D : 0.04D);
+            double nextZ = posZ + motionZ;
+            int minX = MathHelper.floor(Math.min(posX, nextX)) - 1;
+            int maxX = MathHelper.floor(Math.max(posX, nextX)) + 1;
+            int minY = MathHelper.floor(Math.min(posY, nextY)) - 2;
+            int maxY = MathHelper.floor(Math.max(posY, nextY)) + 2;
+            int minZ = MathHelper.floor(Math.min(posZ, nextZ)) - 1;
+            int maxZ = MathHelper.floor(Math.max(posZ, nextZ)) + 1;
+            for (int x = minX; x <= maxX; x++) {
+                for (int y = minY; y <= maxY; y++) {
+                    for (int z = minZ; z <= maxZ; z++) {
+                        BlockPos candidate = new BlockPos(x, y, z);
+                        if (world.getBlockState(candidate).getMaterial() == Material.WATER) {
+                            water.add(candidate.toLong());
+                        }
+                    }
+                }
+            }
+            return water;
         }
 
         @Override
