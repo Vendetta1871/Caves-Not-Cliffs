@@ -36,6 +36,9 @@ public final class CncRegistryIds {
     public static final ResourceLocation COMPOSTER = id("composter");
     public static final ResourceLocation INFESTED_DEEPSLATE = id("infested_deepslate");
     public static final ResourceLocation STONECUTTER = id("stonecutter");
+    public static final ResourceLocation AXOLOTL = id("axolotl");
+    public static final ResourceLocation AXOLOTL_BUCKET = id("axolotl_bucket");
+    public static final ResourceLocation TROPICAL_FISH_BUCKET = id("tropical_fish_bucket");
 
     /**
      * The released pre-v2 geode-shell identity is intentionally retained as an internal marker.
