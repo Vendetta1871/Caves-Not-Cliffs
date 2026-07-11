@@ -211,6 +211,15 @@ public class CubicColumnConverterTest {
         Map<Integer, NBTTagCompound> cubes = new TreeMap<Integer, NBTTagCompound>();
         NBTTagCompound empty = cubeRoot(-6, false);
         cubes.put(-6, empty);
+        try {
+            CubicColumnConverter.validateDiscardableLookahead(cubes);
+            fail("Expected generated terrain rejection");
+        } catch (CubicColumnConversionException expected) {
+            assertTrue(expected.getMessage().contains("stateful cube Y=-6"));
+        }
+
+        empty.getCompoundTag("Level").getTagList("Sections", 10)
+                .getCompoundTagAt(0).setByteArray("Blocks", new byte[4096]);
         CubicColumnConverter.validateDiscardableLookahead(cubes);
 
         empty.getCompoundTag("Level").setTag("Entities",

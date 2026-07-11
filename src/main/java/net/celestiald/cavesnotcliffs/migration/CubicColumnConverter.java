@@ -80,7 +80,7 @@ public final class CubicColumnConverter {
         for (Map.Entry<Integer, NBTTagCompound> entry : cubeRoots.entrySet()) {
             NBTTagCompound cube = validateCube(
                     entry.getValue(), chunkX, entry.getKey(), chunkZ);
-            if (!isDiscardableGeneratedLookahead(cube, chunkX, entry.getKey(), chunkZ)) {
+            if (!isDiscardableEmptyLookahead(cube, chunkX, entry.getKey(), chunkZ)) {
                 throw fail(chunkX, chunkZ, "is a cube-only lookahead column with stateful cube Y="
                         + entry.getKey());
             }
@@ -520,7 +520,7 @@ public final class CubicColumnConverter {
                 && !hasNonZero(add) && !hasNonZero(add2);
     }
 
-    private static boolean isDiscardableGeneratedLookahead(NBTTagCompound cube,
+    private static boolean isDiscardableEmptyLookahead(NBTTagCompound cube,
             int chunkX, int cubeY, int chunkZ) throws CubicColumnConversionException {
         if (cube.getBoolean("populated") || cube.getBoolean("fullyPopulated")
                 || hasDynamicPayload(cube)) {
@@ -540,15 +540,21 @@ public final class CubicColumnConverter {
             NBTTagCompound section = sections.getCompoundTagAt(0);
             rejectUnknownKeys(section, KNOWN_SECTION_KEYS,
                     "cube " + describe(chunkX, cubeY, chunkZ) + " section");
-            requireBytes(section, "Blocks", 4096,
+            byte[] blocks = requireBytes(section, "Blocks", 4096,
                     "cube " + describe(chunkX, cubeY, chunkZ));
-            requireBytes(section, "Data", 2048,
+            byte[] data = requireBytes(section, "Data", 2048,
                     "cube " + describe(chunkX, cubeY, chunkZ));
-            validateOptionalNibble(section, "Add", chunkX, cubeY, chunkZ);
-            validateOptionalNibble(section, "Add2", chunkX, cubeY, chunkZ);
+            byte[] add = section.hasKey("Add") ? requireBytes(section, "Add", 2048,
+                    "cube " + describe(chunkX, cubeY, chunkZ)) : new byte[0];
+            byte[] add2 = section.hasKey("Add2") ? requireBytes(section, "Add2", 2048,
+                    "cube " + describe(chunkX, cubeY, chunkZ)) : new byte[0];
             requireBytes(section, "BlockLight", 2048,
                     "cube " + describe(chunkX, cubeY, chunkZ));
             validateOptionalNibble(section, "SkyLight", chunkX, cubeY, chunkZ);
+            if (hasNonZero(blocks) || hasNonZero(data)
+                    || hasNonZero(add) || hasNonZero(add2)) {
+                return false;
+            }
         }
         return true;
     }
