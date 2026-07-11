@@ -180,6 +180,23 @@ public class V118PrimitiveOracleTest {
         }
     }
 
+    @Test
+    public void climateIndexMatchesBruteForceAcrossMultiLevelTree() {
+        List<Climate.Entry<Integer>> entries = new ArrayList<Climate.Entry<Integer>>();
+        for (int i = 0; i < 64; ++i) {
+            entries.add(new Climate.Entry<Integer>(Climate.parameters(
+                axis(i, 3), axis(i, 5), axis(i, 7), axis(i, 11), axis(i, 13), axis(i, 17),
+                (i % 9) * 0.0075F), i));
+        }
+        Climate.ParameterList<Integer> index = new Climate.ParameterList<Integer>(entries);
+        for (int i = 0; i < 1024; ++i) {
+            Climate.TargetPoint target = Climate.target(
+                axis(i, 19), axis(i, 23), axis(i, 29), axis(i, 31), axis(i, 37), axis(i, 41));
+            assertEquals("indexed climate result at sample " + i,
+                index.findValueBruteForce(target), index.findValue(target));
+        }
+    }
+
     private static CubicSpline<Float> fixtureSpline() {
         return CubicSpline.builder((Float value) -> value)
             .addPoint(-1.0F, -0.75F, 0.25F)
@@ -207,6 +224,11 @@ public class V118PrimitiveOracleTest {
             new Climate.Entry<String>(Climate.parameters(
                 -1.2F, -1.0F, -0.9F, -0.8F, -0.7F, -0.6F, 0.2F), "third")
         ));
+    }
+
+    private static float axis(int value, int multiplier) {
+        int mixed = value * multiplier * 73 + multiplier * 17;
+        return ((mixed & 2047) - 1024) / 640.0F;
     }
 
     private static List<String> fixtureLines() throws IOException {

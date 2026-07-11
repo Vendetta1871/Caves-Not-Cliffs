@@ -254,6 +254,35 @@ public final class Climate {
         public long offset() {
             return offset;
         }
+
+        @Override
+        public boolean equals(Object object) {
+            if (this == object) {
+                return true;
+            }
+            if (!(object instanceof ParameterPoint)) {
+                return false;
+            }
+            ParameterPoint other = (ParameterPoint) object;
+            return offset == other.offset
+                && temperature.equals(other.temperature)
+                && humidity.equals(other.humidity)
+                && continentalness.equals(other.continentalness)
+                && erosion.equals(other.erosion)
+                && depth.equals(other.depth)
+                && weirdness.equals(other.weirdness);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = temperature.hashCode();
+            result = 31 * result + humidity.hashCode();
+            result = 31 * result + continentalness.hashCode();
+            result = 31 * result + erosion.hashCode();
+            result = 31 * result + depth.hashCode();
+            result = 31 * result + weirdness.hashCode();
+            return 31 * result + (int) (offset ^ offset >>> 32);
+        }
     }
 
     public static final class Entry<T> {

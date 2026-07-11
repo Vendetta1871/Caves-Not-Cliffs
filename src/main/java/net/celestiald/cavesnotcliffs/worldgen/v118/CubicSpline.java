@@ -46,7 +46,7 @@ public interface CubicSpline<C> extends ToFloatFunction<C> {
 
         @Override
         public String parityString() {
-            return String.format(Locale.ROOT, "k=%.3f", value);
+            return String.format("k=%.3f", value);
         }
 
         @Override
