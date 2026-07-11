@@ -16,7 +16,7 @@ public final class BlendedNoise {
     private final int cellHeight;
     private final double maxValue;
 
-    public BlendedNoise(RandomSource random, SamplingSettings settings,
+    public BlendedNoise(RandomSource random, NoiseSamplingSettings settings,
             int cellWidth, int cellHeight) {
         minLimitNoise = PerlinNoise.createLegacyForBlendedNoise(random, LIMIT_OCTAVES);
         maxLimitNoise = PerlinNoise.createLegacyForBlendedNoise(random, LIMIT_OCTAVES);
@@ -101,34 +101,4 @@ public final class BlendedNoise {
         return values;
     }
 
-    public static final class SamplingSettings {
-        private final double xzScale;
-        private final double yScale;
-        private final double xzFactor;
-        private final double yFactor;
-
-        public SamplingSettings(double xzScale, double yScale,
-                double xzFactor, double yFactor) {
-            this.xzScale = xzScale;
-            this.yScale = yScale;
-            this.xzFactor = xzFactor;
-            this.yFactor = yFactor;
-        }
-
-        public double xzScale() {
-            return xzScale;
-        }
-
-        public double yScale() {
-            return yScale;
-        }
-
-        public double xzFactor() {
-            return xzFactor;
-        }
-
-        public double yFactor() {
-            return yFactor;
-        }
-    }
 }

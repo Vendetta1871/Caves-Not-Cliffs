@@ -66,7 +66,7 @@ public class BlendedNoiseOracleTest {
 
     private static BlendedNoise overworldNoise(long seed) {
         return new BlendedNoise(new XoroshiroRandomSource(seed),
-            new BlendedNoise.SamplingSettings(1.0D, 1.0D, 80.0D, 160.0D), 4, 8);
+            V118NoiseSettings.overworld(false).sampling(), 4, 8);
     }
 
     private static List<String> fixtureLines() throws IOException {

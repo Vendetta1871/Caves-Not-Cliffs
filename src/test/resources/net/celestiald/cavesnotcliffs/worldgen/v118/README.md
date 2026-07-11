@@ -73,3 +73,16 @@ java -cp .:<unsigned-inner-server.jar>:<extracted-libraries/*> \
 java -cp .:<unsigned-inner-server.jar>:<extracted-libraries/*> \
   Cnc118BlendedNoiseOracle blended-noise-oracle-1.18.2.tsv
 ```
+
+## Overworld noise settings and density slides
+
+`noise-settings-oracle-1.18.2.tsv` records both normal and amplified Overworld settings directly
+from the official server. In addition to the exact `-64..319` range, 4x8x4 density cells, sampling
+scales, and slider constants, it verifies 144 raw-bit slide results around negative division and
+the top and bottom build boundaries. The independent harness is
+`Cnc118NoiseSettingsOracle.java.txt`.
+
+- Noise-settings harness SHA-256:
+  `8330dfca538ed1035d67150c85df547ecfca5f7164589d8be693281ff9768aee`
+- Noise-settings TSV SHA-256:
+  `57957bc2f791da5245646c574aa05372a39faeb1860b36984e86b5a7dcfd9f58`
