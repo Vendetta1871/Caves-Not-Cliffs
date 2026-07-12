@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.block;
 
 import net.celestiald.cavesnotcliffs.content.CandleMechanics;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
@@ -55,7 +56,7 @@ public final class BlockCandleCake extends Block implements CandleLightable {
         this.color = color;
         setUnlocalizedName(color.getCandleCakePath());
         setHardness(0.5F);
-        setResistance(0.5F);
+        setResistance(CncBlockProperties.legacyResistance(0.5F));
         setSoundType(SoundType.CLOTH);
         setLightOpacity(0);
         setDefaultState(blockState.getBaseState().withProperty(LIT, false));

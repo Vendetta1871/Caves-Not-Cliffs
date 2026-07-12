@@ -237,7 +237,7 @@ public final class HoneyContent extends ElementsCavesNotCliffs.ModElement {
             setUnlocalizedName("honeycomb_block");
             setCreativeTab(CreativeTabs.DECORATIONS);
             setHardness(0.6F);
-            setResistance(0.6F);
+            setResistance(CncBlockProperties.legacyResistance(0.6F));
             setSoundType(CORAL_SOUND);
         }
     }

@@ -23,6 +23,7 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.ModelRegistryEvent;
@@ -316,6 +317,17 @@ public final class BlockDeepslateOres extends ElementsCavesNotCliffs.ModElement 
         @Override
         public int getMetaFromState(IBlockState state) {
             return state.getValue(LIT) ? 1 : 0;
+        }
+
+        @Override
+        protected ItemStack getSilkTouchDrop(IBlockState state) {
+            return new ItemStack(this);
+        }
+
+        @Override
+        public ItemStack getPickBlock(IBlockState state, RayTraceResult target, World world,
+                BlockPos pos, EntityPlayer player) {
+            return new ItemStack(this);
         }
     }
 }

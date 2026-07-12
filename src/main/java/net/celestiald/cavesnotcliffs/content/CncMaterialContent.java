@@ -137,7 +137,7 @@ public final class CncMaterialContent {
     }
 
     private static Block rawOreBlock(String name, MapColor color, int harvestLevel) {
-        return new BasicMaterialBlock(name, Material.ROCK, color, SoundType.STONE,
+        return new BasicMaterialBlock(name, Material.IRON, color, SoundType.METAL,
                 5.0F, 6.0F, harvestLevel);
     }
 

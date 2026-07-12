@@ -215,7 +215,7 @@ public final class CampfireContent extends ElementsCavesNotCliffs.ModElement {
             setUnlocalizedName(soul ? "soul_campfire" : "campfire");
             setCreativeTab(CreativeTabs.DECORATIONS);
             setHardness(2.0F);
-            setResistance(2.0F);
+            setResistance(CncBlockProperties.legacyResistance(2.0F));
             setSoundType(net.minecraft.block.SoundType.WOOD);
             setDefaultState(blockState.getBaseState()
                 .withProperty(FACING, EnumFacing.NORTH)
@@ -531,7 +531,7 @@ public final class CampfireContent extends ElementsCavesNotCliffs.ModElement {
             setUnlocalizedName("soul_soil");
             setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
             setHardness(0.5F);
-            setResistance(0.5F);
+            setResistance(CncBlockProperties.legacyResistance(0.5F));
             setSoundType(CampfireSoundEvents.SOUL_SOIL);
             setHarvestLevel("shovel", 0);
         }

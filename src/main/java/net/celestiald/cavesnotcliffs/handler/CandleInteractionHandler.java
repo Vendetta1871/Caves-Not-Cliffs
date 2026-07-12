@@ -57,6 +57,7 @@ public final class CandleInteractionHandler {
             return;
         }
         if (!world.isRemote) {
+            Item used = held.getItem();
             boolean flint = held.getItem() == Items.FLINT_AND_STEEL;
             world.playSound(null, pos,
                     flint ? net.minecraft.init.SoundEvents.ITEM_FLINTANDSTEEL_USE
@@ -72,6 +73,10 @@ public final class CandleInteractionHandler {
                 } else {
                     held.shrink(1);
                 }
+            }
+            StatBase stat = StatList.getObjectUseStats(used);
+            if (stat != null) {
+                player.addStat(stat);
             }
         }
         succeed(event);

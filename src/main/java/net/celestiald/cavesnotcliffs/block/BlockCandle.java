@@ -2,6 +2,7 @@ package net.celestiald.cavesnotcliffs.block;
 
 import net.celestiald.cavesnotcliffs.content.CandleMechanics;
 import net.celestiald.cavesnotcliffs.content.CandleSoundEvents;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
@@ -61,7 +62,7 @@ public final class BlockCandle extends LushWaterloggedBlock implements CandleLig
         setUnlocalizedName(color.getCandlePath());
         setCreativeTab(CreativeTabs.DECORATIONS);
         setHardness(0.1F);
-        setResistance(0.1F);
+        setResistance(CncBlockProperties.legacyResistance(0.1F));
         setSoundType(CANDLE_SOUND);
         setLightOpacity(0);
         setDefaultState(blockState.getBaseState()
