@@ -20,6 +20,11 @@ import java.util.Set;
  * their vanilla slots and request order cannot move a placement stream.</p>
  */
 public final class V118MountainSurfacePlacements {
+    private static final V118LushCaveFeature.Direction[] VINE_DIRECTIONS = {
+        V118LushCaveFeature.Direction.DOWN, V118LushCaveFeature.Direction.UP,
+        V118LushCaveFeature.Direction.NORTH, V118LushCaveFeature.Direction.SOUTH,
+        V118LushCaveFeature.Direction.WEST, V118LushCaveFeature.Direction.EAST
+    };
     public static final int LOCAL_MODIFICATIONS_STEP = 2;
     public static final int FLUID_SPRINGS_STEP = 8;
     public static final int VEGETAL_DECORATION_STEP = 9;
@@ -66,6 +71,7 @@ public final class V118MountainSurfacePlacements {
     public static final int PATCH_PUMPKIN_INDEX = 69;
     public static final int PATCH_CACTUS_DESERT_INDEX = 71;
     public static final int PATCH_CACTUS_DECORATED_INDEX = 72;
+    public static final int VINES_INDEX = 73;
     public static final int PATCH_MELON_SPARSE_INDEX = 74;
     public static final int PATCH_MELON_INDEX = 75;
     public static final int FREEZE_TOP_LAYER_INDEX = 0;
@@ -189,6 +195,8 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> CACTUS_DECORATED_BIOMES = immutableSet(
         V118Biome.BADLANDS, V118Biome.ERODED_BADLANDS,
         V118Biome.WOODED_BADLANDS);
+    private static final Set<V118Biome> VINE_BIOMES = immutableSet(
+        V118Biome.BAMBOO_JUNGLE, V118Biome.JUNGLE, V118Biome.SPARSE_JUNGLE);
     private static final Set<V118Biome> MELON_SPARSE_BIOMES = immutableSet(
         V118Biome.SPARSE_JUNGLE);
     private static final Set<V118Biome> MELON_BIOMES = immutableSet(
@@ -477,7 +485,7 @@ public final class V118MountainSurfacePlacements {
             placePumpkinPatch(world, worldSeed, chunkX, chunkZ, result);
         }
         // Preserve the registered tail of global step 9: pumpkin 69, cactus 71/72,
-        // sparse melon 74, then regular melon 75.
+        // vines 73, sparse melon 74, then regular melon 75.
         if (world.supportsCactusPlacement()) {
             if (regionBiomes.contains(V118Biome.DESERT)) {
                 placeCactusPatch(world, worldSeed, chunkX, chunkZ,
@@ -488,6 +496,10 @@ public final class V118MountainSurfacePlacements {
                     PATCH_CACTUS_DECORATED_INDEX, 13,
                     CACTUS_DECORATED_BIOMES, result);
             }
+        }
+        if (world.supportsVinePlacement()
+                && appearsIn(VINE_BIOMES, regionBiomes)) {
+            placeVines(world, worldSeed, chunkX, chunkZ, result);
         }
         if (world.supportsMelonPlacement()) {
             if (regionBiomes.contains(V118Biome.SPARSE_JUNGLE)) {
@@ -1310,6 +1322,44 @@ public final class V118MountainSurfacePlacements {
         }
     }
 
+    private static void placeVines(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, DecorationResult result) {
+        V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
+            VINES_INDEX, VEGETAL_DECORATION_STEP);
+        for (int attempt = 0; attempt < 127; ++attempt) {
+            int x = (chunkX << 4) + random.nextInt(16);
+            int z = (chunkZ << 4) + random.nextInt(16);
+            int y = 64 + random.nextInt(37);
+            BlockPos origin = new BlockPos(x, y, z);
+            if (!VINE_BIOMES.contains(world.biomeAt(origin))) {
+                continue;
+            }
+            if (placeVine(world, x, y, z)) {
+                result.vinesPlaced++;
+            }
+        }
+    }
+
+    private static boolean placeVine(WorldAccess world, int x, int y, int z) {
+        if (!world.isAir(x, y, z)) {
+            return false;
+        }
+        for (V118LushCaveFeature.Direction direction : VINE_DIRECTIONS) {
+            if (direction == V118LushCaveFeature.Direction.DOWN) {
+                continue;
+            }
+            int neighborX = x + direction.stepX();
+            int neighborY = y + direction.stepY();
+            int neighborZ = z + direction.stepZ();
+            if (world.isAcceptableVineNeighbor(
+                    neighborX, neighborY, neighborZ, direction)) {
+                world.setVine(x, y, z, direction);
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static BlockPos squareHeightmapPosition(WorldAccess world, Random random,
             int chunkX, int chunkZ) {
         int x = (chunkX << 4) + random.nextInt(16);
@@ -1383,6 +1433,10 @@ public final class V118MountainSurfacePlacements {
         int blockLight(BlockPos pos);
 
         boolean isAir(BlockPos pos);
+
+        default boolean isAir(int blockX, int blockY, int blockZ) {
+            return isAir(new BlockPos(blockX, blockY, blockZ));
+        }
 
         boolean isWater(BlockPos pos);
 
@@ -1520,6 +1574,20 @@ public final class V118MountainSurfacePlacements {
             return false;
         }
 
+        default boolean supportsVinePlacement() {
+            return false;
+        }
+
+        default boolean isAcceptableVineNeighbor(int blockX, int blockY, int blockZ,
+                V118LushCaveFeature.Direction attachmentDirection) {
+            return false;
+        }
+
+        default void setVine(int blockX, int blockY, int blockZ,
+                V118LushCaveFeature.Direction attachmentDirection) {
+            throw new UnsupportedOperationException("Vine placement is not available");
+        }
+
         default boolean isMelonReplaceable(BlockPos pos) {
             return false;
         }
@@ -1620,6 +1688,7 @@ public final class V118MountainSurfacePlacements {
         private int waterliliesPlaced;
         private int sugarCanePlaced;
         private int cactusPlaced;
+        private int vinesPlaced;
         private int melonsPlaced;
         private int pumpkinsPlaced;
         private int waterFrozen;
@@ -1719,6 +1788,10 @@ public final class V118MountainSurfacePlacements {
 
         public int cactusPlaced() {
             return cactusPlaced;
+        }
+
+        public int vinesPlaced() {
+            return vinesPlaced;
         }
 
         public int melonsPlaced() {

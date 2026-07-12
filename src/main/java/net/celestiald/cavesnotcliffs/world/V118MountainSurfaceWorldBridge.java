@@ -20,6 +20,7 @@ import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements.S
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118DesertWellPlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118IceSurfacePlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118IceSurfacePlacements.State;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118LushCaveFeature;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Material;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118MountainSurfacePlacements;
 import net.minecraft.block.Block;
@@ -30,6 +31,7 @@ import net.minecraft.block.BlockSand;
 import net.minecraft.block.BlockSlab;
 import net.minecraft.block.BlockStone;
 import net.minecraft.block.BlockStoneSlab;
+import net.minecraft.block.BlockVine;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -207,6 +209,40 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public boolean isAir(BlockPos pos) {
         return inside(pos) && world.isAirBlock(pos);
+    }
+
+    @Override
+    public boolean isAir(int blockX, int blockY, int blockZ) {
+        BlockPos pos = new BlockPos(blockX, blockY, blockZ);
+        return inside(pos) && world.getBlockState(pos).getBlock() == Blocks.AIR;
+    }
+
+    @Override
+    public boolean supportsVinePlacement() {
+        return true;
+    }
+
+    @Override
+    public boolean isAcceptableVineNeighbor(int blockX, int blockY, int blockZ,
+            V118LushCaveFeature.Direction attachmentDirection) {
+        BlockPos pos = new BlockPos(blockX, blockY, blockZ);
+        if (!inside(pos)) {
+            return false;
+        }
+        EnumFacing facing = vineFacing(attachmentDirection);
+        return world.getBlockState(pos).isSideSolid(world, pos, facing.getOpposite());
+    }
+
+    @Override
+    public void setVine(int blockX, int blockY, int blockZ,
+            V118LushCaveFeature.Direction attachmentDirection) {
+        BlockPos pos = new BlockPos(blockX, blockY, blockZ);
+        if (!inside(pos)) {
+            return;
+        }
+        EnumFacing facing = vineFacing(attachmentDirection);
+        world.setBlockState(pos, Blocks.VINE.getDefaultState()
+            .withProperty(BlockVine.getPropertyFor(facing), true), 2);
     }
 
     @Override
@@ -824,6 +860,18 @@ final class V118MountainSurfaceWorldBridge
     private boolean canWriteSurfaceFeature(BlockPos pos) {
         return inside(pos) && V118LushCaveWorldBridge.insideFeatureChunks(
             pos.getX(), pos.getZ(), surfaceFeatureChunkX, surfaceFeatureChunkZ);
+    }
+
+    private static EnumFacing vineFacing(V118LushCaveFeature.Direction direction) {
+        switch (direction) {
+            case DOWN: return EnumFacing.DOWN;
+            case UP: return EnumFacing.UP;
+            case NORTH: return EnumFacing.NORTH;
+            case SOUTH: return EnumFacing.SOUTH;
+            case WEST: return EnumFacing.WEST;
+            case EAST: return EnumFacing.EAST;
+            default: throw new AssertionError(direction);
+        }
     }
 
     static final class SpringValidBlocks {
