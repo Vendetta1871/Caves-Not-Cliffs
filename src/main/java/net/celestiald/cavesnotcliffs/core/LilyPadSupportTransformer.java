@@ -37,22 +37,27 @@ public final class LilyPadSupportTransformer implements IClassTransformer {
         MethodNode survival = uniqueSurvivalMethod(node);
         int returns = 0;
         for (AbstractInsnNode instruction : survival.instructions.toArray()) {
-            if (instruction.getOpcode() != Opcodes.IRETURN) {
-                continue;
+            if (instruction.getOpcode() == Opcodes.IRETURN) {
+                returns++;
             }
-            InsnList hook = new InsnList();
-            hook.add(new VarInsnNode(Opcodes.ALOAD, 1));
-            hook.add(new VarInsnNode(Opcodes.ALOAD, 2));
-            hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, HOOK_OWNER,
-                    HOOK_NAME, HOOK_DESC, false));
-            hook.add(new InsnNode(Opcodes.IOR));
-            survival.instructions.insertBefore(instruction, hook);
-            returns++;
         }
         if (returns != 2) {
             throw failure("two integer returns from " + survival.name
                     + METHOD_DESC + " (found " + returns + ")");
         }
+
+        // The hook is the complete 1.18.2 predicate, including legacy source water,
+        // ice, waterlogged companions, and the removal of the old 0..255 limit.
+        InsnList body = new InsnList();
+        body.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        body.add(new VarInsnNode(Opcodes.ALOAD, 2));
+        body.add(new MethodInsnNode(Opcodes.INVOKESTATIC, HOOK_OWNER,
+                HOOK_NAME, HOOK_DESC, false));
+        body.add(new InsnNode(Opcodes.IRETURN));
+        survival.instructions.clear();
+        survival.tryCatchBlocks.clear();
+        survival.localVariables = null;
+        survival.instructions.add(body);
 
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         node.accept(writer);

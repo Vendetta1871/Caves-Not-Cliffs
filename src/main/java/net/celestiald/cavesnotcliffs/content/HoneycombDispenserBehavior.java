@@ -20,8 +20,8 @@ public final class HoneycombDispenserBehavior extends BehaviorDefaultDispenseIte
         BlockPos target = source.getBlockPos().offset(facing);
         IBlockState waxed = CopperContent.waxed(world.getBlockState(target));
         if (waxed == null) {
-            successful = true;
-            return super.dispenseStack(source, stack);
+            successful = false;
+            return stack;
         }
         successful = true;
         world.setBlockState(target, waxed, 3);
