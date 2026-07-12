@@ -25,6 +25,8 @@ public final class V118MountainSurfacePlacements {
 
     public static final int SPRING_LAVA_FROZEN_INDEX = 2;
     public static final int PATCH_TALL_GRASS_INDEX = 8;
+    public static final int PATCH_GRASS_JUNGLE_INDEX = 11;
+    public static final int PATCH_GRASS_SAVANNA_INDEX = 12;
     public static final int PATCH_TALL_GRASS_2_INDEX = 21;
     public static final int PATCH_LARGE_FERN_INDEX = 36;
     public static final int TREES_GROVE_INDEX = 40;
@@ -64,6 +66,10 @@ public final class V118MountainSurfacePlacements {
         V118Biome.GROVE, V118Biome.SNOWY_SLOPES,
         V118Biome.FROZEN_PEAKS, V118Biome.JAGGED_PEAKS);
     private static final Set<V118Biome> TALL_GRASS_BIOMES = immutableSet(
+        V118Biome.SAVANNA, V118Biome.SAVANNA_PLATEAU);
+    private static final Set<V118Biome> GRASS_JUNGLE_BIOMES = immutableSet(
+        V118Biome.BAMBOO_JUNGLE, V118Biome.JUNGLE, V118Biome.SPARSE_JUNGLE);
+    private static final Set<V118Biome> GRASS_SAVANNA_BIOMES = immutableSet(
         V118Biome.SAVANNA, V118Biome.SAVANNA_PLATEAU);
     private static final Set<V118Biome> TALL_GRASS_2_BIOMES = immutableSet(
         V118Biome.DRIPSTONE_CAVES, V118Biome.LUSH_CAVES, V118Biome.MEADOW,
@@ -165,6 +171,26 @@ public final class V118MountainSurfacePlacements {
         return result;
     }
 
+    public static DecorationResult decorateEarlyShortGrass(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        requireArguments(world, regionBiomes);
+        DecorationResult result = new DecorationResult();
+        if (!world.supportsShortGrassPlacement()) {
+            return result;
+        }
+        if (appearsIn(GRASS_JUNGLE_BIOMES, regionBiomes)) {
+            placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_GRASS_JUNGLE_INDEX, 25, 3, 1, true,
+                GRASS_JUNGLE_BIOMES, result);
+        }
+        if (appearsIn(GRASS_SAVANNA_BIOMES, regionBiomes)) {
+            placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_GRASS_SAVANNA_INDEX, 20, 1, 0, false,
+                GRASS_SAVANNA_BIOMES, result);
+        }
+        return result;
+    }
+
     public static DecorationResult decorateLateDoublePlants(WorldAccess world, long worldSeed,
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
         requireArguments(world, regionBiomes);
@@ -206,19 +232,23 @@ public final class V118MountainSurfacePlacements {
         boolean shortGrass = world.supportsShortGrassPlacement();
         if (shortGrass && appearsIn(GRASS_TAIGA_BIOMES, regionBiomes)) {
             placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
-                PATCH_GRASS_TAIGA_INDEX, 7, true, GRASS_TAIGA_BIOMES, result);
+                PATCH_GRASS_TAIGA_INDEX, 7, 1, 4, false,
+                GRASS_TAIGA_BIOMES, result);
         }
         if (shortGrass && appearsIn(GRASS_FOREST_BIOMES, regionBiomes)) {
             placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
-                PATCH_GRASS_FOREST_INDEX, 2, false, GRASS_FOREST_BIOMES, result);
+                PATCH_GRASS_FOREST_INDEX, 2, 1, 0, false,
+                GRASS_FOREST_BIOMES, result);
         }
         if (shortGrass && appearsIn(GRASS_TAIGA_2_BIOMES, regionBiomes)) {
             placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
-                PATCH_GRASS_TAIGA_2_INDEX, 1, true, GRASS_TAIGA_2_BIOMES, result);
+                PATCH_GRASS_TAIGA_2_INDEX, 1, 1, 4, false,
+                GRASS_TAIGA_2_BIOMES, result);
         }
         if (shortGrass && appearsIn(GRASS_NORMAL_BIOMES, regionBiomes)) {
             placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
-                PATCH_GRASS_NORMAL_INDEX, 5, false, GRASS_NORMAL_BIOMES, result);
+                PATCH_GRASS_NORMAL_INDEX, 5, 1, 0, false,
+                GRASS_NORMAL_BIOMES, result);
         }
         if (appearsIn(DEAD_BUSH_BIOMES, regionBiomes)) {
             placeDeadBushPatch(world, worldSeed, chunkX, chunkZ,
@@ -250,7 +280,7 @@ public final class V118MountainSurfacePlacements {
         }
         if (shortGrass && appearsIn(GRASS_BADLANDS_BIOMES, regionBiomes)) {
             placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
-                PATCH_GRASS_BADLANDS_INDEX, 1, false,
+                PATCH_GRASS_BADLANDS_INDEX, 1, 1, 0, false,
                 GRASS_BADLANDS_BIOMES, result);
         }
         if (regionBiomes.contains(V118Biome.DESERT)) {
@@ -408,6 +438,14 @@ public final class V118MountainSurfacePlacements {
 
     static boolean supportsTallGrass2(V118Biome biome) {
         return TALL_GRASS_2_BIOMES.contains(biome);
+    }
+
+    static boolean supportsJungleGrass(V118Biome biome) {
+        return GRASS_JUNGLE_BIOMES.contains(biome);
+    }
+
+    static boolean supportsSavannaGrass(V118Biome biome) {
+        return GRASS_SAVANNA_BIOMES.contains(biome);
     }
 
     static boolean supportsLargeFern(V118Biome biome) {
@@ -632,7 +670,8 @@ public final class V118MountainSurfacePlacements {
 
     private static void placeShortGrassPatch(WorldAccess world, long worldSeed,
             int chunkX, int chunkZ, int globalIndex, int outerAttempts,
-            boolean taigaWeighted, Set<V118Biome> featureBiomes,
+            int grassWeight, int fernWeight, boolean excludePodzol,
+            Set<V118Biome> featureBiomes,
             DecorationResult result) {
         V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
             globalIndex, VEGETAL_DECORATION_STEP);
@@ -658,9 +697,13 @@ public final class V118MountainSurfacePlacements {
                 if (!world.isShortGrassPlacementAir(candidate)) {
                     continue;
                 }
-                // WeightedStateProvider is evaluated after the exact-air predicate and
-                // before the selected state's survival query.
-                boolean fern = taigaWeighted && random.nextInt(5) != 0;
+                if (excludePodzol && world.isPodzol(candidate.down())) {
+                    continue;
+                }
+                // WeightedStateProvider is evaluated after the configured predicates
+                // and before the selected state's survival query.
+                boolean fern = fernWeight > 0
+                    && random.nextInt(grassWeight + fernWeight) >= grassWeight;
                 if (!world.canShortGrassSurvive(candidate)) {
                     continue;
                 }
@@ -1006,6 +1049,10 @@ public final class V118MountainSurfacePlacements {
         }
 
         default boolean canShortGrassSurvive(BlockPos pos) {
+            return false;
+        }
+
+        default boolean isPodzol(BlockPos pos) {
             return false;
         }
 

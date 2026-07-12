@@ -76,6 +76,12 @@ final class V118MountainSurfaceWorldBridge
             chunkX, chunkZ, regionBiomes);
     }
 
+    V118MountainSurfacePlacements.DecorationResult populateEarlyShortGrass(
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return V118MountainSurfacePlacements.decorateEarlyShortGrass(this, world.getSeed(),
+            chunkX, chunkZ, regionBiomes);
+    }
+
     V118MountainSurfacePlacements.DecorationResult populateLateDoublePlants(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
         return V118MountainSurfacePlacements.decorateLateDoublePlants(this, world.getSeed(),
@@ -252,6 +258,13 @@ final class V118MountainSurfaceWorldBridge
     public boolean canShortGrassSurvive(BlockPos pos) {
         return inside(pos) && inside(pos.down())
             && TallGrassSupportHooks.canStay(world, pos);
+    }
+
+    @Override
+    public boolean isPodzol(BlockPos pos) {
+        IBlockState state = world.getBlockState(pos);
+        return state.getBlock() == Blocks.DIRT
+            && state.getValue(BlockDirt.VARIANT) == BlockDirt.DirtType.PODZOL;
     }
 
     @Override

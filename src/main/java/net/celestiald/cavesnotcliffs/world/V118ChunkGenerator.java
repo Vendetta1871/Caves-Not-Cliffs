@@ -171,6 +171,8 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         mountainSurface.populateFrozenSprings(chunkX, chunkZ, decorationBiomes);
         // VEGETAL_DECORATION index 8 precedes the represented bee-tree sequence at 14-20.
         mountainSurface.populateEarlyDoublePlants(chunkX, chunkZ, decorationBiomes);
+        // Grass indices 11/12 occupy the represented slots between omitted 9/10 and 13.
+        mountainSurface.populateEarlyShortGrass(chunkX, chunkZ, decorationBiomes);
         beeTrees.populateBeforeLush(chunkX, chunkZ, decorationBiomes);
         // Index 21 precedes the lush-cave vegetation beginning at index 22.
         mountainSurface.populatePreLushDoublePlants(chunkX, chunkZ, decorationBiomes);
