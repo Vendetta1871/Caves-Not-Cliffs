@@ -109,6 +109,7 @@ public final class ComposterCompostables {
         add(entries, 0.85F, "minecraft:hay_block");
         add(entries, 0.85F, "minecraft:brown_mushroom_block");
         add(entries, 0.85F, "minecraft:red_mushroom_block");
+        add(entries, 0.85F, "minecraft:nether_wart_block");
         add(entries, 0.85F, "minecraft:bread");
         add(entries, 0.85F, "minecraft:baked_potato");
         add(entries, 0.85F, "minecraft:cookie");
