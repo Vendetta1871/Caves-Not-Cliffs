@@ -7,6 +7,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.WorldServerMulti;
 import net.minecraft.world.WorldType;
+import net.minecraft.world.storage.ISaveHandler;
 import net.minecraft.world.storage.WorldInfo;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -16,6 +17,19 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
  * Chooses the immutable world-format contract before the Overworld creates its chunk generator.
  */
 public final class WorldHeightBootstrap {
+    /** Core-hook entry point used before {@link WorldServer} constructs its chunk provider. */
+    public static void prepareBeforeWorldConstruction(
+            WorldInfo worldInfo, ISaveHandler saveHandler) {
+        if (worldInfo == null || saveHandler == null) {
+            throw new NullPointerException("worldInfo and saveHandler are required");
+        }
+        CavesNotCliffsWorldTypes.registerWrappers();
+        boolean existingWorld = saveHandler.loadWorldInfo() != null;
+        boolean enabledForCreation = !existingWorld
+                && CavesNotCliffsConfig.WORLD.enableForNewOverworlds;
+        applyWorldFormatDecision(worldInfo, existingWorld, enabledForCreation);
+    }
+
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void chooseWorldFormat(AttachCapabilitiesEvent<World> event) {
         World world = event.getObject();
@@ -31,7 +45,7 @@ public final class WorldHeightBootstrap {
         // is the sole authority after first creation.
         boolean enabledForCreation = !existingWorld
                 && CavesNotCliffsConfig.WORLD.enableForNewOverworlds;
-        applyWorldFormatDecision(world, existingWorld, enabledForCreation);
+        applyWorldFormatDecision(world.getWorldInfo(), existingWorld, enabledForCreation);
         if (!CavesNotCliffsWorldType.isCavesNotCliffs(world)) {
             return;
         }
@@ -39,8 +53,8 @@ public final class WorldHeightBootstrap {
                 CavesNotCliffsWorldType.MIN_HEIGHT, CavesNotCliffsWorldType.MAX_HEIGHT);
     }
 
-    private void applyWorldFormatDecision(World world, boolean existingWorld, boolean enabled) {
-        WorldInfo worldInfo = world.getWorldInfo();
+    static void applyWorldFormatDecision(
+            WorldInfo worldInfo, boolean existingWorld, boolean enabled) {
         WorldType selected = worldInfo.getTerrainType();
         CavesNotCliffsWorldData saved = CavesNotCliffsWorldData.read(worldInfo);
         int schema = saved == null ? 0 : saved.getTerrainSchema();
@@ -78,7 +92,7 @@ public final class WorldHeightBootstrap {
         }
     }
 
-    private void activateCurrentSchema(WorldInfo worldInfo, WorldType selected) {
+    private static void activateCurrentSchema(WorldInfo worldInfo, WorldType selected) {
         WorldType baseType;
         if (selected instanceof CavesNotCliffsWorldTypeWrapper) {
             baseType = ((CavesNotCliffsWorldTypeWrapper) selected).getBaseType();
@@ -98,7 +112,7 @@ public final class WorldHeightBootstrap {
         worldInfo.setTerrainType(wrapper);
     }
 
-    private void keepOrRepairCurrentSchema(WorldInfo worldInfo, WorldType selected,
+    private static void keepOrRepairCurrentSchema(WorldInfo worldInfo, WorldType selected,
             CavesNotCliffsWorldData saved) {
         if (saved == null) {
             if (!(selected instanceof CavesNotCliffsWorldTypeWrapper)) {
@@ -116,7 +130,7 @@ public final class WorldHeightBootstrap {
         }
     }
 
-    private CavesNotCliffsWorldTypeWrapper requirePersistedWrapper(
+    private static CavesNotCliffsWorldTypeWrapper requirePersistedWrapper(
             CavesNotCliffsWorldData saved) {
         if (saved == null) {
             throw new IllegalStateException("Schema-2 Caves Not Cliffs world has no persisted generator data");
@@ -130,13 +144,13 @@ public final class WorldHeightBootstrap {
         return wrapper;
     }
 
-    private void requireLegacyAlias() {
+    private static void requireLegacyAlias() {
         if (CavesNotCliffs.WORLD_TYPE == null) {
             throw new IllegalStateException("The Caves Not Cliffs schema-1 compatibility alias is unavailable");
         }
     }
 
-    private WorldActivationPolicy.SelectedKind selectedKind(WorldType selected) {
+    private static WorldActivationPolicy.SelectedKind selectedKind(WorldType selected) {
         if (selected instanceof CavesNotCliffsWorldType) {
             return WorldActivationPolicy.SelectedKind.LEGACY_ALIAS;
         }

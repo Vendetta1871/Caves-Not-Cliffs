@@ -7,8 +7,13 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TypeInsnNode;
+import org.objectweb.asm.tree.VarInsnNode;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -50,6 +55,47 @@ public class CubicImportSessionLockTransformerTest {
     }
 
     @Test
+    public void nearbyBooleanBranchFailsClearlyInsteadOfMovingTheFormatHook() throws Exception {
+        ClassNode node = readNode(targetBytes());
+        TypeInsnNode demoWorld = null;
+        MethodNode loadWorlds = null;
+        for (MethodNode method : node.methods) {
+            for (AbstractInsnNode instruction : method.instructions.toArray()) {
+                if (instruction instanceof TypeInsnNode
+                        && instruction.getOpcode() == Opcodes.NEW
+                        && CubicImportSessionLockTransformer.DEMO_WORLD_OWNER.equals(
+                            ((TypeInsnNode) instruction).desc)) {
+                    demoWorld = (TypeInsnNode) instruction;
+                    loadWorlds = method;
+                }
+            }
+        }
+        assertNotNull(demoWorld);
+        assertNotNull(loadWorlds);
+
+        LabelNode localTarget = new LabelNode();
+        InsnList collision = new InsnList();
+        collision.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        collision.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL,
+                CubicImportSessionLockTransformer.TARGET_INTERNAL,
+                "thirdPartyBoolean", "()Z", false));
+        collision.add(new JumpInsnNode(Opcodes.IFEQ, localTarget));
+        collision.add(localTarget);
+        loadWorlds.instructions.insertBefore(demoWorld, collision);
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        node.accept(writer);
+
+        try {
+            new CubicImportSessionLockTransformer().transform(
+                    CubicImportSessionLockTransformer.TARGET,
+                    CubicImportSessionLockTransformer.TARGET, writer.toByteArray());
+            fail("A near-collision must abort instead of moving the format hook");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains("Overworld"));
+        }
+    }
+
+    @Test
     public void forgeLifecycleHandlerNoLongerMutatesSaveBeforeSessionLock() throws Exception {
         assertEquals(0, hookCalls(classBytes(CavesNotCliffs.class)));
     }
@@ -77,10 +123,21 @@ public class CubicImportSessionLockTransformerTest {
         int saveLoaderCalls = 0;
         int worldInfoCalls = 0;
         int hooks = 0;
+        int formatHooks = 0;
+        int demoWorldAllocations = 0;
         for (MethodNode method : readNode(bytes).methods) {
             boolean sawSaveLoader = false;
             boolean sawHook = false;
+            boolean sawFormatHook = false;
             for (AbstractInsnNode instruction : method.instructions.toArray()) {
+                if (instruction instanceof TypeInsnNode
+                        && instruction.getOpcode() == Opcodes.NEW
+                        && CubicImportSessionLockTransformer.DEMO_WORLD_OWNER.equals(
+                            ((TypeInsnNode) instruction).desc)) {
+                    demoWorldAllocations++;
+                    assertTrue("world format must be selected before provider construction",
+                            sawFormatHook);
+                }
                 if (!(instruction instanceof MethodInsnNode)) {
                     continue;
                 }
@@ -106,12 +163,23 @@ public class CubicImportSessionLockTransformerTest {
                         && CubicImportSessionLockTransformer.LOAD_WORLD_INFO_DESC.equals(call.desc)) {
                     worldInfoCalls++;
                     assertTrue(sawHook);
+                } else if (CubicImportSessionLockTransformer.FORMAT_HOOK_OWNER.equals(call.owner)
+                        && CubicImportSessionLockTransformer.FORMAT_HOOK_NAME.equals(call.name)) {
+                    formatHooks++;
+                    AbstractInsnNode saveHandler = previousMeaningful(call);
+                    AbstractInsnNode worldInfo = previousMeaningful(saveHandler);
+                    assertEquals(Opcodes.ALOAD, worldInfo.getOpcode());
+                    assertEquals(Opcodes.ALOAD, saveHandler.getOpcode());
+                    assertTrue(sawHook);
+                    sawFormatHook = true;
                 }
             }
         }
         assertEquals(1, saveLoaderCalls);
         assertEquals(1, worldInfoCalls);
         assertEquals(1, hooks);
+        assertEquals(1, formatHooks);
+        assertEquals(1, demoWorldAllocations);
     }
 
     private static boolean containsCall(MethodNode method, String owner, String descriptor) {
@@ -146,6 +214,15 @@ public class CubicImportSessionLockTransformerTest {
         AbstractInsnNode cursor = instruction.getNext();
         while (cursor != null && cursor.getOpcode() < 0) {
             cursor = cursor.getNext();
+        }
+        assertNotNull(cursor);
+        return cursor;
+    }
+
+    private static AbstractInsnNode previousMeaningful(AbstractInsnNode instruction) {
+        AbstractInsnNode cursor = instruction.getPrevious();
+        while (cursor != null && cursor.getOpcode() < 0) {
+            cursor = cursor.getPrevious();
         }
         assertNotNull(cursor);
         return cursor;

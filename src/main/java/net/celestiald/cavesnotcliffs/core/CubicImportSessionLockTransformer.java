@@ -7,11 +7,13 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
-/** Runs cubic-save import after vanilla creates the save handler but before it reads WorldInfo. */
+/** Runs save import and world-format selection before vanilla constructs the Overworld. */
 public final class CubicImportSessionLockTransformer implements IClassTransformer {
     public static final String TARGET = "net.minecraft.server.MinecraftServer";
     static final String TARGET_INTERNAL = TARGET.replace('.', '/');
@@ -20,10 +22,17 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
     static final String GET_SAVE_LOADER_DESC = "(Ljava/lang/String;Z)L"
             + SAVE_HANDLER_OWNER + ";";
     static final String LOAD_WORLD_INFO_DESC = "()Lnet/minecraft/world/storage/WorldInfo;";
+    static final String DEMO_WORLD_OWNER = "net/minecraft/world/WorldServerDemo";
+    static final String NORMAL_WORLD_OWNER = "net/minecraft/world/WorldServer";
     static final String HOOK_OWNER =
             "net/celestiald/cavesnotcliffs/migration/LegacyCubicSaveImporter";
     static final String HOOK_NAME = "prepareForServer";
     static final String HOOK_DESC = "(Lnet/minecraft/server/MinecraftServer;)V";
+    static final String FORMAT_HOOK_OWNER =
+            "net/celestiald/cavesnotcliffs/world/WorldHeightBootstrap";
+    static final String FORMAT_HOOK_NAME = "prepareBeforeWorldConstruction";
+    static final String FORMAT_HOOK_DESC = "(Lnet/minecraft/world/storage/WorldInfo;L"
+            + SAVE_HANDLER_OWNER + ";)V";
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -34,12 +43,23 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
         new ClassReader(basicClass).accept(node, 0);
         MethodNode loadWorlds = uniqueLoadWorldsMethod(node);
         MethodInsnNode saveLoader = uniqueSaveLoaderCall(loadWorlds);
+        MethodInsnNode loadWorldInfo = uniqueWorldInfoCall(loadWorlds);
+        int saveHandlerVariable = objectStoreAfter(saveLoader, "save handler");
+        int worldInfoVariable = objectStoreAfter(loadWorldInfo, "WorldInfo");
+        MethodInsnNode constructorDecision = uniqueConstructorDecision(loadWorlds);
 
-        InsnList hook = new InsnList();
-        hook.add(new VarInsnNode(Opcodes.ALOAD, 0));
-        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, HOOK_OWNER,
+        InsnList importHook = new InsnList();
+        importHook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        importHook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, HOOK_OWNER,
                 HOOK_NAME, HOOK_DESC, false));
-        loadWorlds.instructions.insert(saveLoader, hook);
+        loadWorlds.instructions.insert(saveLoader, importHook);
+
+        InsnList formatHook = new InsnList();
+        formatHook.add(new VarInsnNode(Opcodes.ALOAD, worldInfoVariable));
+        formatHook.add(new VarInsnNode(Opcodes.ALOAD, saveHandlerVariable));
+        formatHook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, FORMAT_HOOK_OWNER,
+                FORMAT_HOOK_NAME, FORMAT_HOOK_DESC, false));
+        loadWorlds.instructions.insertBefore(constructorDecision, formatHook);
 
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         node.accept(writer);
@@ -73,6 +93,87 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
             throw failure("save-handler creation in " + method.name + method.desc);
         }
         return result;
+    }
+
+    private static MethodInsnNode uniqueWorldInfoCall(MethodNode method) {
+        MethodInsnNode result = findUniqueCall(method, SAVE_HANDLER_OWNER,
+                LOAD_WORLD_INFO_DESC, "WorldInfo load");
+        if (result == null) {
+            throw failure("WorldInfo load in " + method.name + method.desc);
+        }
+        return result;
+    }
+
+    private static int objectStoreAfter(AbstractInsnNode instruction, String description) {
+        AbstractInsnNode next = nextMeaningful(instruction);
+        if (!(next instanceof VarInsnNode) || next.getOpcode() != Opcodes.ASTORE) {
+            throw failure(description + " local store");
+        }
+        return ((VarInsnNode) next).var;
+    }
+
+    private static MethodInsnNode uniqueConstructorDecision(MethodNode method) {
+        TypeInsnNode demoWorld = null;
+        for (AbstractInsnNode instruction : method.instructions.toArray()) {
+            if (instruction instanceof TypeInsnNode
+                    && instruction.getOpcode() == Opcodes.NEW
+                    && DEMO_WORLD_OWNER.equals(((TypeInsnNode) instruction).desc)) {
+                if (demoWorld != null) {
+                    throw failure("multiple demo Overworld constructor allocations in "
+                            + method.name + method.desc);
+                }
+                demoWorld = (TypeInsnNode) instruction;
+            }
+        }
+        if (demoWorld == null) {
+            throw failure("demo Overworld constructor allocation in "
+                    + method.name + method.desc);
+        }
+        for (AbstractInsnNode instruction = demoWorld.getPrevious(); instruction != null;
+                instruction = instruction.getPrevious()) {
+            if (instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (TARGET_INTERNAL.equals(call.owner) && "()Z".equals(call.desc)) {
+                    verifyConstructorBranch(call, demoWorld, method);
+                    return call;
+                }
+            }
+        }
+        throw failure("Overworld constructor selection in " + method.name + method.desc);
+    }
+
+    private static void verifyConstructorBranch(MethodInsnNode decision,
+            TypeInsnNode demoWorld, MethodNode method) {
+        AbstractInsnNode branchNode = nextMeaningful(decision);
+        if (!(branchNode instanceof JumpInsnNode)
+                || branchNode.getOpcode() != Opcodes.IFEQ) {
+            throw failure("immediate demo Overworld branch in " + method.name + method.desc);
+        }
+        JumpInsnNode branch = (JumpInsnNode) branchNode;
+        boolean demoInFallthrough = false;
+        for (AbstractInsnNode cursor = branch.getNext(); cursor != null && cursor != branch.label;
+                cursor = cursor.getNext()) {
+            if (cursor == demoWorld) {
+                demoInFallthrough = true;
+            }
+        }
+        if (!demoInFallthrough) {
+            throw failure("demo Overworld fallthrough in " + method.name + method.desc);
+        }
+        AbstractInsnNode normalWorld = nextMeaningful(branch.label);
+        if (!(normalWorld instanceof TypeInsnNode)
+                || normalWorld.getOpcode() != Opcodes.NEW
+                || !NORMAL_WORLD_OWNER.equals(((TypeInsnNode) normalWorld).desc)) {
+            throw failure("normal Overworld branch in " + method.name + method.desc);
+        }
+    }
+
+    private static AbstractInsnNode nextMeaningful(AbstractInsnNode instruction) {
+        AbstractInsnNode cursor = instruction.getNext();
+        while (cursor != null && cursor.getOpcode() < 0) {
+            cursor = cursor.getNext();
+        }
+        return cursor;
     }
 
     private static MethodInsnNode findUniqueCall(MethodNode method, String owner,
