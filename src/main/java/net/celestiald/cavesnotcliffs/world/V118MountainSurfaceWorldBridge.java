@@ -82,6 +82,12 @@ final class V118MountainSurfaceWorldBridge
             chunkX, chunkZ, regionBiomes);
     }
 
+    V118MountainSurfacePlacements.DecorationResult populateEarlyFlowers(
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return V118MountainSurfacePlacements.decorateEarlyFlowers(this, world.getSeed(),
+            chunkX, chunkZ, regionBiomes);
+    }
+
     V118MountainSurfacePlacements.DecorationResult populateLateDoublePlants(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
         return V118MountainSurfacePlacements.decorateLateDoublePlants(this, world.getSeed(),
@@ -269,6 +275,22 @@ final class V118MountainSurfaceWorldBridge
 
     @Override
     public boolean supportsShortGrassPlacement() {
+        return true;
+    }
+
+    @Override
+    public boolean isFlowerPlacementAir(BlockPos pos) {
+        return inside(pos) && world.getBlockState(pos).getBlock() == Blocks.AIR;
+    }
+
+    @Override
+    public boolean canFlowerSurvive(BlockPos pos) {
+        return inside(pos) && inside(pos.down())
+            && DoublePlantSupportHooks.canLowerSurvive(world, pos);
+    }
+
+    @Override
+    public boolean supportsFlowerPlacement() {
         return true;
     }
 
@@ -528,6 +550,27 @@ final class V118MountainSurfaceWorldBridge
     public void setFern(BlockPos pos) {
         if (inside(pos)) {
             world.setBlockState(pos, Blocks.TALLGRASS.getStateFromMeta(2), 2);
+        }
+    }
+
+    @Override
+    public void setPoppy(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.RED_FLOWER.getStateFromMeta(0), 2);
+        }
+    }
+
+    @Override
+    public void setDandelion(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.YELLOW_FLOWER.getDefaultState(), 2);
+        }
+    }
+
+    @Override
+    public void setBlueOrchid(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.RED_FLOWER.getStateFromMeta(1), 2);
         }
     }
 

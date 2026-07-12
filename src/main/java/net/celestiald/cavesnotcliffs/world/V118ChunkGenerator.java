@@ -169,9 +169,11 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         // FLUID_SPRINGS step 8 indices 0, 1, then 2, after underground decoration.
         mountainSurface.populateDefaultSprings(chunkX, chunkZ, decorationBiomes);
         mountainSurface.populateFrozenSprings(chunkX, chunkZ, decorationBiomes);
-        // VEGETAL_DECORATION index 8 precedes the represented bee-tree sequence at 14-20.
+        // VEGETAL_DECORATION index 8 precedes omitted tree index 9 and warm flowers at 10.
         mountainSurface.populateEarlyDoublePlants(chunkX, chunkZ, decorationBiomes);
-        // Grass indices 11/12 occupy the represented slots between omitted 9/10 and 13.
+        // Warm flowers at index 10 follow omitted tree index 9.
+        mountainSurface.populateEarlyFlowers(chunkX, chunkZ, decorationBiomes);
+        // Grass indices 11/12 occupy the represented slots before omitted index 13.
         mountainSurface.populateEarlyShortGrass(chunkX, chunkZ, decorationBiomes);
         beeTrees.populateBeforeLush(chunkX, chunkZ, decorationBiomes);
         // Index 21 precedes the lush-cave vegetation beginning at index 22.
@@ -180,7 +182,7 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         beeTrees.populateAfterLush(chunkX, chunkZ, decorationBiomes);
         // Large fern index 36 follows the implemented meadow tree at 34.
         mountainSurface.populateLateDoublePlants(chunkX, chunkZ, decorationBiomes);
-        // Indices 40, 47-64, 66-69, 71, 72, 74, and 75 follow.
+        // Indices 40, 44, 46-64, 66-69, 71, 72, 74, and 75 follow.
         mountainSurface.populateVegetation(chunkX, chunkZ, decorationBiomes);
         // TOP_LAYER_MODIFICATION step 10 is the last represented decoration stage.
         mountainSurface.populateTopLayer(chunkX, chunkZ, decorationBiomes);

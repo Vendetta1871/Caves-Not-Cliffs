@@ -25,11 +25,14 @@ public final class V118MountainSurfacePlacements {
 
     public static final int SPRING_LAVA_FROZEN_INDEX = 2;
     public static final int PATCH_TALL_GRASS_INDEX = 8;
+    public static final int FLOWER_WARM_INDEX = 10;
     public static final int PATCH_GRASS_JUNGLE_INDEX = 11;
     public static final int PATCH_GRASS_SAVANNA_INDEX = 12;
     public static final int PATCH_TALL_GRASS_2_INDEX = 21;
     public static final int PATCH_LARGE_FERN_INDEX = 36;
     public static final int TREES_GROVE_INDEX = 40;
+    public static final int FLOWER_SWAMP_INDEX = 44;
+    public static final int FLOWER_DEFAULT_INDEX = 46;
     public static final int PATCH_GRASS_TAIGA_INDEX = 47;
     public static final int PATCH_GRASS_FOREST_INDEX = 48;
     public static final int PATCH_GRASS_TAIGA_2_INDEX = 49;
@@ -67,6 +70,9 @@ public final class V118MountainSurfacePlacements {
         V118Biome.FROZEN_PEAKS, V118Biome.JAGGED_PEAKS);
     private static final Set<V118Biome> TALL_GRASS_BIOMES = immutableSet(
         V118Biome.SAVANNA, V118Biome.SAVANNA_PLATEAU);
+    private static final Set<V118Biome> FLOWER_WARM_BIOMES = immutableSet(
+        V118Biome.BAMBOO_JUNGLE, V118Biome.JUNGLE, V118Biome.SAVANNA,
+        V118Biome.SAVANNA_PLATEAU, V118Biome.SPARSE_JUNGLE);
     private static final Set<V118Biome> GRASS_JUNGLE_BIOMES = immutableSet(
         V118Biome.BAMBOO_JUNGLE, V118Biome.JUNGLE, V118Biome.SPARSE_JUNGLE);
     private static final Set<V118Biome> GRASS_SAVANNA_BIOMES = immutableSet(
@@ -77,6 +83,21 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> LARGE_FERN_BIOMES = immutableSet(
         V118Biome.OLD_GROWTH_PINE_TAIGA, V118Biome.OLD_GROWTH_SPRUCE_TAIGA,
         V118Biome.SNOWY_TAIGA, V118Biome.TAIGA);
+    private static final Set<V118Biome> FLOWER_SWAMP_BIOMES = immutableSet(
+        V118Biome.SWAMP);
+    private static final Set<V118Biome> FLOWER_DEFAULT_BIOMES = immutableSet(
+        V118Biome.BEACH, V118Biome.BIRCH_FOREST, V118Biome.COLD_OCEAN,
+        V118Biome.DARK_FOREST, V118Biome.DEEP_COLD_OCEAN,
+        V118Biome.DEEP_FROZEN_OCEAN, V118Biome.DEEP_LUKEWARM_OCEAN,
+        V118Biome.DEEP_OCEAN, V118Biome.DESERT, V118Biome.FOREST,
+        V118Biome.FROZEN_OCEAN, V118Biome.FROZEN_RIVER, V118Biome.ICE_SPIKES,
+        V118Biome.LUKEWARM_OCEAN, V118Biome.OCEAN,
+        V118Biome.OLD_GROWTH_BIRCH_FOREST, V118Biome.OLD_GROWTH_PINE_TAIGA,
+        V118Biome.OLD_GROWTH_SPRUCE_TAIGA, V118Biome.RIVER,
+        V118Biome.SNOWY_BEACH, V118Biome.SNOWY_PLAINS, V118Biome.SNOWY_TAIGA,
+        V118Biome.STONY_SHORE, V118Biome.TAIGA, V118Biome.WARM_OCEAN,
+        V118Biome.WINDSWEPT_FOREST, V118Biome.WINDSWEPT_GRAVELLY_HILLS,
+        V118Biome.WINDSWEPT_HILLS, V118Biome.WINDSWEPT_SAVANNA);
     private static final Set<V118Biome> GRASS_TAIGA_BIOMES = immutableSet(
         V118Biome.OLD_GROWTH_PINE_TAIGA, V118Biome.OLD_GROWTH_SPRUCE_TAIGA);
     private static final Set<V118Biome> GRASS_FOREST_BIOMES = immutableSet(
@@ -171,6 +192,19 @@ public final class V118MountainSurfacePlacements {
         return result;
     }
 
+    public static DecorationResult decorateEarlyFlowers(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        requireArguments(world, regionBiomes);
+        DecorationResult result = new DecorationResult();
+        if (world.supportsFlowerPlacement()
+                && appearsIn(FLOWER_WARM_BIOMES, regionBiomes)) {
+            placeFlowerPatch(world, worldSeed, chunkX, chunkZ,
+                FLOWER_WARM_INDEX, 16, 7, 3, false,
+                FLOWER_WARM_BIOMES, result);
+        }
+        return result;
+    }
+
     public static DecorationResult decorateEarlyShortGrass(WorldAccess world, long worldSeed,
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
         requireArguments(world, regionBiomes);
@@ -228,6 +262,17 @@ public final class V118MountainSurfacePlacements {
         DecorationResult result = new DecorationResult();
         if (regionBiomes.contains(V118Biome.GROVE)) {
             placeGroveTrees(world, worldSeed, chunkX, chunkZ, result);
+        }
+        boolean flowers = world.supportsFlowerPlacement();
+        if (flowers && regionBiomes.contains(V118Biome.SWAMP)) {
+            placeFlowerPatch(world, worldSeed, chunkX, chunkZ,
+                FLOWER_SWAMP_INDEX, 32, 6, 2, true,
+                FLOWER_SWAMP_BIOMES, result);
+        }
+        if (flowers && appearsIn(FLOWER_DEFAULT_BIOMES, regionBiomes)) {
+            placeFlowerPatch(world, worldSeed, chunkX, chunkZ,
+                FLOWER_DEFAULT_INDEX, 32, 7, 3, false,
+                FLOWER_DEFAULT_BIOMES, result);
         }
         boolean shortGrass = world.supportsShortGrassPlacement();
         if (shortGrass && appearsIn(GRASS_TAIGA_BIOMES, regionBiomes)) {
@@ -718,6 +763,53 @@ public final class V118MountainSurfacePlacements {
         }
     }
 
+    private static void placeFlowerPatch(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, int globalIndex, int rarityChance,
+            int xzSpread, int ySpread, boolean blueOrchid,
+            Set<V118Biome> featureBiomes, DecorationResult result) {
+        V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
+            globalIndex, VEGETAL_DECORATION_STEP);
+        if (random.nextFloat() >= 1.0F / rarityChance) {
+            return;
+        }
+        BlockPos origin = squareHeightmapPosition(world, random, chunkX, chunkZ);
+        if (origin == null || !featureBiomes.contains(world.biomeAt(origin))) {
+            return;
+        }
+        int horizontalBound = xzSpread + 1;
+        int verticalBound = ySpread + 1;
+        for (int attempt = 0; attempt < 64; ++attempt) {
+            BlockPos candidate = origin.add(
+                random.nextInt(horizontalBound) - random.nextInt(horizontalBound),
+                random.nextInt(verticalBound) - random.nextInt(verticalBound),
+                random.nextInt(horizontalBound) - random.nextInt(horizontalBound));
+            if (!world.isFlowerPlacementAir(candidate)) {
+                continue;
+            }
+            // onlyWhenEmpty filters before the provider. The shared warm/default provider
+            // therefore consumes no RNG for occupied candidates.
+            int flower;
+            if (blueOrchid) {
+                flower = 2;
+            } else {
+                flower = random.nextInt(3) < 2 ? 0 : 1;
+            }
+            if (!world.canFlowerSurvive(candidate)) {
+                continue;
+            }
+            if (flower == 0) {
+                world.setPoppy(candidate);
+                result.poppiesPlaced++;
+            } else if (flower == 1) {
+                world.setDandelion(candidate);
+                result.dandelionsPlaced++;
+            } else {
+                world.setBlueOrchid(candidate);
+                result.blueOrchidsPlaced++;
+            }
+        }
+    }
+
     private static void placeDeadBushPatch(WorldAccess world, long worldSeed,
             int chunkX, int chunkZ, int globalIndex, int outerAttempts,
             Set<V118Biome> featureBiomes, DecorationResult result) {
@@ -1060,6 +1152,18 @@ public final class V118MountainSurfacePlacements {
             return false;
         }
 
+        default boolean isFlowerPlacementAir(BlockPos pos) {
+            return false;
+        }
+
+        default boolean canFlowerSurvive(BlockPos pos) {
+            return false;
+        }
+
+        default boolean supportsFlowerPlacement() {
+            return false;
+        }
+
         default boolean isMushroomPlacementAir(BlockPos pos) {
             return false;
         }
@@ -1136,6 +1240,18 @@ public final class V118MountainSurfacePlacements {
             throw new UnsupportedOperationException("Fern placement is not available");
         }
 
+        default void setPoppy(BlockPos pos) {
+            throw new UnsupportedOperationException("Poppy placement is not available");
+        }
+
+        default void setDandelion(BlockPos pos) {
+            throw new UnsupportedOperationException("Dandelion placement is not available");
+        }
+
+        default void setBlueOrchid(BlockPos pos) {
+            throw new UnsupportedOperationException("Blue-orchid placement is not available");
+        }
+
         default void setBrownMushroom(BlockPos pos) {
             throw new UnsupportedOperationException("Brown mushroom placement is not available");
         }
@@ -1171,6 +1287,9 @@ public final class V118MountainSurfacePlacements {
         private int largeFernsPlaced;
         private int shortGrassPlaced;
         private int fernsPlaced;
+        private int poppiesPlaced;
+        private int dandelionsPlaced;
+        private int blueOrchidsPlaced;
         private int deadBushesPlaced;
         private int brownMushroomsPlaced;
         private int redMushroomsPlaced;
@@ -1224,6 +1343,18 @@ public final class V118MountainSurfacePlacements {
 
         public int fernsPlaced() {
             return fernsPlaced;
+        }
+
+        public int poppiesPlaced() {
+            return poppiesPlaced;
+        }
+
+        public int dandelionsPlaced() {
+            return dandelionsPlaced;
+        }
+
+        public int blueOrchidsPlaced() {
+            return blueOrchidsPlaced;
         }
 
         public int deadBushesPlaced() {

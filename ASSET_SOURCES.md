@@ -195,3 +195,16 @@ overridden with the matching official Java 1.18.2 client resources:
 - Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
 - Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
 - Asset base: <https://resources.download.minecraft.net/>
+
+The dandelion, poppy, and blue-orchid textures are unmodified Java 1.18.2 client assets. Their
+filenames are adapted only to the texture paths used by Java 1.12.2's existing flower models:
+
+- `assets/minecraft/textures/block/dandelion.png` ->
+  `assets/minecraft/textures/blocks/flower_dandelion.png`
+- `assets/minecraft/textures/block/poppy.png` ->
+  `assets/minecraft/textures/blocks/flower_rose.png`
+- `assets/minecraft/textures/block/blue_orchid.png` ->
+  `assets/minecraft/textures/blocks/flower_blue_orchid.png`
+
+- Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Version metadata: <https://piston-meta.mojang.com/mc/game/version_manifest_v2.json>
