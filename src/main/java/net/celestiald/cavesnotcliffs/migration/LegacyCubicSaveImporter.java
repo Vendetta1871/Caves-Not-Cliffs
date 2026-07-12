@@ -698,7 +698,8 @@ public final class LegacyCubicSaveImporter {
         LegacyCubicDimensionMetadata.Result result =
                 LegacyCubicDimensionMetadata.discoverAndValidate(worldRoot);
         Path normalizedRoot = worldRoot.toAbsolutePath().normalize();
-        if (!result.getTrueDimensionRoots().contains(normalizedRoot)) {
+        if (!result.getTrueDimensionRoots().isEmpty()
+                && !result.getTrueDimensionRoots().contains(normalizedRoot)) {
             throw new IOException("The Overworld is not marked as a supported -64..320 "
                     + "CubicChunks dimension in data/cubicChunksData.dat");
         }
@@ -708,6 +709,10 @@ public final class LegacyCubicSaveImporter {
     private static SourceDiscovery discoverSources(Path worldRoot, Path levelFile)
             throws IOException {
         LegacyCubicDimensionMetadata.Result discovery = discoverDimensions(worldRoot);
+        if (discovery.getTrueDimensionRoots().isEmpty()) {
+            return new SourceDiscovery(Collections.<Path>emptyList(),
+                    Collections.<CubicImportJournal.FileRecord>emptyList());
+        }
         List<Path> dimensions = discovery.getTrueDimensionRoots();
         List<Path> metadata = new ArrayList<Path>(discovery.getMetadataFiles());
         if (levelFile != null) {

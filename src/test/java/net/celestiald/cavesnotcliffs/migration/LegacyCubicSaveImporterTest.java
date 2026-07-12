@@ -25,6 +25,40 @@ public class LegacyCubicSaveImporterTest {
     public final TemporaryFolder temporary = new TemporaryFolder();
 
     @Test
+    public void ignoresFreshAndNonCubicWorldsWithoutLegacyStorage() throws Exception {
+        Path fresh = temporary.newFolder("fresh-finite-world").toPath();
+        assertFalse(LegacyCubicSaveImporter.importWorld(
+                fresh, CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L));
+        assertFalse(Files.exists(fresh.resolve(CubicImportJournal.FILE_NAME)));
+        assertFalse(Files.exists(fresh.resolve(".cavesnotcliffs-cubic-staging")));
+
+        Path nonCubic = temporary.newFolder("non-cubic-world").toPath();
+        Path metadata = LegacyCubicDimensionMetadataTest.writeMetadata(
+                nonCubic, false, 0, 256,
+                "cubicchunks:anvil3d", "cubicchunks:default");
+        assertFalse(LegacyCubicSaveImporter.importWorld(
+                nonCubic, CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L));
+        assertTrue(Files.isRegularFile(metadata));
+        assertFalse(Files.exists(nonCubic.resolve(CubicImportJournal.FILE_NAME)));
+    }
+
+    @Test
+    public void stillRejectsCubicChildDimensionsWithoutACubicOverworld() throws Exception {
+        Path world = temporary.newFolder("child-only-cubic-world").toPath();
+        LegacyCubicDimensionMetadataTest.writeMetadata(
+                Files.createDirectory(world.resolve("DIM2")), true, -64, 320,
+                "cubicchunks:anvil3d", "cubicchunks:default");
+
+        try {
+            LegacyCubicSaveImporter.importWorld(
+                    world, CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L);
+            fail("Expected non-cubic Overworld rejection");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains("Overworld is not marked"));
+        }
+    }
+
+    @Test
     public void commitsOnceAndLeavesCubicRollbackSourcesUntouched() throws Exception {
         Path world = temporary.newFolder("world").toPath();
         writeCubicMetadata(world);
