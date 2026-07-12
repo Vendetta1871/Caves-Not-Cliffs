@@ -1,8 +1,12 @@
 package net.celestiald.cavesnotcliffs.world;
 
 import net.celestiald.cavesnotcliffs.block.LushAzaleaBlocks;
+import net.celestiald.cavesnotcliffs.block.LushMossBlocks;
 import net.celestiald.cavesnotcliffs.content.LushCaveContent;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118BeeTreeFeature.LogAxis;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118BeeTreePlacements.TreeKind;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockLeaves;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
@@ -21,6 +25,39 @@ final class V118TreeStateRules {
             || isReplaceablePlant(block)
             || block == Blocks.WATER
             || block == Blocks.FLOWING_WATER;
+    }
+
+    static boolean canSaplingSurvive(World world, BlockPos pos) {
+        Block block = world.getBlockState(pos.down()).getBlock();
+        return isDirtTag(block) || block == Blocks.FARMLAND;
+    }
+
+    static boolean isDirtExceptGrassAndMycelium(World world, BlockPos pos) {
+        Block block = world.getBlockState(pos).getBlock();
+        return isDirtTag(block) && block != Blocks.GRASS && block != Blocks.MYCELIUM;
+    }
+
+    static boolean isDirtTag(Block block) {
+        return block == Blocks.DIRT || block == Blocks.GRASS || block == Blocks.MYCELIUM
+            || block == LushCaveContent.ROOTED_DIRT || block == LushCaveContent.MOSS_BLOCK
+            || block instanceof LushAzaleaBlocks.RootedDirt
+            || block instanceof LushMossBlocks.Moss;
+    }
+
+    static void setLog(World world, BlockPos pos, LogAxis axis, TreeKind kind) {
+        int axisMetadata = axis == LogAxis.X ? 4 : axis == LogAxis.Z ? 8 : 0;
+        world.setBlockState(pos,
+            Blocks.LOG.getStateFromMeta(woodMetadata(kind) | axisMetadata), 2);
+    }
+
+    static void setLeaves(World world, BlockPos pos, TreeKind kind) {
+        world.setBlockState(pos, Blocks.LEAVES.getStateFromMeta(woodMetadata(kind))
+            .withProperty(BlockLeaves.CHECK_DECAY, false)
+            .withProperty(BlockLeaves.DECAYABLE, true), 2);
+    }
+
+    private static int woodMetadata(TreeKind kind) {
+        return kind == TreeKind.BIRCH || kind == TreeKind.SUPER_BIRCH ? 2 : 0;
     }
 
     private static boolean isLeaves(Block block, IBlockState state,

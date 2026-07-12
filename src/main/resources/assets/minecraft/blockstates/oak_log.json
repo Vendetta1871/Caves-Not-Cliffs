@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "axis=y": { "model": "oak_log" },
+    "axis=z": { "model": "cavesnotcliffs:oak_log_horizontal_118", "x": 90 },
+    "axis=x": { "model": "cavesnotcliffs:oak_log_horizontal_118", "x": 90, "y": 90 },
+    "axis=none": { "model": "oak_bark" }
+  }
+}

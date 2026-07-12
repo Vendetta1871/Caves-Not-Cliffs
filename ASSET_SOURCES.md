@@ -211,6 +211,34 @@ Their filenames are adapted only to Java 1.12.2's existing spruce block and item
 - Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
 - Version metadata: <https://piston-meta.mojang.com/mc/game/version_manifest_v2.json>
 
+The oak log, log-top, leaves, and sapling textures are unmodified Java 1.18.2 client assets.
+Their filenames are adapted only to Java 1.12.2's existing oak block and item models:
+
+- `assets/minecraft/textures/block/oak_log.png` ->
+  `assets/minecraft/textures/blocks/log_oak.png`
+- `assets/minecraft/textures/block/oak_log_top.png` ->
+  `assets/minecraft/textures/blocks/log_oak_top.png`
+- `assets/minecraft/textures/block/oak_leaves.png` ->
+  `assets/minecraft/textures/blocks/leaves_oak.png`
+- `assets/minecraft/textures/block/oak_sapling.png` ->
+  `assets/minecraft/textures/blocks/sapling_oak.png`
+
+Fancy-oak branches use the official Java 1.18.2 `cube_column_horizontal` face layout and oak
+horizontal-log model. Their JSON namespace, texture paths, and blockstate syntax are adapted for
+Forge 1.12.2. The overridden vanilla oak-log blockstate preserves 1.12.2's `axis=none` bark model.
+The two generic models live in the mod namespace so this backport does not claim a shared
+`minecraft` model path that another 1.12.2 backport may also supply:
+
+- `assets/minecraft/models/block/cube_column_horizontal.json` ->
+  `assets/cavesnotcliffs/models/block/cube_column_horizontal_118.json`
+- `assets/minecraft/models/block/oak_log_horizontal.json` ->
+  `assets/cavesnotcliffs/models/block/oak_log_horizontal_118.json`
+- `assets/minecraft/blockstates/oak_log.json` ->
+  `assets/minecraft/blockstates/oak_log.json` (1.12.2 state schema retained)
+
+- Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Version metadata: <https://piston-meta.mojang.com/mc/game/version_manifest_v2.json>
+
 The dandelion, poppy, and blue-orchid textures are unmodified Java 1.18.2 client assets. Their
 filenames are adapted only to the texture paths used by Java 1.12.2's existing flower models:
 

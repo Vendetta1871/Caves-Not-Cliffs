@@ -1,7 +1,6 @@
 package net.celestiald.cavesnotcliffs.world;
 
 import net.celestiald.cavesnotcliffs.worldgen.v118.BeeNestDecorator;
-import net.celestiald.cavesnotcliffs.content.LushCaveContent;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118BeeTreeFeature;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118BeeTreeFeature.LogAxis;
@@ -13,10 +12,8 @@ import net.celestiald.cavesnotcliffs.worldgen.v118.V118BeeTreePlacements.PlacedF
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118BeeTreePlacements.TreeKind;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118WorldgenRandom;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockLeaves;
 import net.minecraft.block.BlockDoublePlant;
+import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
@@ -138,8 +135,7 @@ final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
     }
 
     private boolean saplingHasSupport(BlockPos origin) {
-        Block block = world.getBlockState(origin.down()).getBlock();
-        return isDirtTag(block) || block == Blocks.FARMLAND;
+        return V118TreeStateRules.canSaplingSurvive(world, origin);
     }
 
     @Override
@@ -212,8 +208,7 @@ final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
 
     @Override
     public boolean isDirtExceptGrassAndMycelium(BlockPos pos) {
-        Block block = world.getBlockState(pos).getBlock();
-        return isDirtTag(block) && block != Blocks.GRASS && block != Blocks.MYCELIUM;
+        return V118TreeStateRules.isDirtExceptGrassAndMycelium(world, pos);
     }
 
     @Override
@@ -223,22 +218,12 @@ final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
 
     @Override
     public void setLog(BlockPos pos, LogAxis axis, TreeKind kind) {
-        int axisMetadata = axis == LogAxis.X ? 4 : axis == LogAxis.Z ? 8 : 0;
-        IBlockState state = Blocks.LOG.getStateFromMeta(woodMetadata(kind) | axisMetadata);
-        world.setBlockState(pos, state, 2);
+        V118TreeStateRules.setLog(world, pos, axis, kind);
     }
 
     @Override
     public void setLeaves(BlockPos pos, TreeKind kind) {
-        IBlockState state = Blocks.LEAVES.getStateFromMeta(woodMetadata(kind))
-                .withProperty(BlockLeaves.CHECK_DECAY, false)
-                .withProperty(BlockLeaves.DECAYABLE, true);
-        world.setBlockState(pos, state, 2);
-    }
-
-    private static int woodMetadata(TreeKind kind) {
-        return kind == TreeKind.BIRCH || kind == TreeKind.SUPER_BIRCH
-                ? 2 : 0;
+        V118TreeStateRules.setLeaves(world, pos, kind);
     }
 
     private static BlockDoublePlant.EnumPlantType doublePlant(Plant plant) {
@@ -285,12 +270,6 @@ final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
 
     private static IBlockState redFlower(int metadata) {
         return Blocks.RED_FLOWER.getStateFromMeta(metadata);
-    }
-
-    private static boolean isDirtTag(Block block) {
-        return block == Blocks.DIRT || block == Blocks.GRASS || block == Blocks.MYCELIUM
-                || block == LushCaveContent.ROOTED_DIRT
-                || block == LushCaveContent.MOSS_BLOCK;
     }
 
     private static boolean isOutsideBuildHeight(BlockPos pos) {

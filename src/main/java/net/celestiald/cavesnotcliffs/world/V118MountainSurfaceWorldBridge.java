@@ -4,7 +4,6 @@ import net.celestiald.cavesnotcliffs.block.BlockPowderSnow;
 import net.celestiald.cavesnotcliffs.block.CncFluidState;
 import net.celestiald.cavesnotcliffs.block.LushAzaleaBlocks;
 import net.celestiald.cavesnotcliffs.block.LushCaveVinesBlock;
-import net.celestiald.cavesnotcliffs.block.LushMossBlocks;
 import net.celestiald.cavesnotcliffs.content.DeadBushSupportHooks;
 import net.celestiald.cavesnotcliffs.content.DoublePlantSupportHooks;
 import net.celestiald.cavesnotcliffs.content.LilyPadSupportHooks;
@@ -13,6 +12,8 @@ import net.celestiald.cavesnotcliffs.content.MushroomSupportHooks;
 import net.celestiald.cavesnotcliffs.content.PlainPumpkinContent;
 import net.celestiald.cavesnotcliffs.content.TallGrassSupportHooks;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118BeeTreeFeature.LogAxis;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118BeeTreePlacements.TreeKind;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements.SpringFluid;
@@ -91,6 +92,12 @@ final class V118MountainSurfaceWorldBridge
     V118MountainSurfacePlacements.DecorationResult populateLateDoublePlants(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
         return V118MountainSurfacePlacements.decorateLateDoublePlants(this, world.getSeed(),
+            chunkX, chunkZ, regionBiomes);
+    }
+
+    V118MountainSurfacePlacements.DecorationResult populatePreLateTrees(
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return V118MountainSurfacePlacements.decoratePreLateTrees(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
     }
 
@@ -192,7 +199,17 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public boolean canSpruceSaplingSurvive(BlockPos pos) {
         return inside(pos) && inside(pos.down())
-            && DoublePlantSupportHooks.canLowerSurvive(world, pos);
+            && V118TreeStateRules.canSaplingSurvive(world, pos);
+    }
+
+    @Override
+    public boolean canBroadleafSaplingSurvive(BlockPos pos) {
+        return canSpruceSaplingSurvive(pos);
+    }
+
+    @Override
+    public boolean supportsBroadleafTreePlacement() {
+        return true;
     }
 
     @Override
@@ -438,6 +455,12 @@ final class V118MountainSurfaceWorldBridge
     }
 
     @Override
+    public boolean isDirtExceptGrassAndMycelium(BlockPos pos) {
+        return inside(pos)
+            && V118TreeStateRules.isDirtExceptGrassAndMycelium(world, pos);
+    }
+
+    @Override
     public void setDirt(BlockPos pos) {
         if (!inside(pos)) {
             return;
@@ -464,6 +487,20 @@ final class V118MountainSurfaceWorldBridge
             .withProperty(BlockLeaves.CHECK_DECAY, false)
             .withProperty(BlockLeaves.DECAYABLE, true);
         world.setBlockState(pos, state, 2);
+    }
+
+    @Override
+    public void setLog(BlockPos pos, LogAxis axis, TreeKind kind) {
+        if (inside(pos)) {
+            V118TreeStateRules.setLog(world, pos, axis, kind);
+        }
+    }
+
+    @Override
+    public void setLeaves(BlockPos pos, TreeKind kind) {
+        if (inside(pos)) {
+            V118TreeStateRules.setLeaves(world, pos, kind);
+        }
     }
 
     @Override
@@ -647,10 +684,7 @@ final class V118MountainSurfaceWorldBridge
     }
 
     private static boolean isDirtTag(Block block) {
-        return block == Blocks.DIRT || block == Blocks.GRASS || block == Blocks.MYCELIUM
-            || block == LushCaveContent.ROOTED_DIRT || block == LushCaveContent.MOSS_BLOCK
-            || block instanceof LushAzaleaBlocks.RootedDirt
-            || block instanceof LushMossBlocks.Moss;
+        return V118TreeStateRules.isDirtTag(block);
     }
 
     private static boolean inside(BlockPos pos) {
