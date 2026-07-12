@@ -281,3 +281,14 @@ separate accessibility-subtitle key for this streamed record.
 - Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
 - Otherside Ogg SHA-1: `a5effd79795773422bb4de85841838f3ad9c216d`
 - Asset base: <https://resources.download.minecraft.net/>
+
+The canonical tuff and calcite textures and block sound families are unmodified Java 1.18.2
+client resources. Model namespaces and the legacy `blocks` texture directory are syntax-only
+Forge 1.12.2 adaptations; the former `dark_stone` and `unknown_stone` resources remain only as
+compatibility aliases.
+
+- Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Tuff texture SHA-1: `2ed2499aae9d86df1cf0a57c655ec71d78132051`
+- Calcite texture SHA-1: `231cd99d1cc2fad54a4bff1eaebf72a86cbb1630`
+- Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
+- Asset base: <https://resources.download.minecraft.net/>

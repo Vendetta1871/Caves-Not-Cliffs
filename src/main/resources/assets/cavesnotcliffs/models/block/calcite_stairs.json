@@ -1,0 +1,1 @@
+{ "parent": "block/stairs", "textures": { "bottom": "cavesnotcliffs:blocks/calcite", "top": "cavesnotcliffs:blocks/calcite", "side": "cavesnotcliffs:blocks/calcite" } }

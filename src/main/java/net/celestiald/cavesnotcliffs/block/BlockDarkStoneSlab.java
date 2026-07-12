@@ -20,6 +20,8 @@ import net.minecraft.item.ItemSlab;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.util.IStringSerializable;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
+import net.celestiald.cavesnotcliffs.content.DeepslateSoundEvents;
 import java.util.Random;
 
 @ElementsCavesNotCliffs.ModElement.Tag
@@ -44,7 +46,7 @@ public class BlockDarkStoneSlab extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void registerModels(ModelRegistryEvent event) {
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:dark_stone_slab", "inventory"));
+            new ModelResourceLocation("cavesnotcliffs:tuff_slab", "inventory"));
     }
 
     public static class BlockCustom extends BlockSlab {
@@ -54,10 +56,10 @@ public class BlockDarkStoneSlab extends ElementsCavesNotCliffs.ModElement {
             super(Material.ROCK);
             setUnlocalizedName("tuff_slab");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
-            setSoundType(SoundType.STONE);
-            setHarvestLevel("pickaxe", 1);
+            setSoundType(DeepslateSoundEvents.TUFF);
+            setHarvestLevel("pickaxe", 0);
             setHardness(1.5f);
-            setResistance(6.0f);
+            setResistance(CncBlockProperties.legacyResistance(6.0F));
             IBlockState state = this.blockState.getBaseState().withProperty(VARIANT, Variant.DEFAULT);
             if (!isDouble()) state = state.withProperty(HALF, EnumBlockHalf.BOTTOM);
             setDefaultState(state);

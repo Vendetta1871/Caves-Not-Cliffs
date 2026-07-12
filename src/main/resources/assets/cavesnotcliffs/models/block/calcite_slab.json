@@ -1,0 +1,1 @@
+{ "parent": "block/half_slab", "textures": { "bottom": "cavesnotcliffs:blocks/calcite", "top": "cavesnotcliffs:blocks/calcite", "side": "cavesnotcliffs:blocks/calcite" } }

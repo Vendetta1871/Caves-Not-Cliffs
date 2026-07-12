@@ -1,5 +1,5 @@
 {
   "variants": {
-    "variant=default": { "model": "cavesnotcliffs:dark_stone_slab_double" }
+    "variant=default": { "model": "cavesnotcliffs:tuff_slab_double" }
   }
 }

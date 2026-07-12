@@ -8,7 +8,7 @@ import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-/** Canonical Java 1.18.2 deepslate sound events and block sound types. */
+/** Canonical Java 1.18.2 stone-family sound events and block sound types. */
 @Mod.EventBusSubscriber(modid = CavesNotCliffs.MODID)
 public final class DeepslateSoundEvents {
     private static final SoundEvent DEEPSLATE_BREAK = sound("block.deepslate.break");
@@ -35,11 +35,25 @@ public final class DeepslateSoundEvents {
     private static final SoundEvent POLISHED_PLACE = sound("block.polished_deepslate.place");
     private static final SoundEvent POLISHED_STEP = sound("block.polished_deepslate.step");
 
+    private static final SoundEvent TUFF_BREAK = sound("block.tuff.break");
+    private static final SoundEvent TUFF_FALL = sound("block.tuff.fall");
+    private static final SoundEvent TUFF_HIT = sound("block.tuff.hit");
+    private static final SoundEvent TUFF_PLACE = sound("block.tuff.place");
+    private static final SoundEvent TUFF_STEP = sound("block.tuff.step");
+
+    private static final SoundEvent CALCITE_BREAK = sound("block.calcite.break");
+    private static final SoundEvent CALCITE_FALL = sound("block.calcite.fall");
+    private static final SoundEvent CALCITE_HIT = sound("block.calcite.hit");
+    private static final SoundEvent CALCITE_PLACE = sound("block.calcite.place");
+    private static final SoundEvent CALCITE_STEP = sound("block.calcite.step");
+
     private static final SoundEvent[] EVENTS = {
             DEEPSLATE_BREAK, DEEPSLATE_FALL, DEEPSLATE_HIT, DEEPSLATE_PLACE, DEEPSLATE_STEP,
             BRICKS_BREAK, BRICKS_FALL, BRICKS_HIT, BRICKS_PLACE, BRICKS_STEP,
             TILES_BREAK, TILES_FALL, TILES_HIT, TILES_PLACE, TILES_STEP,
-            POLISHED_BREAK, POLISHED_FALL, POLISHED_HIT, POLISHED_PLACE, POLISHED_STEP
+            POLISHED_BREAK, POLISHED_FALL, POLISHED_HIT, POLISHED_PLACE, POLISHED_STEP,
+            TUFF_BREAK, TUFF_FALL, TUFF_HIT, TUFF_PLACE, TUFF_STEP,
+            CALCITE_BREAK, CALCITE_FALL, CALCITE_HIT, CALCITE_PLACE, CALCITE_STEP
     };
 
     public static final SoundType DEEPSLATE = type(DEEPSLATE_BREAK, DEEPSLATE_STEP,
@@ -50,6 +64,10 @@ public final class DeepslateSoundEvents {
             TILES_PLACE, TILES_HIT, TILES_FALL);
     public static final SoundType POLISHED_DEEPSLATE = type(POLISHED_BREAK, POLISHED_STEP,
             POLISHED_PLACE, POLISHED_HIT, POLISHED_FALL);
+    public static final SoundType TUFF = type(TUFF_BREAK, TUFF_STEP,
+            TUFF_PLACE, TUFF_HIT, TUFF_FALL);
+    public static final SoundType CALCITE = type(CALCITE_BREAK, CALCITE_STEP,
+            CALCITE_PLACE, CALCITE_HIT, CALCITE_FALL);
 
     private DeepslateSoundEvents() {
     }

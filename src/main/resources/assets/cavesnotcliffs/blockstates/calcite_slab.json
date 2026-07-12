@@ -1,6 +1,6 @@
 {
   "variants": {
-    "half=bottom,variant=default": { "model": "cavesnotcliffs:unknown_stone_slab" },
-    "half=top,variant=default":    { "model": "cavesnotcliffs:unknown_stone_slab_top" }
+    "half=bottom,variant=default": { "model": "cavesnotcliffs:calcite_slab" },
+    "half=top,variant=default":    { "model": "cavesnotcliffs:calcite_slab_top" }
   }
 }

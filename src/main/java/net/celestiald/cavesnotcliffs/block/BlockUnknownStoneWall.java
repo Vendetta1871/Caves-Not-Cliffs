@@ -19,6 +19,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.util.NonNullList;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
+import net.celestiald.cavesnotcliffs.content.DeepslateSoundEvents;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockUnknownStoneWall extends ElementsCavesNotCliffs.ModElement {
@@ -37,7 +39,7 @@ public class BlockUnknownStoneWall extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void registerModels(ModelRegistryEvent event) {
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:unknown_stone_wall", "inventory"));
+            new ModelResourceLocation("cavesnotcliffs:calcite_wall", "inventory"));
         ModelLoader.setCustomStateMapper(block,
             new StateMap.Builder().ignore(BlockWall.VARIANT).build());
     }
@@ -47,10 +49,10 @@ public class BlockUnknownStoneWall extends ElementsCavesNotCliffs.ModElement {
             super(new Block(Material.ROCK));
             setUnlocalizedName("calcite_wall");
             setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
-            setSoundType(SoundType.STONE);
-            setHarvestLevel("pickaxe", 1);
-            setHardness(1.5f);
-            setResistance(6.0f);
+            setSoundType(DeepslateSoundEvents.CALCITE);
+            setHarvestLevel("pickaxe", 0);
+            setHardness(0.75F);
+            setResistance(CncBlockProperties.legacyResistance(0.75F));
         }
 
         @Override

@@ -16,6 +16,8 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.util.ResourceLocation;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
+import net.celestiald.cavesnotcliffs.content.DeepslateSoundEvents;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockUnknownStoneBlock extends ElementsCavesNotCliffs.ModElement {
@@ -39,7 +41,7 @@ public class BlockUnknownStoneBlock extends ElementsCavesNotCliffs.ModElement {
         Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("cavesnotcliffs", "calcite"));
         if (item != null)
             ModelLoader.setCustomModelResourceLocation(item, 0,
-                new ModelResourceLocation("cavesnotcliffs:unknown_stone", "inventory"));
+                new ModelResourceLocation("cavesnotcliffs:calcite", "inventory"));
     }
 
     private static class BlockCustom extends Block {
@@ -47,9 +49,10 @@ public class BlockUnknownStoneBlock extends ElementsCavesNotCliffs.ModElement {
             super(Material.ROCK);
             setUnlocalizedName("calcite");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
-            setSoundType(SoundType.STONE);
-            setHardness(1.5f);
-            setResistance(6.0f);
+            setSoundType(DeepslateSoundEvents.CALCITE);
+            setHardness(0.75F);
+            setResistance(CncBlockProperties.legacyResistance(0.75F));
+            setHarvestLevel("pickaxe", 0);
         }
     }
 }

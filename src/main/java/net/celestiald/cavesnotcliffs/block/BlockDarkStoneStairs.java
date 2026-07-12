@@ -15,6 +15,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
+import net.celestiald.cavesnotcliffs.content.DeepslateSoundEvents;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDarkStoneStairs extends ElementsCavesNotCliffs.ModElement {
@@ -33,7 +35,7 @@ public class BlockDarkStoneStairs extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void registerModels(ModelRegistryEvent event) {
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:dark_stone_stairs", "inventory"));
+            new ModelResourceLocation("cavesnotcliffs:tuff_stairs", "inventory"));
     }
 
     private static class BlockCustom extends BlockStairs {
@@ -41,10 +43,10 @@ public class BlockDarkStoneStairs extends ElementsCavesNotCliffs.ModElement {
             super(new Block(Material.ROCK).getDefaultState());
             setUnlocalizedName("tuff_stairs");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
-            setSoundType(SoundType.STONE);
-            setHarvestLevel("pickaxe", 1);
+            setSoundType(DeepslateSoundEvents.TUFF);
+            setHarvestLevel("pickaxe", 0);
             setHardness(1.5f);
-            setResistance(6.0f);
+            setResistance(CncBlockProperties.legacyResistance(6.0F));
         }
     }
 }

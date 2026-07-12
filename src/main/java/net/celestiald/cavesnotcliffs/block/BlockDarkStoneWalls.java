@@ -19,6 +19,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.util.NonNullList;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
+import net.celestiald.cavesnotcliffs.content.DeepslateSoundEvents;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDarkStoneWalls extends ElementsCavesNotCliffs.ModElement {
@@ -37,7 +39,7 @@ public class BlockDarkStoneWalls extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void registerModels(ModelRegistryEvent event) {
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:dark_stone_walls", "inventory"));
+            new ModelResourceLocation("cavesnotcliffs:tuff_wall", "inventory"));
         ModelLoader.setCustomStateMapper(block,
             new StateMap.Builder().ignore(BlockWall.VARIANT).build());
     }
@@ -47,10 +49,10 @@ public class BlockDarkStoneWalls extends ElementsCavesNotCliffs.ModElement {
             super(new Block(Material.ROCK));
             setUnlocalizedName("tuff_wall");
             setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
-            setSoundType(SoundType.STONE);
-            setHarvestLevel("pickaxe", 1);
+            setSoundType(DeepslateSoundEvents.TUFF);
+            setHarvestLevel("pickaxe", 0);
             setHardness(1.5f);
-            setResistance(6.0f);
+            setResistance(CncBlockProperties.legacyResistance(6.0F));
         }
 
         @Override

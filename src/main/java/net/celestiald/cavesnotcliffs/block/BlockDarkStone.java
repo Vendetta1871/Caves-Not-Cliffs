@@ -14,6 +14,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
+import net.celestiald.cavesnotcliffs.content.DeepslateSoundEvents;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDarkStone extends ElementsCavesNotCliffs.ModElement {
@@ -32,7 +34,7 @@ public class BlockDarkStone extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void registerModels(ModelRegistryEvent event) {
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:dark_stone", "inventory"));
+            new ModelResourceLocation("cavesnotcliffs:tuff", "inventory"));
     }
 
     private static class BlockCustom extends Block {
@@ -40,9 +42,10 @@ public class BlockDarkStone extends ElementsCavesNotCliffs.ModElement {
             super(Material.ROCK);
             setUnlocalizedName("tuff");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
-            setSoundType(SoundType.STONE);
+            setSoundType(DeepslateSoundEvents.TUFF);
             setHardness(1.5f);
-            setResistance(6.0f);
+            setResistance(CncBlockProperties.legacyResistance(6.0F));
+            setHarvestLevel("pickaxe", 0);
         }
     }
 }

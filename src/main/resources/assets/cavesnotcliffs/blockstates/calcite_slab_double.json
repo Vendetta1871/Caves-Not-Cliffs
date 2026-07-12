@@ -1,5 +1,5 @@
 {
   "variants": {
-    "variant=default": { "model": "cavesnotcliffs:unknown_stone_slab_double" }
+    "variant=default": { "model": "cavesnotcliffs:calcite_slab_double" }
   }
 }

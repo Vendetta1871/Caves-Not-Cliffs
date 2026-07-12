@@ -1,6 +1,6 @@
 {
   "variants": {
-    "half=bottom,variant=default": { "model": "cavesnotcliffs:dark_stone_slab" },
-    "half=top,variant=default":    { "model": "cavesnotcliffs:dark_stone_slab_top" }
+    "half=bottom,variant=default": { "model": "cavesnotcliffs:tuff_slab" },
+    "half=top,variant=default":    { "model": "cavesnotcliffs:tuff_slab_top" }
   }
 }

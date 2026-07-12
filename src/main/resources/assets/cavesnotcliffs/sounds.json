@@ -1506,5 +1506,43 @@
         "stream": true
       }
     ]
+  },
+  "block.tuff.break": {
+    "sounds": ["cavesnotcliffs:block/tuff/break1", "cavesnotcliffs:block/tuff/break2", "cavesnotcliffs:block/tuff/break3", "cavesnotcliffs:block/tuff/break4"],
+    "subtitle": "subtitles.block.generic.break"
+  },
+  "block.tuff.fall": {
+    "sounds": ["cavesnotcliffs:block/tuff/step1", "cavesnotcliffs:block/tuff/step2", "cavesnotcliffs:block/tuff/step3", "cavesnotcliffs:block/tuff/step4", "cavesnotcliffs:block/tuff/step5", "cavesnotcliffs:block/tuff/step6"]
+  },
+  "block.tuff.hit": {
+    "sounds": ["cavesnotcliffs:block/tuff/step1", "cavesnotcliffs:block/tuff/step2", "cavesnotcliffs:block/tuff/step3", "cavesnotcliffs:block/tuff/step4", "cavesnotcliffs:block/tuff/step5", "cavesnotcliffs:block/tuff/step6"],
+    "subtitle": "subtitles.block.generic.hit"
+  },
+  "block.tuff.place": {
+    "sounds": ["cavesnotcliffs:block/tuff/break1", "cavesnotcliffs:block/tuff/break2", "cavesnotcliffs:block/tuff/break3", "cavesnotcliffs:block/tuff/break4"],
+    "subtitle": "subtitles.block.generic.place"
+  },
+  "block.tuff.step": {
+    "sounds": ["cavesnotcliffs:block/tuff/step1", "cavesnotcliffs:block/tuff/step2", "cavesnotcliffs:block/tuff/step3", "cavesnotcliffs:block/tuff/step4", "cavesnotcliffs:block/tuff/step5", "cavesnotcliffs:block/tuff/step6"],
+    "subtitle": "subtitles.block.generic.footsteps"
+  },
+  "block.calcite.break": {
+    "sounds": [{"name":"cavesnotcliffs:block/calcite/break1","volume":0.9}, {"name":"cavesnotcliffs:block/calcite/break2","volume":0.9}, {"name":"cavesnotcliffs:block/calcite/break3","volume":0.9}, {"name":"cavesnotcliffs:block/calcite/break4","volume":0.9}],
+    "subtitle": "subtitles.block.generic.break"
+  },
+  "block.calcite.fall": {
+    "sounds": ["cavesnotcliffs:block/calcite/step1", "cavesnotcliffs:block/calcite/step2", "cavesnotcliffs:block/calcite/step3", "cavesnotcliffs:block/calcite/step4", "cavesnotcliffs:block/calcite/step5", "cavesnotcliffs:block/calcite/step6"]
+  },
+  "block.calcite.hit": {
+    "sounds": ["cavesnotcliffs:block/calcite/step1", "cavesnotcliffs:block/calcite/step2", "cavesnotcliffs:block/calcite/step3", "cavesnotcliffs:block/calcite/step4", "cavesnotcliffs:block/calcite/step5", "cavesnotcliffs:block/calcite/step6"],
+    "subtitle": "subtitles.block.generic.hit"
+  },
+  "block.calcite.place": {
+    "sounds": [{"name":"cavesnotcliffs:block/calcite/place1","volume":0.94}, {"name":"cavesnotcliffs:block/calcite/place2","volume":0.94}, {"name":"cavesnotcliffs:block/calcite/place3","volume":0.94}, {"name":"cavesnotcliffs:block/calcite/place4","volume":0.94}],
+    "subtitle": "subtitles.block.generic.place"
+  },
+  "block.calcite.step": {
+    "sounds": ["cavesnotcliffs:block/calcite/step1", "cavesnotcliffs:block/calcite/step2", "cavesnotcliffs:block/calcite/step3", "cavesnotcliffs:block/calcite/step4", "cavesnotcliffs:block/calcite/step5", "cavesnotcliffs:block/calcite/step6"],
+    "subtitle": "subtitles.block.generic.footsteps"
   }
 }

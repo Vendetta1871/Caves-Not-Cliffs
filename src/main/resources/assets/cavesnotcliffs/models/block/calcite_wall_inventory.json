@@ -1,0 +1,1 @@
+{ "parent": "block/wall_inventory", "textures": { "wall": "cavesnotcliffs:blocks/calcite", "particle": "cavesnotcliffs:blocks/calcite" } }
