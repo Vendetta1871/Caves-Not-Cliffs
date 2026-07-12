@@ -268,3 +268,16 @@ remain the vanilla red and brown mushroom blocks.
 
 - Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
 - Version metadata: <https://piston-meta.mojang.com/mc/game/version_manifest_v2.json>
+
+The Otherside music-disc texture and Ogg Vorbis recording are the unmodified Java 1.18.2
+resources. Its item model changes only the namespace and Java 1.12.2 `items` texture-directory
+syntax. The sound event preserves Mojang's streamed `music_disc.otherside` definition; the item
+tooltip preserves the official `Lena Raine - otherside` credit. Mojang's sound definition has no
+separate accessibility-subtitle key for this streamed record.
+
+- Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Item texture SHA-1: `44983ebd8b59412f2fba26d5f752b0c78c27a197`
+- Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
+- Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
+- Otherside Ogg SHA-1: `a5effd79795773422bb4de85841838f3ad9c216d`
+- Asset base: <https://resources.download.minecraft.net/>

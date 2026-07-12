@@ -90,6 +90,11 @@ public final class CncRegistryIds {
     public static final ResourceLocation AXOLOTL = id("axolotl");
     public static final ResourceLocation AXOLOTL_BUCKET = id("axolotl_bucket");
     public static final ResourceLocation TROPICAL_FISH_BUCKET = id("tropical_fish_bucket");
+    public static final ResourceLocation MUSIC_DISC_OTHERSIDE = id("music_disc_otherside");
+    /** Hidden identities keep the two Java 1.18 dungeon chests independently single. */
+    public static final ResourceLocation DUNGEON_CHEST_FIRST = id("dungeon_chest_first");
+    public static final ResourceLocation DUNGEON_CHEST_SECOND = id("dungeon_chest_second");
+    public static final ResourceLocation DUNGEON_CHEST_TILE = id("dungeon_chest");
     public static final ResourceLocation BEE = id("bee");
     public static final ResourceLocation BEE_NEST = id("bee_nest");
     public static final ResourceLocation BEEHIVE = id("beehive");

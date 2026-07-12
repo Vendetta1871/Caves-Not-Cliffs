@@ -1498,5 +1498,13 @@
       "cavesnotcliffs:block/pumpkin/carve2"
     ],
     "subtitle": "subtitles.block.pumpkin.carve"
+  },
+  "music_disc.otherside": {
+    "sounds": [
+      {
+        "name": "cavesnotcliffs:records/otherside",
+        "stream": true
+      }
+    ]
   }
 }

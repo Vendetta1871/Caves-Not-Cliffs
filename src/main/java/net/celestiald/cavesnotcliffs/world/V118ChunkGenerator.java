@@ -51,6 +51,8 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
     private final V118OreWorldBridge ordinaryOres;
     private final V118LushCaveWorldBridge lushCaves;
     private final V118BeeTreeWorldBridge beeTrees;
+    private final V118FossilWorldBridge fossils;
+    private final V118MonsterRoomWorldBridge monsterRooms;
     private final V118MountainSurfaceWorldBridge mountainSurface;
     private ChunkPrimer cachedStructureColumn;
     private int cachedStructureX;
@@ -93,6 +95,8 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         ordinaryOres = new V118OreWorldBridge(world, this, oreBlocks);
         lushCaves = new V118LushCaveWorldBridge(world, this);
         beeTrees = new V118BeeTreeWorldBridge(world, this);
+        fossils = new V118FossilWorldBridge(world, this);
+        monsterRooms = new V118MonsterRoomWorldBridge(world);
         mountainSurface = new V118MountainSurfaceWorldBridge(world, this, blockStates);
         registerActiveGenerator(world, this);
     }
@@ -169,6 +173,10 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         dripstones.populateLarge(chunkX, chunkZ, decorationBiomes);
         // LOCAL_MODIFICATIONS index 4 follows geodes at 2 and large dripstone at 3.
         mountainSurface.populateForestRock(chunkX, chunkZ, decorationBiomes);
+        // UNDERGROUND_STRUCTURES step 3 indices 0 and 1 are the upper/lower fossils.
+        fossils.populate(chunkX, chunkZ);
+        // Monster rooms follow at indices 2 and 3.
+        monsterRooms.populate(chunkX, chunkZ);
         // SURFACE_STRUCTURES step 4 begins with ice_spike index 0 and ice_patch index 1.
         mountainSurface.populateIceSurface(chunkX, chunkZ, decorationBiomes);
         // Desert wells are the next represented surface structure at global index 2.

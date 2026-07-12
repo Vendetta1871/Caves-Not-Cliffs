@@ -44,6 +44,7 @@ import net.minecraft.item.Item;
 import net.minecraft.block.Block;
 import net.celestiald.cavesnotcliffs.command.CommandCaveBiome;
 import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
+import net.celestiald.cavesnotcliffs.content.DungeonChestContent;
 import net.celestiald.cavesnotcliffs.handler.LavaCauldronHandler;
 import net.celestiald.cavesnotcliffs.migration.ImportedHeightMapRebuildHandler;
 import net.celestiald.cavesnotcliffs.stonecutter.CncGuiHandler;
@@ -77,6 +78,7 @@ public class CavesNotCliffs {
 					world, x, y, z, base);
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
+		DungeonChestContent.registerTileEntity();
 		// Creating the hidden alias registers it before level.dat or server.properties is parsed.
 		if (WORLD_TYPE == null) {
 			WORLD_TYPE = new CavesNotCliffsWorldType();

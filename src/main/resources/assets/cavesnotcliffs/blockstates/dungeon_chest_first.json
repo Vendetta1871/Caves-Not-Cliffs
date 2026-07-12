@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "facing=north,type=single": { "model": "builtin/entity" },
+    "facing=south,type=single": { "model": "builtin/entity" },
+    "facing=west,type=single": { "model": "builtin/entity" },
+    "facing=east,type=single": { "model": "builtin/entity" },
+    "facing=north,type=left": { "model": "builtin/entity" },
+    "facing=south,type=left": { "model": "builtin/entity" },
+    "facing=west,type=left": { "model": "builtin/entity" },
+    "facing=east,type=left": { "model": "builtin/entity" },
+    "facing=north,type=right": { "model": "builtin/entity" },
+    "facing=south,type=right": { "model": "builtin/entity" },
+    "facing=west,type=right": { "model": "builtin/entity" },
+    "facing=east,type=right": { "model": "builtin/entity" }
+  }
+}
