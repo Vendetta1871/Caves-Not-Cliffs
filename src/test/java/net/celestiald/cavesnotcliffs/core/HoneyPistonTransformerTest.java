@@ -78,7 +78,9 @@ public class HoneyPistonTransformerTest {
                 plugin.getASMTransformerClass()[3]);
         assertEquals(PlainPumpkinStemTransformer.class.getName(),
                 plugin.getASMTransformerClass()[4]);
-        assertEquals(5, plugin.getASMTransformerClass().length);
+        assertEquals(PlainPumpkinConnectionTransformer.class.getName(),
+                plugin.getASMTransformerClass()[5]);
+        assertEquals(6, plugin.getASMTransformerClass().length);
         IFMLLoadingPlugin.SortingIndex sorting =
                 CavesNotCliffsCorePlugin.class.getAnnotation(
                         IFMLLoadingPlugin.SortingIndex.class);

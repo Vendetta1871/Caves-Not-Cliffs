@@ -16,7 +16,8 @@ public final class CavesNotCliffsCorePlugin implements IFMLLoadingPlugin {
                 SchemaOnePopulationTransformer.class.getName(),
                 CubicImportSessionLockTransformer.class.getName(),
                 BeeSaplingDecorationTransformer.class.getName(),
-                PlainPumpkinStemTransformer.class.getName()
+                PlainPumpkinStemTransformer.class.getName(),
+                PlainPumpkinConnectionTransformer.class.getName()
         };
     }
 
