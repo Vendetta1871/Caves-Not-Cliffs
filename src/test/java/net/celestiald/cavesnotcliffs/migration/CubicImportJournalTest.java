@@ -4,6 +4,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,6 +17,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeNoException;
 
 public class CubicImportJournalTest {
     @Rule
@@ -63,6 +65,36 @@ public class CubicImportJournalTest {
         assertTrue(complete.isDimensionCommitted("."));
         assertTrue(complete.isDimensionCommitted("DIM-1"));
         assertFalse(Files.exists(world.resolve(CubicImportJournal.TEMP_FILE_NAME)));
+    }
+
+    @Test
+    public void neverWritesThroughTheLegacyFixedTemporaryPath() throws Exception {
+        Path world = temporary.newFolder("temporary-symlink").toPath();
+        Path source = world.resolve("region2d/0.0.2dr");
+        Files.createDirectories(source.getParent());
+        Files.write(source, "source".getBytes(StandardCharsets.UTF_8));
+        CubicImportJournal journal = CubicImportJournal.create(2,
+                CubicImportJournal.captureSources(
+                        world, Collections.singletonList(world)),
+                Collections.singletonList("."));
+        Path outside = temporary.newFile("journal-symlink-target").toPath();
+        byte[] sentinel = "must-not-change".getBytes(StandardCharsets.UTF_8);
+        Files.write(outside, sentinel, StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE);
+        Path legacyTemporary = world.resolve(CubicImportJournal.TEMP_FILE_NAME);
+        try {
+            Files.createSymbolicLink(legacyTemporary, outside);
+        } catch (IOException | UnsupportedOperationException | SecurityException unsupported) {
+            assumeNoException(unsupported);
+        }
+
+        Path journalPath = world.resolve(CubicImportJournal.FILE_NAME);
+        journal.writeAtomic(journalPath);
+
+        assertTrue(Arrays.equals(sentinel, Files.readAllBytes(outside)));
+        assertTrue(Files.isSymbolicLink(legacyTemporary));
+        assertEquals(CubicImportJournal.State.DISCOVERED,
+                CubicImportJournal.read(journalPath).getState());
     }
 
     @Test

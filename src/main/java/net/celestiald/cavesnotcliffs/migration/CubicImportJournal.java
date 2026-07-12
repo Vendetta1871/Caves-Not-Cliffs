@@ -5,12 +5,14 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -24,6 +26,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -144,11 +147,19 @@ final class CubicImportJournal {
     }
 
     static CubicImportJournal read(Path path) throws IOException {
+        CubicImportJournal journal = readDecoded(path);
+        journal.validateComplete();
+        return journal;
+    }
+
+    static CubicImportJournal readDecoded(Path path) throws IOException {
         NBTTagCompound root = BoundedNbtReader.readCompressed(
                 path, "cubic import journal");
-        CubicImportJournal journal = new CubicImportJournal(root);
-        journal.validate();
-        return journal;
+        return new CubicImportJournal(root);
+    }
+
+    void validateComplete() throws IOException {
+        validate();
     }
 
     State getState() throws IOException {
@@ -212,27 +223,91 @@ final class CubicImportJournal {
         return recordsFromNbt(dimension(path).getTagList("outputs", 10));
     }
 
+    void validateTemporarySuccessorOf(CubicImportJournal durable) throws IOException {
+        State previous = durable.getState();
+        State candidate = getState();
+        if (candidate.ordinal() < previous.ordinal()
+                || candidate.ordinal() > previous.ordinal() + 1) {
+            throw new IOException("Temporary cubic import journal state " + candidate
+                    + " is not a monotonic successor of durable state " + previous);
+        }
+        if (root.getLong("createdAt") != durable.root.getLong("createdAt")
+                || getTerrainSchema() != durable.getTerrainSchema()
+                || !getSources().equals(durable.getSources())
+                || !getDimensions().equals(durable.getDimensions())) {
+            throw new IOException("Temporary cubic import journal does not describe the "
+                    + "same import");
+        }
+        for (String name : getDimensions()) {
+            NBTTagCompound before = durable.dimension(name);
+            NBTTagCompound after = dimension(name);
+            boolean manifestChanged = before.getLong("columns") != after.getLong("columns")
+                    || before.getLong("cubes") != after.getLong("cubes")
+                    || !recordsFromNbt(before.getTagList("outputs", 10)).equals(
+                    recordsFromNbt(after.getTagList("outputs", 10)));
+            if (manifestChanged && (previous != State.DISCOVERED
+                    || candidate != State.DISCOVERED
+                    || before.getLong("columns") != 0L
+                    || before.getLong("cubes") != 0L
+                    || before.getTagList("outputs", 10).tagCount() != 0)) {
+                throw new IOException("Temporary cubic import journal changes an already "
+                        + "recorded output manifest for " + name);
+            }
+            boolean wasCommitted = before.getBoolean("committed");
+            boolean isCommitted = after.getBoolean("committed");
+            if (wasCommitted && !isCommitted) {
+                throw new IOException("Temporary cubic import journal clears the committed bit for "
+                        + name);
+            }
+            if (!wasCommitted && isCommitted && previous != State.COMMITTING) {
+                throw new IOException("Temporary cubic import journal commits " + name
+                        + " outside the COMMITTING state");
+            }
+        }
+    }
+
     void writeAtomic(Path path) throws IOException {
         Path parent = path.toAbsolutePath().getParent();
         if (parent == null) {
             throw new IOException("Cubic import journal has no parent directory: " + path);
         }
         Files.createDirectories(parent);
-        Path temporary = parent.resolve(TEMP_FILE_NAME);
-        try (OutputStream output = new BufferedOutputStream(Files.newOutputStream(temporary,
-                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
-                StandardOpenOption.WRITE))) {
-            CompressedStreamTools.writeCompressed(root, output);
-        }
-        forceFile(temporary);
+        TemporaryFile temporary = createTemporary(parent);
         try {
-            Files.move(temporary, path, StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.REPLACE_EXISTING);
-        } catch (AtomicMoveNotSupportedException exception) {
-            throw new IOException("The save filesystem cannot atomically update the cubic import journal",
-                    exception);
+            try (FileChannel channel = temporary.channel) {
+                // CompressedStreamTools closes its OutputStream. Keep the exclusive, no-follow
+                // channel open so the exact inode that was written is also the one forced.
+                OutputStream output = new NonClosingOutputStream(
+                        Channels.newOutputStream(channel));
+                CompressedStreamTools.writeCompressed(root, output);
+                channel.force(true);
+            }
+            try {
+                Files.move(temporary.path, path, StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException exception) {
+                throw new IOException("The save filesystem cannot atomically update the cubic import journal",
+                        exception);
+            }
+            forceDirectoryBestEffort(parent);
+        } finally {
+            Files.deleteIfExists(temporary.path);
         }
-        forceDirectoryBestEffort(parent);
+    }
+
+    private static TemporaryFile createTemporary(Path parent) throws IOException {
+        for (int attempt = 0; attempt < 16; attempt++) {
+            Path path = parent.resolve(TEMP_FILE_NAME + "." + UUID.randomUUID().toString());
+            try {
+                FileChannel channel = FileChannel.open(path, StandardOpenOption.CREATE_NEW,
+                        StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS);
+                return new TemporaryFile(path, channel);
+            } catch (FileAlreadyExistsException ignored) {
+                // UUID collisions are not expected, but CREATE_NEW makes even one harmless.
+            }
+        }
+        throw new IOException("Could not reserve a unique cubic import journal temporary file in "
+                + parent);
     }
 
     private void validate() throws IOException {
@@ -242,6 +317,7 @@ final class CubicImportJournal {
         }
         getState();
         if (!root.hasKey("state", 8) || !root.hasKey("terrainSchema", 99)
+                || !root.hasKey("createdAt", 99)
                 || !root.hasKey("sources", 9) || !root.hasKey("dimensions", 9)) {
             throw new IOException("Cubic import journal is missing required metadata");
         }
@@ -460,6 +536,27 @@ final class CubicImportJournal {
         } catch (IOException | UnsupportedOperationException ignored) {
             // Windows does not allow opening a directory as a FileChannel. The file itself was
             // forced before the atomic rename; directory fsync is an additional POSIX safeguard.
+        }
+    }
+
+    private static final class TemporaryFile {
+        private final Path path;
+        private final FileChannel channel;
+
+        private TemporaryFile(Path path, FileChannel channel) {
+            this.path = path;
+            this.channel = channel;
+        }
+    }
+
+    private static final class NonClosingOutputStream extends FilterOutputStream {
+        private NonClosingOutputStream(OutputStream output) {
+            super(output);
+        }
+
+        @Override
+        public void close() throws IOException {
+            flush();
         }
     }
 }
