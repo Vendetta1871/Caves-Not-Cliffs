@@ -100,7 +100,7 @@ public final class OthersideComparatorTransformer implements IClassTransformer {
                 returns++;
             }
         }
-        if (itemIdCalls != 2 || subtracts != 1 || adds != 1 || returns != 1) {
+        if (itemIdCalls != 2 || subtracts != 1 || adds != 1 || returns != 2) {
             throw failure("an unexpected vanilla record-ID comparator body");
         }
     }
