@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.migration;
 
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldData;
+import net.celestiald.cavesnotcliffs.world.LegacySchemaTwoFluidHandler;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagDouble;
 import net.minecraft.nbt.NBTTagList;
@@ -67,6 +68,39 @@ public class CubicColumnConverterTest {
                 .getInteger("contentVersion"));
         assertEquals(1, converted.getInteger("CavesNotCliffsCauldronBridge"));
         assertEquals(1, converted.getInteger(CubicColumnConverter.REBUILD_HEIGHT_MAP));
+        assertFalse(converted.hasKey(CubicColumnConverter.SCHEMA_TWO_FLUIDS));
+    }
+
+    @Test
+    public void preservesMissingSchemaTwoFluidBandsWithoutReplayingColumnFeatures()
+            throws Exception {
+        Map<Integer, NBTTagCompound> cubes = completeCubes(-4, 20, true);
+        cube(cubes, 1).getCompoundTag("Level").setBoolean("populated", false);
+
+        NBTTagCompound converted = convertOverworld(
+                column(), cubes, CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L);
+
+        assertTrue(converted.getCompoundTag("Level").getBoolean("TerrainPopulated"));
+        NBTTagCompound marker = converted.getCompoundTag(
+                CubicColumnConverter.SCHEMA_TWO_FLUIDS);
+        assertEquals(CubicColumnConverter.SCHEMA_TWO_FLUID_VERSION,
+                marker.getInteger("version"));
+        assertEquals(LegacySchemaTwoFluidHandler.COMPLETE_MASK
+                        & ~LegacySchemaTwoFluidHandler.bit(1),
+                marker.getInteger("mask"));
+    }
+
+    @Test
+    public void leavesFullSchemaTwoPopulationPendingWhenCubeZeroWasNotPopulated()
+            throws Exception {
+        Map<Integer, NBTTagCompound> cubes = completeCubes(-4, 20, true);
+        cube(cubes, 0).getCompoundTag("Level").setBoolean("populated", false);
+
+        NBTTagCompound converted = convertOverworld(
+                column(), cubes, CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L);
+
+        assertFalse(converted.getCompoundTag("Level").getBoolean("TerrainPopulated"));
+        assertFalse(converted.hasKey(CubicColumnConverter.SCHEMA_TWO_FLUIDS));
     }
 
     @Test

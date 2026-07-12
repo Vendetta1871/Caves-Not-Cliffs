@@ -2,6 +2,7 @@ package net.celestiald.cavesnotcliffs.migration;
 
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldData;
 import net.celestiald.cavesnotcliffs.world.LegacySchemaOnePopulationHandler;
+import net.celestiald.cavesnotcliffs.world.LegacySchemaTwoFluidHandler;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 
@@ -28,6 +29,8 @@ public final class CubicColumnConverter {
     static final String REBUILD_HEIGHT_MAP = "CavesNotCliffsRebuildHeightMap";
     static final String SCHEMA_ONE_POPULATION = LegacySchemaOnePopulationHandler.NBT_KEY;
     static final int SCHEMA_ONE_POPULATION_VERSION = LegacySchemaOnePopulationHandler.VERSION;
+    static final String SCHEMA_TWO_FLUIDS = LegacySchemaTwoFluidHandler.NBT_KEY;
+    static final int SCHEMA_TWO_FLUID_VERSION = LegacySchemaTwoFluidHandler.VERSION;
 
     private static final Set<String> KNOWN_CUBE_ROOT_KEYS = new HashSet<String>(Arrays.asList(
             "DataVersion", "ForgeDataVersion", "Level", CONTENT_ROOT, CAULDRON_BRIDGE));
@@ -180,9 +183,11 @@ public final class CubicColumnConverter {
         target.setIntArray("HeightMap", heightMap);
         int schemaOnePopulation = schemaOnePopulationMask(
                 cubes, terrainSchema, cavesNotCliffsOverworld);
+        int schemaTwoPopulation = schemaTwoPopulationMask(
+                cubes, terrainSchema, cavesNotCliffsOverworld);
         target.setBoolean("TerrainPopulated", populationState(
                 cubes, terrainSchema, chunkX, chunkZ, cavesNotCliffsOverworld,
-                schemaOnePopulation));
+                schemaOnePopulation, schemaTwoPopulation));
         // CubicChunks lighting-engine metadata has no Anvil peer. The section nibble arrays are
         // preserved, but vanilla must perform its normal finite-column light validation.
         target.setBoolean("LightPopulated", false);
@@ -200,6 +205,10 @@ public final class CubicColumnConverter {
         if (schemaOnePopulation >= 0) {
             LegacySchemaOnePopulationHandler.writeInitialMarker(
                     result, schemaOnePopulation);
+        }
+        if (schemaTwoPopulation >= 0
+                && (schemaTwoPopulation & LegacySchemaTwoFluidHandler.bit(0)) != 0) {
+            LegacySchemaTwoFluidHandler.writeInitialMarker(result, schemaTwoPopulation);
         }
 
         if (cavesNotCliffsOverworld || sawContentMarker) {
@@ -403,7 +412,7 @@ public final class CubicColumnConverter {
 
     private static boolean populationState(Map<Integer, NBTTagCompound> cubes,
             int terrainSchema, int chunkX, int chunkZ, boolean cavesNotCliffsOverworld,
-            int schemaOnePopulation)
+            int schemaOnePopulation, int schemaTwoPopulation)
             throws CubicColumnConversionException {
         if (!cavesNotCliffsOverworld) {
             boolean first = cubes.get(0).getCompoundTag("Level").getBoolean("populated");
@@ -416,7 +425,10 @@ public final class CubicColumnConverter {
             return first;
         }
         if (terrainSchema == CavesNotCliffsWorldData.CURRENT_SCHEMA) {
-            return cubes.get(0).getCompoundTag("Level").getBoolean("populated");
+            if (schemaTwoPopulation < 0) {
+                throw fail(chunkX, chunkZ, "has no preserved schema-2 population mask");
+            }
+            return (schemaTwoPopulation & LegacySchemaTwoFluidHandler.bit(0)) != 0;
         }
         if (schemaOnePopulation < 0) {
             throw fail(chunkX, chunkZ, "has no preserved schema-1 population mask");
@@ -437,6 +449,21 @@ public final class CubicColumnConverter {
         for (int cubeY = MIN_SECTION_Y; cubeY < 4; cubeY++) {
             if (cubes.get(cubeY).getCompoundTag("Level").getBoolean("populated")) {
                 mask |= populationBit(cubeY);
+            }
+        }
+        return mask;
+    }
+
+    private static int schemaTwoPopulationMask(Map<Integer, NBTTagCompound> cubes,
+            int terrainSchema, boolean cavesNotCliffsOverworld) {
+        if (!cavesNotCliffsOverworld
+                || terrainSchema != CavesNotCliffsWorldData.CURRENT_SCHEMA) {
+            return -1;
+        }
+        int mask = 0;
+        for (int cubeY = MIN_SECTION_Y; cubeY < MAX_SECTION_Y_EXCLUSIVE; cubeY++) {
+            if (cubes.get(cubeY).getCompoundTag("Level").getBoolean("populated")) {
+                mask |= LegacySchemaTwoFluidHandler.bit(cubeY);
             }
         }
         return mask;

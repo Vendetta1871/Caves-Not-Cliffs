@@ -163,20 +163,31 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
 
         for (int sectionY = TerrainColumn.MIN_CUBE_Y;
                 sectionY <= TerrainColumn.MAX_CUBE_Y; ++sectionY) {
-            final int populatedSectionY = sectionY;
-            slicer.forEachScheduledFluid(column, sectionY,
-                    (localX, localY, localZ, material) -> {
-                IBlockState state = blockStates.stateFor(material);
-                Block block = state.getBlock();
-                BlockPos position = new BlockPos(
-                    chunkX * CUBE_SIZE + localX,
-                    populatedSectionY * CUBE_SIZE + localY,
-                    chunkZ * CUBE_SIZE + localZ);
-                if (world.getBlockState(position).getBlock() == block) {
-                    world.scheduleUpdate(position, block, block.tickRate(world));
-                }
-            });
+            scheduleFluidTicks(column, chunkX, sectionY, chunkZ);
         }
+    }
+
+    void replayImportedFluidTicks(int chunkX, int chunkZ, int populatedMask) {
+        TerrainColumn column = columns.column(chunkX, chunkZ);
+        for (int sectionY : LegacySchemaTwoFluidHandler.missingBands(populatedMask)) {
+            scheduleFluidTicks(column, chunkX, sectionY, chunkZ);
+        }
+    }
+
+    private void scheduleFluidTicks(TerrainColumn column, int chunkX,
+            int sectionY, int chunkZ) {
+        slicer.forEachScheduledFluid(column, sectionY,
+                (localX, localY, localZ, material) -> {
+            IBlockState state = blockStates.stateFor(material);
+            Block block = state.getBlock();
+            BlockPos position = new BlockPos(
+                chunkX * CUBE_SIZE + localX,
+                sectionY * CUBE_SIZE + localY,
+                chunkZ * CUBE_SIZE + localZ);
+            if (world.getBlockState(position).getBlock() == block) {
+                world.scheduleUpdate(position, block, block.tickRate(world));
+            }
+        });
     }
 
     @Override

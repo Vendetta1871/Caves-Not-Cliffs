@@ -51,6 +51,7 @@ import net.celestiald.cavesnotcliffs.stonecutter.CncGuiHandler;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldTypes;
 import net.celestiald.cavesnotcliffs.world.LegacySchemaOnePopulationHandler;
+import net.celestiald.cavesnotcliffs.world.LegacySchemaTwoFluidHandler;
 import net.celestiald.cavesnotcliffs.world.WorldHeightBootstrap;
 import net.celestiald.cavesnotcliffs.world.VirtualBiomeResolverRegistry;
 import net.celestiald.cavesnotcliffs.network.TerrainContractNetwork;
@@ -87,6 +88,7 @@ public class CavesNotCliffs {
 		MinecraftForge.EVENT_BUS.register(LavaCauldronHandler.INSTANCE);
 		MinecraftForge.EVENT_BUS.register(ImportedHeightMapRebuildHandler.INSTANCE);
 		MinecraftForge.EVENT_BUS.register(LegacySchemaOnePopulationHandler.INSTANCE);
+		MinecraftForge.EVENT_BUS.register(LegacySchemaTwoFluidHandler.INSTANCE);
 		MinecraftForge.EVENT_BUS.register(this);
 		GameRegistry.registerWorldGenerator(elements, 5);
 		GameRegistry.registerFuelHandler(elements);
