@@ -30,7 +30,7 @@ public final class ItemAxolotlBucket extends Item {
     public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player,
             EnumHand hand) {
         ItemStack held = player.getHeldItem(hand);
-        RayTraceResult hit = rayTrace(world, player, true);
+        RayTraceResult hit = rayTrace(world, player, false);
         if (hit == null || hit.typeOfHit != RayTraceResult.Type.BLOCK) {
             return new ActionResult<ItemStack>(EnumActionResult.PASS, held);
         }
