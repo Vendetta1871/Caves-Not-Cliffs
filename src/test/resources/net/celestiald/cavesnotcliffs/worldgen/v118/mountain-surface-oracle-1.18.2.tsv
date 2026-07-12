@@ -13,9 +13,12 @@ biome	jagged_peaks	spring_lava_frozen,freeze_top_layer
 biome	stony_peaks	freeze_top_layer
 # Representative non-mountain origins; the official runtime reports freeze_top_layer
 # for all 50 Overworld biome peers represented by V118Biome.
-biome	plains	freeze_top_layer
-biome	snowy_taiga	freeze_top_layer
+biome	plains	patch_sugar_cane,patch_pumpkin,freeze_top_layer
+biome	snowy_taiga	patch_sugar_cane,patch_pumpkin,freeze_top_layer
 biome	lush_caves	freeze_top_layer
+# Exact BuiltinRegistries membership across all 50 represented Overworld biomes.
+membership	patch_sugar_cane	bamboo_jungle,beach,birch_forest,cold_ocean,dark_forest,deep_cold_ocean,deep_frozen_ocean,deep_lukewarm_ocean,deep_ocean,dripstone_caves,flower_forest,forest,frozen_ocean,frozen_river,grove,ice_spikes,jungle,lukewarm_ocean,mushroom_fields,ocean,old_growth_birch_forest,old_growth_pine_taiga,old_growth_spruce_taiga,plains,river,savanna,savanna_plateau,snowy_beach,snowy_plains,snowy_slopes,snowy_taiga,sparse_jungle,stony_shore,sunflower_plains,taiga,warm_ocean,windswept_forest,windswept_gravelly_hills,windswept_hills,windswept_savanna
+membership	patch_pumpkin	badlands,bamboo_jungle,beach,birch_forest,cold_ocean,dark_forest,deep_cold_ocean,deep_frozen_ocean,deep_lukewarm_ocean,deep_ocean,desert,dripstone_caves,eroded_badlands,flower_forest,forest,frozen_ocean,frozen_river,grove,ice_spikes,jungle,lukewarm_ocean,mushroom_fields,ocean,old_growth_birch_forest,old_growth_pine_taiga,old_growth_spruce_taiga,plains,river,savanna,savanna_plateau,snowy_beach,snowy_plains,snowy_slopes,snowy_taiga,sparse_jungle,stony_shore,sunflower_plains,swamp,taiga,warm_ocean,windswept_forest,windswept_gravelly_hills,windswept_hills,windswept_savanna,wooded_badlands
 # Xoroshiro WorldgenRandom; seed=123456789 chunk=(-3,5)
 spring	0	-34	119	80
 spring	1	-47	-3	88

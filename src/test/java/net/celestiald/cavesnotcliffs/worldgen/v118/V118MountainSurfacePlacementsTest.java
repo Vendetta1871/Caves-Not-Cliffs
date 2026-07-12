@@ -21,6 +21,7 @@ import java.util.Random;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class V118MountainSurfacePlacementsTest {
@@ -47,6 +48,7 @@ public class V118MountainSurfacePlacementsTest {
         List<BlockPos> candidates = V118MountainSurfacePlacements.frozenSpringCandidates(
             RecordingWorld.flat(Surface.AIR, V118Biome.FROZEN_PEAKS),
             123456789L, -3, 5);
+        Set<String> membershipIds = new java.util.HashSet<String>();
         String line;
         while ((line = reader.readLine()) != null) {
             if (line.isEmpty() || line.charAt(0) == '#') {
@@ -74,9 +76,15 @@ public class V118MountainSurfacePlacementsTest {
                 assertTreeOracle(fields);
             } else if ("biome".equals(fields[0])) {
                 assertBiomeCatalog(fields);
+            } else if ("membership".equals(fields[0])) {
+                assertVegetationMembership(fields);
+                assertTrue("Duplicate membership oracle: " + fields[1],
+                    membershipIds.add(fields[1]));
             }
         }
         reader.close();
+        assertEquals(new java.util.HashSet<String>(java.util.Arrays.asList(
+            "patch_sugar_cane", "patch_pumpkin")), membershipIds);
     }
 
     @Test
@@ -249,6 +257,88 @@ public class V118MountainSurfacePlacementsTest {
     }
 
     @Test
+    public void ordinaryCaneAndPumpkinUseTheirExactBiomeMemberships() {
+        int caneBiomes = 0;
+        int pumpkinBiomes = 0;
+        for (V118Biome biome : V118Biome.values()) {
+            if (V118MountainSurfacePlacements.supportsOrdinarySugarCane(biome)) {
+                caneBiomes++;
+            }
+            if (V118MountainSurfacePlacements.supportsPumpkin(biome)) {
+                pumpkinBiomes++;
+            }
+        }
+        assertEquals(50, V118Biome.values().length);
+        assertEquals(40, caneBiomes);
+        assertEquals(45, pumpkinBiomes);
+
+        assertFalse(V118MountainSurfacePlacements.supportsOrdinarySugarCane(
+            V118Biome.DESERT));
+        assertTrue(V118MountainSurfacePlacements.supportsPumpkin(V118Biome.DESERT));
+        assertFalse(V118MountainSurfacePlacements.supportsOrdinarySugarCane(
+            V118Biome.FROZEN_PEAKS));
+        assertFalse(V118MountainSurfacePlacements.supportsPumpkin(V118Biome.FROZEN_PEAKS));
+        assertFalse(V118MountainSurfacePlacements.supportsOrdinarySugarCane(
+            V118Biome.LUSH_CAVES));
+        assertFalse(V118MountainSurfacePlacements.supportsPumpkin(V118Biome.LUSH_CAVES));
+        assertTrue(V118MountainSurfacePlacements.supportsOrdinarySugarCane(
+            V118Biome.SNOWY_SLOPES));
+        assertTrue(V118MountainSurfacePlacements.supportsPumpkin(V118Biome.SNOWY_SLOPES));
+    }
+
+    @Test
+    public void mixedFeatureRegionsInvokeEachSharedPlacementOnlyOnce() {
+        RecordingWorld singleCane = RecordingWorld.flat(
+            Surface.WET_GRASS, V118Biome.PLAINS);
+        RecordingWorld mixedCane = RecordingWorld.flat(
+            Surface.WET_GRASS, V118Biome.PLAINS);
+        DecorationResult singleCaneResult = V118MountainSurfacePlacements.decorateVegetation(
+            singleCane, 11L, 0, 0, EnumSet.of(V118Biome.PLAINS));
+        DecorationResult mixedCaneResult = V118MountainSurfacePlacements.decorateVegetation(
+            mixedCane, 11L, 0, 0, EnumSet.of(
+                V118Biome.PLAINS, V118Biome.GROVE, V118Biome.SNOWY_SLOPES,
+                V118Biome.DRIPSTONE_CAVES));
+        assertTrue(singleCaneResult.sugarCanePlaced() > 0);
+        assertEquals(singleCaneResult.sugarCanePlaced(),
+            mixedCaneResult.sugarCanePlaced());
+        assertEquals(singleCane.writes, mixedCane.writes);
+
+        RecordingWorld singlePumpkin = RecordingWorld.flat(
+            Surface.GRASS, V118Biome.DESERT);
+        RecordingWorld mixedPumpkin = RecordingWorld.flat(
+            Surface.GRASS, V118Biome.DESERT);
+        DecorationResult singlePumpkinResult = V118MountainSurfacePlacements.decorateVegetation(
+            singlePumpkin, 466L, 0, 0, EnumSet.of(V118Biome.DESERT));
+        DecorationResult mixedPumpkinResult = V118MountainSurfacePlacements.decorateVegetation(
+            mixedPumpkin, 466L, 0, 0, EnumSet.of(
+                V118Biome.BADLANDS, V118Biome.DESERT, V118Biome.ERODED_BADLANDS,
+                V118Biome.SWAMP, V118Biome.WOODED_BADLANDS));
+        assertTrue(singlePumpkinResult.pumpkinsPlaced() > 0);
+        assertEquals(singlePumpkinResult.pumpkinsPlaced(),
+            mixedPumpkinResult.pumpkinsPlaced());
+        assertEquals(singlePumpkin.writes, mixedPumpkin.writes);
+    }
+
+    @Test
+    public void candidateBiomeFilterRejectsUnsupportedBiomesInMixedRegions() {
+        RecordingWorld caneWorld = RecordingWorld.flat(
+            Surface.WET_GRASS, V118Biome.LUSH_CAVES);
+        DecorationResult cane = V118MountainSurfacePlacements.decorateVegetation(
+            caneWorld, 11L, 0, 0, EnumSet.of(
+                V118Biome.LUSH_CAVES, V118Biome.PLAINS));
+        assertEquals(0, cane.sugarCanePlaced());
+        assertFalse(caneWorld.biomeQueries.isEmpty());
+
+        RecordingWorld pumpkinWorld = RecordingWorld.flat(
+            Surface.GRASS, V118Biome.LUSH_CAVES);
+        DecorationResult pumpkin = V118MountainSurfacePlacements.decorateVegetation(
+            pumpkinWorld, 466L, 0, 0, EnumSet.of(
+                V118Biome.LUSH_CAVES, V118Biome.DESERT));
+        assertEquals(0, pumpkin.pumpkinsPlaced());
+        assertFalse(pumpkinWorld.biomeQueries.isEmpty());
+    }
+
+    @Test
     public void adjacentCanonicalPassesRetainCrossBorderTreeWrites() {
         RecordingWorld world = RecordingWorld.flat(Surface.SNOW_BLOCK, V118Biome.GROVE);
         decorateAll(world, 918273645L, 0, 0);
@@ -311,12 +401,29 @@ public class V118MountainSurfacePlacementsTest {
             V118MountainSurfacePlacements.supportsFrozenSpring(biome));
         assertEquals(features.contains("trees_grove"),
             V118MountainSurfacePlacements.supportsGroveTrees(biome));
-        boolean extra = features.contains("patch_sugar_cane")
-            && features.contains("patch_pumpkin");
-        assertEquals(extra,
-            V118MountainSurfacePlacements.supportsDefaultExtraVegetation(biome));
+        assertEquals(features.contains("patch_sugar_cane"),
+            V118MountainSurfacePlacements.supportsOrdinarySugarCane(biome));
+        assertEquals(features.contains("patch_pumpkin"),
+            V118MountainSurfacePlacements.supportsPumpkin(biome));
         assertEquals(features.contains("freeze_top_layer"),
             V118MountainSurfacePlacements.supportsFreezeTopLayer(biome));
+    }
+
+    private static void assertVegetationMembership(String[] fields) {
+        Set<V118Biome> expected = EnumSet.noneOf(V118Biome.class);
+        for (String id : fields[2].split(",")) {
+            expected.add(V118Biome.valueOf(id.toUpperCase(java.util.Locale.ROOT)));
+        }
+        boolean cane = "patch_sugar_cane".equals(fields[1]);
+        assertTrue("Unknown vegetation membership: " + fields[1],
+            cane || "patch_pumpkin".equals(fields[1]));
+        assertEquals(cane ? 40 : 45, expected.size());
+        for (V118Biome biome : V118Biome.values()) {
+            boolean actual = cane
+                ? V118MountainSurfacePlacements.supportsOrdinarySugarCane(biome)
+                : V118MountainSurfacePlacements.supportsPumpkin(biome);
+            assertEquals(biome.id(), expected.contains(biome), actual);
+        }
     }
 
     private static void decorateAll(RecordingWorld world, long seed, int chunkX, int chunkZ) {

@@ -36,8 +36,14 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> FROZEN_SPRING_BIOMES = immutableSet(
         V118Biome.GROVE, V118Biome.SNOWY_SLOPES,
         V118Biome.FROZEN_PEAKS, V118Biome.JAGGED_PEAKS);
-    private static final Set<V118Biome> DEFAULT_EXTRA_VEGETATION_BIOMES = immutableSet(
-        V118Biome.GROVE, V118Biome.SNOWY_SLOPES);
+    private static final Set<V118Biome> ORDINARY_SUGAR_CANE_BIOMES = allBiomesExcept(
+        V118Biome.BADLANDS, V118Biome.DESERT, V118Biome.ERODED_BADLANDS,
+        V118Biome.FROZEN_PEAKS, V118Biome.JAGGED_PEAKS, V118Biome.LUSH_CAVES,
+        V118Biome.MEADOW, V118Biome.STONY_PEAKS, V118Biome.SWAMP,
+        V118Biome.WOODED_BADLANDS);
+    private static final Set<V118Biome> PUMPKIN_BIOMES = allBiomesExcept(
+        V118Biome.FROZEN_PEAKS, V118Biome.JAGGED_PEAKS, V118Biome.LUSH_CAVES,
+        V118Biome.MEADOW, V118Biome.STONY_PEAKS);
 
     private V118MountainSurfacePlacements() {
     }
@@ -68,8 +74,10 @@ public final class V118MountainSurfacePlacements {
         if (regionBiomes.contains(V118Biome.GROVE)) {
             placeGroveTrees(world, worldSeed, chunkX, chunkZ, result);
         }
-        if (appearsIn(DEFAULT_EXTRA_VEGETATION_BIOMES, regionBiomes)) {
+        if (appearsIn(ORDINARY_SUGAR_CANE_BIOMES, regionBiomes)) {
             placeSugarCanePatch(world, worldSeed, chunkX, chunkZ, result);
+        }
+        if (appearsIn(PUMPKIN_BIOMES, regionBiomes)) {
             placePumpkinPatch(world, worldSeed, chunkX, chunkZ, result);
         }
         return result;
@@ -150,8 +158,12 @@ public final class V118MountainSurfacePlacements {
         return biome == V118Biome.GROVE;
     }
 
-    static boolean supportsDefaultExtraVegetation(V118Biome biome) {
-        return DEFAULT_EXTRA_VEGETATION_BIOMES.contains(biome);
+    static boolean supportsOrdinarySugarCane(V118Biome biome) {
+        return ORDINARY_SUGAR_CANE_BIOMES.contains(biome);
+    }
+
+    static boolean supportsPumpkin(V118Biome biome) {
+        return PUMPKIN_BIOMES.contains(biome);
     }
 
     static boolean supportsFreezeTopLayer(V118Biome biome) {
@@ -247,7 +259,7 @@ public final class V118MountainSurfacePlacements {
         }
         BlockPos origin = squareHeightmapPosition(world, random, chunkX, chunkZ);
         if (origin == null
-                || !DEFAULT_EXTRA_VEGETATION_BIOMES.contains(world.biomeAt(origin))) {
+                || !ORDINARY_SUGAR_CANE_BIOMES.contains(world.biomeAt(origin))) {
             return;
         }
         for (int attempt = 0; attempt < 20; ++attempt) {
@@ -282,7 +294,7 @@ public final class V118MountainSurfacePlacements {
         }
         BlockPos origin = squareHeightmapPosition(world, random, chunkX, chunkZ);
         if (origin == null
-                || !DEFAULT_EXTRA_VEGETATION_BIOMES.contains(world.biomeAt(origin))) {
+                || !PUMPKIN_BIOMES.contains(world.biomeAt(origin))) {
             return;
         }
         for (int attempt = 0; attempt < 96; ++attempt) {
@@ -339,6 +351,14 @@ public final class V118MountainSurfacePlacements {
 
     private static Set<V118Biome> immutableSet(V118Biome first, V118Biome... rest) {
         EnumSet<V118Biome> values = EnumSet.of(first, rest);
+        return Collections.unmodifiableSet(values);
+    }
+
+    private static Set<V118Biome> allBiomesExcept(V118Biome... excluded) {
+        EnumSet<V118Biome> values = EnumSet.allOf(V118Biome.class);
+        for (V118Biome biome : excluded) {
+            values.remove(biome);
+        }
         return Collections.unmodifiableSet(values);
     }
 
