@@ -26,12 +26,20 @@ public final class V118MountainSurfacePlacements {
     public static final int SPRING_LAVA_FROZEN_INDEX = 2;
     public static final int TREES_GROVE_INDEX = 40;
     public static final int PATCH_DEAD_BUSH_INDEX = 51;
+    public static final int BROWN_MUSHROOM_OLD_GROWTH_INDEX = 52;
+    public static final int RED_MUSHROOM_OLD_GROWTH_INDEX = 53;
     public static final int PATCH_WATERLILY_INDEX = 54;
+    public static final int BROWN_MUSHROOM_SWAMP_INDEX = 55;
+    public static final int RED_MUSHROOM_SWAMP_INDEX = 56;
     public static final int PATCH_DEAD_BUSH_2_INDEX = 58;
     public static final int PATCH_DEAD_BUSH_BADLANDS_INDEX = 59;
+    public static final int BROWN_MUSHROOM_NORMAL_INDEX = 60;
+    public static final int RED_MUSHROOM_NORMAL_INDEX = 61;
     public static final int PATCH_SUGAR_CANE_DESERT_INDEX = 62;
     public static final int PATCH_SUGAR_CANE_BADLANDS_INDEX = 63;
     public static final int PATCH_SUGAR_CANE_SWAMP_INDEX = 64;
+    public static final int BROWN_MUSHROOM_TAIGA_INDEX = 66;
+    public static final int RED_MUSHROOM_TAIGA_INDEX = 67;
     public static final int PATCH_SUGAR_CANE_INDEX = 68;
     public static final int PATCH_PUMPKIN_INDEX = 69;
     public static final int PATCH_CACTUS_DESERT_INDEX = 71;
@@ -50,6 +58,17 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> DEAD_BUSH_BIOMES = immutableSet(
         V118Biome.OLD_GROWTH_PINE_TAIGA,
         V118Biome.OLD_GROWTH_SPRUCE_TAIGA, V118Biome.SWAMP);
+    private static final Set<V118Biome> MUSHROOM_NORMAL_BIOMES = allBiomesExcept(
+        V118Biome.FROZEN_PEAKS, V118Biome.GROVE, V118Biome.JAGGED_PEAKS,
+        V118Biome.LUSH_CAVES, V118Biome.MEADOW, V118Biome.MUSHROOM_FIELDS,
+        V118Biome.SNOWY_SLOPES, V118Biome.SNOWY_TAIGA, V118Biome.STONY_PEAKS,
+        V118Biome.TAIGA);
+    private static final Set<V118Biome> MUSHROOM_TAIGA_BIOMES = immutableSet(
+        V118Biome.MUSHROOM_FIELDS, V118Biome.SNOWY_TAIGA, V118Biome.TAIGA);
+    private static final Set<V118Biome> MUSHROOM_OLD_GROWTH_BIOMES = immutableSet(
+        V118Biome.OLD_GROWTH_PINE_TAIGA, V118Biome.OLD_GROWTH_SPRUCE_TAIGA);
+    private static final Set<V118Biome> MUSHROOM_SWAMP_BIOMES = immutableSet(
+        V118Biome.SWAMP);
     private static final Set<V118Biome> WATERLILY_BIOMES = immutableSet(
         V118Biome.SWAMP);
     private static final Set<V118Biome> DEAD_BUSH_2_BIOMES = immutableSet(
@@ -115,11 +134,28 @@ public final class V118MountainSurfacePlacements {
             placeDeadBushPatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_DEAD_BUSH_INDEX, 1, DEAD_BUSH_BIOMES, result);
         }
-        // PATCH_WATERLILY is registered between the shared dead-bush patch at 51 and the
-        // desert-only dead-bush patch at 58.
+        boolean mushrooms = world.supportsMushroomPlacement();
+        // Preserve the dense registered sequence: shared dead bush 51, old-growth mushrooms
+        // 52/53, waterlily 54, swamp mushrooms 55/56, then desert/badlands bushes 58/59.
+        if (mushrooms && appearsIn(MUSHROOM_OLD_GROWTH_BIOMES, regionBiomes)) {
+            placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
+                BROWN_MUSHROOM_OLD_GROWTH_INDEX, 3, 4, false,
+                MUSHROOM_OLD_GROWTH_BIOMES, result);
+            placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
+                RED_MUSHROOM_OLD_GROWTH_INDEX, 1, 171, true,
+                MUSHROOM_OLD_GROWTH_BIOMES, result);
+        }
         if (world.supportsWaterlilyPlacement()
                 && regionBiomes.contains(V118Biome.SWAMP)) {
             placeWaterlilyPatch(world, worldSeed, chunkX, chunkZ, result);
+        }
+        if (mushrooms && regionBiomes.contains(V118Biome.SWAMP)) {
+            placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
+                BROWN_MUSHROOM_SWAMP_INDEX, 2, 0, false,
+                MUSHROOM_SWAMP_BIOMES, result);
+            placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
+                RED_MUSHROOM_SWAMP_INDEX, 1, 64, true,
+                MUSHROOM_SWAMP_BIOMES, result);
         }
         if (regionBiomes.contains(V118Biome.DESERT)) {
             placeDeadBushPatch(world, worldSeed, chunkX, chunkZ,
@@ -129,6 +165,14 @@ public final class V118MountainSurfacePlacements {
             placeDeadBushPatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_DEAD_BUSH_BADLANDS_INDEX, 20,
                 DEAD_BUSH_BADLANDS_BIOMES, result);
+        }
+        if (mushrooms && appearsIn(MUSHROOM_NORMAL_BIOMES, regionBiomes)) {
+            placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
+                BROWN_MUSHROOM_NORMAL_INDEX, 1, 256, false,
+                MUSHROOM_NORMAL_BIOMES, result);
+            placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
+                RED_MUSHROOM_NORMAL_INDEX, 1, 512, true,
+                MUSHROOM_NORMAL_BIOMES, result);
         }
         if (regionBiomes.contains(V118Biome.DESERT)) {
             placeSugarCanePatch(world, worldSeed, chunkX, chunkZ,
@@ -144,6 +188,14 @@ public final class V118MountainSurfacePlacements {
             placeSugarCanePatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_SUGAR_CANE_SWAMP_INDEX, 3,
                 SUGAR_CANE_SWAMP_BIOMES, result);
+        }
+        if (mushrooms && appearsIn(MUSHROOM_TAIGA_BIOMES, regionBiomes)) {
+            placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
+                BROWN_MUSHROOM_TAIGA_INDEX, 1, 4, false,
+                MUSHROOM_TAIGA_BIOMES, result);
+            placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
+                RED_MUSHROOM_TAIGA_INDEX, 1, 256, true,
+                MUSHROOM_TAIGA_BIOMES, result);
         }
         if (appearsIn(ORDINARY_SUGAR_CANE_BIOMES, regionBiomes)) {
             placeSugarCanePatch(world, worldSeed, chunkX, chunkZ,
@@ -260,6 +312,22 @@ public final class V118MountainSurfacePlacements {
 
     static boolean supportsDeadBush(V118Biome biome) {
         return DEAD_BUSH_BIOMES.contains(biome);
+    }
+
+    static boolean supportsNormalMushroom(V118Biome biome) {
+        return MUSHROOM_NORMAL_BIOMES.contains(biome);
+    }
+
+    static boolean supportsTaigaMushroom(V118Biome biome) {
+        return MUSHROOM_TAIGA_BIOMES.contains(biome);
+    }
+
+    static boolean supportsOldGrowthMushroom(V118Biome biome) {
+        return MUSHROOM_OLD_GROWTH_BIOMES.contains(biome);
+    }
+
+    static boolean supportsSwampMushroom(V118Biome biome) {
+        return MUSHROOM_SWAMP_BIOMES.contains(biome);
     }
 
     static boolean supportsWaterlily(V118Biome biome) {
@@ -452,6 +520,41 @@ public final class V118MountainSurfacePlacements {
                 }
                 world.setWaterlily(candidate);
                 result.waterliliesPlaced++;
+            }
+        }
+    }
+
+    private static void placeMushroomPatch(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, int globalIndex, int outerAttempts,
+            int rarityChance, boolean redMushroom, Set<V118Biome> featureBiomes,
+            DecorationResult result) {
+        V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
+            globalIndex, VEGETAL_DECORATION_STEP);
+        // CountPlacement and every following modifier are lazy. In particular, old-growth
+        // brown mushrooms rerun rarity, origin sampling, and the configured patch per count.
+        for (int outer = 0; outer < outerAttempts; ++outer) {
+            if (rarityChance > 0 && random.nextFloat() >= 1.0F / rarityChance) {
+                continue;
+            }
+            BlockPos origin = squareHeightmapPosition(world, random, chunkX, chunkZ);
+            if (origin == null || !featureBiomes.contains(world.biomeAt(origin))) {
+                continue;
+            }
+            for (int attempt = 0; attempt < 96; ++attempt) {
+                BlockPos candidate = origin.add(random.nextInt(8) - random.nextInt(8),
+                    random.nextInt(4) - random.nextInt(4),
+                    random.nextInt(8) - random.nextInt(8));
+                if (!world.isMushroomPlacementAir(candidate)
+                        || !world.canMushroomSurvive(candidate)) {
+                    continue;
+                }
+                if (redMushroom) {
+                    world.setRedMushroom(candidate);
+                    result.redMushroomsPlaced++;
+                } else {
+                    world.setBrownMushroom(candidate);
+                    result.brownMushroomsPlaced++;
+                }
             }
         }
     }
@@ -665,6 +768,18 @@ public final class V118MountainSurfacePlacements {
 
         boolean isSugarCanePlacementAir(BlockPos pos);
 
+        default boolean isMushroomPlacementAir(BlockPos pos) {
+            return false;
+        }
+
+        default boolean canMushroomSurvive(BlockPos pos) {
+            return false;
+        }
+
+        default boolean supportsMushroomPlacement() {
+            return false;
+        }
+
         default boolean isWaterlilyPlacementAir(BlockPos pos) {
             return false;
         }
@@ -713,6 +828,14 @@ public final class V118MountainSurfacePlacements {
 
         void setSugarCane(BlockPos pos);
 
+        default void setBrownMushroom(BlockPos pos) {
+            throw new UnsupportedOperationException("Brown mushroom placement is not available");
+        }
+
+        default void setRedMushroom(BlockPos pos) {
+            throw new UnsupportedOperationException("Red mushroom placement is not available");
+        }
+
         default void setWaterlily(BlockPos pos) {
             throw new UnsupportedOperationException("Waterlily placement is not available");
         }
@@ -737,6 +860,8 @@ public final class V118MountainSurfacePlacements {
         private int logsPlaced;
         private int leavesPlaced;
         private int deadBushesPlaced;
+        private int brownMushroomsPlaced;
+        private int redMushroomsPlaced;
         private int waterliliesPlaced;
         private int sugarCanePlaced;
         private int cactusPlaced;
@@ -775,6 +900,14 @@ public final class V118MountainSurfacePlacements {
 
         public int deadBushesPlaced() {
             return deadBushesPlaced;
+        }
+
+        public int brownMushroomsPlaced() {
+            return brownMushroomsPlaced;
+        }
+
+        public int redMushroomsPlaced() {
+            return redMushroomsPlaced;
         }
 
         public int waterliliesPlaced() {

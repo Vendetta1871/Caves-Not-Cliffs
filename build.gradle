@@ -147,6 +147,9 @@ task verifyReleaseJar(dependsOn: reobfJar) {
             if (zip.getEntry('net/celestiald/cavesnotcliffs/core/LilyPadSupportTransformer.class') == null) {
                 throw new GradleException('Production jar is missing the lily pad support transformer')
             }
+            if (zip.getEntry('net/celestiald/cavesnotcliffs/core/MushroomSupportTransformer.class') == null) {
+                throw new GradleException('Production jar is missing the mushroom support transformer')
+            }
             if (zip.getEntry('net/celestiald/cavesnotcliffs/core/SchemaOnePopulationTransformer.class') == null) {
                 throw new GradleException('Production jar is missing the schema-one population transformer')
             }

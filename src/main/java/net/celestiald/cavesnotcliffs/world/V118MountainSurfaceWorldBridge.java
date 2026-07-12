@@ -8,6 +8,7 @@ import net.celestiald.cavesnotcliffs.block.LushMossBlocks;
 import net.celestiald.cavesnotcliffs.content.DeadBushSupportHooks;
 import net.celestiald.cavesnotcliffs.content.LilyPadSupportHooks;
 import net.celestiald.cavesnotcliffs.content.LushCaveContent;
+import net.celestiald.cavesnotcliffs.content.MushroomSupportHooks;
 import net.celestiald.cavesnotcliffs.content.PlainPumpkinContent;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
@@ -197,6 +198,22 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public boolean isSugarCanePlacementAir(BlockPos pos) {
         return inside(pos) && world.getBlockState(pos).getBlock() == Blocks.AIR;
+    }
+
+    @Override
+    public boolean isMushroomPlacementAir(BlockPos pos) {
+        return inside(pos) && world.getBlockState(pos).getBlock() == Blocks.AIR;
+    }
+
+    @Override
+    public boolean canMushroomSurvive(BlockPos pos) {
+        return inside(pos) && inside(pos.down())
+            && MushroomSupportHooks.canStay(world, pos);
+    }
+
+    @Override
+    public boolean supportsMushroomPlacement() {
+        return true;
     }
 
     @Override
@@ -409,6 +426,20 @@ final class V118MountainSurfaceWorldBridge
     public void setSugarCane(BlockPos pos) {
         if (inside(pos)) {
             world.setBlockState(pos, Blocks.REEDS.getDefaultState(), 2);
+        }
+    }
+
+    @Override
+    public void setBrownMushroom(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.BROWN_MUSHROOM.getDefaultState(), 2);
+        }
+    }
+
+    @Override
+    public void setRedMushroom(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.RED_MUSHROOM.getDefaultState(), 2);
         }
     }
 
