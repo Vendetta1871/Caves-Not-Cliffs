@@ -31,7 +31,10 @@ public class V118MountainSurfacePlacementsTest {
         assertEquals(2, V118MountainSurfacePlacements.SPRING_LAVA_FROZEN_INDEX);
         assertEquals(9, V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP);
         assertEquals(40, V118MountainSurfacePlacements.TREES_GROVE_INDEX);
+        assertEquals(51, V118MountainSurfacePlacements.PATCH_DEAD_BUSH_INDEX);
         assertEquals(58, V118MountainSurfacePlacements.PATCH_DEAD_BUSH_2_INDEX);
+        assertEquals(59,
+            V118MountainSurfacePlacements.PATCH_DEAD_BUSH_BADLANDS_INDEX);
         assertEquals(68, V118MountainSurfacePlacements.PATCH_SUGAR_CANE_INDEX);
         assertEquals(69, V118MountainSurfacePlacements.PATCH_PUMPKIN_INDEX);
         assertEquals(10, V118MountainSurfacePlacements.TOP_LAYER_MODIFICATION_STEP);
@@ -85,7 +88,8 @@ public class V118MountainSurfacePlacementsTest {
         }
         reader.close();
         assertEquals(new java.util.HashSet<String>(java.util.Arrays.asList(
-            "patch_dead_bush_2", "patch_sugar_cane", "patch_pumpkin")),
+            "patch_dead_bush", "patch_dead_bush_2",
+            "patch_dead_bush_badlands", "patch_sugar_cane", "patch_pumpkin")),
             membershipIds);
     }
 
@@ -98,7 +102,8 @@ public class V118MountainSurfacePlacementsTest {
         assertTrue(stream != null);
         BufferedReader reader = new BufferedReader(new InputStreamReader(
             stream, StandardCharsets.UTF_8));
-        int rows = 0;
+        Map<String, Integer> traceRows = new HashMap<String, Integer>();
+        int mixedRows = 0;
         int metadataRows = 0;
         int totalWrites = 0;
         String line;
@@ -107,46 +112,74 @@ public class V118MountainSurfacePlacementsTest {
                 continue;
             }
             String[] fields = line.split("\\t");
-            if (!"trace".equals(fields[0])) {
+            if (!"trace".equals(fields[0]) && !"mixed_trace".equals(fields[0])) {
                 assertDeadBushOracleMetadata(fields);
                 metadataRows++;
                 continue;
             }
-            long seed = Long.parseLong(fields[1]);
-            int chunkX = Integer.parseInt(fields[2]);
-            int chunkZ = Integer.parseInt(fields[3]);
+            boolean mixed = "mixed_trace".equals(fields[0]);
+            String feature = fields[1];
+            long seed = Long.parseLong(fields[2]);
+            int chunkX = Integer.parseInt(fields[3]);
+            int chunkZ = Integer.parseInt(fields[4]);
+            V118Biome memberBiome = deadBushTraceBiome(feature);
+            long decorationSeed = Long.parseLong(fields[5]);
+            assertEquals(decorationSeed + 90000L + deadBushFeatureIndex(feature),
+                Long.parseLong(fields[6]));
             RecordingWorld world = RecordingWorld.atHeight(
-                Surface.SAND, V118Biome.DESERT, 63);
+                Surface.SAND, mixed ? V118Biome.PLAINS : memberBiome, 63);
+            if (mixed) {
+                queueOracleOriginBiomes(world, fields[7], memberBiome);
+            }
 
             DecorationResult result = V118MountainSurfacePlacements.decorateVegetation(
-                world, seed, chunkX, chunkZ, EnumSet.of(V118Biome.DESERT));
+                world, seed, chunkX, chunkZ, mixed
+                    ? EnumSet.of(memberBiome, V118Biome.PLAINS)
+                    : EnumSet.of(memberBiome));
 
-            List<BlockPos> expectedOrigins = parseOracleTokenPositions(fields[6]);
-            assertTrue(world.worldSurfaceQueries.size() >= 2);
-            assertEquals(expectedOrigins, world.worldSurfaceQueries.subList(0, 2));
-            List<BlockPos> expectedCandidates = parseOracleTokenPositions(fields[7]);
-            assertEquals(8, expectedCandidates.size());
-            assertTrue(world.airQueries.size() >= 8);
-            assertEquals(expectedCandidates, world.airQueries.subList(0, 8));
+            List<BlockPos> expectedOrigins = parseOracleTokenPositions(fields[7]);
+            assertEquals(deadBushOuterAttempts(feature), expectedOrigins.size());
+            assertTrue(world.worldSurfaceQueries.size() >= expectedOrigins.size());
+            assertEquals(expectedOrigins, world.worldSurfaceQueries.subList(
+                0, expectedOrigins.size()));
+            List<BlockPos> expectedCandidates = parseOracleTokenPositions(fields[8]);
+            int acceptedOrigins = countAcceptedOracleOrigins(fields[7]);
+            assertEquals(acceptedOrigins * 4, expectedCandidates.size());
+            assertTrue(world.airQueries.size() >= expectedCandidates.size());
+            assertEquals(expectedCandidates, world.airQueries.subList(
+                0, expectedCandidates.size()));
             Set<BlockPos> expectedWrites = new java.util.HashSet<BlockPos>(
-                parsePositions(fields[8]));
+                parsePositions(fields[9]));
             assertEquals(expectedWrites, writePositions(world, Cell.DEAD_BUSH));
             assertEquals(expectedWrites.size(), result.deadBushesPlaced());
-            List<String> expectedEvents = parseDeadBushEvents(fields[9]);
+            List<String> expectedEvents = parseDeadBushEvents(fields[10]);
             assertTrue(world.deadBushEvents.size() >= expectedEvents.size());
             assertEquals(expectedEvents,
                 world.deadBushEvents.subList(0, expectedEvents.size()));
-            assertEquals(52, Integer.parseInt(fields[10]));
-            assertEquals(!expectedWrites.isEmpty(), Boolean.parseBoolean(fields[11]));
-            long oracleTrailing = Long.parseLong(fields[12]);
+            int expectedNextCalls = expectedOrigins.size() * 2
+                + acceptedOrigins * 24;
+            assertEquals(expectedNextCalls, Integer.parseInt(fields[11]));
+            assertEquals(mixed ? 280 : deadBushOuterAttempts(feature) * 26,
+                Integer.parseInt(fields[11]));
+            assertEquals(!expectedWrites.isEmpty(), Boolean.parseBoolean(fields[12]));
+            long oracleTrailing = Long.parseLong(fields[13]);
             assertEquals(String.format(java.util.Locale.ROOT, "%016x",
-                oracleTrailing), fields[13]);
+                oracleTrailing), fields[14]);
             totalWrites += result.deadBushesPlaced();
-            rows++;
+            if (mixed) {
+                mixedRows++;
+            } else {
+                Integer count = traceRows.get(feature);
+                traceRows.put(feature, count == null ? 1 : count + 1);
+            }
         }
         reader.close();
-        assertEquals(6, metadataRows);
-        assertEquals(6, rows);
+        assertEquals(14, metadataRows);
+        assertEquals(Integer.valueOf(6), traceRows.get("patch_dead_bush"));
+        assertEquals(Integer.valueOf(6), traceRows.get("patch_dead_bush_2"));
+        assertEquals(Integer.valueOf(6),
+            traceRows.get("patch_dead_bush_badlands"));
+        assertEquals(1, mixedRows);
         assertTrue(totalWrites > 0);
     }
 
@@ -362,7 +395,28 @@ public class V118MountainSurfacePlacementsTest {
 
         assertEquals(2, world.worldSurfaceQueries.size());
         assertEquals(new BlockPos(12, -64, 10), world.worldSurfaceQueries.get(0));
+        assertEquals(new BlockPos(10, 81, 15), world.worldSurfaceQueries.get(1));
+        assertEquals(Collections.singletonList(new BlockPos(10, 81, 15)),
+            world.biomeQueries);
         assertEquals(4, world.airQueries.size());
+    }
+
+    @Test
+    public void deadBushCandidatesMayCrossTheOriginBiomeBoundary() {
+        RecordingWorld world = RecordingWorld.atHeight(
+            Surface.SAND, V118Biome.PLAINS, 63);
+        BlockPos origin = new BlockPos(-41, 64, 92);
+        world.biomeAtPosition(origin, V118Biome.SWAMP);
+
+        DecorationResult result = V118MountainSurfacePlacements.decorateVegetation(
+            world, 0L, -3, 5, EnumSet.of(V118Biome.SWAMP));
+
+        assertEquals(Collections.singletonList(origin),
+            world.biomeQueries.subList(0, 1));
+        assertEquals(new java.util.HashSet<BlockPos>(java.util.Arrays.asList(
+            new BlockPos(-43, 64, 91), new BlockPos(-39, 64, 95))),
+            writePositions(world, Cell.DEAD_BUSH));
+        assertEquals(2, result.deadBushesPlaced());
     }
 
     @Test
@@ -381,19 +435,68 @@ public class V118MountainSurfacePlacementsTest {
     }
 
     @Test
-    public void patchDeadBush2BelongsOnlyToTheDesert() {
-        int supported = 0;
+    public void mixedDeadBushRegionsInvokeEachFeatureOnlyOnce() {
+        RecordingWorld ordinary = RecordingWorld.flat(Surface.SAND, V118Biome.SWAMP);
+        RecordingWorld ordinaryMixed = RecordingWorld.flat(
+            Surface.SAND, V118Biome.SWAMP);
+        DecorationResult ordinaryResult =
+            V118MountainSurfacePlacements.decorateVegetation(
+                ordinary, 0L, 0, 0, EnumSet.of(V118Biome.SWAMP));
+        DecorationResult ordinaryMixedResult =
+            V118MountainSurfacePlacements.decorateVegetation(
+                ordinaryMixed, 0L, 0, 0, EnumSet.of(
+                    V118Biome.OLD_GROWTH_PINE_TAIGA,
+                    V118Biome.OLD_GROWTH_SPRUCE_TAIGA, V118Biome.SWAMP));
+        assertEquals(ordinaryResult.deadBushesPlaced(),
+            ordinaryMixedResult.deadBushesPlaced());
+        assertEquals(writePositions(ordinary, Cell.DEAD_BUSH),
+            writePositions(ordinaryMixed, Cell.DEAD_BUSH));
+
+        RecordingWorld badlands = RecordingWorld.flat(
+            Surface.SAND, V118Biome.BADLANDS);
+        RecordingWorld badlandsMixed = RecordingWorld.flat(
+            Surface.SAND, V118Biome.BADLANDS);
+        DecorationResult badlandsResult =
+            V118MountainSurfacePlacements.decorateVegetation(
+                badlands, 0L, 0, 0, EnumSet.of(V118Biome.BADLANDS));
+        DecorationResult badlandsMixedResult =
+            V118MountainSurfacePlacements.decorateVegetation(
+                badlandsMixed, 0L, 0, 0, EnumSet.of(
+                    V118Biome.BADLANDS, V118Biome.ERODED_BADLANDS,
+                    V118Biome.WOODED_BADLANDS));
+        assertEquals(badlandsResult.deadBushesPlaced(),
+            badlandsMixedResult.deadBushesPlaced());
+        assertEquals(writePositions(badlands, Cell.DEAD_BUSH),
+            writePositions(badlandsMixed, Cell.DEAD_BUSH));
+
+        RecordingWorld all = RecordingWorld.flat(Surface.SAND, V118Biome.PLAINS);
+        V118MountainSurfacePlacements.decorateVegetation(
+            all, 0L, 0, 0, EnumSet.of(
+                V118Biome.OLD_GROWTH_PINE_TAIGA,
+                V118Biome.OLD_GROWTH_SPRUCE_TAIGA, V118Biome.SWAMP,
+                V118Biome.DESERT, V118Biome.BADLANDS,
+                V118Biome.ERODED_BADLANDS, V118Biome.WOODED_BADLANDS));
+        assertEquals(1 + 2 + 20, all.worldSurfaceQueries.size());
+        assertEquals(0, all.deadBushSurvivalQueries.size());
+    }
+
+    @Test
+    public void deadBushFamiliesUseTheirExactBiomeMemberships() {
+        Set<V118Biome> ordinary = EnumSet.of(
+            V118Biome.OLD_GROWTH_PINE_TAIGA,
+            V118Biome.OLD_GROWTH_SPRUCE_TAIGA, V118Biome.SWAMP);
+        Set<V118Biome> desert = EnumSet.of(V118Biome.DESERT);
+        Set<V118Biome> badlands = EnumSet.of(
+            V118Biome.BADLANDS, V118Biome.ERODED_BADLANDS,
+            V118Biome.WOODED_BADLANDS);
         for (V118Biome biome : V118Biome.values()) {
-            if (V118MountainSurfacePlacements.supportsDeadBush2(biome)) {
-                supported++;
-            }
+            assertEquals(biome.id(), ordinary.contains(biome),
+                V118MountainSurfacePlacements.supportsDeadBush(biome));
+            assertEquals(biome.id(), desert.contains(biome),
+                V118MountainSurfacePlacements.supportsDeadBush2(biome));
+            assertEquals(biome.id(), badlands.contains(biome),
+                V118MountainSurfacePlacements.supportsDeadBushBadlands(biome));
         }
-        assertEquals(1, supported);
-        assertTrue(V118MountainSurfacePlacements.supportsDeadBush2(V118Biome.DESERT));
-        assertFalse(V118MountainSurfacePlacements.supportsDeadBush2(
-            V118Biome.BADLANDS));
-        assertFalse(V118MountainSurfacePlacements.supportsDeadBush2(
-            V118Biome.WOODED_BADLANDS));
     }
 
     @Test
@@ -496,14 +599,80 @@ public class V118MountainSurfacePlacementsTest {
     }
 
     private static List<BlockPos> parseOracleTokenPositions(String value) {
+        if ("-".equals(value)) {
+            return Collections.emptyList();
+        }
         List<BlockPos> result = new ArrayList<BlockPos>();
         for (String token : value.split(";")) {
-            int start = token.indexOf('@') + 1;
-            int end = token.indexOf(':', start);
-            result.add(parsePosition(token.substring(start,
-                end < 0 ? token.length() : end)));
+            result.add(parseOracleTokenPosition(token));
         }
         return result;
+    }
+
+    private static BlockPos parseOracleTokenPosition(String token) {
+        int start = token.indexOf('@') + 1;
+        int end = token.indexOf(':', start);
+        return parsePosition(token.substring(start,
+            end < 0 ? token.length() : end));
+    }
+
+    private static int countAcceptedOracleOrigins(String value) {
+        int result = 0;
+        for (String token : value.split(";")) {
+            int bracket = token.indexOf('[');
+            if (bracket > 0 && token.charAt(bracket - 1) == '+') {
+                result++;
+            }
+        }
+        return result;
+    }
+
+    private static void queueOracleOriginBiomes(RecordingWorld world,
+            String value, V118Biome memberBiome) {
+        for (String token : value.split(";")) {
+            int bracket = token.indexOf('[');
+            boolean accepted = bracket > 0 && token.charAt(bracket - 1) == '+';
+            world.queueBiome(accepted ? memberBiome : V118Biome.PLAINS);
+        }
+    }
+
+    private static V118Biome deadBushTraceBiome(String feature) {
+        if ("patch_dead_bush".equals(feature)) {
+            return V118Biome.SWAMP;
+        }
+        if ("patch_dead_bush_2".equals(feature)) {
+            return V118Biome.DESERT;
+        }
+        if ("patch_dead_bush_badlands".equals(feature)) {
+            return V118Biome.BADLANDS;
+        }
+        throw new AssertionError("Unknown dead-bush oracle feature: " + feature);
+    }
+
+    private static int deadBushFeatureIndex(String feature) {
+        if ("patch_dead_bush".equals(feature)) {
+            return 51;
+        }
+        if ("patch_dead_bush_2".equals(feature)) {
+            return 58;
+        }
+        if ("patch_dead_bush_badlands".equals(feature)) {
+            return 59;
+        }
+        throw new AssertionError("Unknown dead-bush oracle feature: " + feature);
+    }
+
+    private static int deadBushOuterAttempts(String feature) {
+        if ("patch_dead_bush".equals(feature)) {
+            return 1;
+        }
+        if ("patch_dead_bush_2".equals(feature)) {
+            return 2;
+        }
+        if ("patch_dead_bush_badlands".equals(feature)) {
+            return 20;
+        }
+        throw new AssertionError("Unknown dead-bush oracle feature: " + feature);
     }
 
     private static List<String> parseDeadBushEvents(String value) {
@@ -524,20 +693,33 @@ public class V118MountainSurfacePlacementsTest {
 
     private static void assertDeadBushOracleMetadata(String[] fields) {
         if ("slot".equals(fields[0])) {
-            assertEquals("patch_dead_bush_2", fields[1]);
             assertEquals("9", fields[2]);
-            assertEquals("58", fields[3]);
+            assertEquals(Integer.toString(deadBushFeatureIndex(fields[1])), fields[3]);
         } else if ("membership".equals(fields[0])) {
-            assertEquals("patch_dead_bush_2", fields[1]);
-            assertEquals("minecraft:desert", fields[2]);
+            if ("patch_dead_bush".equals(fields[1])) {
+                assertEquals("minecraft:old_growth_pine_taiga,"
+                    + "minecraft:old_growth_spruce_taiga,minecraft:swamp", fields[2]);
+            } else if ("patch_dead_bush_2".equals(fields[1])) {
+                assertEquals("minecraft:desert", fields[2]);
+            } else {
+                assertEquals("patch_dead_bush_badlands", fields[1]);
+                assertEquals("minecraft:badlands,minecraft:eroded_badlands,"
+                    + "minecraft:wooded_badlands", fields[2]);
+            }
         } else if ("placed_json".equals(fields[0])) {
-            assertTrue(fields[1].contains("\"count\":2"));
-            assertTrue(fields[1].contains("\"heightmap\":\"WORLD_SURFACE_WG\""));
+            int attempts = deadBushOuterAttempts(fields[1]);
+            if (attempts == 1) {
+                assertFalse(fields[2].contains("\"count\""));
+            } else {
+                assertTrue(fields[2].contains("\"count\":" + attempts));
+            }
+            assertTrue(fields[2].contains("\"heightmap\":\"WORLD_SURFACE_WG\""));
         } else if ("configured_json".equals(fields[0])) {
-            assertTrue(fields[1].contains("\"tries\":4"));
-            assertTrue(fields[1].contains("\"xz_spread\":7"));
-            assertTrue(fields[1].contains("\"y_spread\":3"));
-            assertTrue(fields[1].contains("\"Name\":\"minecraft:dead_bush\""));
+            deadBushFeatureIndex(fields[1]);
+            assertTrue(fields[2].contains("\"tries\":4"));
+            assertTrue(fields[2].contains("\"xz_spread\":7"));
+            assertTrue(fields[2].contains("\"y_spread\":3"));
+            assertTrue(fields[2].contains("\"Name\":\"minecraft:dead_bush\""));
         } else if ("support_explicit".equals(fields[0])) {
             assertTrue(fields[1].contains("minecraft:red_sand"));
             assertTrue(fields[1].contains("minecraft:black_terracotta"));
@@ -622,8 +804,12 @@ public class V118MountainSurfacePlacementsTest {
             V118MountainSurfacePlacements.supportsFrozenSpring(biome));
         assertEquals(features.contains("trees_grove"),
             V118MountainSurfacePlacements.supportsGroveTrees(biome));
+        assertEquals(features.contains("patch_dead_bush"),
+            V118MountainSurfacePlacements.supportsDeadBush(biome));
         assertEquals(features.contains("patch_dead_bush_2"),
             V118MountainSurfacePlacements.supportsDeadBush2(biome));
+        assertEquals(features.contains("patch_dead_bush_badlands"),
+            V118MountainSurfacePlacements.supportsDeadBushBadlands(biome));
         assertEquals(features.contains("patch_sugar_cane"),
             V118MountainSurfacePlacements.supportsOrdinarySugarCane(biome));
         assertEquals(features.contains("patch_pumpkin"),
@@ -637,17 +823,27 @@ public class V118MountainSurfacePlacementsTest {
         for (String id : fields[2].split(",")) {
             expected.add(V118Biome.valueOf(id.toUpperCase(java.util.Locale.ROOT)));
         }
-        boolean deadBush = "patch_dead_bush_2".equals(fields[1]);
+        boolean deadBush = "patch_dead_bush".equals(fields[1]);
+        boolean deadBush2 = "patch_dead_bush_2".equals(fields[1]);
+        boolean badlandsDeadBush = "patch_dead_bush_badlands".equals(fields[1]);
         boolean cane = "patch_sugar_cane".equals(fields[1]);
         assertTrue("Unknown vegetation membership: " + fields[1],
-            deadBush || cane || "patch_pumpkin".equals(fields[1]));
-        assertEquals(deadBush ? 1 : cane ? 40 : 45, expected.size());
+            deadBush || deadBush2 || badlandsDeadBush || cane
+                || "patch_pumpkin".equals(fields[1]));
+        assertEquals(deadBush || badlandsDeadBush ? 3
+            : deadBush2 ? 1 : cane ? 40 : 45, expected.size());
         for (V118Biome biome : V118Biome.values()) {
             boolean actual = deadBush
-                ? V118MountainSurfacePlacements.supportsDeadBush2(biome)
-                : cane
-                    ? V118MountainSurfacePlacements.supportsOrdinarySugarCane(biome)
-                    : V118MountainSurfacePlacements.supportsPumpkin(biome);
+                ? V118MountainSurfacePlacements.supportsDeadBush(biome)
+                : deadBush2
+                    ? V118MountainSurfacePlacements.supportsDeadBush2(biome)
+                    : badlandsDeadBush
+                        ? V118MountainSurfacePlacements
+                            .supportsDeadBushBadlands(biome)
+                        : cane
+                            ? V118MountainSurfacePlacements
+                                .supportsOrdinarySugarCane(biome)
+                            : V118MountainSurfacePlacements.supportsPumpkin(biome);
             assertEquals(biome.id(), expected.contains(biome), actual);
         }
     }
@@ -669,9 +865,16 @@ public class V118MountainSurfacePlacementsTest {
         } else if ("trees_grove".equals(id)) {
             assertEquals(V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP, step);
             assertEquals(V118MountainSurfacePlacements.TREES_GROVE_INDEX, index);
+        } else if ("patch_dead_bush".equals(id)) {
+            assertEquals(V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP, step);
+            assertEquals(V118MountainSurfacePlacements.PATCH_DEAD_BUSH_INDEX, index);
         } else if ("patch_dead_bush_2".equals(id)) {
             assertEquals(V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP, step);
             assertEquals(V118MountainSurfacePlacements.PATCH_DEAD_BUSH_2_INDEX, index);
+        } else if ("patch_dead_bush_badlands".equals(id)) {
+            assertEquals(V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP, step);
+            assertEquals(V118MountainSurfacePlacements.PATCH_DEAD_BUSH_BADLANDS_INDEX,
+                index);
         } else if ("patch_sugar_cane".equals(id)) {
             assertEquals(V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP, step);
             assertEquals(V118MountainSurfacePlacements.PATCH_SUGAR_CANE_INDEX, index);
@@ -727,6 +930,7 @@ public class V118MountainSurfacePlacementsTest {
             new HashMap<Integer, V118Biome>();
         private final Map<BlockPos, V118Biome> positionBiomes =
             new HashMap<BlockPos, V118Biome>();
+        private final List<V118Biome> queuedBiomes = new ArrayList<V118Biome>();
         private final EnumMap<Cell, Integer> writeCounts = new EnumMap<Cell, Integer>(Cell.class);
         private final List<Cell> writeOrder = new ArrayList<Cell>();
         private final List<BlockPos> scheduledLava = new ArrayList<BlockPos>();
@@ -759,6 +963,10 @@ public class V118MountainSurfacePlacementsTest {
 
         void biomeAtPosition(BlockPos pos, V118Biome positionBiome) {
             positionBiomes.put(pos.toImmutable(), positionBiome);
+        }
+
+        void queueBiome(V118Biome queuedBiome) {
+            queuedBiomes.add(queuedBiome);
         }
 
         void base(BlockPos pos, Cell cell) {
@@ -830,6 +1038,9 @@ public class V118MountainSurfacePlacementsTest {
         @Override
         public V118Biome biomeAt(BlockPos pos) {
             biomeQueries.add(pos.toImmutable());
+            if (!queuedBiomes.isEmpty()) {
+                return queuedBiomes.remove(0);
+            }
             V118Biome positionBiome = positionBiomes.get(pos);
             if (positionBiome != null) {
                 return positionBiome;

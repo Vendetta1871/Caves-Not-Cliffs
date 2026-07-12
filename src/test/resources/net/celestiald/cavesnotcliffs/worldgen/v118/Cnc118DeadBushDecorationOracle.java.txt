@@ -11,6 +11,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,14 +20,15 @@ import java.util.Map;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
 import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.resources.RegistryOps;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSource;
-import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -37,7 +39,7 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 
-/** Exact official Java 1.18.2 PATCH_DEAD_BUSH_2 catalog and flat-desert RNG trace. */
+/** Exact official Java 1.18.2 dead-bush placed-feature catalog and RNG traces. */
 public final class Cnc118DeadBushDecorationOracle {
     private static final long[] SEEDS = {
         0L, 1L, -1L, 123456789L, Long.MIN_VALUE, Long.MAX_VALUE
@@ -45,102 +47,145 @@ public final class Cnc118DeadBushDecorationOracle {
     private static final int CHUNK_X = -3;
     private static final int CHUNK_Z = 5;
     private static final int STEP = 9;
-    private static final int INDEX = 58;
     private static final int SURFACE_Y = 64;
+    private static final FeatureCase[] FEATURES = {
+        new FeatureCase("patch_dead_bush", 51, 1, "minecraft:swamp",
+            "minecraft:old_growth_pine_taiga",
+            "minecraft:old_growth_spruce_taiga", "minecraft:swamp"),
+        new FeatureCase("patch_dead_bush_2", 58, 2, "minecraft:desert",
+            "minecraft:desert"),
+        new FeatureCase("patch_dead_bush_badlands", 59, 20, "minecraft:badlands",
+            "minecraft:badlands", "minecraft:eroded_badlands",
+            "minecraft:wooded_badlands")
+    };
 
     public static void main(String[] args) throws Exception {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
         BuiltinRegistries.bootstrap();
 
-        PlacedFeature placed = BuiltinRegistries.PLACED_FEATURE.get(
-            new ResourceLocation("patch_dead_bush_2"));
-        if (placed == null) throw new IllegalStateException("missing patch_dead_bush_2");
         MultiNoiseBiomeSource source = MultiNoiseBiomeSource.Preset.OVERWORLD.biomeSource(
             BuiltinRegistries.BIOME);
-        int foundStep = -1;
-        int foundIndex = -1;
         List<BiomeSource.StepFeatureData> steps = source.featuresPerStep();
-        for (int step = 0; step < steps.size(); ++step) {
-            int index = steps.get(step).features().indexOf(placed);
-            if (index >= 0) {
-                if (foundStep >= 0) throw new IllegalStateException("feature appears twice");
-                foundStep = step;
-                foundIndex = index;
-            }
-        }
-        if (foundStep != STEP || foundIndex != INDEX) {
-            throw new IllegalStateException("unexpected slot " + foundStep + "/" + foundIndex);
-        }
-
-        List<String> members = new ArrayList<>();
-        for (Map.Entry<net.minecraft.resources.ResourceKey<Biome>, Biome> entry
-                : BuiltinRegistries.BIOME.entrySet()) {
-            if (entry.getValue().getGenerationSettings().hasFeature(placed)) {
-                members.add(entry.getKey().location().toString());
-            }
-        }
-        Collections.sort(members);
-        if (!members.equals(Collections.singletonList("minecraft:desert"))) {
-            throw new IllegalStateException("unexpected membership " + members);
-        }
-
         RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE,
             BuiltinRegistries.ACCESS);
-        String placedJson = PlacedFeature.DIRECT_CODEC.encodeStart(ops, placed)
-            .result().orElseThrow(() -> new IllegalStateException("placed codec failed"))
-            .toString();
-        ConfiguredFeature<?, ?> configured = placed.feature().value();
-        String configuredJson = ConfiguredFeature.DIRECT_CODEC.encodeStart(ops, configured)
-            .result().orElseThrow(() -> new IllegalStateException("configured codec failed"))
-            .toString();
 
         PrintWriter out = args.length == 0
             ? new PrintWriter(System.out, true)
             : new PrintWriter(args[0], StandardCharsets.UTF_8.name());
-        out.println("# official mapped Minecraft Java 1.18.2 patch_dead_bush_2 oracle");
-        out.println("# trace world: all minecraft:desert, flat sand through y=63, air above; heightmap reflects writes");
-        out.println("# trace columns: seed,cx,cz,decorationSeed,featureSeed,origins,candidates,writes,eventOrder,featureNextCalls,result,trailingLong,trailingHex");
-        out.println("slot\tpatch_dead_bush_2\t" + foundStep + "\t" + foundIndex);
-        out.println("membership\tpatch_dead_bush_2\t" + String.join(",", members));
-        out.println("placed_json\t" + placedJson);
-        out.println("configured_json\t" + configuredJson);
+        out.println("# official mapped Minecraft Java 1.18.2 dead-bush family oracle");
+        out.println("# trace worlds: member biome, flat sand through y=63, air above; heightmap reflects writes");
+        out.println("# trace columns: feature,seed,cx,cz,decorationSeed,featureSeed,origins,candidates,writes,eventOrder,featureNextCalls,result,trailingLong,trailingHex");
+        for (FeatureCase feature : FEATURES) {
+            PlacedFeature placed = BuiltinRegistries.PLACED_FEATURE.get(
+                new ResourceLocation(feature.id));
+            if (placed == null) throw new IllegalStateException("missing " + feature.id);
+            int[] location = findLocation(steps, placed);
+            if (location[0] != STEP || location[1] != feature.index) {
+                throw new IllegalStateException("unexpected " + feature.id + " slot "
+                    + location[0] + "/" + location[1]);
+            }
+            List<String> members = members(placed);
+            if (!members.equals(feature.members)) {
+                throw new IllegalStateException("unexpected " + feature.id
+                    + " membership " + members);
+            }
+            String placedJson = PlacedFeature.DIRECT_CODEC.encodeStart(ops, placed)
+                .result().orElseThrow(() -> new IllegalStateException("placed codec failed"))
+                .toString();
+            ConfiguredFeature<?, ?> configured = placed.feature().value();
+            String configuredJson = ConfiguredFeature.DIRECT_CODEC
+                .encodeStart(ops, configured).result()
+                .orElseThrow(() -> new IllegalStateException("configured codec failed"))
+                .toString();
+            out.println("slot\t" + feature.id + "\t" + location[0]
+                + "\t" + location[1]);
+            out.println("membership\t" + feature.id + "\t"
+                + String.join(",", members));
+            out.println("placed_json\t" + feature.id + "\t" + placedJson);
+            out.println("configured_json\t" + feature.id + "\t" + configuredJson);
+        }
         out.println("support_explicit\t" + explicitSupports());
         out.println("support_tag\tminecraft:dirt\t" + dirtTagValues());
 
-        for (long seed : SEEDS) {
-            Trace trace = new Trace(CHUNK_X, CHUNK_Z);
-            FlatDesertWorld world = new FlatDesertWorld(seed, trace);
-            NoiseBasedChunkGenerator generator = new NoiseBasedChunkGenerator(
-                BuiltinRegistries.STRUCTURE_SETS, BuiltinRegistries.NOISE,
-                source, seed, BuiltinRegistries.NOISE_GENERATOR_SETTINGS.getHolderOrThrow(
-                    NoiseGeneratorSettings.OVERWORLD));
-            TracingRandom random = new TracingRandom(trace);
-            long decorationSeed = random.setDecorationSeed(seed,
-                CHUNK_X << 4, CHUNK_Z << 4);
-            long featureSeed = decorationSeed + INDEX + 10000L * STEP;
-            random.setFeatureSeed(decorationSeed, INDEX, STEP);
-            int before = random.getCount();
-            random.tracing = true;
-            boolean result = placed.placeWithBiomeCheck(world.level, generator, random,
-                new BlockPos(CHUNK_X << 4, -64, CHUNK_Z << 4));
-            random.tracing = false;
-            int featureNextCalls = random.getCount() - before;
-            trace.verifyComplete();
-            long trailing = random.nextLong();
-            out.println("trace\t" + seed + "\t" + CHUNK_X + "\t" + CHUNK_Z
-                + "\t" + decorationSeed + "\t" + featureSeed
-                + "\t" + trace.originsString()
-                + "\t" + trace.candidatesString()
-                + "\t" + trace.writesString()
-                + "\t" + trace.eventsString()
-                + "\t" + featureNextCalls
-                + "\t" + result
-                + "\t" + trailing
-                + "\t" + String.format(Locale.ROOT, "%016x", trailing));
+        for (FeatureCase feature : FEATURES) {
+            for (long seed : SEEDS) {
+                writeTrace(out, source, feature, seed, false);
+            }
         }
+        writeTrace(out, source, FEATURES[2], 123456789L, true);
         out.flush();
         if (args.length != 0) out.close();
+    }
+
+    private static void writeTrace(PrintWriter out, MultiNoiseBiomeSource source,
+            FeatureCase feature, long seed, boolean alternatingBiomes) {
+        PlacedFeature placed = BuiltinRegistries.PLACED_FEATURE.get(
+            new ResourceLocation(feature.id));
+        Trace trace = new Trace(CHUNK_X, CHUNK_Z, feature.outerAttempts);
+        FlatBiomeWorld world = new FlatBiomeWorld(seed, trace,
+            feature.traceBiome, alternatingBiomes);
+        NoiseBasedChunkGenerator generator = new NoiseBasedChunkGenerator(
+            BuiltinRegistries.STRUCTURE_SETS, BuiltinRegistries.NOISE,
+            source, seed, BuiltinRegistries.NOISE_GENERATOR_SETTINGS.getHolderOrThrow(
+                NoiseGeneratorSettings.OVERWORLD));
+        TracingRandom random = new TracingRandom(trace);
+        long decorationSeed = random.setDecorationSeed(seed,
+            CHUNK_X << 4, CHUNK_Z << 4);
+        long featureSeed = decorationSeed + feature.index + 10000L * STEP;
+        random.setFeatureSeed(decorationSeed, feature.index, STEP);
+        int before = random.getCount();
+        random.tracing = true;
+        boolean result = placed.placeWithBiomeCheck(world.level, generator, random,
+            new BlockPos(CHUNK_X << 4, -64, CHUNK_Z << 4));
+        random.tracing = false;
+        int featureNextCalls = random.getCount() - before;
+        trace.verifyComplete();
+        int acceptedOrigins = alternatingBiomes
+            ? (feature.outerAttempts + 1) / 2 : feature.outerAttempts;
+        int expectedNextCalls = feature.outerAttempts * 2 + acceptedOrigins * 24;
+        if (featureNextCalls != expectedNextCalls) {
+            throw new IllegalStateException("unexpected " + feature.id + " next calls "
+                + featureNextCalls + " expected " + expectedNextCalls);
+        }
+        long trailing = random.nextLong();
+        out.println((alternatingBiomes ? "mixed_trace" : "trace") + "\t"
+            + feature.id + "\t" + seed + "\t" + CHUNK_X + "\t" + CHUNK_Z
+            + "\t" + decorationSeed + "\t" + featureSeed
+            + "\t" + trace.originsString()
+            + "\t" + trace.candidatesString()
+            + "\t" + trace.writesString()
+            + "\t" + trace.eventsString()
+            + "\t" + featureNextCalls
+            + "\t" + result
+            + "\t" + trailing
+            + "\t" + String.format(Locale.ROOT, "%016x", trailing));
+    }
+
+    private static int[] findLocation(List<BiomeSource.StepFeatureData> steps,
+            PlacedFeature placed) {
+        int foundStep = -1;
+        int foundIndex = -1;
+        for (int step = 0; step < steps.size(); ++step) {
+            int index = steps.get(step).features().indexOf(placed);
+            if (index < 0) continue;
+            if (foundStep >= 0) throw new IllegalStateException("feature appears twice");
+            foundStep = step;
+            foundIndex = index;
+        }
+        return new int[] {foundStep, foundIndex};
+    }
+
+    private static List<String> members(PlacedFeature placed) {
+        List<String> result = new ArrayList<>();
+        for (Map.Entry<ResourceKey<Biome>, Biome> entry
+                : BuiltinRegistries.BIOME.entrySet()) {
+            if (entry.getValue().getGenerationSettings().hasFeature(placed)) {
+                result.add(entry.getKey().location().toString());
+            }
+        }
+        Collections.sort(result);
+        return result;
     }
 
     private static String dirtTagValues() throws Exception {
@@ -185,16 +230,25 @@ public final class Cnc118DeadBushDecorationOracle {
         }
     }
 
-    private static final class FlatDesertWorld implements InvocationHandler {
+    private static final class FlatBiomeWorld implements InvocationHandler {
         final long seed;
         final Trace trace;
         final Map<Long, BlockState> writes = new LinkedHashMap<>();
-        final Holder<Biome> desert = BuiltinRegistries.BIOME.getHolderOrThrow(Biomes.DESERT);
+        final Holder<Biome> memberBiome;
+        final Holder<Biome> rejectedBiome = BuiltinRegistries.BIOME.getHolderOrThrow(
+            ResourceKey.create(Registry.BIOME_REGISTRY,
+                new ResourceLocation("minecraft:plains")));
+        final boolean alternatingBiomes;
         final WorldGenLevel level;
 
-        FlatDesertWorld(long seed, Trace trace) {
+        FlatBiomeWorld(long seed, Trace trace, String memberBiome,
+                boolean alternatingBiomes) {
             this.seed = seed;
             this.trace = trace;
+            this.memberBiome = BuiltinRegistries.BIOME.getHolderOrThrow(
+                ResourceKey.create(Registry.BIOME_REGISTRY,
+                    new ResourceLocation(memberBiome)));
+            this.alternatingBiomes = alternatingBiomes;
             level = (WorldGenLevel) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[] {WorldGenLevel.class}, this);
         }
@@ -214,7 +268,13 @@ public final class Cnc118DeadBushDecorationOracle {
                 trace.heightmap(x, height, z);
                 return height;
             }
-            if (name.equals("getBiome")) return desert;
+            if (name.equals("getBiome")) {
+                BlockPos pos = ((BlockPos) args[0]).immutable();
+                boolean accepted = !alternatingBiomes
+                    || (trace.origins.size() - 1) % 2 == 0;
+                trace.biome(pos, accepted);
+                return accepted ? memberBiome : rejectedBiome;
+            }
             if (name.equals("getSeed")) return seed;
             if (name.equals("ensureCanWrite")) return true;
             if (name.equals("getBlockState")) {
@@ -251,10 +311,11 @@ public final class Cnc118DeadBushDecorationOracle {
     }
 
     private static final class Trace {
-        enum Mode { OUTER, CANDIDATE, DONE }
+        enum Mode { OUTER, BIOME, CANDIDATE, DONE }
 
         final int chunkX;
         final int chunkZ;
+        final int expectedOrigins;
         final List<Origin> origins = new ArrayList<>();
         final List<Candidate> candidates = new ArrayList<>();
         final List<BlockPos> writes = new ArrayList<>();
@@ -263,9 +324,10 @@ public final class Cnc118DeadBushDecorationOracle {
         Mode mode = Mode.OUTER;
         int attempt;
 
-        Trace(int chunkX, int chunkZ) {
+        Trace(int chunkX, int chunkZ, int expectedOrigins) {
             this.chunkX = chunkX;
             this.chunkZ = chunkZ;
+            this.expectedOrigins = expectedOrigins;
         }
 
         void nextInt(int bound, int value) {
@@ -302,10 +364,23 @@ public final class Cnc118DeadBushDecorationOracle {
             Origin origin = new Origin(origins.size(), draws.get(0), draws.get(1),
                 new BlockPos(x, y, z));
             origins.add(origin);
-            events.add(origin.token());
             draws.clear();
+            mode = Mode.BIOME;
+        }
+
+        void biome(BlockPos pos, boolean accepted) {
+            if (mode != Mode.BIOME || origins.isEmpty()) {
+                throw new IllegalStateException("biome outside outer placement");
+            }
+            Origin origin = origins.get(origins.size() - 1);
+            if (!origin.pos.equals(pos)) {
+                throw new IllegalStateException("biome coordinate mismatch");
+            }
+            origin.accepted = accepted;
+            events.add(origin.token());
             attempt = 0;
-            mode = Mode.CANDIDATE;
+            mode = accepted ? Mode.CANDIDATE
+                : origins.size() == expectedOrigins ? Mode.DONE : Mode.OUTER;
         }
 
         void blockState(BlockPos pos) {
@@ -326,7 +401,7 @@ public final class Cnc118DeadBushDecorationOracle {
             draws.clear();
             ++attempt;
             if (attempt == 4) {
-                mode = origins.size() == 2 ? Mode.DONE : Mode.OUTER;
+                mode = origins.size() == expectedOrigins ? Mode.DONE : Mode.OUTER;
             }
         }
 
@@ -343,7 +418,10 @@ public final class Cnc118DeadBushDecorationOracle {
         }
 
         void verifyComplete() {
-            if (mode != Mode.DONE || origins.size() != 2 || candidates.size() != 8
+            int accepted = 0;
+            for (Origin origin : origins) if (origin.accepted) accepted++;
+            if (mode != Mode.DONE || origins.size() != expectedOrigins
+                    || candidates.size() != accepted * 4
                     || !draws.isEmpty()) {
                 throw new IllegalStateException("incomplete lazy trace: origins=" + origins.size()
                     + " candidates=" + candidates.size() + " mode=" + mode);
@@ -381,6 +459,7 @@ public final class Cnc118DeadBushDecorationOracle {
         final int xDraw;
         final int zDraw;
         final BlockPos pos;
+        boolean accepted;
 
         Origin(int index, int xDraw, int zDraw, BlockPos pos) {
             this.index = index;
@@ -390,8 +469,27 @@ public final class Cnc118DeadBushDecorationOracle {
         }
 
         String token() {
-            return "o" + index + "[" + xDraw + "," + zDraw + "]@"
+            return "o" + index + (accepted ? "+" : "-")
+                + "[" + xDraw + "," + zDraw + "]@"
                 + pos.getX() + "," + pos.getY() + "," + pos.getZ();
+        }
+    }
+
+    private static final class FeatureCase {
+        final String id;
+        final int index;
+        final int outerAttempts;
+        final String traceBiome;
+        final List<String> members;
+
+        FeatureCase(String id, int index, int outerAttempts,
+                String traceBiome, String... members) {
+            this.id = id;
+            this.index = index;
+            this.outerAttempts = outerAttempts;
+            this.traceBiome = traceBiome;
+            this.members = Collections.unmodifiableList(
+                new ArrayList<>(Arrays.asList(members)));
         }
     }
 

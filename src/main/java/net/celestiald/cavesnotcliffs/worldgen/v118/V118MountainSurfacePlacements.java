@@ -25,7 +25,9 @@ public final class V118MountainSurfacePlacements {
 
     public static final int SPRING_LAVA_FROZEN_INDEX = 2;
     public static final int TREES_GROVE_INDEX = 40;
+    public static final int PATCH_DEAD_BUSH_INDEX = 51;
     public static final int PATCH_DEAD_BUSH_2_INDEX = 58;
+    public static final int PATCH_DEAD_BUSH_BADLANDS_INDEX = 59;
     public static final int PATCH_SUGAR_CANE_INDEX = 68;
     public static final int PATCH_PUMPKIN_INDEX = 69;
     public static final int FREEZE_TOP_LAYER_INDEX = 0;
@@ -37,8 +39,14 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> FROZEN_SPRING_BIOMES = immutableSet(
         V118Biome.GROVE, V118Biome.SNOWY_SLOPES,
         V118Biome.FROZEN_PEAKS, V118Biome.JAGGED_PEAKS);
+    private static final Set<V118Biome> DEAD_BUSH_BIOMES = immutableSet(
+        V118Biome.OLD_GROWTH_PINE_TAIGA,
+        V118Biome.OLD_GROWTH_SPRUCE_TAIGA, V118Biome.SWAMP);
     private static final Set<V118Biome> DEAD_BUSH_2_BIOMES = immutableSet(
         V118Biome.DESERT);
+    private static final Set<V118Biome> DEAD_BUSH_BADLANDS_BIOMES = immutableSet(
+        V118Biome.BADLANDS, V118Biome.ERODED_BADLANDS,
+        V118Biome.WOODED_BADLANDS);
     private static final Set<V118Biome> ORDINARY_SUGAR_CANE_BIOMES = allBiomesExcept(
         V118Biome.BADLANDS, V118Biome.DESERT, V118Biome.ERODED_BADLANDS,
         V118Biome.FROZEN_PEAKS, V118Biome.JAGGED_PEAKS, V118Biome.LUSH_CAVES,
@@ -77,8 +85,18 @@ public final class V118MountainSurfacePlacements {
         if (regionBiomes.contains(V118Biome.GROVE)) {
             placeGroveTrees(world, worldSeed, chunkX, chunkZ, result);
         }
+        if (appearsIn(DEAD_BUSH_BIOMES, regionBiomes)) {
+            placeDeadBushPatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_DEAD_BUSH_INDEX, 1, DEAD_BUSH_BIOMES, result);
+        }
         if (regionBiomes.contains(V118Biome.DESERT)) {
-            placeDeadBushPatch(world, worldSeed, chunkX, chunkZ, result);
+            placeDeadBushPatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_DEAD_BUSH_2_INDEX, 2, DEAD_BUSH_2_BIOMES, result);
+        }
+        if (appearsIn(DEAD_BUSH_BADLANDS_BIOMES, regionBiomes)) {
+            placeDeadBushPatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_DEAD_BUSH_BADLANDS_INDEX, 20,
+                DEAD_BUSH_BADLANDS_BIOMES, result);
         }
         if (appearsIn(ORDINARY_SUGAR_CANE_BIOMES, regionBiomes)) {
             placeSugarCanePatch(world, worldSeed, chunkX, chunkZ, result);
@@ -166,6 +184,14 @@ public final class V118MountainSurfacePlacements {
 
     static boolean supportsDeadBush2(V118Biome biome) {
         return DEAD_BUSH_2_BIOMES.contains(biome);
+    }
+
+    static boolean supportsDeadBush(V118Biome biome) {
+        return DEAD_BUSH_BIOMES.contains(biome);
+    }
+
+    static boolean supportsDeadBushBadlands(V118Biome biome) {
+        return DEAD_BUSH_BADLANDS_BIOMES.contains(biome);
     }
 
     static boolean supportsOrdinarySugarCane(V118Biome biome) {
@@ -261,14 +287,15 @@ public final class V118MountainSurfacePlacements {
     }
 
     private static void placeDeadBushPatch(WorldAccess world, long worldSeed,
-            int chunkX, int chunkZ, DecorationResult result) {
+            int chunkX, int chunkZ, int globalIndex, int outerAttempts,
+            Set<V118Biome> featureBiomes, DecorationResult result) {
         V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
-            PATCH_DEAD_BUSH_2_INDEX, VEGETAL_DECORATION_STEP);
+            globalIndex, VEGETAL_DECORATION_STEP);
         int originX = chunkX << 4;
         int originZ = chunkZ << 4;
-        // CountPlacement's stream is lazy: finish the configured patch (and its random
-        // consumption) before InSquarePlacement samples the next of the two origins.
-        for (int outer = 0; outer < 2; ++outer) {
+        // CountPlacement's stream is lazy: finish each configured patch (and its random
+        // consumption) before InSquarePlacement samples the next origin.
+        for (int outer = 0; outer < outerAttempts; ++outer) {
             int x = originX + random.nextInt(16);
             int z = originZ + random.nextInt(16);
             int y = world.worldSurfaceHeight(x, z);
@@ -276,7 +303,7 @@ public final class V118MountainSurfacePlacements {
                 continue;
             }
             BlockPos origin = new BlockPos(x, y, z);
-            if (!DEAD_BUSH_2_BIOMES.contains(world.biomeAt(origin))) {
+            if (!featureBiomes.contains(world.biomeAt(origin))) {
                 continue;
             }
             for (int attempt = 0; attempt < 4; ++attempt) {

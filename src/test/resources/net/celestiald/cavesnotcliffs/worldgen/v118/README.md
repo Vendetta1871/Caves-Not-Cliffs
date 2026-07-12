@@ -275,15 +275,18 @@ chunk in X/Z, while ProtoChunk rather than `ensureCanWrite` discards out-of-heig
 - Lush-decoration TSV SHA-256:
   `e51587ee5daf51590a4e626df52c716b78496c3e0c561b44609a31f1e4ab74df`
 
-## Desert dead-bush decoration
+## Dead-bush decoration family
 
 `dead-bush-decoration-oracle-1.18.2.tsv` invokes the registered
-`patch_dead_bush_2` placed feature in the mapped official server. It pins the desert-only global
-slot, codec configuration, support catalog, lazy Count(2) event order, all 52 bounded random
-draws, writes, result, and trailing Xoroshiro state for the six edge seeds at chunk `(-3, 5)`.
-The standalone harness is `Cnc118DeadBushDecorationOracle.java.txt`.
+`patch_dead_bush`, `patch_dead_bush_2`, and `patch_dead_bush_badlands` placed features in the
+mapped official server. It pins their exact biome memberships, global slots 51/58/59, shared codec
+configuration, support catalog, lazy event order, all 26/52/520 bounded random draws, writes,
+results, and trailing Xoroshiro state for the six edge seeds at chunk `(-3, 5)`. An alternating
+badlands-origin trace additionally pins lazy biome rejection at 280 draws, including a repeated
+origin whose accepted and rejected visits require ordered biome responses. The standalone harness
+is `Cnc118DeadBushDecorationOracle.java.txt`.
 
 - Dead-bush harness SHA-256:
-  `28c2610ca6f9484e973249bdd3a03a0d683cfce7cf461cee5bcacea33de48507`
+  `a4c5087d0ed508e37c6e71f2b4366257a2c8702a697cf425f073979133ac93a2`
 - Dead-bush TSV SHA-256:
-  `8b595f57e436b2fe10a3ce453baeaedf62736e193922604b7bf9f85bd323ae8e`
+  `d8ff002d52a9c205208a196d77e2141e13de11af4c6a4afe70d25feb6710d30e`
