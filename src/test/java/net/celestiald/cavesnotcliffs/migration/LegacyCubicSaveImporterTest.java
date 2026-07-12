@@ -267,6 +267,62 @@ public class LegacyCubicSaveImporterTest {
         assertFalse(Files.exists(world.resolve(CubicImportJournal.FILE_NAME)));
     }
 
+    @Test
+    public void rejectsPlayerMetadataCreatedWhileStaging() throws Exception {
+        assertLateSourceRejected("late-player", true, world -> {
+            Path player = Files.createDirectories(world.resolve("playerdata"))
+                    .resolve("late.dat");
+            LegacyCubicLevelMetadataTest.write(player, new NBTTagCompound());
+        }, "source files changed");
+    }
+
+    @Test
+    public void rejectsStructureMetadataCreatedWhileStaging() throws Exception {
+        assertLateSourceRejected("late-structure", false, world ->
+                LegacyCubicStructureMetadataTest.write(world, "Mineshaft.dat",
+                        LegacyCubicStructureMetadataTest.structureRoot()),
+                "source files changed");
+    }
+
+    @Test
+    public void rejectsForcedChunkMetadataCreatedWhileStaging() throws Exception {
+        assertLateSourceRejected("late-forcedchunks", false, world ->
+                LegacyCubicTicketMetadataTest.write(world, new NBTTagList()),
+                "source files changed");
+    }
+
+    @Test
+    public void rejectsDimensionCreatedWhileStaging() throws Exception {
+        assertLateSourceRejected("late-dimension", false, world ->
+                LegacyCubicDimensionMetadataTest.writeMetadata(
+                        world.resolve("DIM2"), true, -64, 320,
+                        "cubicchunks:anvil3d", "cubicchunks:default"),
+                "dimension set changed");
+    }
+
+    private void assertLateSourceRejected(String name, boolean includeLevel,
+            LegacyCubicSaveImporter.PrecommitHook hook, String message) throws Exception {
+        Path world = temporary.newFolder(name).toPath();
+        writeCubicMetadata(world);
+        Path levelFile = null;
+        if (includeLevel) {
+            levelFile = world.resolve("level.dat");
+            LegacyCubicLevelMetadataTest.write(levelFile,
+                    LegacyCubicLevelMetadataTest.level());
+        }
+
+        try {
+            LegacyCubicSaveImporter.importWorld(world,
+                    CavesNotCliffsWorldData.CURRENT_SCHEMA, 0L, levelFile, hook);
+            fail("Expected concurrent source rejection");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains(message));
+        }
+        assertFalse(Files.exists(world.resolve("region")));
+        assertTrue(CubicImportJournal.read(world.resolve(CubicImportJournal.FILE_NAME))
+                .getState() == CubicImportJournal.State.STAGED);
+    }
+
     private static void writeCubicMetadata(Path world) throws IOException {
         LegacyCubicDimensionMetadataTest.writeMetadata(world, true, -64, 320,
                 "cubicchunks:anvil3d", "cubicchunks:default");

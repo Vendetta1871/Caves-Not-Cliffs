@@ -33,6 +33,10 @@ public final class LegacyCubicSaveImporter {
     private LegacyCubicSaveImporter() {
     }
 
+    interface PrecommitHook {
+        void afterStaging(Path worldRoot) throws IOException;
+    }
+
     public static void prepareForServer(MinecraftServer server) {
         String folderName = server.getFolderName();
         if (folderName == null || folderName.trim().isEmpty()) {
@@ -51,23 +55,8 @@ public final class LegacyCubicSaveImporter {
                 finishCommittedImport(worldRoot, levelFile.toPath(), completed);
                 return;
             }
-            LegacyCubicDimensionMetadata.Result discovery = discoverDimensions(worldRoot);
-            List<Path> dimensions = discovery.getTrueDimensionRoots();
-            LegacyCubicPositionMetadata.Result positions =
-                    LegacyCubicPositionMetadata.validate(worldRoot, levelFile.toPath());
-            LegacyCubicTicketMetadata.Result tickets = LegacyCubicTicketMetadata.validate(
-                    dimensionRoots(discovery));
-            LegacyCubicStructureMetadata.Result structures =
-                    LegacyCubicStructureMetadata.validate(dimensions);
-            List<Path> additionalSources = new ArrayList<Path>(
-                    discovery.getMetadataFiles());
-            additionalSources.addAll(positions.getSourceFiles());
-            additionalSources.addAll(tickets.getSourceFiles());
-            additionalSources.addAll(structures.getSourceFiles());
-            List<CubicImportJournal.FileRecord> sources =
-                    CubicImportJournal.captureSources(
-                            worldRoot, dimensions, additionalSources);
-            if (sources.isEmpty()) {
+            SourceDiscovery sources = discoverSources(worldRoot, levelFile.toPath());
+            if (sources.files.isEmpty()) {
                 return;
             }
 
@@ -88,7 +77,7 @@ public final class LegacyCubicSaveImporter {
             CubicDimensionStager.CubeVerifier lookaheadVerifier = lookaheadVerifier(
                     terrainSchema, worldInfo, levelFile.toPath());
             boolean imported = importWorld(worldRoot, terrainSchema, worldInfo.getWorldTotalTime(),
-                    dimensions, additionalSources, sources, lookaheadVerifier);
+                    levelFile.toPath(), sources, lookaheadVerifier, null);
             if (metadata.changed() && !imported) {
                 finishCommittedStorage(worldRoot, CubicImportJournal.read(
                         worldRoot.resolve(CubicImportJournal.FILE_NAME)), true);
@@ -102,30 +91,26 @@ public final class LegacyCubicSaveImporter {
 
     static boolean importWorld(Path worldRoot, int terrainSchema, long lastUpdate)
             throws IOException {
+        return importWorld(worldRoot, terrainSchema, lastUpdate, null, null);
+    }
+
+    static boolean importWorld(Path worldRoot, int terrainSchema, long lastUpdate,
+            Path levelFile, PrecommitHook precommitHook) throws IOException {
         Path normalizedRoot = worldRoot.toAbsolutePath().normalize();
         CubicImportJournal completed = existingJournal(normalizedRoot);
         if (completed != null) {
             finishCommittedStorage(normalizedRoot, completed, false);
             return false;
         }
-        LegacyCubicDimensionMetadata.Result discovery = discoverDimensions(normalizedRoot);
-        List<Path> dimensions = discovery.getTrueDimensionRoots();
-        List<Path> additionalSources = new ArrayList<Path>(discovery.getMetadataFiles());
-        additionalSources.addAll(LegacyCubicTicketMetadata.validate(
-                dimensionRoots(discovery)).getSourceFiles());
-        additionalSources.addAll(LegacyCubicStructureMetadata.validate(
-                dimensions).getSourceFiles());
-        List<CubicImportJournal.FileRecord> sources =
-                CubicImportJournal.captureSources(
-                        normalizedRoot, dimensions, additionalSources);
-        return importWorld(normalizedRoot, terrainSchema, lastUpdate, dimensions,
-                additionalSources, sources, null);
+        SourceDiscovery sources = discoverSources(normalizedRoot, levelFile);
+        return importWorld(normalizedRoot, terrainSchema, lastUpdate, levelFile,
+                sources, null, precommitHook);
     }
 
     private static boolean importWorld(Path worldRoot, int terrainSchema, long lastUpdate,
-            List<Path> dimensions, List<Path> metadataFiles,
-            List<CubicImportJournal.FileRecord> sources,
-            CubicDimensionStager.CubeVerifier lookaheadVerifier) throws IOException {
+            Path levelFile, SourceDiscovery sources,
+            CubicDimensionStager.CubeVerifier lookaheadVerifier,
+            PrecommitHook precommitHook) throws IOException {
         Path journalPath = worldRoot.resolve(CubicImportJournal.FILE_NAME);
         Path stagingRoot = worldRoot.resolve(STAGING_DIRECTORY);
         CubicImportJournal completed = existingJournal(worldRoot);
@@ -133,26 +118,26 @@ public final class LegacyCubicSaveImporter {
             finishCommittedStorage(worldRoot, completed, false);
             return false;
         }
-        if (sources.isEmpty()) {
+        if (sources.files.isEmpty()) {
             return false;
         }
         if (terrainSchema != CavesNotCliffsWorldData.LEGACY_SCHEMA
                 && terrainSchema != CavesNotCliffsWorldData.CURRENT_SCHEMA) {
             throw new IOException("Unsupported Caves Not Cliffs terrain schema " + terrainSchema);
         }
-        preflightTargets(dimensions);
+        preflightTargets(sources.dimensions);
 
-        List<String> dimensionNames = new ArrayList<String>(dimensions.size());
-        for (Path dimension : dimensions) {
+        List<String> dimensionNames = new ArrayList<String>(sources.dimensions.size());
+        for (Path dimension : sources.dimensions) {
             dimensionNames.add(relativeDimension(worldRoot, dimension));
         }
         CubicImportJournal journal = CubicImportJournal.create(
-                terrainSchema, sources, dimensionNames);
+                terrainSchema, sources.files, dimensionNames);
         journal.writeAtomic(journalPath);
 
         Map<String, StagedDimension> staged = new LinkedHashMap<String, StagedDimension>();
-        for (int index = 0; index < dimensions.size(); index++) {
-            Path dimension = dimensions.get(index);
+        for (int index = 0; index < sources.dimensions.size(); index++) {
+            Path dimension = sources.dimensions.get(index);
             String name = dimensionNames.get(index);
             Path stagingDimension = stagingRoot.resolve(String.format("dimension-%04d", index));
             LOGGER.info("Staging legacy cubic dimension {} from {}", name, dimension);
@@ -173,15 +158,22 @@ public final class LegacyCubicSaveImporter {
         journal.transition(CubicImportJournal.State.DISCOVERED,
                 CubicImportJournal.State.STAGED);
         journal.writeAtomic(journalPath);
-        List<CubicImportJournal.FileRecord> sourcesAfterStaging =
-                CubicImportJournal.captureSources(worldRoot, dimensions, metadataFiles);
-        if (!sources.equals(sourcesAfterStaging)) {
-            throw new IOException("Cubic source files changed while staging; no output was committed");
+        if (precommitHook != null) {
+            precommitHook.afterStaging(worldRoot);
+        }
+        SourceDiscovery sourcesAfterStaging = discoverSources(worldRoot, levelFile);
+        if (!sources.dimensions.equals(sourcesAfterStaging.dimensions)) {
+            throw new IOException("Cubic dimension set changed while staging; no output was "
+                    + "committed");
+        }
+        if (!sources.files.equals(sourcesAfterStaging.files)) {
+            throw new IOException("Cubic source files changed while staging; no output was "
+                    + "committed");
         }
         journal.transition(CubicImportJournal.State.STAGED,
                 CubicImportJournal.State.VERIFIED);
         journal.writeAtomic(journalPath);
-        preflightTargets(dimensions);
+        preflightTargets(sources.dimensions);
         journal.transition(CubicImportJournal.State.VERIFIED,
                 CubicImportJournal.State.COMMITTING);
         journal.writeAtomic(journalPath);
@@ -208,7 +200,7 @@ public final class LegacyCubicSaveImporter {
         journal.writeAtomic(journalPath);
         deleteTreeBestEffort(stagingRoot);
         LOGGER.info("Committed finite Anvil storage for {} dimensions. Legacy region2d/region3d "
-                + "files remain untouched as the rollback source.", dimensions.size());
+                + "files remain untouched as the rollback source.", sources.dimensions.size());
         return true;
     }
 
@@ -424,6 +416,23 @@ public final class LegacyCubicSaveImporter {
         return result;
     }
 
+    private static SourceDiscovery discoverSources(Path worldRoot, Path levelFile)
+            throws IOException {
+        LegacyCubicDimensionMetadata.Result discovery = discoverDimensions(worldRoot);
+        List<Path> dimensions = discovery.getTrueDimensionRoots();
+        List<Path> metadata = new ArrayList<Path>(discovery.getMetadataFiles());
+        if (levelFile != null) {
+            metadata.addAll(LegacyCubicPositionMetadata.validate(
+                    worldRoot, levelFile).getSourceFiles());
+        }
+        metadata.addAll(LegacyCubicTicketMetadata.validate(
+                dimensionRoots(discovery)).getSourceFiles());
+        metadata.addAll(LegacyCubicStructureMetadata.validate(
+                dimensions).getSourceFiles());
+        return new SourceDiscovery(dimensions,
+                CubicImportJournal.captureSources(worldRoot, dimensions, metadata));
+    }
+
     private static List<Path> dimensionRoots(LegacyCubicDimensionMetadata.Result discovery) {
         List<Path> result = new ArrayList<Path>(discovery.getTrueDimensionRoots());
         for (Path metadata : discovery.getMetadataFiles()) {
@@ -471,6 +480,17 @@ public final class LegacyCubicSaveImporter {
             this.target = target;
             this.staging = staging;
             this.result = result;
+        }
+    }
+
+    private static final class SourceDiscovery {
+        private final List<Path> dimensions;
+        private final List<CubicImportJournal.FileRecord> files;
+
+        private SourceDiscovery(List<Path> dimensions,
+                List<CubicImportJournal.FileRecord> files) {
+            this.dimensions = dimensions;
+            this.files = files;
         }
     }
 }
