@@ -45,6 +45,8 @@ final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
                 V118BeeTreeVegetation.PlacedFeature.FLOWER_FOREST_FLOWERS);
         populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.TREES_FLOWER_FOREST);
         populateVegetation(chunkX, chunkZ, regionBiomes,
+                V118BeeTreeVegetation.PlacedFeature.FLOWER_FLOWER_FOREST);
+        populateVegetation(chunkX, chunkZ, regionBiomes,
                 V118BeeTreeVegetation.PlacedFeature.FOREST_FLOWERS);
         populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.BIRCH_TALL);
         populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.TREES_BIRCH);

@@ -24,6 +24,9 @@ public final class V118BeeTreeVegetation {
     private static final float PLAIN_FLOWER_HIGH_CHANCE = 0.33333334F;
     private static final NormalNoise PLAIN_FLOWER_NOISE = NormalNoise.create(
             new LegacyRandomSource(PROVIDER_SEED), 0, 1.0D);
+    private static final float FLOWER_FOREST_SCALE = 0.020833334F;
+    private static final NormalNoise FLOWER_FOREST_NOISE = NormalNoise.create(
+            new LegacyRandomSource(PROVIDER_SEED), 0, 1.0D);
     private static final NormalNoise MEADOW_SLOW_NOISE = NormalNoise.create(
             new LegacyRandomSource(PROVIDER_SEED), -10, 1.0D);
     private static final NormalNoise MEADOW_FAST_NOISE = NormalNoise.create(
@@ -37,6 +40,12 @@ public final class V118BeeTreeVegetation {
     };
     private static final Plant[] PLAIN_FLOWER_HIGH_STATES = {
         Plant.POPPY, Plant.AZURE_BLUET, Plant.OXEYE_DAISY, Plant.CORNFLOWER
+    };
+    private static final Plant[] FLOWER_FOREST_STATES = {
+        Plant.DANDELION, Plant.POPPY, Plant.ALLIUM, Plant.AZURE_BLUET,
+        Plant.RED_TULIP, Plant.ORANGE_TULIP, Plant.WHITE_TULIP,
+        Plant.PINK_TULIP, Plant.OXEYE_DAISY, Plant.CORNFLOWER,
+        Plant.LILY_OF_THE_VALLEY
     };
 
     private V118BeeTreeVegetation() {
@@ -60,6 +69,8 @@ public final class V118BeeTreeVegetation {
             case FLOWER_FOREST_FLOWERS:
             case FOREST_FLOWERS:
                 return placeForestFlowers(world, random, originX, originZ, feature);
+            case FLOWER_FLOWER_FOREST:
+                return placeFlowerForestPatch(world, random, originX, originZ, feature);
             case PATCH_SUNFLOWER:
                 return placeSunflowers(world, random, originX, originZ, feature);
             case FLOWER_PLAINS:
@@ -124,6 +135,25 @@ public final class V118BeeTreeVegetation {
         }
         return randomPatch(world, random, new BlockPos(x, y, z),
                 96, 7, 3, Plant.SUNFLOWER, null);
+    }
+
+    private static int placeFlowerForestPatch(WorldAccess world, Random random,
+            int originX, int originZ, PlacedFeature feature) {
+        int placed = 0;
+        for (int count = 0; count < 3; ++count) {
+            if (random.nextFloat() >= 0.5F) {
+                continue;
+            }
+            int x = originX + random.nextInt(16);
+            int z = originZ + random.nextInt(16);
+            int y = world.height(Heightmap.MOTION_BLOCKING, x, z);
+            if (!feature.supports(world.biome(x, y, z))) {
+                continue;
+            }
+            placed += randomPatch(world, random, new BlockPos(x, y, z),
+                96, 6, 2, null, V118BeeTreeVegetation::flowerForestPlant);
+        }
+        return placed;
     }
 
     private static int placePlainGrass(WorldAccess world, Random random,
@@ -216,6 +246,15 @@ public final class V118BeeTreeVegetation {
         return Plant.DANDELION;
     }
 
+    private static Plant flowerForestPlant(Random random, BlockPos position) {
+        double scale = (double) FLOWER_FOREST_SCALE;
+        double noise = FLOWER_FOREST_NOISE.getValue(
+            (double) position.getX() * scale,
+            (double) position.getY() * scale,
+            (double) position.getZ() * scale);
+        return noiseSelected(FLOWER_FOREST_STATES, noise);
+    }
+
     private static Plant meadowPlant(Random random, BlockPos position) {
         double slowValue = meadowSlowNoise(position);
         int variety = (int) clampedMap(slowValue, -1.0D, 1.0D, 1.0D, 4.0D);
@@ -291,6 +330,7 @@ public final class V118BeeTreeVegetation {
 
     public enum PlacedFeature {
         FLOWER_FOREST_FLOWERS(14, EnumSet.of(V118Biome.FLOWER_FOREST)),
+        FLOWER_FLOWER_FOREST(16, EnumSet.of(V118Biome.FLOWER_FOREST)),
         FOREST_FLOWERS(17, EnumSet.of(V118Biome.OLD_GROWTH_BIRCH_FOREST,
                 V118Biome.BIRCH_FOREST, V118Biome.FOREST, V118Biome.DARK_FOREST)),
         PATCH_SUNFLOWER(29, EnumSet.of(V118Biome.SUNFLOWER_PLAINS)),
