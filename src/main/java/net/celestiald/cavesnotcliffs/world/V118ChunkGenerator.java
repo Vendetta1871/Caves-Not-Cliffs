@@ -163,6 +163,8 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
     public void populate(int chunkX, int chunkZ) {
         Set<V118Biome> decorationBiomes = decorationBiomeUnion(chunkX, chunkZ);
         structures.populate(chunkX, chunkZ);
+        // LAKES step 1 contains the shared underground and surface lava lakes.
+        mountainSurface.populateLavaLakes(chunkX, chunkZ);
         geodes.populate(chunkX, chunkZ);
         dripstones.populateLarge(chunkX, chunkZ, decorationBiomes);
         // LOCAL_MODIFICATIONS index 4 follows geodes at 2 and large dripstone at 3.

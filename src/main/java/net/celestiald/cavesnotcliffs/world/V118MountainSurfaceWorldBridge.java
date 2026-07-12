@@ -22,12 +22,14 @@ import net.celestiald.cavesnotcliffs.worldgen.v118.V118DesertWellPlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118IceSurfacePlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118IceSurfacePlacements.State;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118LushCaveFeature;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118LavaLakePlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Material;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118MountainSurfacePlacements;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDirt;
 import net.minecraft.block.BlockDoublePlant;
 import net.minecraft.block.BlockLeaves;
+import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.BlockSand;
 import net.minecraft.block.BlockSlab;
 import net.minecraft.block.BlockStone;
@@ -49,7 +51,8 @@ final class V118MountainSurfaceWorldBridge
         implements V118MountainSurfacePlacements.WorldAccess,
             V118DefaultSpringPlacements.WorldAccess,
             V118DesertWellPlacements.WorldAccess,
-            V118IceSurfacePlacements.WorldAccess {
+            V118IceSurfacePlacements.WorldAccess,
+            V118LavaLakePlacements.WorldAccess {
     private final World world;
     private final V118ChunkGenerator generator;
     private final SpringValidBlocks springValidBlocks;
@@ -70,6 +73,12 @@ final class V118MountainSurfaceWorldBridge
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
         return V118DefaultSpringPlacements.decorate(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
+    }
+
+    int populateLavaLakes(int chunkX, int chunkZ) {
+        surfaceFeatureChunkX = chunkX;
+        surfaceFeatureChunkZ = chunkZ;
+        return V118LavaLakePlacements.decorate(this, world.getSeed(), chunkX, chunkZ);
     }
 
     V118MountainSurfacePlacements.DecorationResult populateFrozenSprings(
@@ -195,6 +204,110 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public int seaLevel() {
         return world.getSeaLevel();
+    }
+
+    @Override
+    public int oceanFloorWgHeight(int blockX, int blockZ) {
+        return oceanFloorHeight(blockX, blockZ);
+    }
+
+    @Override
+    public int worldSurfaceWgHeight(int blockX, int blockZ) {
+        return worldSurfaceHeight(blockX, blockZ);
+    }
+
+    @Override
+    public boolean supportsLavaLake(int blockX, int blockY, int blockZ) {
+        return inside(new BlockPos(blockX, blockY, blockZ));
+    }
+
+    @Override
+    public boolean isOrdinaryAir(int blockX, int blockY, int blockZ) {
+        BlockPos pos = new BlockPos(blockX, blockY, blockZ);
+        return inside(pos) && world.getBlockState(pos).getBlock() == Blocks.AIR;
+    }
+
+    @Override
+    public boolean isLiquid(int blockX, int blockY, int blockZ) {
+        BlockPos pos = new BlockPos(blockX, blockY, blockZ);
+        return inside(pos) && world.getBlockState(pos).getMaterial().isLiquid();
+    }
+
+    @Override
+    public boolean isSolid(int blockX, int blockY, int blockZ) {
+        BlockPos pos = new BlockPos(blockX, blockY, blockZ);
+        return inside(pos) && world.getBlockState(pos).getMaterial().isSolid();
+    }
+
+    @Override
+    public boolean isSourceLava(int blockX, int blockY, int blockZ) {
+        BlockPos pos = new BlockPos(blockX, blockY, blockZ);
+        if (!inside(pos)) {
+            return false;
+        }
+        IBlockState state = world.getBlockState(pos);
+        return state.getBlock() == Blocks.LAVA
+            && state.getValue(BlockLiquid.LEVEL) == 0;
+    }
+
+    @Override
+    public boolean featuresCannotReplace(int blockX, int blockY, int blockZ) {
+        Block block = blockAt(blockX, blockY, blockZ);
+        return block == Blocks.BEDROCK || block == Blocks.MOB_SPAWNER
+            || block == Blocks.CHEST || block == Blocks.END_PORTAL_FRAME;
+    }
+
+    @Override
+    public boolean lavaPoolStoneCannotReplace(int blockX, int blockY, int blockZ) {
+        BlockPos pos = new BlockPos(blockX, blockY, blockZ);
+        if (!inside(pos)) {
+            return true;
+        }
+        Block block = world.getBlockState(pos).getBlock();
+        return featuresCannotReplace(blockX, blockY, blockZ)
+            || block.isLeaves(world.getBlockState(pos), world, pos)
+            || block.isWood(world, pos);
+    }
+
+    @Override
+    public void setCaveAir(int blockX, int blockY, int blockZ) {
+        setLakeState(blockX, blockY, blockZ, Blocks.AIR.getDefaultState());
+    }
+
+    @Override
+    public void setSourceLava(int blockX, int blockY, int blockZ) {
+        setLakeState(blockX, blockY, blockZ, Blocks.LAVA.getDefaultState());
+    }
+
+    @Override
+    public void setStone(int blockX, int blockY, int blockZ) {
+        setLakeState(blockX, blockY, blockZ, Blocks.STONE.getDefaultState());
+    }
+
+    @Override
+    public void scheduleCaveAirTick(int blockX, int blockY, int blockZ) {
+        BlockPos pos = new BlockPos(blockX, blockY, blockZ);
+        if (canWriteSurfaceFeature(pos)) {
+            world.scheduleUpdate(pos, Blocks.AIR, 0);
+        }
+    }
+
+    @Override
+    public void markAboveForPostProcessing(int blockX, int blockY, int blockZ) {
+        // Ordinary finite chunks apply these flag-2 writes directly; unlike ProtoChunk there is
+        // no deferred post-processing bitset to populate in the 1.12 target runtime.
+    }
+
+    private Block blockAt(int blockX, int blockY, int blockZ) {
+        BlockPos pos = new BlockPos(blockX, blockY, blockZ);
+        return inside(pos) ? world.getBlockState(pos).getBlock() : Blocks.BEDROCK;
+    }
+
+    private void setLakeState(int blockX, int blockY, int blockZ, IBlockState state) {
+        BlockPos pos = new BlockPos(blockX, blockY, blockZ);
+        if (canWriteSurfaceFeature(pos)) {
+            world.setBlockState(pos, state, 2);
+        }
     }
 
     static boolean isMotionBlockingState(IBlockState state) {
