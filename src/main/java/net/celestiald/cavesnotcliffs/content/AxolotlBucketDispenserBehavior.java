@@ -29,7 +29,7 @@ public final class AxolotlBucketDispenserBehavior extends BehaviorDefaultDispens
             return super.dispenseStack(source, stack);
         }
 
-        AxolotlBucketRelease.spawnAxolotl(world, target, stack);
+        AxolotlBucketRelease.spawnAxolotl(null, world, target, stack);
         return new ItemStack(Items.BUCKET);
     }
 }

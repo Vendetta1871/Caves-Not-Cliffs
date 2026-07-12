@@ -60,7 +60,7 @@ public final class ItemAxolotlBucket extends Item {
         }
 
         if (!world.isRemote) {
-            AxolotlBucketRelease.spawnAxolotl(world, target, held);
+            AxolotlBucketRelease.spawnAxolotl(player, world, target, held);
             if (player instanceof EntityPlayerMP) {
                 CriteriaTriggers.PLACED_BLOCK.trigger((EntityPlayerMP) player, target, held);
             }

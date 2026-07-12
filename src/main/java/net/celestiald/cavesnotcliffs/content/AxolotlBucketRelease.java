@@ -7,6 +7,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemMonsterPlacer;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -48,9 +49,7 @@ public final class AxolotlBucketRelease {
 
         if (knownContainer) {
             // BucketItem ignores LiquidBlockContainer#placeLiquid's result once this branch wins.
-            if (!world.isRemote) {
-                CncFluidState.placeSourceWater(player, world, target, state);
-            }
+            CncFluidState.placeSourceWater(player, world, target, state);
             playEmptySound(player, world, target);
             return true;
         }
@@ -66,7 +65,8 @@ public final class AxolotlBucketRelease {
         return true;
     }
 
-    public static void spawnAxolotl(World world, BlockPos target, ItemStack bucket) {
+    public static void spawnAxolotl(@Nullable EntityPlayer player, World world,
+            BlockPos target, ItemStack bucket) {
         EntityAxolotl.EntityCustom axolotl = new EntityAxolotl.EntityCustom(world);
         axolotl.setLocationAndAngles(target.getX() + 0.5D, target.getY() + 1.0D,
             target.getZ() + 0.5D, 0.0F, 0.0F);
@@ -86,6 +86,7 @@ public final class AxolotlBucketRelease {
         if (bucket.hasDisplayName()) {
             axolotl.setCustomNameTag(bucket.getDisplayName());
         }
+        ItemMonsterPlacer.applyItemEntityDataToEntity(world, player, bucket, axolotl);
         world.spawnEntity(axolotl);
         axolotl.loadFromBucket(bucket);
     }
