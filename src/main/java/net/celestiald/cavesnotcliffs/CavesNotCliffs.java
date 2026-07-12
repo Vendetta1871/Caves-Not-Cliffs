@@ -45,7 +45,6 @@ import net.minecraft.block.Block;
 import net.celestiald.cavesnotcliffs.command.CommandCaveBiome;
 import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
 import net.celestiald.cavesnotcliffs.handler.LavaCauldronHandler;
-import net.celestiald.cavesnotcliffs.migration.LegacyCubicSaveImporter;
 import net.celestiald.cavesnotcliffs.migration.ImportedHeightMapRebuildHandler;
 import net.celestiald.cavesnotcliffs.stonecutter.CncGuiHandler;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
@@ -121,9 +120,9 @@ public class CavesNotCliffs {
 	@Mod.EventHandler
 	public void serverAboutToStart(FMLServerAboutToStartEvent event) {
 		// Forge fires this immediately before loadAllWorlds, so every persisted wrapper name must
-		// be registered before WorldInfo parses level.dat.
+		// be registered before WorldInfo parses level.dat. The core hook runs the one-time cubic
+		// import after vanilla creates its save handler/session lock and before WorldInfo is read.
 		CavesNotCliffsWorldTypes.registerWrappers();
-		LegacyCubicSaveImporter.prepareForServer(event.getServer());
 	}
 
 	@SubscribeEvent
