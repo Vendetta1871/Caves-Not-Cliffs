@@ -65,6 +65,12 @@ final class V118MountainSurfaceWorldBridge
             chunkX, chunkZ, regionBiomes);
     }
 
+    V118MountainSurfacePlacements.DecorationResult populateForestRock(
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return V118MountainSurfacePlacements.decorateForestRock(this, world.getSeed(),
+            chunkX, chunkZ, regionBiomes);
+    }
+
     V118MountainSurfacePlacements.DecorationResult populateEarlyTrees(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
         return V118MountainSurfacePlacements.decorateEarlyTrees(this, world.getSeed(),
@@ -200,6 +206,28 @@ final class V118MountainSurfaceWorldBridge
         }
         Block block = world.getBlockState(pos).getBlock();
         return block == Blocks.SNOW || block == BlockPowderSnow.block;
+    }
+
+    @Override
+    public boolean supportsForestRockPlacement() {
+        return true;
+    }
+
+    @Override
+    public boolean isForestRockGround(BlockPos pos) {
+        if (!inside(pos)) {
+            return false;
+        }
+        IBlockState state = world.getBlockState(pos);
+        return V118LushCaveWorldBridge.isDirtTag(state)
+            || V118LushCaveWorldBridge.isBaseStoneOverworld(state);
+    }
+
+    @Override
+    public void setMossyCobblestone(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.MOSSY_COBBLESTONE.getDefaultState(), 4);
+        }
     }
 
     @Override

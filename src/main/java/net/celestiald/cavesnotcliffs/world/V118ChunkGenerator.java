@@ -165,6 +165,8 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         structures.populate(chunkX, chunkZ);
         geodes.populate(chunkX, chunkZ);
         dripstones.populateLarge(chunkX, chunkZ, decorationBiomes);
+        // LOCAL_MODIFICATIONS index 4 follows geodes at 2 and large dripstone at 3.
+        mountainSurface.populateForestRock(chunkX, chunkZ, decorationBiomes);
         ordinaryOres.populate(chunkX, chunkZ, decorationBiomes, dripstones);
         // FLUID_SPRINGS step 8 indices 0, 1, then 2, after underground decoration.
         mountainSurface.populateDefaultSprings(chunkX, chunkZ, decorationBiomes);

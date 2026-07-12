@@ -20,10 +20,12 @@ import java.util.Set;
  * their vanilla slots and request order cannot move a placement stream.</p>
  */
 public final class V118MountainSurfacePlacements {
+    public static final int LOCAL_MODIFICATIONS_STEP = 2;
     public static final int FLUID_SPRINGS_STEP = 8;
     public static final int VEGETAL_DECORATION_STEP = 9;
     public static final int TOP_LAYER_MODIFICATION_STEP = 10;
 
+    public static final int FOREST_ROCK_INDEX = 4;
     public static final int SPRING_LAVA_FROZEN_INDEX = 2;
     public static final int TREES_BADLANDS_INDEX = 5;
     public static final int PATCH_TALL_GRASS_INDEX = 8;
@@ -75,6 +77,9 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> FROZEN_SPRING_BIOMES = immutableSet(
         V118Biome.GROVE, V118Biome.SNOWY_SLOPES,
         V118Biome.FROZEN_PEAKS, V118Biome.JAGGED_PEAKS);
+    private static final Set<V118Biome> FOREST_ROCK_BIOMES = immutableSet(
+        V118Biome.OLD_GROWTH_PINE_TAIGA,
+        V118Biome.OLD_GROWTH_SPRUCE_TAIGA);
     private static final Set<V118Biome> BADLANDS_TREE_BIOMES = immutableSet(
         V118Biome.WOODED_BADLANDS);
     private static final Set<V118Biome> TALL_GRASS_BIOMES = immutableSet(
@@ -190,6 +195,32 @@ public final class V118MountainSurfacePlacements {
         V118Biome.BAMBOO_JUNGLE, V118Biome.JUNGLE);
 
     private V118MountainSurfacePlacements() {
+    }
+
+    public static DecorationResult decorateForestRock(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        requireArguments(world, regionBiomes);
+        DecorationResult result = new DecorationResult();
+        if (!world.supportsForestRockPlacement()
+                || !appearsIn(FOREST_ROCK_BIOMES, regionBiomes)) {
+            return result;
+        }
+
+        V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
+            FOREST_ROCK_INDEX, LOCAL_MODIFICATIONS_STEP);
+        // CountPlacement is lazy: the complete first blob consumes its configured-feature
+        // stream before InSquarePlacement samples the second origin.
+        for (int attempt = 0; attempt < 2; ++attempt) {
+            BlockPos origin = squareHeightmapPosition(world, random, chunkX, chunkZ);
+            if (origin == null || !FOREST_ROCK_BIOMES.contains(world.biomeAt(origin))) {
+                continue;
+            }
+            result.forestRockAttempts++;
+            if (placeForestRock(world, random, origin)) {
+                result.forestRocksPlaced++;
+            }
+        }
+        return result;
     }
 
     public static DecorationResult decorateEarlyTrees(WorldAccess world, long worldSeed,
@@ -542,6 +573,10 @@ public final class V118MountainSurfacePlacements {
         return FROZEN_SPRING_BIOMES.contains(biome);
     }
 
+    static boolean supportsForestRock(V118Biome biome) {
+        return FOREST_ROCK_BIOMES.contains(biome);
+    }
+
     static boolean supportsGroveTrees(V118Biome biome) {
         return biome == V118Biome.GROVE;
     }
@@ -784,6 +819,52 @@ public final class V118MountainSurfacePlacements {
             recordBroadleafTree(V118BeeTreeFeature.place(
                 world, random, origin, kind), origin, kind, result);
         }
+    }
+
+    private static boolean placeForestRock(WorldAccess world, Random random,
+            BlockPos origin) {
+        BlockPos center = origin;
+        while (center.getY() > world.minBuildHeight() + 3) {
+            BlockPos below = center.down();
+            if (!world.isAir(below) && world.isForestRockGround(below)) {
+                break;
+            }
+            center = below;
+        }
+        if (center.getY() <= world.minBuildHeight() + 3) {
+            return false;
+        }
+
+        for (int round = 0; round < 3; ++round) {
+            int radiusX = random.nextInt(2);
+            int radiusY = random.nextInt(2);
+            int radiusZ = random.nextInt(2);
+            float radius = (float) (radiusX + radiusY + radiusZ) * 0.333F + 0.5F;
+            float radiusSquared = radius * radius;
+
+            // BlockPos.betweenClosed advances X fastest, then Y, then Z.
+            for (int z = center.getZ() - radiusZ;
+                    z <= center.getZ() + radiusZ; ++z) {
+                for (int y = center.getY() - radiusY;
+                        y <= center.getY() + radiusY; ++y) {
+                    for (int x = center.getX() - radiusX;
+                            x <= center.getX() + radiusX; ++x) {
+                        int dx = x - center.getX();
+                        int dy = y - center.getY();
+                        int dz = z - center.getZ();
+                        if ((double) (dx * dx + dy * dy + dz * dz)
+                                <= (double) radiusSquared) {
+                            world.setMossyCobblestone(new BlockPos(x, y, z));
+                        }
+                    }
+                }
+            }
+
+            // The official feature consumes this recenter triplet after round three too.
+            center = center.add(-1 + random.nextInt(2), -random.nextInt(2),
+                -1 + random.nextInt(2));
+        }
+        return true;
     }
 
     private static void placeOakTrees(WorldAccess world, long worldSeed,
@@ -1309,6 +1390,18 @@ public final class V118MountainSurfacePlacements {
 
         boolean isSnowTreeSupport(BlockPos pos);
 
+        default boolean supportsForestRockPlacement() {
+            return false;
+        }
+
+        default boolean isForestRockGround(BlockPos pos) {
+            return false;
+        }
+
+        default void setMossyCobblestone(BlockPos pos) {
+            throw new UnsupportedOperationException("Forest rocks are not available");
+        }
+
         default boolean canSpruceSaplingSurvive(BlockPos pos) {
             return false;
         }
@@ -1503,6 +1596,8 @@ public final class V118MountainSurfacePlacements {
     }
 
     public static final class DecorationResult {
+        private int forestRockAttempts;
+        private int forestRocksPlaced;
         private int frozenSpringAttempts;
         private int frozenSpringsPlaced;
         private int treesPlaced;
@@ -1529,6 +1624,14 @@ public final class V118MountainSurfacePlacements {
         private int pumpkinsPlaced;
         private int waterFrozen;
         private int snowLayersPlaced;
+
+        public int forestRockAttempts() {
+            return forestRockAttempts;
+        }
+
+        public int forestRocksPlaced() {
+            return forestRocksPlaced;
+        }
 
         public int frozenSpringAttempts() {
             return frozenSpringAttempts;
