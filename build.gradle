@@ -153,6 +153,9 @@ task verifyReleaseJar(dependsOn: reobfJar) {
             if (zip.getEntry('net/celestiald/cavesnotcliffs/core/DoublePlantSupportTransformer.class') == null) {
                 throw new GradleException('Production jar is missing the double plant support transformer')
             }
+            if (zip.getEntry('net/celestiald/cavesnotcliffs/core/TallGrassSupportTransformer.class') == null) {
+                throw new GradleException('Production jar is missing the tall grass support transformer')
+            }
             if (zip.getEntry('net/celestiald/cavesnotcliffs/core/SchemaOnePopulationTransformer.class') == null) {
                 throw new GradleException('Production jar is missing the schema-one population transformer')
             }

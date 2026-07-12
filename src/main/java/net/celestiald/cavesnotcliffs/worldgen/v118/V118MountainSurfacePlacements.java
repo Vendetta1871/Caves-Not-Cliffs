@@ -28,12 +28,17 @@ public final class V118MountainSurfacePlacements {
     public static final int PATCH_TALL_GRASS_2_INDEX = 21;
     public static final int PATCH_LARGE_FERN_INDEX = 36;
     public static final int TREES_GROVE_INDEX = 40;
+    public static final int PATCH_GRASS_TAIGA_INDEX = 47;
+    public static final int PATCH_GRASS_FOREST_INDEX = 48;
+    public static final int PATCH_GRASS_TAIGA_2_INDEX = 49;
+    public static final int PATCH_GRASS_NORMAL_INDEX = 50;
     public static final int PATCH_DEAD_BUSH_INDEX = 51;
     public static final int BROWN_MUSHROOM_OLD_GROWTH_INDEX = 52;
     public static final int RED_MUSHROOM_OLD_GROWTH_INDEX = 53;
     public static final int PATCH_WATERLILY_INDEX = 54;
     public static final int BROWN_MUSHROOM_SWAMP_INDEX = 55;
     public static final int RED_MUSHROOM_SWAMP_INDEX = 56;
+    public static final int PATCH_GRASS_BADLANDS_INDEX = 57;
     public static final int PATCH_DEAD_BUSH_2_INDEX = 58;
     public static final int PATCH_DEAD_BUSH_BADLANDS_INDEX = 59;
     public static final int BROWN_MUSHROOM_NORMAL_INDEX = 60;
@@ -66,6 +71,26 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> LARGE_FERN_BIOMES = immutableSet(
         V118Biome.OLD_GROWTH_PINE_TAIGA, V118Biome.OLD_GROWTH_SPRUCE_TAIGA,
         V118Biome.SNOWY_TAIGA, V118Biome.TAIGA);
+    private static final Set<V118Biome> GRASS_TAIGA_BIOMES = immutableSet(
+        V118Biome.OLD_GROWTH_PINE_TAIGA, V118Biome.OLD_GROWTH_SPRUCE_TAIGA);
+    private static final Set<V118Biome> GRASS_FOREST_BIOMES = immutableSet(
+        V118Biome.BIRCH_FOREST, V118Biome.DARK_FOREST, V118Biome.FOREST,
+        V118Biome.OLD_GROWTH_BIRCH_FOREST);
+    private static final Set<V118Biome> GRASS_TAIGA_2_BIOMES = immutableSet(
+        V118Biome.SNOWY_TAIGA, V118Biome.TAIGA);
+    private static final Set<V118Biome> GRASS_NORMAL_BIOMES = immutableSet(
+        V118Biome.SWAMP, V118Biome.WINDSWEPT_SAVANNA);
+    private static final Set<V118Biome> GRASS_BADLANDS_BIOMES = immutableSet(
+        V118Biome.BADLANDS, V118Biome.BEACH, V118Biome.COLD_OCEAN,
+        V118Biome.DEEP_COLD_OCEAN, V118Biome.DEEP_FROZEN_OCEAN,
+        V118Biome.DEEP_LUKEWARM_OCEAN, V118Biome.DEEP_OCEAN, V118Biome.DESERT,
+        V118Biome.ERODED_BADLANDS, V118Biome.FLOWER_FOREST,
+        V118Biome.FROZEN_OCEAN, V118Biome.FROZEN_RIVER, V118Biome.ICE_SPIKES,
+        V118Biome.LUKEWARM_OCEAN, V118Biome.OCEAN, V118Biome.RIVER,
+        V118Biome.SNOWY_BEACH, V118Biome.SNOWY_PLAINS, V118Biome.STONY_SHORE,
+        V118Biome.WARM_OCEAN, V118Biome.WINDSWEPT_FOREST,
+        V118Biome.WINDSWEPT_GRAVELLY_HILLS, V118Biome.WINDSWEPT_HILLS,
+        V118Biome.WOODED_BADLANDS);
     private static final Set<V118Biome> DEAD_BUSH_BIOMES = immutableSet(
         V118Biome.OLD_GROWTH_PINE_TAIGA,
         V118Biome.OLD_GROWTH_SPRUCE_TAIGA, V118Biome.SWAMP);
@@ -178,13 +203,31 @@ public final class V118MountainSurfacePlacements {
         if (regionBiomes.contains(V118Biome.GROVE)) {
             placeGroveTrees(world, worldSeed, chunkX, chunkZ, result);
         }
+        boolean shortGrass = world.supportsShortGrassPlacement();
+        if (shortGrass && appearsIn(GRASS_TAIGA_BIOMES, regionBiomes)) {
+            placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_GRASS_TAIGA_INDEX, 7, true, GRASS_TAIGA_BIOMES, result);
+        }
+        if (shortGrass && appearsIn(GRASS_FOREST_BIOMES, regionBiomes)) {
+            placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_GRASS_FOREST_INDEX, 2, false, GRASS_FOREST_BIOMES, result);
+        }
+        if (shortGrass && appearsIn(GRASS_TAIGA_2_BIOMES, regionBiomes)) {
+            placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_GRASS_TAIGA_2_INDEX, 1, true, GRASS_TAIGA_2_BIOMES, result);
+        }
+        if (shortGrass && appearsIn(GRASS_NORMAL_BIOMES, regionBiomes)) {
+            placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_GRASS_NORMAL_INDEX, 5, false, GRASS_NORMAL_BIOMES, result);
+        }
         if (appearsIn(DEAD_BUSH_BIOMES, regionBiomes)) {
             placeDeadBushPatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_DEAD_BUSH_INDEX, 1, DEAD_BUSH_BIOMES, result);
         }
         boolean mushrooms = world.supportsMushroomPlacement();
-        // Preserve the dense registered sequence: shared dead bush 51, old-growth mushrooms
-        // 52/53, waterlily 54, swamp mushrooms 55/56, then desert/badlands bushes 58/59.
+        // Preserve the dense registered sequence: grass 47-50, shared dead bush 51,
+        // old-growth mushrooms 52/53, waterlily 54, swamp mushrooms 55/56,
+        // default grass 57, then desert/badlands bushes 58/59.
         if (mushrooms && appearsIn(MUSHROOM_OLD_GROWTH_BIOMES, regionBiomes)) {
             placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
                 BROWN_MUSHROOM_OLD_GROWTH_INDEX, 3, 4, false,
@@ -204,6 +247,11 @@ public final class V118MountainSurfacePlacements {
             placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
                 RED_MUSHROOM_SWAMP_INDEX, 1, 64, true,
                 MUSHROOM_SWAMP_BIOMES, result);
+        }
+        if (shortGrass && appearsIn(GRASS_BADLANDS_BIOMES, regionBiomes)) {
+            placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_GRASS_BADLANDS_INDEX, 1, false,
+                GRASS_BADLANDS_BIOMES, result);
         }
         if (regionBiomes.contains(V118Biome.DESERT)) {
             placeDeadBushPatch(world, worldSeed, chunkX, chunkZ,
@@ -364,6 +412,26 @@ public final class V118MountainSurfacePlacements {
 
     static boolean supportsLargeFern(V118Biome biome) {
         return LARGE_FERN_BIOMES.contains(biome);
+    }
+
+    static boolean supportsTaigaGrass(V118Biome biome) {
+        return GRASS_TAIGA_BIOMES.contains(biome);
+    }
+
+    static boolean supportsForestGrass(V118Biome biome) {
+        return GRASS_FOREST_BIOMES.contains(biome);
+    }
+
+    static boolean supportsTaigaGrass2(V118Biome biome) {
+        return GRASS_TAIGA_2_BIOMES.contains(biome);
+    }
+
+    static boolean supportsNormalGrass(V118Biome biome) {
+        return GRASS_NORMAL_BIOMES.contains(biome);
+    }
+
+    static boolean supportsBadlandsGrass(V118Biome biome) {
+        return GRASS_BADLANDS_BIOMES.contains(biome);
     }
 
     static int tallGrass2Count(int chunkX, int chunkZ) {
@@ -557,6 +625,51 @@ public final class V118MountainSurfacePlacements {
                 } else {
                     world.setTallGrass(candidate);
                     result.tallGrassPlaced++;
+                }
+            }
+        }
+    }
+
+    private static void placeShortGrassPatch(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, int globalIndex, int outerAttempts,
+            boolean taigaWeighted, Set<V118Biome> featureBiomes,
+            DecorationResult result) {
+        V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
+            globalIndex, VEGETAL_DECORATION_STEP);
+        int originX = chunkX << 4;
+        int originZ = chunkZ << 4;
+        // CountPlacement is lazy: each origin completes all 32 configured-patch tries
+        // before the next InSquare position is sampled from this feature stream.
+        for (int outer = 0; outer < outerAttempts; ++outer) {
+            int x = originX + random.nextInt(16);
+            int z = originZ + random.nextInt(16);
+            int y = world.worldSurfaceHeight(x, z);
+            if (y <= world.minBuildHeight()) {
+                continue;
+            }
+            BlockPos origin = new BlockPos(x, y, z);
+            if (!featureBiomes.contains(world.biomeAt(origin))) {
+                continue;
+            }
+            for (int attempt = 0; attempt < 32; ++attempt) {
+                BlockPos candidate = origin.add(random.nextInt(8) - random.nextInt(8),
+                    random.nextInt(4) - random.nextInt(4),
+                    random.nextInt(8) - random.nextInt(8));
+                if (!world.isShortGrassPlacementAir(candidate)) {
+                    continue;
+                }
+                // WeightedStateProvider is evaluated after the exact-air predicate and
+                // before the selected state's survival query.
+                boolean fern = taigaWeighted && random.nextInt(5) != 0;
+                if (!world.canShortGrassSurvive(candidate)) {
+                    continue;
+                }
+                if (fern) {
+                    world.setFern(candidate);
+                    result.fernsPlaced++;
+                } else {
+                    world.setShortGrass(candidate);
+                    result.shortGrassPlaced++;
                 }
             }
         }
@@ -888,6 +1001,18 @@ public final class V118MountainSurfacePlacements {
             return false;
         }
 
+        default boolean isShortGrassPlacementAir(BlockPos pos) {
+            return false;
+        }
+
+        default boolean canShortGrassSurvive(BlockPos pos) {
+            return false;
+        }
+
+        default boolean supportsShortGrassPlacement() {
+            return false;
+        }
+
         default boolean isMushroomPlacementAir(BlockPos pos) {
             return false;
         }
@@ -956,6 +1081,14 @@ public final class V118MountainSurfacePlacements {
             throw new UnsupportedOperationException("Large-fern placement is not available");
         }
 
+        default void setShortGrass(BlockPos pos) {
+            throw new UnsupportedOperationException("Short-grass placement is not available");
+        }
+
+        default void setFern(BlockPos pos) {
+            throw new UnsupportedOperationException("Fern placement is not available");
+        }
+
         default void setBrownMushroom(BlockPos pos) {
             throw new UnsupportedOperationException("Brown mushroom placement is not available");
         }
@@ -989,6 +1122,8 @@ public final class V118MountainSurfacePlacements {
         private int leavesPlaced;
         private int tallGrassPlaced;
         private int largeFernsPlaced;
+        private int shortGrassPlaced;
+        private int fernsPlaced;
         private int deadBushesPlaced;
         private int brownMushroomsPlaced;
         private int redMushroomsPlaced;
@@ -1034,6 +1169,14 @@ public final class V118MountainSurfacePlacements {
 
         public int largeFernsPlaced() {
             return largeFernsPlaced;
+        }
+
+        public int shortGrassPlaced() {
+            return shortGrassPlaced;
+        }
+
+        public int fernsPlaced() {
+            return fernsPlaced;
         }
 
         public int deadBushesPlaced() {

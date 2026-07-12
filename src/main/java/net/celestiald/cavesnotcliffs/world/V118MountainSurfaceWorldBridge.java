@@ -11,6 +11,7 @@ import net.celestiald.cavesnotcliffs.content.LilyPadSupportHooks;
 import net.celestiald.cavesnotcliffs.content.LushCaveContent;
 import net.celestiald.cavesnotcliffs.content.MushroomSupportHooks;
 import net.celestiald.cavesnotcliffs.content.PlainPumpkinContent;
+import net.celestiald.cavesnotcliffs.content.TallGrassSupportHooks;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements;
@@ -239,6 +240,22 @@ final class V118MountainSurfaceWorldBridge
 
     @Override
     public boolean supportsDoublePlantPlacement() {
+        return true;
+    }
+
+    @Override
+    public boolean isShortGrassPlacementAir(BlockPos pos) {
+        return inside(pos) && world.getBlockState(pos).getBlock() == Blocks.AIR;
+    }
+
+    @Override
+    public boolean canShortGrassSurvive(BlockPos pos) {
+        return inside(pos) && inside(pos.down())
+            && TallGrassSupportHooks.canStay(world, pos);
+    }
+
+    @Override
+    public boolean supportsShortGrassPlacement() {
         return true;
     }
 
@@ -484,6 +501,20 @@ final class V118MountainSurfaceWorldBridge
         if (inside(pos)) {
             Blocks.DOUBLE_PLANT.placeAt(world, pos,
                 BlockDoublePlant.EnumPlantType.byMetadata(3), 2);
+        }
+    }
+
+    @Override
+    public void setShortGrass(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.TALLGRASS.getStateFromMeta(1), 2);
+        }
+    }
+
+    @Override
+    public void setFern(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.TALLGRASS.getStateFromMeta(2), 2);
         }
     }
 
