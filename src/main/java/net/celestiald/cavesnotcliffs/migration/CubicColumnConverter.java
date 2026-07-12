@@ -297,7 +297,25 @@ public final class CubicColumnConverter {
             requireBytes(cube, "Biomes3D", 64,
                     "cube " + describe(chunkX, cubeY, chunkZ));
         }
+        for (String key : Arrays.asList("Sections", "Entities", "TileEntities", "TileTicks")) {
+            validateCompoundList(cube, key, chunkX, cubeY, chunkZ);
+        }
         return cube;
+    }
+
+    private static void validateCompoundList(NBTTagCompound cube, String key,
+            int chunkX, int cubeY, int chunkZ) throws CubicColumnConversionException {
+        if (!cube.hasKey(key)) {
+            return;
+        }
+        if (!cube.hasKey(key, 9)) {
+            throw fail(chunkX, chunkZ, "cube Y=" + cubeY + " has non-list " + key);
+        }
+        NBTTagList values = (NBTTagList) cube.getTag(key);
+        if (values.getTagType() != 0 && values.getTagType() != 10) {
+            throw fail(chunkX, chunkZ, "cube Y=" + cubeY
+                    + " has non-compound entries in " + key);
+        }
     }
 
     private static void copySection(NBTTagCompound cube, int cubeY, NBTTagList target,

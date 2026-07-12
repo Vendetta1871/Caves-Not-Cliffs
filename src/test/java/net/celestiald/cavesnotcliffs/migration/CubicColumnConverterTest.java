@@ -4,6 +4,7 @@ import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldData;
 import net.celestiald.cavesnotcliffs.world.LegacySchemaTwoFluidHandler;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagDouble;
+import net.minecraft.nbt.NBTTagString;
 import net.minecraft.nbt.NBTTagList;
 import org.junit.Test;
 
@@ -222,6 +223,41 @@ public class CubicColumnConverterTest {
         cube(cubes, 0).setString("thirdPartyCubePayload", "must not disappear");
         expectFailure("unsupported data tag 'thirdPartyCubePayload'", column(), cubes,
                 CavesNotCliffsWorldData.CURRENT_SCHEMA);
+    }
+
+    @Test
+    public void rejectsWrongListElementTypesInsteadOfSilentlyDroppingState() throws Exception {
+        Map<Integer, NBTTagCompound> cubes = completeCubes(-4, 20, true);
+        NBTTagList strings = new NBTTagList();
+        strings.appendTag(new NBTTagString("not-an-entity"));
+        cube(cubes, 2).getCompoundTag("Level").setTag("Entities", strings);
+        expectFailure("non-compound entries in Entities", column(), cubes,
+                CavesNotCliffsWorldData.CURRENT_SCHEMA);
+
+        cubes = completeCubes(-4, 20, true);
+        NBTTagList sections = new NBTTagList();
+        sections.appendTag(new NBTTagString("not-a-section"));
+        cube(cubes, 3).getCompoundTag("Level").setTag("Sections", sections);
+        expectFailure("non-compound entries in Sections", column(), cubes,
+                CavesNotCliffsWorldData.CURRENT_SCHEMA);
+    }
+
+    @Test
+    public void rejectsWrongDynamicListTypeOnRegenerableLookahead() throws Exception {
+        Map<Integer, NBTTagCompound> cubes = new TreeMap<Integer, NBTTagCompound>();
+        NBTTagCompound lookahead = cubeRoot(-6, false);
+        NBTTagList strings = new NBTTagList();
+        strings.appendTag(new NBTTagString("must-not-be-discarded"));
+        lookahead.getCompoundTag("Level").setTag("TileTicks", strings);
+        cubes.put(-6, lookahead);
+
+        try {
+            CubicColumnConverter.validateRegenerableLookahead(cubes);
+            fail("Expected wrong lookahead list element type rejection");
+        } catch (CubicColumnConversionException expected) {
+            assertTrue(expected.getMessage().contains(
+                    "non-compound entries in TileTicks"));
+        }
     }
 
     @Test
