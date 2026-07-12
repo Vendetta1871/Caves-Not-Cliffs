@@ -201,6 +201,8 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         mountainSurface.populatePreLateTrees(chunkX, chunkZ, decorationBiomes);
         // Large fern index 36 follows windswept-forest trees at 35.
         mountainSurface.populateLateDoublePlants(chunkX, chunkZ, decorationBiomes);
+        // Old-growth pine and spruce tree selectors occupy indices 37 and 38.
+        mountainSurface.populateOldGrowthTrees(chunkX, chunkZ, decorationBiomes);
         // Indices 39-42, 44-64, 66-69, 71, 72, 74, and 75 follow.
         mountainSurface.populateVegetation(chunkX, chunkZ, decorationBiomes);
         // TOP_LAYER_MODIFICATION step 10 is the last represented decoration stage.

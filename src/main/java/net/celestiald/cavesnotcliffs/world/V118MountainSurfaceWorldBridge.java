@@ -25,6 +25,7 @@ import net.celestiald.cavesnotcliffs.worldgen.v118.V118LushCaveFeature;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118LavaLakePlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Material;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118MountainSurfacePlacements;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118OldGrowthTreeFeature;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDirt;
 import net.minecraft.block.BlockDoublePlant;
@@ -52,7 +53,8 @@ final class V118MountainSurfaceWorldBridge
             V118DefaultSpringPlacements.WorldAccess,
             V118DesertWellPlacements.WorldAccess,
             V118IceSurfacePlacements.WorldAccess,
-            V118LavaLakePlacements.WorldAccess {
+            V118LavaLakePlacements.WorldAccess,
+            V118OldGrowthTreeFeature.WorldAccess {
     private final World world;
     private final V118ChunkGenerator generator;
     private final SpringValidBlocks springValidBlocks;
@@ -160,6 +162,18 @@ final class V118MountainSurfaceWorldBridge
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
         return V118MountainSurfacePlacements.decorateLateDoublePlants(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
+    }
+
+    void populateOldGrowthTrees(int chunkX, int chunkZ,
+            Set<V118Biome> regionBiomes) {
+        if (regionBiomes.contains(V118Biome.OLD_GROWTH_PINE_TAIGA)) {
+            V118OldGrowthTreeFeature.place(this, world.getSeed(), chunkX, chunkZ,
+                V118OldGrowthTreeFeature.Family.OLD_GROWTH_PINE_TAIGA);
+        }
+        if (regionBiomes.contains(V118Biome.OLD_GROWTH_SPRUCE_TAIGA)) {
+            V118OldGrowthTreeFeature.place(this, world.getSeed(), chunkX, chunkZ,
+                V118OldGrowthTreeFeature.Family.OLD_GROWTH_SPRUCE_TAIGA);
+        }
     }
 
     V118MountainSurfacePlacements.DecorationResult populatePreLateTrees(
@@ -557,6 +571,23 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public boolean isGrassBlock(BlockPos pos) {
         return inside(pos) && world.getBlockState(pos).getBlock() == Blocks.GRASS;
+    }
+
+    @Override
+    public boolean isVine(BlockPos pos) {
+        return inside(pos) && world.getBlockState(pos).getBlock() == Blocks.VINE;
+    }
+
+    @Override
+    public boolean isGrassOrDirt(BlockPos pos) {
+        return inside(pos) && isDirtTag(world.getBlockState(pos).getBlock());
+    }
+
+    @Override
+    public void setPodzol(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.DIRT.getStateFromMeta(2), 2);
+        }
     }
 
     @Override
