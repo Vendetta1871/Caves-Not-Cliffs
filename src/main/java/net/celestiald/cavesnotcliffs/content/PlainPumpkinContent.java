@@ -18,9 +18,13 @@ import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.item.crafting.Ingredient;
+import net.minecraft.item.crafting.ShapelessRecipes;
 import net.minecraft.stats.StatList;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.SoundEvent;
@@ -30,11 +34,14 @@ import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.IForgeRegistryModifiable;
 
 /** Public Java 1.18.2 plain-pumpkin peer for the carved 1.12 pumpkin split. */
 @Mod.EventBusSubscriber(modid = CavesNotCliffs.MODID)
@@ -46,6 +53,10 @@ public final class PlainPumpkinContent {
     static final double SEED_Y_MOTION = 0.05D;
     private static final ResourceLocation CARVE_SOUND_ID =
             CncRegistryIds.id("block.pumpkin.carve");
+    static final ResourceLocation PUMPKIN_SEEDS_RECIPE_ID =
+            new ResourceLocation("minecraft", "pumpkin_seeds");
+    static final ResourceLocation PUMPKIN_PIE_RECIPE_ID =
+            new ResourceLocation("minecraft", "pumpkin_pie");
 
     @GameRegistry.ObjectHolder("cavesnotcliffs:pumpkin")
     public static final Block PUMPKIN = null;
@@ -76,6 +87,24 @@ public final class PlainPumpkinContent {
         event.getRegistry().register(PUMPKIN_CARVE);
     }
 
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void replacePumpkinRecipes(RegistryEvent.Register<IRecipe> event) {
+        IForgeRegistry<IRecipe> registry = event.getRegistry();
+        if (!(registry instanceof IForgeRegistryModifiable)) {
+            throw new IllegalStateException(
+                    "Recipe registry does not support canonical pumpkin replacement");
+        }
+        Item pumpkin = ForgeRegistries.ITEMS.getValue(CncRegistryIds.PUMPKIN);
+        if (pumpkin == null) {
+            throw new IllegalStateException(
+                    "Plain pumpkin item was not registered before its recipes");
+        }
+        @SuppressWarnings("unchecked")
+        IForgeRegistryModifiable<IRecipe> modifiable =
+                (IForgeRegistryModifiable<IRecipe>) registry;
+        replacePumpkinRecipes(modifiable, pumpkin);
+    }
+
     @SubscribeEvent
     @SideOnly(Side.CLIENT)
     public static void registerModels(ModelRegistryEvent event) {
@@ -92,6 +121,45 @@ public final class PlainPumpkinContent {
 
     static ItemBlock createItem(Block block) {
         return (ItemBlock) new ItemBlock(block).setRegistryName(CncRegistryIds.PUMPKIN);
+    }
+
+    static void replacePumpkinRecipes(IForgeRegistryModifiable<IRecipe> registry,
+            Item pumpkin) {
+        if (registry.isLocked()) {
+            throw new IllegalStateException(
+                    "Recipe registry was locked before canonical pumpkin replacement");
+        }
+        if (!registry.containsKey(PUMPKIN_SEEDS_RECIPE_ID)
+                || !registry.containsKey(PUMPKIN_PIE_RECIPE_ID)) {
+            throw new IllegalStateException(
+                    "Canonical vanilla pumpkin recipes were missing during replacement");
+        }
+        // Forge loads JSON recipes before firing this registry event, so keep the
+        // vanilla recipe-book IDs while replacing only their ingredient contracts.
+        registry.remove(PUMPKIN_SEEDS_RECIPE_ID);
+        registry.remove(PUMPKIN_PIE_RECIPE_ID);
+        registry.register(pumpkinSeedsRecipe(pumpkin));
+        registry.register(pumpkinPieRecipe(pumpkin));
+    }
+
+    static ShapelessRecipes pumpkinSeedsRecipe(Item pumpkin) {
+        NonNullList<Ingredient> ingredients = NonNullList.create();
+        ingredients.add(Ingredient.fromItem(pumpkin));
+        ShapelessRecipes recipe = new ShapelessRecipes("",
+                new ItemStack(Items.PUMPKIN_SEEDS, CARVE_SEED_COUNT), ingredients);
+        recipe.setRegistryName(PUMPKIN_SEEDS_RECIPE_ID);
+        return recipe;
+    }
+
+    static ShapelessRecipes pumpkinPieRecipe(Item pumpkin) {
+        NonNullList<Ingredient> ingredients = NonNullList.create();
+        ingredients.add(Ingredient.fromItem(pumpkin));
+        ingredients.add(Ingredient.fromItem(Items.SUGAR));
+        ingredients.add(Ingredient.fromItem(Items.EGG));
+        ShapelessRecipes recipe = new ShapelessRecipes("",
+                new ItemStack(Items.PUMPKIN_PIE), ingredients);
+        recipe.setRegistryName(PUMPKIN_PIE_RECIPE_ID);
+        return recipe;
     }
 
     static EnumFacing carvedFacing(EnumFacing clickedFace, EnumFacing playerFacing) {
@@ -115,7 +183,8 @@ public final class PlainPumpkinContent {
     static final class PlainPumpkinBlock extends Block {
         PlainPumpkinBlock() {
             super(Material.GOURD, MapColor.ADOBE);
-            setUnlocalizedName("pumpkin");
+            // The 1.12 carved peer already owns tile.pumpkin; keep the item names distinct.
+            setUnlocalizedName("plain_pumpkin");
             setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.WOOD);
             setHardness(1.0F);

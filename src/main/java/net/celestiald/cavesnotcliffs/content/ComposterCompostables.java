@@ -81,8 +81,9 @@ public final class ComposterCompostables {
 
         // 65 percent.
         add(entries, 0.65F, "minecraft:waterlily");
-        // The target runtime's minecraft:pumpkin is the carved peer.
+        // Java 1.18.2 composts both the plain and carved peers at the same rate.
         add(entries, 0.65F, "cavesnotcliffs:pumpkin");
+        add(entries, 0.65F, "minecraft:pumpkin");
         add(entries, 0.65F, "minecraft:melon_block");
         add(entries, 0.65F, "minecraft:apple");
         add(entries, 0.65F, "minecraft:beetroot");

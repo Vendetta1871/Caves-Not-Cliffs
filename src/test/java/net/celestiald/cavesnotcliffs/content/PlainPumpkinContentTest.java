@@ -1,6 +1,5 @@
 package net.celestiald.cavesnotcliffs.content;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
@@ -52,6 +51,7 @@ public class PlainPumpkinContentTest {
         assertEquals(CncRegistryIds.PUMPKIN, block.getRegistryName());
         assertEquals(CncRegistryIds.PUMPKIN, item.getRegistryName());
         assertSame(block, item.getBlock());
+        assertEquals("tile.plain_pumpkin", block.getUnlocalizedName());
         assertTrue(block.getBlockState().getProperties().isEmpty());
         assertEquals(1, block.getBlockState().getValidStates().size());
         assertSame(Material.GOURD, block.getMaterial(state));
@@ -102,32 +102,11 @@ public class PlainPumpkinContentTest {
     }
 
     @Test
-    public void recipesAndComposterUseOnlyThePlainPeer() {
-        JsonObject seeds = json("recipes/pumpkin_seeds.json");
-        JsonArray seedIngredients = seeds.getAsJsonArray("ingredients");
-        assertEquals(1, seedIngredients.size());
-        assertEquals("cavesnotcliffs:pumpkin", seedIngredients.get(0)
-                .getAsJsonObject().get("item").getAsString());
-        assertEquals("minecraft:pumpkin_seeds",
-                seeds.getAsJsonObject("result").get("item").getAsString());
-        assertEquals(4, seeds.getAsJsonObject("result").get("count").getAsInt());
-
-        JsonObject pie = json("recipes/pumpkin_pie.json");
-        assertEquals(3, pie.getAsJsonArray("ingredients").size());
-        assertEquals("cavesnotcliffs:pumpkin", pie.getAsJsonArray("ingredients")
-                .get(0).getAsJsonObject().get("item").getAsString());
-        assertEquals("minecraft:sugar", pie.getAsJsonArray("ingredients")
-                .get(1).getAsJsonObject().get("item").getAsString());
-        assertEquals("minecraft:egg", pie.getAsJsonArray("ingredients")
-                .get(2).getAsJsonObject().get("item").getAsString());
-        assertEquals("minecraft:pumpkin_pie",
-                pie.getAsJsonObject("result").get("item").getAsString());
-
+    public void plainAndCarvedPumpkinsKeepTheirVanillaCompostChance() {
         assertEquals(0.65F, ComposterCompostables.chance(
                 CncRegistryIds.PUMPKIN, 0), 0.0F);
-        assertEquals(ComposterCompostables.NOT_COMPOSTABLE,
-                ComposterCompostables.chance(
-                        new ResourceLocation("minecraft:pumpkin"), 0), 0.0F);
+        assertEquals(0.65F, ComposterCompostables.chance(
+                new ResourceLocation("minecraft:pumpkin"), 0), 0.0F);
     }
 
     @Test
