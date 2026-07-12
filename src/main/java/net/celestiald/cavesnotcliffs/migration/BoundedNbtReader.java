@@ -7,6 +7,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.Channels;
@@ -187,6 +188,9 @@ final class BoundedNbtReader {
                     throw new IOException(description + " contains " + trailing
                             + " trailing decompressed bytes after its root NBT tag at " + path);
                 }
+            } catch (EOFException exception) {
+                throw new IOException(description + " has truncated bounded NBT at " + path,
+                        exception);
             }
         }
 
