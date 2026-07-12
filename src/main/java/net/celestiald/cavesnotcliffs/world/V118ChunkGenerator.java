@@ -179,11 +179,16 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         // FLUID_SPRINGS step 8 indices 0, 1, then 2, after underground decoration.
         mountainSurface.populateDefaultSprings(chunkX, chunkZ, decorationBiomes);
         mountainSurface.populateFrozenSprings(chunkX, chunkZ, decorationBiomes);
-        // VEGETAL_DECORATION begins with wooded-badlands oak trees at global index 5.
+        // VEGETAL_DECORATION index 1 is the windswept-savanna acacia/oak selector.
+        mountainSurface.populateWindsweptSavannaTrees(
+            chunkX, chunkZ, decorationBiomes);
+        // Wooded-badlands oak trees follow at global index 5.
         mountainSurface.populateEarlyTrees(chunkX, chunkZ, decorationBiomes);
         // VEGETAL_DECORATION index 8 precedes omitted tree index 9 and warm flowers at 10.
         mountainSurface.populateEarlyDoublePlants(chunkX, chunkZ, decorationBiomes);
-        // Warm flowers at index 10 follow omitted tree index 9.
+        // The savanna acacia/oak selector occupies index 9 before warm flowers at 10.
+        mountainSurface.populateSavannaTrees(chunkX, chunkZ, decorationBiomes);
+        // Warm flowers follow at index 10.
         mountainSurface.populateEarlyFlowers(chunkX, chunkZ, decorationBiomes);
         // Grass indices 11/12 occupy the represented slots before omitted index 13.
         mountainSurface.populateEarlyShortGrass(chunkX, chunkZ, decorationBiomes);

@@ -120,6 +120,18 @@ final class V118MountainSurfaceWorldBridge
             chunkX, chunkZ, regionBiomes);
     }
 
+    V118MountainSurfacePlacements.DecorationResult populateWindsweptSavannaTrees(
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return V118MountainSurfacePlacements.decorateWindsweptSavannaTrees(
+            this, world.getSeed(), chunkX, chunkZ, regionBiomes);
+    }
+
+    V118MountainSurfacePlacements.DecorationResult populateSavannaTrees(
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return V118MountainSurfacePlacements.decorateSavannaTrees(
+            this, world.getSeed(), chunkX, chunkZ, regionBiomes);
+    }
+
     V118MountainSurfacePlacements.DecorationResult populateEarlyDoublePlants(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
         return V118MountainSurfacePlacements.decorateEarlyDoublePlants(this, world.getSeed(),
@@ -520,6 +532,11 @@ final class V118MountainSurfaceWorldBridge
     }
 
     @Override
+    public boolean supportsAcaciaTreePlacement() {
+        return true;
+    }
+
+    @Override
     public boolean isFrozenSpringValid(BlockPos pos) {
         if (!inside(pos)) {
             return false;
@@ -791,6 +808,24 @@ final class V118MountainSurfaceWorldBridge
             return;
         }
         IBlockState state = Blocks.LEAVES.getStateFromMeta(1)
+            .withProperty(BlockLeaves.CHECK_DECAY, false)
+            .withProperty(BlockLeaves.DECAYABLE, true);
+        world.setBlockState(pos, state, 2);
+    }
+
+    @Override
+    public void setAcaciaLog(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.LOG2.getStateFromMeta(0), 2);
+        }
+    }
+
+    @Override
+    public void setAcaciaLeaves(BlockPos pos) {
+        if (!inside(pos)) {
+            return;
+        }
+        IBlockState state = Blocks.LEAVES2.getStateFromMeta(0)
             .withProperty(BlockLeaves.CHECK_DECAY, false)
             .withProperty(BlockLeaves.DECAYABLE, true);
         world.setBlockState(pos, state, 2);

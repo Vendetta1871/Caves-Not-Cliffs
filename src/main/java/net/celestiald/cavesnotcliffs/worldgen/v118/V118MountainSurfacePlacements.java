@@ -33,7 +33,9 @@ public final class V118MountainSurfacePlacements {
     public static final int FOREST_ROCK_INDEX = 4;
     public static final int SPRING_LAVA_FROZEN_INDEX = 2;
     public static final int TREES_BADLANDS_INDEX = 5;
+    public static final int TREES_WINDSWEPT_SAVANNA_INDEX = 1;
     public static final int PATCH_TALL_GRASS_INDEX = 8;
+    public static final int TREES_SAVANNA_INDEX = 9;
     public static final int FLOWER_WARM_INDEX = 10;
     public static final int PATCH_GRASS_JUNGLE_INDEX = 11;
     public static final int PATCH_GRASS_SAVANNA_INDEX = 12;
@@ -88,6 +90,10 @@ public final class V118MountainSurfacePlacements {
         V118Biome.OLD_GROWTH_SPRUCE_TAIGA);
     private static final Set<V118Biome> BADLANDS_TREE_BIOMES = immutableSet(
         V118Biome.WOODED_BADLANDS);
+    private static final Set<V118Biome> WINDSWEPT_SAVANNA_TREE_BIOMES = immutableSet(
+        V118Biome.WINDSWEPT_SAVANNA);
+    private static final Set<V118Biome> SAVANNA_TREE_BIOMES = immutableSet(
+        V118Biome.SAVANNA, V118Biome.SAVANNA_PLATEAU);
     private static final Set<V118Biome> TALL_GRASS_BIOMES = immutableSet(
         V118Biome.SAVANNA, V118Biome.SAVANNA_PLATEAU);
     private static final Set<V118Biome> FLOWER_WARM_BIOMES = immutableSet(
@@ -240,6 +246,33 @@ public final class V118MountainSurfacePlacements {
             placeOakTrees(world, worldSeed, chunkX, chunkZ,
                 TREES_BADLANDS_INDEX, 5, false,
                 BADLANDS_TREE_BIOMES, result);
+        }
+        return result;
+    }
+
+    public static DecorationResult decorateWindsweptSavannaTrees(WorldAccess world,
+            long worldSeed, int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        requireArguments(world, regionBiomes);
+        DecorationResult result = new DecorationResult();
+        if (world.supportsAcaciaTreePlacement()
+                && world.supportsBroadleafTreePlacement()
+                && appearsIn(WINDSWEPT_SAVANNA_TREE_BIOMES, regionBiomes)) {
+            placeSavannaTrees(world, worldSeed, chunkX, chunkZ,
+                TREES_WINDSWEPT_SAVANNA_INDEX, 2,
+                WINDSWEPT_SAVANNA_TREE_BIOMES, result);
+        }
+        return result;
+    }
+
+    public static DecorationResult decorateSavannaTrees(WorldAccess world,
+            long worldSeed, int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        requireArguments(world, regionBiomes);
+        DecorationResult result = new DecorationResult();
+        if (world.supportsAcaciaTreePlacement()
+                && world.supportsBroadleafTreePlacement()
+                && appearsIn(SAVANNA_TREE_BIOMES, regionBiomes)) {
+            placeSavannaTrees(world, worldSeed, chunkX, chunkZ,
+                TREES_SAVANNA_INDEX, 1, SAVANNA_TREE_BIOMES, result);
         }
         return result;
     }
@@ -833,6 +866,40 @@ public final class V118MountainSurfacePlacements {
         }
     }
 
+    private static void placeSavannaTrees(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, int globalIndex, int baseCount,
+            Set<V118Biome> featureBiomes, DecorationResult result) {
+        V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
+            globalIndex, VEGETAL_DECORATION_STEP);
+        int attempts = baseCount + (random.nextInt(10) == 9 ? 1 : 0);
+        for (int attempt = 0; attempt < attempts; ++attempt) {
+            BlockPos origin = sampleTreeOrigin(world, random, chunkX, chunkZ,
+                featureBiomes);
+            if (origin == null) {
+                continue;
+            }
+            // RandomSelector checks its 0.8 acacia child first and otherwise uses oak.
+            boolean acacia = random.nextFloat() < 0.8F;
+            if (!world.canBroadleafSaplingSurvive(origin)) {
+                continue;
+            }
+            if (acacia) {
+                V118AcaciaTreeFeature.Result tree = V118AcaciaTreeFeature.place(
+                    world, random, origin);
+                if (tree.placed()) {
+                    result.treesPlaced++;
+                    result.acaciasPlaced++;
+                    result.logsPlaced += tree.trunks();
+                    result.leavesPlaced += tree.foliage();
+                }
+            } else {
+                recordBroadleafTree(V118BeeTreeFeature.place(
+                    world, random, origin, TreeKind.OAK), origin,
+                    TreeKind.OAK, result);
+            }
+        }
+    }
+
     private static boolean placeForestRock(WorldAccess world, Random random,
             BlockPos origin) {
         BlockPos center = origin;
@@ -1421,7 +1488,7 @@ public final class V118MountainSurfacePlacements {
     }
 
     public interface WorldAccess extends V118MountainTreeFeature.WorldAccess,
-            V118BeeTreeFeature.WorldAccess {
+            V118BeeTreeFeature.WorldAccess, V118AcaciaTreeFeature.WorldAccess {
         V118Biome biomeAt(BlockPos pos);
 
         int worldSurfaceHeight(int blockX, int blockZ);
@@ -1466,6 +1533,20 @@ public final class V118MountainSurfacePlacements {
 
         default boolean supportsBroadleafTreePlacement() {
             return false;
+        }
+
+        default boolean supportsAcaciaTreePlacement() {
+            return false;
+        }
+
+        @Override
+        default void setAcaciaLog(BlockPos pos) {
+            throw new UnsupportedOperationException("Acacia logs are not available");
+        }
+
+        @Override
+        default void setAcaciaLeaves(BlockPos pos) {
+            throw new UnsupportedOperationException("Acacia leaves are not available");
         }
 
         @Override
@@ -1673,6 +1754,7 @@ public final class V118MountainSurfacePlacements {
         private int sprucesPlaced;
         private int oaksPlaced;
         private int fancyOaksPlaced;
+        private int acaciasPlaced;
         private int logsPlaced;
         private int leavesPlaced;
         private int tallGrassPlaced;
@@ -1728,6 +1810,10 @@ public final class V118MountainSurfacePlacements {
 
         public int fancyOaksPlaced() {
             return fancyOaksPlaced;
+        }
+
+        public int acaciasPlaced() {
+            return acaciasPlaced;
         }
 
         public int logsPlaced() {
