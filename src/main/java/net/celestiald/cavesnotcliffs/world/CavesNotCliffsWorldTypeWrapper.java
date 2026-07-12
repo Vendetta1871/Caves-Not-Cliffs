@@ -55,7 +55,7 @@ public final class CavesNotCliffsWorldTypeWrapper extends WorldType
         if (V118ChunkGenerator.isNativeProfile(persistedProfile)) {
             return new V118ChunkGenerator(world, persistedProfile, baseGenerator);
         }
-        return new LegacyFiniteChunkGenerator(world, baseGenerator, persistedProfile);
+        return DelegatingFiniteChunkGenerator.wrap(baseGenerator);
     }
 
     @Override
