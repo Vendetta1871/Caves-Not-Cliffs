@@ -32,6 +32,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.stats.StatBase;
+import net.minecraft.stats.StatList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
@@ -221,10 +223,15 @@ public final class BlockBeehive extends ElementsCavesNotCliffs.ModElement {
             if (held.getItem() == Items.SHEARS) {
                 harvested = true;
                 if (!world.isRemote) {
+                    Item used = held.getItem();
                     world.playSound(null, pos, BeeSoundEvents.BEEHIVE_SHEAR,
                             SoundCategory.NEUTRAL, 1.0F, 1.0F);
                     spawnAsEntity(world, pos, new ItemStack(honeycomb, 3));
                     held.damageItem(1, player);
+                    StatBase stat = StatList.getObjectUseStats(used);
+                    if (stat != null) {
+                        player.addStat(stat);
+                    }
                 }
             } else if (BeehiveHarvestHooks.tryBottleHarvest(world, pos, state,
                     player, hand, held)) {

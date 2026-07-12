@@ -332,11 +332,13 @@ public final class CampfireContent extends ElementsCavesNotCliffs.ModElement {
             }
             if (held.getItem() instanceof ItemSpade && state.getValue(LIT)) {
                 if (!world.isRemote) {
+                    Item used = held.getItem();
                     world.playSound(null, pos, SoundEvents.BLOCK_FIRE_EXTINGUISH,
                         SoundCategory.BLOCKS, 1.0F, 1.0F);
                     held.damageItem(1, player);
                     douse(player, world, pos, state);
                     world.setBlockState(pos, state.withProperty(LIT, false), 11);
+                    awardUseStat(player, used);
                 }
                 return true;
             }
