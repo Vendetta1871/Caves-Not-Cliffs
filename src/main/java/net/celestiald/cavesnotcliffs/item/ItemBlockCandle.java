@@ -3,6 +3,7 @@ package net.celestiald.cavesnotcliffs.item;
 import net.celestiald.cavesnotcliffs.block.BlockCandle;
 import net.celestiald.cavesnotcliffs.content.CandleMechanics;
 import net.minecraft.advancements.CriteriaTriggers;
+import net.minecraft.block.SoundType;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -12,6 +13,7 @@ import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.SoundCategory;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -29,24 +31,37 @@ public final class ItemBlockCandle extends ItemBlock {
         if (state.getBlock() == block
                 && CandleMechanics.canStack(true, player.isSneaking(),
                         state.getValue(BlockCandle.CANDLES))) {
-            if (!player.canPlayerEdit(pos, facing, held)) {
+            if (held.isEmpty() || !player.canPlayerEdit(pos, facing, held)) {
                 return EnumActionResult.FAIL;
             }
-            if (!world.isRemote) {
-                world.setBlockState(pos, state.withProperty(BlockCandle.CANDLES,
-                        CandleMechanics.stackedCount(
-                                state.getValue(BlockCandle.CANDLES))), 11);
-                world.playSound(null, pos, block.getSoundType(state, world, pos, player)
-                                .getPlaceSound(), SoundCategory.BLOCKS,
-                        (block.getSoundType().getVolume() + 1.0F) / 2.0F,
-                        block.getSoundType().getPitch() * 0.8F);
+
+            IBlockState placed = state.withProperty(BlockCandle.CANDLES,
+                    CandleMechanics.stackedCount(state.getValue(BlockCandle.CANDLES)));
+            AxisAlignedBB collision = placed.getCollisionBoundingBox(world, pos);
+            if (!block.canPlaceBlockAt(world, pos)
+                    || (collision != null
+                    && !world.checkNoEntityCollision(collision.offset(pos)))) {
+                return EnumActionResult.FAIL;
+            }
+            if (!world.setBlockState(pos, placed, 11)) {
+                return EnumActionResult.FAIL;
+            }
+
+            IBlockState actual = world.getBlockState(pos);
+            if (actual.getBlock() == placed.getBlock()) {
+                actual.getBlock().onBlockPlacedBy(world, pos, actual, player, held);
                 if (player instanceof EntityPlayerMP) {
                     CriteriaTriggers.PLACED_BLOCK.trigger((EntityPlayerMP) player,
                             pos, held);
                 }
-                if (!player.capabilities.isCreativeMode) {
-                    held.shrink(1);
-                }
+            }
+            SoundType sound = actual.getBlock().getSoundType(
+                    actual, world, pos, player);
+            world.playSound(player, pos, sound.getPlaceSound(), SoundCategory.BLOCKS,
+                    (sound.getVolume() + 1.0F) / 2.0F,
+                    sound.getPitch() * 0.8F);
+            if (!player.capabilities.isCreativeMode) {
+                held.shrink(1);
             }
             return EnumActionResult.SUCCESS;
         }
