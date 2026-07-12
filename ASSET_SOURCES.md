@@ -1,5 +1,12 @@
 # Asset sources
 
+The blue-ice texture is the unmodified Java 1.18.2 client asset at
+`assets/minecraft/textures/block/blue_ice.png`, renamed only to Java 1.12.2's `blocks`
+texture directory. Its cube model and nine-packed-ice recipe preserve the canonical peer.
+
+- Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Version metadata: <https://piston-meta.mojang.com/mc/game/version_manifest_v2.json>
+
 The seven `deepslate_*_ore.png` textures added for v2.0.0 are unmodified Minecraft 1.17.1
 textures extracted from Mojang's official client artifact:
 

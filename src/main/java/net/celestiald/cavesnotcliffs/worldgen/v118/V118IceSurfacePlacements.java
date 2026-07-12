@@ -11,6 +11,12 @@ public final class V118IceSurfacePlacements {
     public static final int SURFACE_STRUCTURES_STEP = 4;
     public static final int ICE_SPIKE_INDEX = 0;
     public static final int ICE_PATCH_INDEX = 1;
+    public static final int BLUE_ICE_INDEX = 3;
+    private static final V118LushCaveFeature.Direction[] DIRECTIONS = {
+        V118LushCaveFeature.Direction.DOWN, V118LushCaveFeature.Direction.UP,
+        V118LushCaveFeature.Direction.NORTH, V118LushCaveFeature.Direction.SOUTH,
+        V118LushCaveFeature.Direction.WEST, V118LushCaveFeature.Direction.EAST
+    };
 
     private V118IceSurfacePlacements() {
     }
@@ -30,6 +36,36 @@ public final class V118IceSurfacePlacements {
         placeAttempts(world, random, chunkX, chunkZ, 3, true);
         random.setFeatureSeed(decorationSeed, ICE_PATCH_INDEX, SURFACE_STRUCTURES_STEP);
         placeAttempts(world, random, chunkX, chunkZ, 2, false);
+    }
+
+    public static void decorateBlueIce(WorldAccess world, long worldSeed, int chunkX,
+            int chunkZ, Set<V118Biome> regionBiomes) {
+        if (world == null || regionBiomes == null) {
+            throw new NullPointerException("world and regionBiomes are required");
+        }
+        if (!regionBiomes.contains(V118Biome.FROZEN_OCEAN)
+                && !regionBiomes.contains(V118Biome.DEEP_FROZEN_OCEAN)) {
+            return;
+        }
+        V118WorldgenRandom random = new V118WorldgenRandom(0L);
+        long decorationSeed = random.setDecorationSeed(worldSeed,
+            chunkX << 4, chunkZ << 4);
+        random.setFeatureSeed(decorationSeed, BLUE_ICE_INDEX,
+            SURFACE_STRUCTURES_STEP);
+        int count = random.nextInt(20);
+        int originX = chunkX << 4;
+        int originZ = chunkZ << 4;
+        for (int attempt = 0; attempt < count; ++attempt) {
+            int x = originX + random.nextInt(16);
+            int z = originZ + random.nextInt(16);
+            int y = 30 + random.nextInt(32);
+            BlockPos origin = new BlockPos(x, y, z);
+            V118Biome biome = world.biomeAt(origin);
+            if (biome == V118Biome.FROZEN_OCEAN
+                    || biome == V118Biome.DEEP_FROZEN_OCEAN) {
+                placeBlueIce(world, random, origin);
+            }
+        }
     }
 
     private static void placeAttempts(WorldAccess world, Random random, int chunkX, int chunkZ,
@@ -137,6 +173,57 @@ public final class V118IceSurfacePlacements {
             2, 3, 1, base.getX(), base.getY(), base.getZ());
     }
 
+    private static boolean placeBlueIce(WorldAccess world, Random random, BlockPos origin) {
+        if (origin.getY() > world.seaLevel() - 1
+                || stateNotWater(world.stateAt(origin))
+                && stateNotWater(world.stateAt(origin.down()))) {
+            return false;
+        }
+        boolean packedIceNeighbor = false;
+        for (V118LushCaveFeature.Direction direction : DIRECTIONS) {
+            if (direction != V118LushCaveFeature.Direction.DOWN
+                    && world.stateAt(relative(origin, direction)) == State.PACKED_ICE) {
+                packedIceNeighbor = true;
+                break;
+            }
+        }
+        if (!packedIceNeighbor) {
+            return false;
+        }
+        world.setBlueIce(origin, 2);
+        for (int attempt = 0; attempt < 200; ++attempt) {
+            int offsetY = random.nextInt(5) - random.nextInt(6);
+            int bound = 3;
+            if (offsetY < 2) {
+                bound += offsetY / 2;
+            }
+            int offsetX = random.nextInt(bound) - random.nextInt(bound);
+            int offsetZ = random.nextInt(bound) - random.nextInt(bound);
+            BlockPos candidate = origin.add(offsetX, offsetY, offsetZ);
+            State state = world.stateAt(candidate);
+            if (state != State.AIR && state != State.WATER
+                    && state != State.PACKED_ICE && state != State.ICE) {
+                continue;
+            }
+            for (V118LushCaveFeature.Direction direction : DIRECTIONS) {
+                if (world.stateAt(relative(candidate, direction)) == State.BLUE_ICE) {
+                    world.setBlueIce(candidate, 2);
+                    break;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static boolean stateNotWater(State state) {
+        return state != State.WATER;
+    }
+
+    private static BlockPos relative(BlockPos pos,
+            V118LushCaveFeature.Direction direction) {
+        return pos.add(direction.stepX(), direction.stepY(), direction.stepZ());
+    }
+
     private static boolean isSpikeReplaceable(State state) {
         return state == State.AIR || state == State.PATCH_DIRT || state == State.DIRT
             || state == State.SNOW_BLOCK || state == State.ICE;
@@ -200,6 +287,8 @@ public final class V118IceSurfacePlacements {
         SNOW_BLOCK,
         ICE,
         PACKED_ICE,
+        BLUE_ICE,
+        WATER,
         OTHER
     }
 
@@ -208,11 +297,15 @@ public final class V118IceSurfacePlacements {
 
         int motionBlockingHeight(int blockX, int blockZ);
 
+        int seaLevel();
+
         V118Biome biomeAt(BlockPos pos);
 
         State stateAt(BlockPos pos);
 
         void setPackedIce(BlockPos pos, int flags);
+
+        void setBlueIce(BlockPos pos, int flags);
 
         default void markAboveForPostProcessing(BlockPos pos) {
         }

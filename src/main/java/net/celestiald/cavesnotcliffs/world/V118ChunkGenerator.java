@@ -171,6 +171,8 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         mountainSurface.populateIceSurface(chunkX, chunkZ, decorationBiomes);
         // Desert wells are the next represented surface structure at global index 2.
         mountainSurface.populateDesertWell(chunkX, chunkZ, decorationBiomes);
+        // Blue ice follows at surface-structures index 3 in frozen-ocean biomes.
+        mountainSurface.populateBlueIce(chunkX, chunkZ, decorationBiomes);
         ordinaryOres.populate(chunkX, chunkZ, decorationBiomes, dripstones);
         // FLUID_SPRINGS step 8 indices 0, 1, then 2, after underground decoration.
         mountainSurface.populateDefaultSprings(chunkX, chunkZ, decorationBiomes);

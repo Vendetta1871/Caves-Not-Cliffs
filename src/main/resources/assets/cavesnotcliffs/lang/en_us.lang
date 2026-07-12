@@ -125,6 +125,7 @@ subtitles.block.amethyst_block.chime=Amethyst chimes
 subtitles.item.spyglass.use=Spyglass expands
 subtitles.item.spyglass.stop_using=Spyglass retracts
 tile.powder_snow.name=Powder Snow
+tile.blue_ice.name=Blue Ice
 tile.powder_snow_cauldron.name=Powder Snow Cauldron
 item.powder_snow_bucket.name=Powder Snow Bucket
 death.attack.freeze=%1$s froze to death

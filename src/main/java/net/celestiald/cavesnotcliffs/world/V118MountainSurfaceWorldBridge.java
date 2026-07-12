@@ -5,6 +5,7 @@ import net.celestiald.cavesnotcliffs.block.CncFluidState;
 import net.celestiald.cavesnotcliffs.block.LushAzaleaBlocks;
 import net.celestiald.cavesnotcliffs.block.LushCaveVinesBlock;
 import net.celestiald.cavesnotcliffs.content.DeadBushSupportHooks;
+import net.celestiald.cavesnotcliffs.content.BlueIceContent;
 import net.celestiald.cavesnotcliffs.content.DoublePlantSupportHooks;
 import net.celestiald.cavesnotcliffs.content.LilyPadSupportHooks;
 import net.celestiald.cavesnotcliffs.content.LushCaveContent;
@@ -87,6 +88,13 @@ final class V118MountainSurfaceWorldBridge
         surfaceFeatureChunkX = chunkX;
         surfaceFeatureChunkZ = chunkZ;
         V118IceSurfacePlacements.decorate(this, world.getSeed(), chunkX, chunkZ,
+            regionBiomes);
+    }
+
+    void populateBlueIce(int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        surfaceFeatureChunkX = chunkX;
+        surfaceFeatureChunkZ = chunkZ;
+        V118IceSurfacePlacements.decorateBlueIce(this, world.getSeed(), chunkX, chunkZ,
             regionBiomes);
     }
 
@@ -184,6 +192,11 @@ final class V118MountainSurfaceWorldBridge
             V118MountainSurfaceWorldBridge::isMotionBlockingState);
     }
 
+    @Override
+    public int seaLevel() {
+        return world.getSeaLevel();
+    }
+
     static boolean isMotionBlockingState(IBlockState state) {
         return !isPowderSnow(state) && (state.getMaterial().blocksMovement()
             || state.getMaterial().isLiquid() || CncFluidState.containsWater(state));
@@ -263,6 +276,12 @@ final class V118MountainSurfaceWorldBridge
         if (block == Blocks.PACKED_ICE) {
             return State.PACKED_ICE;
         }
+        if (block == BlueIceContent.BLUE_ICE) {
+            return State.BLUE_ICE;
+        }
+        if (world.getBlockState(pos).getMaterial() == Material.WATER) {
+            return State.WATER;
+        }
         if (V118TreeStateRules.isDirtTag(block)) {
             return State.DIRT;
         }
@@ -273,6 +292,16 @@ final class V118MountainSurfaceWorldBridge
     public void setPackedIce(BlockPos pos, int flags) {
         if (canWriteSurfaceFeature(pos)) {
             world.setBlockState(pos, Blocks.PACKED_ICE.getDefaultState(), flags);
+        }
+    }
+
+    @Override
+    public void setBlueIce(BlockPos pos, int flags) {
+        if (canWriteSurfaceFeature(pos)) {
+            if (BlueIceContent.BLUE_ICE == null) {
+                throw new IllegalStateException("Blue ice block was not registered");
+            }
+            world.setBlockState(pos, BlueIceContent.BLUE_ICE.getDefaultState(), flags);
         }
     }
 
