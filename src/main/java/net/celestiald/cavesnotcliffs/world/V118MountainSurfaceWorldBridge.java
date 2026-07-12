@@ -9,7 +9,9 @@ import net.celestiald.cavesnotcliffs.content.BlueIceContent;
 import net.celestiald.cavesnotcliffs.content.DoublePlantSupportHooks;
 import net.celestiald.cavesnotcliffs.content.LilyPadSupportHooks;
 import net.celestiald.cavesnotcliffs.content.LushCaveContent;
+import net.celestiald.cavesnotcliffs.content.MushroomCapContent;
 import net.celestiald.cavesnotcliffs.content.MushroomSupportHooks;
+import net.celestiald.cavesnotcliffs.content.MushroomStemContent;
 import net.celestiald.cavesnotcliffs.content.PlainPumpkinContent;
 import net.celestiald.cavesnotcliffs.content.TallGrassSupportHooks;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
@@ -18,16 +20,20 @@ import net.celestiald.cavesnotcliffs.worldgen.v118.V118BeeTreePlacements.TreeKin
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements.SpringFluid;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118DarkForestVegetationFeature;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118DesertWellPlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118IceSurfacePlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118IceSurfacePlacements.State;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118JungleTreeFeature;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118LushCaveFeature;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118LavaLakePlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Material;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118MountainSurfacePlacements;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118MushroomIslandVegetationFeature;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118OldGrowthTreeFeature;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118SwampTreeFeature;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockCocoa;
 import net.minecraft.block.BlockDirt;
 import net.minecraft.block.BlockDoublePlant;
 import net.minecraft.block.BlockLeaves;
@@ -55,8 +61,11 @@ final class V118MountainSurfaceWorldBridge
             V118DesertWellPlacements.WorldAccess,
             V118IceSurfacePlacements.WorldAccess,
             V118LavaLakePlacements.WorldAccess,
+            V118JungleTreeFeature.WorldAccess,
+            V118DarkForestVegetationFeature.WorldAccess,
             V118OldGrowthTreeFeature.WorldAccess,
-            V118SwampTreeFeature.WorldAccess {
+            V118SwampTreeFeature.WorldAccess,
+            V118MushroomIslandVegetationFeature.WorldAccess {
     private final World world;
     private final V118ChunkGenerator generator;
     private final SpringValidBlocks springValidBlocks;
@@ -122,6 +131,30 @@ final class V118MountainSurfaceWorldBridge
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
         return V118MountainSurfacePlacements.decorateEarlyTrees(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
+    }
+
+    void populateSparseJungleTrees(int chunkX, int chunkZ,
+            Set<V118Biome> regionBiomes) {
+        if (regionBiomes.contains(V118Biome.SPARSE_JUNGLE)) {
+            V118JungleTreeFeature.place(this, world.getSeed(), chunkX, chunkZ,
+                V118JungleTreeFeature.Family.SPARSE_JUNGLE);
+        }
+    }
+
+    void populateJungleTrees(int chunkX, int chunkZ,
+            Set<V118Biome> regionBiomes) {
+        if (regionBiomes.contains(V118Biome.JUNGLE)) {
+            V118JungleTreeFeature.place(this, world.getSeed(), chunkX, chunkZ,
+                V118JungleTreeFeature.Family.JUNGLE);
+        }
+    }
+
+    void populateDarkForestVegetation(int chunkX, int chunkZ,
+            Set<V118Biome> regionBiomes) {
+        if (regionBiomes.contains(V118Biome.DARK_FOREST)) {
+            V118DarkForestVegetationFeature.decorate(
+                this, world.getSeed(), chunkX, chunkZ);
+        }
     }
 
     V118MountainSurfacePlacements.DecorationResult populateWindsweptSavannaTrees(
@@ -543,7 +576,17 @@ final class V118MountainSurfaceWorldBridge
     }
 
     @Override
+    public boolean canDarkOakSaplingSurvive(BlockPos pos) {
+        return canBroadleafSaplingSurvive(pos);
+    }
+
+    @Override
     public boolean canOakSaplingSurvive(BlockPos pos) {
+        return canBroadleafSaplingSurvive(pos);
+    }
+
+    @Override
+    public boolean canJungleSaplingSurvive(BlockPos pos) {
         return canBroadleafSaplingSurvive(pos);
     }
 
@@ -565,6 +608,69 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setOakLeaves(BlockPos pos) {
         setLeaves(pos, TreeKind.OAK);
+    }
+
+    @Override
+    public void setJungleLog(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.LOG.getStateFromMeta(3), 2);
+        }
+    }
+
+    @Override
+    public void setJungleLeaves(BlockPos pos) {
+        if (!inside(pos)) {
+            return;
+        }
+        IBlockState state = Blocks.LEAVES.getStateFromMeta(3)
+            .withProperty(BlockLeaves.CHECK_DECAY, false)
+            .withProperty(BlockLeaves.DECAYABLE, true);
+        world.setBlockState(pos, state, 2);
+    }
+
+    @Override
+    public boolean isAirOrLeaves(BlockPos pos) {
+        return isAir(pos) || isLeaves(pos);
+    }
+
+    @Override
+    public void setDarkOakLog(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.LOG2.getStateFromMeta(1), 2);
+        }
+    }
+
+    @Override
+    public void setDarkOakLeaves(BlockPos pos) {
+        if (!inside(pos)) {
+            return;
+        }
+        IBlockState state = Blocks.LEAVES2.getStateFromMeta(1)
+            .withProperty(BlockLeaves.CHECK_DECAY, false)
+            .withProperty(BlockLeaves.DECAYABLE, true);
+        world.setBlockState(pos, state, 2);
+    }
+
+    @Override
+    public void setVine(BlockPos pos,
+            V118JungleTreeFeature.HorizontalDirection attachment) {
+        if (!inside(pos)) {
+            return;
+        }
+        EnumFacing face = EnumFacing.valueOf(attachment.name());
+        world.setBlockState(pos, Blocks.VINE.getDefaultState()
+            .withProperty(BlockVine.getPropertyFor(face), true), 2);
+    }
+
+    @Override
+    public void setCocoa(BlockPos pos,
+            V118JungleTreeFeature.HorizontalDirection facing, int age) {
+        if (!inside(pos)) {
+            return;
+        }
+        world.setBlockState(pos, Blocks.COCOA.getDefaultState()
+            .withProperty(BlockCocoa.FACING, EnumFacing.valueOf(facing.name()))
+            .withProperty(BlockCocoa.AGE, age), 2);
     }
 
     @Override
@@ -713,6 +819,51 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public boolean supportsMushroomPlacement() {
         return true;
+    }
+
+    @Override
+    public boolean isDirtOrMushroomGrowBlock(BlockPos pos) {
+        return inside(pos) && V118TreeStateRules.isDirtTag(
+            world.getBlockState(pos).getBlock());
+    }
+
+    @Override
+    public boolean isLeaves(BlockPos pos) {
+        if (!inside(pos)) {
+            return false;
+        }
+        IBlockState state = world.getBlockState(pos);
+        Block block = state.getBlock();
+        return block.isLeaves(state, world, pos)
+            || block == LushCaveContent.AZALEA_LEAVES
+            || block == LushCaveContent.FLOWERING_AZALEA_LEAVES
+            || block instanceof LushAzaleaBlocks.AzaleaLeaves;
+    }
+
+    @Override
+    public boolean isSolidRender(BlockPos pos) {
+        return inside(pos) && world.getBlockState(pos).isOpaqueCube();
+    }
+
+    @Override
+    public void setMushroomCap(BlockPos pos,
+            V118MushroomIslandVegetationFeature.MushroomKind kind,
+            V118MushroomIslandVegetationFeature.MushroomFaces faces) {
+        if (!inside(pos)) {
+            return;
+        }
+        Block block = kind == V118MushroomIslandVegetationFeature.MushroomKind.RED
+            ? Blocks.RED_MUSHROOM_BLOCK : Blocks.BROWN_MUSHROOM_BLOCK;
+        world.setBlockState(pos, MushroomCapContent.state(block,
+            faces.north(), faces.east(), faces.south(), faces.west(),
+            faces.up(), faces.down()), 2);
+    }
+
+    @Override
+    public void setMushroomStem(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, MushroomStemContent.generatedStemState(), 2);
+        }
     }
 
     @Override

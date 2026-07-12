@@ -509,6 +509,10 @@ public final class V118MountainSurfacePlacements {
                 PATCH_SUGAR_CANE_SWAMP_INDEX, 3,
                 SUGAR_CANE_SWAMP_BIOMES, result);
         }
+        if (regionBiomes.contains(V118Biome.MUSHROOM_FIELDS)) {
+            V118MushroomIslandVegetationFeature.decorate(
+                world, worldSeed, chunkX, chunkZ, regionBiomes);
+        }
         if (mushrooms && appearsIn(MUSHROOM_TAIGA_BIOMES, regionBiomes)) {
             placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
                 BROWN_MUSHROOM_TAIGA_INDEX, 1, 4, false,
@@ -1497,7 +1501,8 @@ public final class V118MountainSurfacePlacements {
 
     public interface WorldAccess extends V118MountainTreeFeature.WorldAccess,
             V118BeeTreeFeature.WorldAccess, V118AcaciaTreeFeature.WorldAccess,
-            V118SwampTreeFeature.WorldAccess {
+            V118SwampTreeFeature.WorldAccess,
+            V118MushroomIslandVegetationFeature.WorldAccess {
         V118Biome biomeAt(BlockPos pos);
 
         int worldSurfaceHeight(int blockX, int blockZ);

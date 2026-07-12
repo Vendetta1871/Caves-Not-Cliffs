@@ -1,0 +1,7 @@
+{
+  "parent": "cavesnotcliffs:block/template_single_face_118",
+  "ambientocclusion": false,
+  "textures": {
+    "texture": "cavesnotcliffs:blocks/mushroom_block_inside"
+  }
+}

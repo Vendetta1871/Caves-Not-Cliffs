@@ -258,3 +258,13 @@ filenames are adapted only to the texture paths used by Java 1.12.2's existing f
 
 - Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
 - Version metadata: <https://piston-meta.mojang.com/mc/game/version_manifest_v2.json>
+
+The mushroom-stem, red/brown-mushroom-block, and mushroom-block-inside textures, six multipart face mappings, block face
+models, and inventory model are adapted directly from the Java 1.18.2 client. The textures are
+unmodified; model namespaces and the legacy `blocks` texture directory are syntax-only Forge
+1.12.2 adaptations. Hidden block-only identities preserve each vertical face pair that does not
+fit beside the four horizontal booleans in legacy metadata; the canonical public cap identities
+remain the vanilla red and brown mushroom blocks.
+
+- Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Version metadata: <https://piston-meta.mojang.com/mc/game/version_manifest_v2.json>

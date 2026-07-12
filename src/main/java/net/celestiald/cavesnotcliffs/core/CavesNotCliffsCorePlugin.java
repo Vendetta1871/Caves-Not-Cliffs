@@ -23,6 +23,8 @@ public final class CavesNotCliffsCorePlugin implements IFMLLoadingPlugin {
                 SugarCaneSupportTransformer.class.getName(),
                 LilyPadSupportTransformer.class.getName(),
                 MushroomSupportTransformer.class.getName(),
+                HugeMushroomDropTransformer.class.getName(),
+                HugeMushroomStateTransformer.class.getName(),
                 DoublePlantSupportTransformer.class.getName(),
                 TallGrassSupportTransformer.class.getName(),
                 FlowerSupportTransformer.class.getName()

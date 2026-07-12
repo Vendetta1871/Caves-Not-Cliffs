@@ -66,6 +66,25 @@ public final class CncRegistryIds {
     public static final ResourceLocation COMPOSTER = id("composter");
     /** Java 1.18's plain fruit; the 1.12 minecraft:pumpkin block is the carved peer. */
     public static final ResourceLocation PUMPKIN = id("pumpkin");
+    public static final ResourceLocation MUSHROOM_STEM = id("mushroom_stem");
+    /** Hidden identities preserving the two vertical faces outside 1.12 metadata. */
+    public static final ResourceLocation MUSHROOM_STEM_UP = id("mushroom_stem_up");
+    public static final ResourceLocation MUSHROOM_STEM_DOWN = id("mushroom_stem_down");
+    public static final ResourceLocation MUSHROOM_STEM_UP_DOWN = id("mushroom_stem_up_down");
+    /** Hidden cap identities preserve vertical face pairs beside four metadata side faces. */
+    public static final ResourceLocation RED_MUSHROOM_CAP_NO_VERTICAL =
+            id("red_mushroom_cap_no_vertical");
+    public static final ResourceLocation RED_MUSHROOM_CAP_UP = id("red_mushroom_cap_up");
+    public static final ResourceLocation RED_MUSHROOM_CAP_DOWN = id("red_mushroom_cap_down");
+    public static final ResourceLocation RED_MUSHROOM_CAP_UP_DOWN =
+            id("red_mushroom_cap_up_down");
+    public static final ResourceLocation BROWN_MUSHROOM_CAP_NO_VERTICAL =
+            id("brown_mushroom_cap_no_vertical");
+    public static final ResourceLocation BROWN_MUSHROOM_CAP_UP = id("brown_mushroom_cap_up");
+    public static final ResourceLocation BROWN_MUSHROOM_CAP_DOWN =
+            id("brown_mushroom_cap_down");
+    public static final ResourceLocation BROWN_MUSHROOM_CAP_UP_DOWN =
+            id("brown_mushroom_cap_up_down");
     public static final ResourceLocation INFESTED_DEEPSLATE = id("infested_deepslate");
     public static final ResourceLocation STONECUTTER = id("stonecutter");
     public static final ResourceLocation AXOLOTL = id("axolotl");
