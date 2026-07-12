@@ -5,6 +5,7 @@ import net.celestiald.cavesnotcliffs.block.LushWaterlogging;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
 import net.celestiald.cavesnotcliffs.handler.CampfireProjectileHandler;
 import net.celestiald.cavesnotcliffs.tile.TileEntityCampfire;
+import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.BlockHorizontal;
@@ -20,6 +21,7 @@ import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Enchantments;
@@ -342,7 +344,6 @@ public final class CampfireContent extends ElementsCavesNotCliffs.ModElement {
             }
             if (held.getItem() == Items.WATER_BUCKET && !state.getValue(WATERLOGGED)) {
                 if (!world.isRemote) {
-                    Item used = held.getItem();
                     if (state.getValue(LIT)) {
                         world.playSound(null, pos, SoundEvents.BLOCK_FIRE_EXTINGUISH,
                             SoundCategory.BLOCKS, 1.0F, 1.0F);
@@ -351,18 +352,30 @@ public final class CampfireContent extends ElementsCavesNotCliffs.ModElement {
                     world.setBlockState(pos, state.withProperty(WATERLOGGED, true)
                         .withProperty(LIT, false), 3);
                     world.scheduleUpdate(pos, this, CampfireMechanics.WATER_TICK_DELAY);
-                    replaceContainer(player, hand, held, new ItemStack(Items.BUCKET));
-                    awardUseStat(player, used);
+                    world.playSound(null, pos, SoundEvents.ITEM_BUCKET_EMPTY,
+                        SoundCategory.BLOCKS, 1.0F, 1.0F);
+                    // Java 1.12 has no FLUID_PLACE game event; do not substitute
+                    // an unrelated block or item event.
+                    if (player instanceof EntityPlayerMP) {
+                        CriteriaTriggers.PLACED_BLOCK.trigger(
+                            (EntityPlayerMP) player, pos, held);
+                    }
+                    awardUseStat(player, Items.WATER_BUCKET);
+                    replaceContainer(player, hand, held, new ItemStack(Items.BUCKET),
+                        false);
                 }
                 return true;
             }
             if (held.getItem() == Items.BUCKET && state.getValue(WATERLOGGED)) {
                 if (!world.isRemote) {
-                    Item used = held.getItem();
                     world.setBlockState(pos, state.withProperty(WATERLOGGED, false), 3);
+                    awardUseStat(player, Items.BUCKET);
+                    world.playSound(null, pos, SoundEvents.ITEM_BUCKET_FILL,
+                        SoundCategory.BLOCKS, 1.0F, 1.0F);
+                    // Java 1.12 has no FLUID_PICKUP game event or FILLED_BUCKET
+                    // criterion; do not substitute another event or advancement.
                     replaceContainer(player, hand, held,
-                        new ItemStack(Items.WATER_BUCKET));
-                    awardUseStat(player, used);
+                        new ItemStack(Items.WATER_BUCKET), true);
                 }
                 return true;
             }
@@ -370,8 +383,12 @@ public final class CampfireContent extends ElementsCavesNotCliffs.ModElement {
         }
 
         private static void replaceContainer(EntityPlayer player, EnumHand hand,
-                ItemStack held, ItemStack replacement) {
+                ItemStack held, ItemStack replacement, boolean creativeAddsReplacement) {
             if (player.capabilities.isCreativeMode) {
+                if (creativeAddsReplacement
+                        && !player.inventory.hasItemStack(replacement)) {
+                    player.inventory.addItemStackToInventory(replacement);
+                }
                 return;
             }
             held.shrink(1);
