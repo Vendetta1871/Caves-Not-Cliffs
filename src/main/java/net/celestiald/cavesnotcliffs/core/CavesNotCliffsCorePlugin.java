@@ -18,7 +18,8 @@ public final class CavesNotCliffsCorePlugin implements IFMLLoadingPlugin {
                 BeeSaplingDecorationTransformer.class.getName(),
                 PlainPumpkinStemTransformer.class.getName(),
                 PlainPumpkinConnectionTransformer.class.getName(),
-                PlainPumpkinFarmerTradeTransformer.class.getName()
+                PlainPumpkinFarmerTradeTransformer.class.getName(),
+                DeadBushSupportTransformer.class.getName()
         };
     }
 
