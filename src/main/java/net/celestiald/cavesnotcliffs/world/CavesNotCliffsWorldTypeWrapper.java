@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.world;
 
 import net.celestiald.cavebiomes.api.ExtendedChunkAPI;
+import net.celestiald.cavebiomes.api.IWrappedWorldType;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
@@ -15,7 +16,7 @@ import java.util.function.Supplier;
 
 /** Hidden finite-world type which preserves a selected two-dimensional generator as its base. */
 public final class CavesNotCliffsWorldTypeWrapper extends WorldType
-        implements CavesNotCliffsFiniteWorldType {
+        implements CavesNotCliffsFiniteWorldType, IWrappedWorldType {
     private final WorldType baseType;
     private final TerrainProfile terrainProfile;
 
@@ -26,6 +27,11 @@ public final class CavesNotCliffsWorldTypeWrapper extends WorldType
     }
 
     public WorldType getBaseType() {
+        return baseType;
+    }
+
+    @Override
+    public WorldType getBaseWorldType() {
         return baseType;
     }
 

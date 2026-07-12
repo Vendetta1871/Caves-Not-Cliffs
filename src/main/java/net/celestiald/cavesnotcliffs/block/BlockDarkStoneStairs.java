@@ -9,6 +9,7 @@ import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockStairs;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.Item;
@@ -40,7 +41,8 @@ public class BlockDarkStoneStairs extends ElementsCavesNotCliffs.ModElement {
 
     private static class BlockCustom extends BlockStairs {
         public BlockCustom() {
-            super(new Block(Material.ROCK).getDefaultState());
+            super(new Block(Material.ROCK, MapColor.GRAY_STAINED_HARDENED_CLAY)
+                    .getDefaultState());
             setUnlocalizedName("tuff_stairs");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(DeepslateSoundEvents.TUFF);

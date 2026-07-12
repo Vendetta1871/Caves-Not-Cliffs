@@ -9,6 +9,7 @@ import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockSlab;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.block.properties.IProperty;
@@ -53,7 +54,7 @@ public class BlockUnknownStoneSlab extends ElementsCavesNotCliffs.ModElement {
         public static final PropertyEnum<Variant> VARIANT = PropertyEnum.create("variant", Variant.class);
 
         public BlockCustom() {
-            super(Material.ROCK);
+            super(Material.ROCK, MapColor.WHITE_STAINED_HARDENED_CLAY);
             setUnlocalizedName("calcite_slab");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(DeepslateSoundEvents.CALCITE);

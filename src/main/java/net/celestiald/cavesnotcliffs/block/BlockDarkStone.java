@@ -8,6 +8,7 @@ import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.Item;
@@ -39,7 +40,7 @@ public class BlockDarkStone extends ElementsCavesNotCliffs.ModElement {
 
     private static class BlockCustom extends Block {
         public BlockCustom() {
-            super(Material.ROCK);
+            super(Material.ROCK, MapColor.GRAY_STAINED_HARDENED_CLAY);
             setUnlocalizedName("tuff");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(DeepslateSoundEvents.TUFF);
