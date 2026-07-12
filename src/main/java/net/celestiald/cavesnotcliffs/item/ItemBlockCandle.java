@@ -44,7 +44,9 @@ public final class ItemBlockCandle extends ItemBlock {
                     CriteriaTriggers.PLACED_BLOCK.trigger((EntityPlayerMP) player,
                             pos, held);
                 }
-                held.shrink(1);
+                if (!player.capabilities.isCreativeMode) {
+                    held.shrink(1);
+                }
             }
             return EnumActionResult.SUCCESS;
         }
