@@ -12,7 +12,6 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.event.terraingen.SaplingGrowTreeEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -27,11 +26,12 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 /**
- * Post-growth bridge for the 1.18 oak/birch sapling flower rule.
+ * Growth bridge for the 1.18 oak/birch sapling flower rule.
  *
- * <p>The event fires before 1.12 builds the tree. Work is deferred to the world-tick tail so the
- * original tree generator consumes its RNG first and the decorator receives the finished trunk
- * and foliage lists.</p>
+ * <p>The Forge event captures the pre-growth tree state. A narrow core hook calls
+ * {@link #finishGrowth(World, BlockPos, Random)} at every return from the vanilla sapling
+ * generation method, after that individual tree has consumed its random stream. This preserves
+ * 1.18's tree-then-decorator ordering even when several saplings grow in one tick.</p>
  */
 public final class BeeSaplingNestHandler {
     public static final BeeSaplingNestHandler INSTANCE = new BeeSaplingNestHandler();
@@ -62,17 +62,26 @@ public final class BeeSaplingNestHandler {
                         snapshotTreeBlocks(world, event.getPos())));
     }
 
-    @SubscribeEvent
-    public void onWorldTick(TickEvent.WorldTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || event.world.isRemote) {
-            return;
-        }
-        List<PendingGrowth> requests = pending.remove(event.world);
+    public static void finishGrowth(World world, BlockPos origin, Random random) {
+        INSTANCE.finish(world, origin, random);
+    }
+
+    private void finish(World world, BlockPos origin, Random random) {
+        List<PendingGrowth> requests = pending.get(world);
         if (requests == null) {
             return;
         }
-        for (PendingGrowth request : requests) {
-            decorateFinishedTree(event.world, request);
+        for (int index = requests.size() - 1; index >= 0; index--) {
+            PendingGrowth request = requests.get(index);
+            if (!request.origin.equals(origin) || request.random != random) {
+                continue;
+            }
+            requests.remove(index);
+            if (requests.isEmpty()) {
+                pending.remove(world);
+            }
+            decorateFinishedTree(world, request);
+            return;
         }
     }
 

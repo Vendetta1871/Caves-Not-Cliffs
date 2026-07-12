@@ -99,8 +99,6 @@ public final class BlockBeehive extends ElementsCavesNotCliffs.ModElement {
                 CncRegistryIds.BEEHIVE);
         net.minecraftforge.common.MinecraftForge.TERRAIN_GEN_BUS.register(
                 BeeSaplingNestHandler.INSTANCE);
-        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(
-                BeeSaplingNestHandler.INSTANCE);
     }
 
     @Override
