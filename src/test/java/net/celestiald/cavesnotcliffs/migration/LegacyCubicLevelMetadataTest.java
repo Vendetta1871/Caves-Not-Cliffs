@@ -3,6 +3,7 @@ package net.celestiald.cavesnotcliffs.migration;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -101,6 +102,41 @@ public class LegacyCubicLevelMetadataTest {
         } catch (IOException expected) {
             assertTrue(expected.getMessage().contains("selects unsupported entry"));
         }
+    }
+
+    @Test
+    public void staleFixedTempSymlinksCannotClobberExternalFiles() throws Exception {
+        Path world = temporary.newFolder("temp-symlinks").toPath();
+        Path levelFile = world.resolve("level.dat");
+        write(levelFile, level("cubicchunks:storage_format_provider_registry",
+                "cubicchunks:vanilla_compatibility_generators_registry"));
+        Path externalLevel = temporary.newFile("external-level").toPath();
+        Path externalBackup = temporary.newFile("external-backup").toPath();
+        byte[] levelSentinel = new byte[] {1, 3, 5, 7};
+        byte[] backupSentinel = new byte[] {2, 4, 6, 8};
+        Files.write(externalLevel, levelSentinel);
+        Files.write(externalBackup, backupSentinel);
+
+        Path oldLevelTemp = world.resolve(".cavesnotcliffs-level.dat.tmp");
+        Path oldBackupTemp = world.resolve(
+                LegacyCubicLevelMetadata.BACKUP_FILE_NAME + ".tmp");
+        try {
+            Files.createSymbolicLink(oldLevelTemp, externalLevel.toAbsolutePath());
+            Files.createSymbolicLink(oldBackupTemp, externalBackup.toAbsolutePath());
+        } catch (IOException | UnsupportedOperationException exception) {
+            Assume.assumeNoException("Symbolic links are unavailable", exception);
+        }
+
+        LegacyCubicLevelMetadata.clean(levelFile);
+
+        assertArrayEquals(levelSentinel, Files.readAllBytes(externalLevel));
+        assertArrayEquals(backupSentinel, Files.readAllBytes(externalBackup));
+        assertTrue(Files.isSymbolicLink(oldLevelTemp));
+        assertTrue(Files.isSymbolicLink(oldBackupTemp));
+        assertTrue(Files.isRegularFile(levelFile));
+        assertFalse(Files.isSymbolicLink(levelFile));
+        assertTrue(Files.isRegularFile(
+                world.resolve(LegacyCubicLevelMetadata.BACKUP_FILE_NAME)));
     }
 
     @Test

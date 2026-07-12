@@ -12,6 +12,7 @@ import java.io.OutputStream;
 import java.nio.channels.FileChannel;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
@@ -448,7 +449,8 @@ final class CubicImportJournal {
     }
 
     static void forceFile(Path path) throws IOException {
-        try (FileChannel channel = FileChannel.open(path, StandardOpenOption.WRITE)) {
+        try (FileChannel channel = FileChannel.open(path, StandardOpenOption.WRITE,
+                LinkOption.NOFOLLOW_LINKS)) {
             channel.force(true);
         }
     }

@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
@@ -21,8 +22,9 @@ import java.util.Set;
 /** Removes only CubicChunks-owned level metadata after finite region storage is committed. */
 final class LegacyCubicLevelMetadata {
     static final String BACKUP_FILE_NAME = ".cavesnotcliffs-cubic-level.dat.backup";
-    private static final String BACKUP_TEMP_FILE_NAME = BACKUP_FILE_NAME + ".tmp";
-    private static final String LEVEL_TEMP_FILE_NAME = ".cavesnotcliffs-level.dat.tmp";
+    private static final String BACKUP_TEMP_PREFIX = ".cavesnotcliffs-cubic-level.";
+    private static final String LEVEL_TEMP_PREFIX = ".cavesnotcliffs-level.";
+    private static final String TEMP_SUFFIX = ".tmp";
     private static final Set<String> KNOWN_REGISTRIES = new HashSet<String>(Arrays.asList(
             "cubicchunks:storage_format_provider_registry",
             "cubicchunks:vanilla_compatibility_generators_registry"));
@@ -54,23 +56,27 @@ final class LegacyCubicLevelMetadata {
         Path backup = parent.resolve(BACKUP_FILE_NAME);
         preserveOriginal(levelFile, backup);
 
-        Path staged = parent.resolve(LEVEL_TEMP_FILE_NAME);
-        write(staged, sanitized);
-        NBTTagCompound verified = read(staged);
-        if (!sanitized.equals(verified) || sanitize(verified.copy(), false).changed()) {
-            throw new IOException("Could not verify sanitized legacy cubic level metadata at "
-                    + staged);
-        }
-        if (!filesEqual(levelFile, backup)) {
-            throw new IOException("level.dat changed while removing legacy cubic metadata; "
-                    + "the original backup remains at " + backup);
-        }
+        Path staged = Files.createTempFile(parent, LEVEL_TEMP_PREFIX, TEMP_SUFFIX);
         try {
-            Files.move(staged, levelFile, StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.REPLACE_EXISTING);
-        } catch (AtomicMoveNotSupportedException exception) {
-            throw new IOException("The save filesystem cannot atomically replace level.dat; "
-                    + "the original remains at " + backup, exception);
+            writeExisting(staged, sanitized);
+            NBTTagCompound verified = read(staged);
+            if (!sanitized.equals(verified) || sanitize(verified.copy(), false).changed()) {
+                throw new IOException("Could not verify sanitized legacy cubic level metadata at "
+                        + staged);
+            }
+            if (!filesEqual(levelFile, backup)) {
+                throw new IOException("level.dat changed while removing legacy cubic metadata; "
+                        + "the original backup remains at " + backup);
+            }
+            try {
+                Files.move(staged, levelFile, StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException exception) {
+                throw new IOException("The save filesystem cannot atomically replace level.dat; "
+                        + "the original remains at " + backup, exception);
+            }
+        } finally {
+            Files.deleteIfExists(staged);
         }
         CubicImportJournal.forceDirectoryBestEffort(parent);
         return result;
@@ -214,36 +220,61 @@ final class LegacyCubicLevelMetadata {
             }
             return;
         }
-        Path temporary = backup.resolveSibling(BACKUP_TEMP_FILE_NAME);
-        Files.copy(levelFile, temporary, StandardCopyOption.REPLACE_EXISTING);
-        CubicImportJournal.forceFile(temporary);
-        if (!filesEqual(levelFile, temporary)) {
-            throw new IOException("Could not verify legacy cubic level backup at " + temporary);
-        }
+        Path temporary = Files.createTempFile(backup.getParent(),
+                BACKUP_TEMP_PREFIX, TEMP_SUFFIX);
         try {
-            Files.move(temporary, backup, StandardCopyOption.ATOMIC_MOVE);
-        } catch (AtomicMoveNotSupportedException exception) {
-            throw new IOException("The save filesystem cannot atomically preserve level.dat", exception);
+            copyRegularFile(levelFile, temporary);
+            CubicImportJournal.forceFile(temporary);
+            if (!filesEqual(levelFile, temporary)) {
+                throw new IOException("Could not verify legacy cubic level backup at " + temporary);
+            }
+            try {
+                Files.move(temporary, backup, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException exception) {
+                throw new IOException("The save filesystem cannot atomically preserve level.dat",
+                        exception);
+            }
+        } finally {
+            Files.deleteIfExists(temporary);
         }
         CubicImportJournal.forceDirectoryBestEffort(backup.getParent());
     }
 
     private static NBTTagCompound read(Path path) throws IOException {
-        try (InputStream input = new BufferedInputStream(Files.newInputStream(path))) {
+        try (InputStream input = new BufferedInputStream(Files.newInputStream(path,
+                StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS))) {
             return CompressedStreamTools.readCompressed(input);
         }
     }
 
-    private static void write(Path path, NBTTagCompound root) throws IOException {
+    private static void writeExisting(Path path, NBTTagCompound root) throws IOException {
         try (OutputStream output = new BufferedOutputStream(Files.newOutputStream(path,
-                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
-                StandardOpenOption.WRITE))) {
+                StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE,
+                LinkOption.NOFOLLOW_LINKS))) {
             CompressedStreamTools.writeCompressed(root, output);
         }
         CubicImportJournal.forceFile(path);
     }
 
+    private static void copyRegularFile(Path source, Path target) throws IOException {
+        try (InputStream input = new BufferedInputStream(Files.newInputStream(source,
+                StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS));
+                OutputStream output = new BufferedOutputStream(Files.newOutputStream(target,
+                        StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE,
+                        LinkOption.NOFOLLOW_LINKS))) {
+            byte[] buffer = new byte[65536];
+            int read;
+            while ((read = input.read(buffer)) >= 0) {
+                output.write(buffer, 0, read);
+            }
+        }
+    }
+
     private static boolean filesEqual(Path first, Path second) throws IOException {
+        if (!Files.isRegularFile(first, LinkOption.NOFOLLOW_LINKS)
+                || !Files.isRegularFile(second, LinkOption.NOFOLLOW_LINKS)) {
+            return false;
+        }
         if (Files.size(first) != Files.size(second)) {
             return false;
         }
