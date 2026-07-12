@@ -64,6 +64,8 @@ public final class CncRegistryIds {
     /** Hidden state companion; the vanilla cauldron remains the only obtainable item. */
     public static final ResourceLocation POWDER_SNOW_CAULDRON = id("powder_snow_cauldron");
     public static final ResourceLocation COMPOSTER = id("composter");
+    /** Java 1.18's plain fruit; the 1.12 minecraft:pumpkin block is the carved peer. */
+    public static final ResourceLocation PUMPKIN = id("pumpkin");
     public static final ResourceLocation INFESTED_DEEPSLATE = id("infested_deepslate");
     public static final ResourceLocation STONECUTTER = id("stonecutter");
     public static final ResourceLocation AXOLOTL = id("axolotl");

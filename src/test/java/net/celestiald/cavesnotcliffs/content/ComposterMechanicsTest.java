@@ -62,6 +62,8 @@ public class ComposterMechanicsTest {
         assertChance("cavesnotcliffs:small_dripleaf", 0, 0.30F);
         assertChance("cavesnotcliffs:big_dripleaf", 0, 0.65F);
         assertChance("cavesnotcliffs:flowering_azalea", 0, 0.85F);
+        assertChance("cavesnotcliffs:pumpkin", 0, 0.65F);
+        assertChance("minecraft:pumpkin", 0, ComposterCompostables.NOT_COMPOSTABLE);
         assertChance("minecraft:nether_wart_block", 0, 0.85F);
         assertChance("minecraft:tallgrass", 1, 0.30F);
         assertChance("minecraft:tallgrass", 2, 0.65F);

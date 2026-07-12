@@ -1491,5 +1491,12 @@
       "cavesnotcliffs:block/candle/step5"
     ],
     "subtitle": "subtitles.block.generic.footsteps"
+  },
+  "block.pumpkin.carve": {
+    "sounds": [
+      "cavesnotcliffs:block/pumpkin/carve1",
+      "cavesnotcliffs:block/pumpkin/carve2"
+    ],
+    "subtitle": "subtitles.block.pumpkin.carve"
   }
 }

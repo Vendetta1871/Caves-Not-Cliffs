@@ -81,7 +81,8 @@ public final class ComposterCompostables {
 
         // 65 percent.
         add(entries, 0.65F, "minecraft:waterlily");
-        add(entries, 0.65F, "minecraft:pumpkin");
+        // The target runtime's minecraft:pumpkin is the carved peer.
+        add(entries, 0.65F, "cavesnotcliffs:pumpkin");
         add(entries, 0.65F, "minecraft:melon_block");
         add(entries, 0.65F, "minecraft:apple");
         add(entries, 0.65F, "minecraft:beetroot");
