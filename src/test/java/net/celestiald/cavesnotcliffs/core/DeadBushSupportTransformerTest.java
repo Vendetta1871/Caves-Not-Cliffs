@@ -165,7 +165,7 @@ public class DeadBushSupportTransformerTest {
         String[] transformers = new CavesNotCliffsCorePlugin()
                 .getASMTransformerClass();
         assertEquals(DeadBushSupportTransformer.class.getName(),
-                transformers[transformers.length - 1]);
+                transformers[transformers.length - 2]);
     }
 
     private static List<NamedState> officialSupports() {

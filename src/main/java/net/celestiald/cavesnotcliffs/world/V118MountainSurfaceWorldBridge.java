@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.world;
 
 import net.celestiald.cavesnotcliffs.block.BlockPowderSnow;
+import net.celestiald.cavesnotcliffs.block.CncFluidState;
 import net.celestiald.cavesnotcliffs.block.LushAzaleaBlocks;
 import net.celestiald.cavesnotcliffs.block.LushMossBlocks;
 import net.celestiald.cavesnotcliffs.content.DeadBushSupportHooks;
@@ -183,14 +184,32 @@ final class V118MountainSurfaceWorldBridge
         }
         Block support = world.getBlockState(pos.down()).getBlock();
         return support == Blocks.REEDS
-            || isSugarCaneGround(support) && hasAdjacentWaterBelow(pos);
+            || isSugarCaneGround(support) && hasSugarCaneSurvivalFluid(pos);
     }
 
     @Override
     public boolean hasAdjacentWaterBelow(BlockPos pos) {
         BlockPos below = pos.down();
-        return isWater(below.east()) || isWater(below.west())
-            || isWater(below.north()) || isWater(below.south());
+        return containsWater(below.east()) || containsWater(below.west())
+            || containsWater(below.south()) || containsWater(below.north());
+    }
+
+    private boolean hasSugarCaneSurvivalFluid(BlockPos pos) {
+        BlockPos below = pos.down();
+        return isWaterOrFrostedIce(below.north()) || isWaterOrFrostedIce(below.east())
+            || isWaterOrFrostedIce(below.south()) || isWaterOrFrostedIce(below.west());
+    }
+
+    private boolean isWaterOrFrostedIce(BlockPos pos) {
+        if (!inside(pos)) {
+            return false;
+        }
+        IBlockState state = world.getBlockState(pos);
+        return CncFluidState.containsWater(state) || state.getBlock() == Blocks.FROSTED_ICE;
+    }
+
+    private boolean containsWater(BlockPos pos) {
+        return inside(pos) && CncFluidState.containsWater(world.getBlockState(pos));
     }
 
     @Override
