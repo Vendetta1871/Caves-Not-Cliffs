@@ -8,7 +8,6 @@ import net.minecraft.block.SoundType;
 import net.minecraft.block.properties.PropertyEnum;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
 import net.minecraft.entity.passive.EntityOcelot;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
@@ -28,7 +27,6 @@ import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -36,8 +34,6 @@ import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.common.registry.GameRegistry;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.Random;
 
@@ -61,15 +57,6 @@ public final class DungeonChestContent {
     public static void registerTileEntity() {
         GameRegistry.registerTileEntity(SingleChestTileEntity.class,
                 CncRegistryIds.DUNGEON_CHEST_TILE);
-    }
-
-    @SubscribeEvent
-    @SideOnly(Side.CLIENT)
-    public static void registerBuiltInModels(ModelRegistryEvent event) {
-        Block first = ForgeRegistries.BLOCKS.getValue(CncRegistryIds.DUNGEON_CHEST_FIRST);
-        Block second = ForgeRegistries.BLOCKS.getValue(CncRegistryIds.DUNGEON_CHEST_SECOND);
-        Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelShapes()
-                .registerBuiltInBlocks(first, second);
     }
 
     public static IBlockState stateForOrdinal(int ordinal) {
