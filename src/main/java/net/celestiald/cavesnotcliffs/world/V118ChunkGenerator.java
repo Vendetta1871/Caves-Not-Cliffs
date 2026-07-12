@@ -93,7 +93,7 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         ordinaryOres = new V118OreWorldBridge(world, this, oreBlocks);
         lushCaves = new V118LushCaveWorldBridge(world, this);
         beeTrees = new V118BeeTreeWorldBridge(world, this);
-        mountainSurface = new V118MountainSurfaceWorldBridge(world, this);
+        mountainSurface = new V118MountainSurfaceWorldBridge(world, this, blockStates);
         registerActiveGenerator(world, this);
     }
 
@@ -166,7 +166,8 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         geodes.populate(chunkX, chunkZ);
         dripstones.populateLarge(chunkX, chunkZ, decorationBiomes);
         ordinaryOres.populate(chunkX, chunkZ, decorationBiomes, dripstones);
-        // FLUID_SPRINGS step 8, after underground decoration and before vegetation.
+        // FLUID_SPRINGS step 8 indices 0, 1, then 2, after underground decoration.
+        mountainSurface.populateDefaultSprings(chunkX, chunkZ, decorationBiomes);
         mountainSurface.populateFrozenSprings(chunkX, chunkZ, decorationBiomes);
         beeTrees.populateBeforeLush(chunkX, chunkZ, decorationBiomes);
         lushCaves.populate(chunkX, chunkZ, decorationBiomes);

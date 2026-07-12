@@ -7,9 +7,14 @@ import net.celestiald.cavesnotcliffs.content.LushCaveContent;
 import net.celestiald.cavesnotcliffs.content.PlainPumpkinContent;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements.SpringFluid;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118Material;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118MountainSurfacePlacements;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockDirt;
 import net.minecraft.block.BlockLeaves;
+import net.minecraft.block.BlockStone;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -20,18 +25,28 @@ import net.minecraft.world.World;
 import java.util.Set;
 import java.util.function.Predicate;
 
-/** Mutable finite-world adapter for the native schema-2 mountain surface features. */
+/** Mutable finite-world adapter for the represented native schema-2 surface features. */
 final class V118MountainSurfaceWorldBridge
-        implements V118MountainSurfacePlacements.WorldAccess {
+        implements V118MountainSurfacePlacements.WorldAccess,
+            V118DefaultSpringPlacements.WorldAccess {
     private final World world;
     private final V118ChunkGenerator generator;
+    private final SpringValidBlocks springValidBlocks;
 
-    V118MountainSurfaceWorldBridge(World world, V118ChunkGenerator generator) {
-        if (world == null || generator == null) {
-            throw new NullPointerException("world and generator are required");
+    V118MountainSurfaceWorldBridge(World world, V118ChunkGenerator generator,
+            V118BlockStateMapper blockStates) {
+        if (world == null || generator == null || blockStates == null) {
+            throw new NullPointerException("world, generator, and blockStates are required");
         }
         this.world = world;
         this.generator = generator;
+        springValidBlocks = springValidBlocks(blockStates);
+    }
+
+    V118DefaultSpringPlacements.DecorationResult populateDefaultSprings(
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return V118DefaultSpringPlacements.decorate(this, world.getSeed(),
+            chunkX, chunkZ, regionBiomes);
     }
 
     V118MountainSurfacePlacements.DecorationResult populateFrozenSprings(
@@ -142,6 +157,14 @@ final class V118MountainSurfaceWorldBridge
     }
 
     @Override
+    public boolean isSpringValid(BlockPos pos, SpringFluid fluid) {
+        if (!inside(pos) || fluid == null) {
+            return false;
+        }
+        return springValidBlocks.accepts(world.getBlockState(pos), fluid);
+    }
+
+    @Override
     public boolean isGrassBlock(BlockPos pos) {
         return inside(pos) && world.getBlockState(pos).getBlock() == Blocks.GRASS;
     }
@@ -222,15 +245,31 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setLava(BlockPos pos) {
         if (inside(pos)) {
-            world.setBlockState(pos, Blocks.LAVA.getDefaultState(), 2);
+            world.setBlockState(pos, Blocks.FLOWING_LAVA.getDefaultState(), 2);
         }
     }
 
     @Override
     public void scheduleLavaTick(BlockPos pos) {
         if (inside(pos)) {
-            world.scheduleUpdate(pos, Blocks.LAVA, 0);
+            world.scheduleUpdate(pos, Blocks.FLOWING_LAVA, 0);
         }
+    }
+
+    @Override
+    public void setSpring(BlockPos pos, SpringFluid fluid) {
+        if (!inside(pos)) {
+            return;
+        }
+        world.setBlockState(pos, springBlock(fluid).getDefaultState(), 2);
+    }
+
+    @Override
+    public void scheduleSpringTick(BlockPos pos, SpringFluid fluid) {
+        if (!inside(pos)) {
+            return;
+        }
+        world.scheduleUpdate(pos, springBlock(fluid), 0);
     }
 
     @Override
@@ -268,6 +307,24 @@ final class V118MountainSurfaceWorldBridge
         return isDirtTag(block) || block == Blocks.SAND;
     }
 
+    static SpringValidBlocks springValidBlocks(V118BlockStateMapper blockStates) {
+        if (blockStates == null) {
+            throw new NullPointerException("blockStates");
+        }
+        return new SpringValidBlocks(
+            blockStates.stateFor(V118Material.DEEPSLATE).getBlock(),
+            blockStates.stateFor(V118Material.TUFF).getBlock(),
+            blockStates.stateFor(V118Material.CALCITE).getBlock(),
+            blockStates.stateFor(V118Material.POWDER_SNOW).getBlock());
+    }
+
+    static Block springBlock(SpringFluid fluid) {
+        if (fluid == null) {
+            throw new NullPointerException("fluid");
+        }
+        return fluid == SpringFluid.WATER ? Blocks.FLOWING_WATER : Blocks.FLOWING_LAVA;
+    }
+
     private static boolean isDirtTag(Block block) {
         return block == Blocks.DIRT || block == Blocks.GRASS || block == Blocks.MYCELIUM
             || block == LushCaveContent.ROOTED_DIRT || block == LushCaveContent.MOSS_BLOCK
@@ -278,5 +335,40 @@ final class V118MountainSurfaceWorldBridge
     private static boolean inside(BlockPos pos) {
         return pos.getY() >= TerrainColumn.MIN_Y
             && pos.getY() < TerrainColumn.MAX_Y_EXCLUSIVE;
+    }
+
+    static final class SpringValidBlocks {
+        private final Block deepslate;
+        private final Block tuff;
+        private final Block calcite;
+        private final Block powderSnow;
+
+        private SpringValidBlocks(Block deepslate, Block tuff,
+                Block calcite, Block powderSnow) {
+            this.deepslate = deepslate;
+            this.tuff = tuff;
+            this.calcite = calcite;
+            this.powderSnow = powderSnow;
+        }
+
+        boolean accepts(IBlockState state, SpringFluid fluid) {
+            if (state == null || fluid == null) {
+                return false;
+            }
+            Block block = state.getBlock();
+            if (block == deepslate || block == tuff || block == calcite) {
+                return true;
+            }
+            if (block == Blocks.STONE) {
+                int metadata = state.getValue(BlockStone.VARIANT).getMetadata();
+                return metadata == 0 || metadata == 1 || metadata == 3 || metadata == 5;
+            }
+            if (block == Blocks.DIRT) {
+                return state.getValue(BlockDirt.VARIANT) == BlockDirt.DirtType.DIRT;
+            }
+            return fluid == SpringFluid.WATER
+                && (block == Blocks.SNOW || block == Blocks.PACKED_ICE
+                    || block == powderSnow);
+        }
     }
 }
