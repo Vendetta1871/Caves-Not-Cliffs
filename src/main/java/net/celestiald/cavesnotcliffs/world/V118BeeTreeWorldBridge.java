@@ -56,6 +56,8 @@ final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
                 V118BeeTreeVegetation.PlacedFeature.PATCH_SUNFLOWER);
         populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.TREES_PLAINS);
         populateVegetation(chunkX, chunkZ, regionBiomes,
+                V118BeeTreeVegetation.PlacedFeature.FLOWER_PLAINS);
+        populateVegetation(chunkX, chunkZ, regionBiomes,
                 V118BeeTreeVegetation.PlacedFeature.PATCH_GRASS_PLAIN);
         populateVegetation(chunkX, chunkZ, regionBiomes,
                 V118BeeTreeVegetation.PlacedFeature.FLOWER_MEADOW);
@@ -162,6 +164,12 @@ final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
     }
 
     @Override
+    public boolean isAir(BlockPos pos) {
+        return !isOutsideBuildHeight(pos)
+                && world.getBlockState(pos).getBlock() == Blocks.AIR;
+    }
+
+    @Override
     public boolean placePlant(BlockPos pos, Plant plant) {
         if (plant == null || isOutsideBuildHeight(pos)
                 || world.getBlockState(pos).getBlock() != Blocks.AIR
@@ -257,6 +265,14 @@ final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
                 return redFlower(3);
             case OXEYE_DAISY:
                 return redFlower(8);
+            case RED_TULIP:
+                return redFlower(4);
+            case ORANGE_TULIP:
+                return redFlower(5);
+            case WHITE_TULIP:
+                return redFlower(6);
+            case PINK_TULIP:
+                return redFlower(7);
             // Java 1.12 has no canonical states for these two later flowers. These legacy flower
             // states preserve survival, occupancy, bee-pollination, and patch geometry.
             case CORNFLOWER:

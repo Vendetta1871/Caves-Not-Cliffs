@@ -19,6 +19,11 @@ import java.util.Set;
  */
 public final class V118BeeTreeVegetation {
     private static final long PROVIDER_SEED = 2345L;
+    private static final float PLAIN_FLOWER_SCALE = 0.005F;
+    private static final float PLAIN_FLOWER_THRESHOLD = -0.8F;
+    private static final float PLAIN_FLOWER_HIGH_CHANCE = 0.33333334F;
+    private static final NormalNoise PLAIN_FLOWER_NOISE = NormalNoise.create(
+            new LegacyRandomSource(PROVIDER_SEED), 0, 1.0D);
     private static final NormalNoise MEADOW_SLOW_NOISE = NormalNoise.create(
             new LegacyRandomSource(PROVIDER_SEED), -10, 1.0D);
     private static final NormalNoise MEADOW_FAST_NOISE = NormalNoise.create(
@@ -26,6 +31,12 @@ public final class V118BeeTreeVegetation {
     private static final Plant[] MEADOW_STATES = {
         Plant.TALL_GRASS, Plant.ALLIUM, Plant.POPPY, Plant.AZURE_BLUET,
         Plant.DANDELION, Plant.CORNFLOWER, Plant.OXEYE_DAISY, Plant.SHORT_GRASS
+    };
+    private static final Plant[] PLAIN_FLOWER_LOW_STATES = {
+        Plant.ORANGE_TULIP, Plant.RED_TULIP, Plant.PINK_TULIP, Plant.WHITE_TULIP
+    };
+    private static final Plant[] PLAIN_FLOWER_HIGH_STATES = {
+        Plant.POPPY, Plant.AZURE_BLUET, Plant.OXEYE_DAISY, Plant.CORNFLOWER
     };
 
     private V118BeeTreeVegetation() {
@@ -51,6 +62,8 @@ public final class V118BeeTreeVegetation {
                 return placeForestFlowers(world, random, originX, originZ, feature);
             case PATCH_SUNFLOWER:
                 return placeSunflowers(world, random, originX, originZ, feature);
+            case FLOWER_PLAINS:
+                return placePlainFlowers(world, random, originX, originZ, feature);
             case PATCH_GRASS_PLAIN:
                 return placePlainGrass(world, random, originX, originZ, feature);
             case FLOWER_MEADOW:
@@ -131,6 +144,28 @@ public final class V118BeeTreeVegetation {
         return placed;
     }
 
+    private static int placePlainFlowers(WorldAccess world, Random random,
+            int originX, int originZ, PlacedFeature feature) {
+        double noise = V118BiomeTemperature.biomeInfoNoise(
+                (double) originX / 200.0D, (double) originZ / 200.0D);
+        int count = noise < -0.8D ? 15 : 4;
+        int placed = 0;
+        for (int attempt = 0; attempt < count; ++attempt) {
+            if (random.nextFloat() >= 1.0F / 32.0F) {
+                continue;
+            }
+            int x = originX + random.nextInt(16);
+            int z = originZ + random.nextInt(16);
+            int y = world.height(Heightmap.MOTION_BLOCKING, x, z);
+            if (!feature.supports(world.biome(x, y, z))) {
+                continue;
+            }
+            placed += randomPatch(world, random, new BlockPos(x, y, z),
+                    64, 6, 2, null, V118BeeTreeVegetation::plainFlower);
+        }
+        return placed;
+    }
+
     private static int placeMeadowFlowers(WorldAccess world, Random random,
             int originX, int originZ, PlacedFeature feature) {
         int x = originX + random.nextInt(16);
@@ -154,7 +189,10 @@ public final class V118BeeTreeVegetation {
                     random.nextInt(horizontalBound) - random.nextInt(horizontalBound),
                     random.nextInt(verticalBound) - random.nextInt(verticalBound),
                     random.nextInt(horizontalBound) - random.nextInt(horizontalBound));
-            Plant plant = provider == null ? constant : provider.at(position);
+            if (provider != null && !world.isAir(position)) {
+                continue;
+            }
+            Plant plant = provider == null ? constant : provider.at(random, position);
             if (world.placePlant(position, plant)) {
                 ++placed;
             }
@@ -162,7 +200,23 @@ public final class V118BeeTreeVegetation {
         return placed;
     }
 
-    private static Plant meadowPlant(BlockPos position) {
+    private static Plant plainFlower(Random random, BlockPos position) {
+        double scale = (double) PLAIN_FLOWER_SCALE;
+        double noise = PLAIN_FLOWER_NOISE.getValue(
+                (double) position.getX() * scale,
+                (double) position.getY() * scale,
+                (double) position.getZ() * scale);
+        if (noise < (double) PLAIN_FLOWER_THRESHOLD) {
+            return PLAIN_FLOWER_LOW_STATES[random.nextInt(PLAIN_FLOWER_LOW_STATES.length)];
+        }
+        if (random.nextFloat() < PLAIN_FLOWER_HIGH_CHANCE) {
+            return PLAIN_FLOWER_HIGH_STATES[
+                    random.nextInt(PLAIN_FLOWER_HIGH_STATES.length)];
+        }
+        return Plant.DANDELION;
+    }
+
+    private static Plant meadowPlant(Random random, BlockPos position) {
         double slowValue = meadowSlowNoise(position);
         int variety = (int) clampedMap(slowValue, -1.0D, 1.0D, 1.0D, 4.0D);
         List<Plant> localStates = new ArrayList<>(variety);
@@ -218,6 +272,10 @@ public final class V118BeeTreeVegetation {
         AZURE_BLUET(false),
         DANDELION(false),
         CORNFLOWER(false),
+        ORANGE_TULIP(false),
+        RED_TULIP(false),
+        PINK_TULIP(false),
+        WHITE_TULIP(false),
         OXEYE_DAISY(false);
 
         private final boolean doublePlant;
@@ -236,6 +294,8 @@ public final class V118BeeTreeVegetation {
         FOREST_FLOWERS(17, EnumSet.of(V118Biome.OLD_GROWTH_BIRCH_FOREST,
                 V118Biome.BIRCH_FOREST, V118Biome.FOREST, V118Biome.DARK_FOREST)),
         PATCH_SUNFLOWER(29, EnumSet.of(V118Biome.SUNFLOWER_PLAINS)),
+        FLOWER_PLAINS(31, EnumSet.of(V118Biome.PLAINS,
+                V118Biome.SUNFLOWER_PLAINS, V118Biome.DRIPSTONE_CAVES)),
         PATCH_GRASS_PLAIN(32, EnumSet.of(V118Biome.PLAINS,
                 V118Biome.SUNFLOWER_PLAINS, V118Biome.DRIPSTONE_CAVES,
                 V118Biome.MEADOW)),
@@ -272,10 +332,14 @@ public final class V118BeeTreeVegetation {
 
         V118Biome biome(int blockX, int blockY, int blockZ);
 
+        default boolean isAir(BlockPos pos) {
+            return true;
+        }
+
         boolean placePlant(BlockPos pos, Plant plant);
     }
 
     private interface PlantProvider {
-        Plant at(BlockPos position);
+        Plant at(Random random, BlockPos position);
     }
 }
