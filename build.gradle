@@ -35,10 +35,10 @@ repositories {
 }
 
 dependencies {
-    compileOnly('com.github.frostdev-ops:CaveBiomesAPI:5844100') {
+    compileOnly('com.github.frostdev-ops:CaveBiomesAPI:9499d01') {
         transitive = false
     }
-    testCompile('com.github.frostdev-ops:CaveBiomesAPI:5844100') {
+    testCompile('com.github.frostdev-ops:CaveBiomesAPI:9499d01') {
         transitive = false
     }
 
