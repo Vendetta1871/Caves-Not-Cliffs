@@ -17,6 +17,7 @@ import net.celestiald.cavesnotcliffs.worldgen.v118.V118BeeTreePlacements.TreeKin
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements.SpringFluid;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118DesertWellPlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118IceSurfacePlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118IceSurfacePlacements.State;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Material;
@@ -25,7 +26,10 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockDirt;
 import net.minecraft.block.BlockDoublePlant;
 import net.minecraft.block.BlockLeaves;
+import net.minecraft.block.BlockSand;
+import net.minecraft.block.BlockSlab;
 import net.minecraft.block.BlockStone;
+import net.minecraft.block.BlockStoneSlab;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -41,12 +45,13 @@ import java.util.function.Predicate;
 final class V118MountainSurfaceWorldBridge
         implements V118MountainSurfacePlacements.WorldAccess,
             V118DefaultSpringPlacements.WorldAccess,
+            V118DesertWellPlacements.WorldAccess,
             V118IceSurfacePlacements.WorldAccess {
     private final World world;
     private final V118ChunkGenerator generator;
     private final SpringValidBlocks springValidBlocks;
-    private int iceFeatureChunkX;
-    private int iceFeatureChunkZ;
+    private int surfaceFeatureChunkX;
+    private int surfaceFeatureChunkZ;
 
     V118MountainSurfaceWorldBridge(World world, V118ChunkGenerator generator,
             V118BlockStateMapper blockStates) {
@@ -77,9 +82,16 @@ final class V118MountainSurfaceWorldBridge
     }
 
     void populateIceSurface(int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
-        iceFeatureChunkX = chunkX;
-        iceFeatureChunkZ = chunkZ;
+        surfaceFeatureChunkX = chunkX;
+        surfaceFeatureChunkZ = chunkZ;
         V118IceSurfacePlacements.decorate(this, world.getSeed(), chunkX, chunkZ,
+            regionBiomes);
+    }
+
+    void populateDesertWell(int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        surfaceFeatureChunkX = chunkX;
+        surfaceFeatureChunkZ = chunkZ;
+        V118DesertWellPlacements.decorate(this, world.getSeed(), chunkX, chunkZ,
             regionBiomes);
     }
 
@@ -223,9 +235,48 @@ final class V118MountainSurfaceWorldBridge
 
     @Override
     public void setPackedIce(BlockPos pos, int flags) {
-        if (inside(pos) && V118LushCaveWorldBridge.insideFeatureChunks(
-                pos.getX(), pos.getZ(), iceFeatureChunkX, iceFeatureChunkZ)) {
+        if (canWriteSurfaceFeature(pos)) {
             world.setBlockState(pos, Blocks.PACKED_ICE.getDefaultState(), flags);
+        }
+    }
+
+    @Override
+    public boolean isOrdinarySand(BlockPos pos) {
+        if (!inside(pos)) {
+            return false;
+        }
+        IBlockState state = world.getBlockState(pos);
+        return state.getBlock() == Blocks.SAND
+            && state.getValue(BlockSand.VARIANT) == BlockSand.EnumType.SAND;
+    }
+
+    @Override
+    public boolean isEmptyBlock(BlockPos pos) {
+        return !inside(pos) || world.isAirBlock(pos);
+    }
+
+    @Override
+    public void setSandstone(BlockPos pos) {
+        if (canWriteSurfaceFeature(pos)) {
+            world.setBlockState(pos, Blocks.SANDSTONE.getDefaultState(), 2);
+        }
+    }
+
+    @Override
+    public void setBottomSandstoneSlab(BlockPos pos) {
+        if (!canWriteSurfaceFeature(pos)) {
+            return;
+        }
+        IBlockState slab = Blocks.STONE_SLAB.getDefaultState()
+            .withProperty(BlockStoneSlab.VARIANT, BlockStoneSlab.EnumType.SAND)
+            .withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.BOTTOM);
+        world.setBlockState(pos, slab, 2);
+    }
+
+    @Override
+    public void setSourceWater(BlockPos pos) {
+        if (canWriteSurfaceFeature(pos)) {
+            world.setBlockState(pos, Blocks.WATER.getDefaultState(), 2);
         }
     }
 
@@ -768,6 +819,11 @@ final class V118MountainSurfaceWorldBridge
     private static boolean inside(BlockPos pos) {
         return pos.getY() >= TerrainColumn.MIN_Y
             && pos.getY() < TerrainColumn.MAX_Y_EXCLUSIVE;
+    }
+
+    private boolean canWriteSurfaceFeature(BlockPos pos) {
+        return inside(pos) && V118LushCaveWorldBridge.insideFeatureChunks(
+            pos.getX(), pos.getZ(), surfaceFeatureChunkX, surfaceFeatureChunkZ);
     }
 
     static final class SpringValidBlocks {
