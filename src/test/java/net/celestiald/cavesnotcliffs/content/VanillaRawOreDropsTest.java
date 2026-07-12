@@ -64,4 +64,58 @@ public class VanillaRawOreDropsTest {
         augmented.add(new ItemStack(Blocks.COAL_ORE));
         assertFalse(VanillaRawOreDrops.isVanillaSelfDrop(Blocks.IRON_ORE, augmented));
     }
+
+    @Test
+    public void explosionDecayFiltersFortuneDropsPerItemAndIncludesTheBoundary() {
+        SequenceRandom random = new SequenceRandom(
+                0.10F, 0.90F, 0.50F, 0.5001F, 0.0F);
+        assertEquals(3, VanillaRawOreDrops.applyExplosionDecay(5, 0.50F, random));
+        assertEquals(5, random.getCalls());
+
+        assertEquals(0, VanillaRawOreDrops.applyExplosionDecay(
+                5, 0.0F, new SequenceRandom(0.0F)));
+        assertEquals(5, VanillaRawOreDrops.applyExplosionDecay(
+                5, 1.0F, new SequenceRandom(1.0F)));
+    }
+
+    @Test
+    public void fortuneThenExplosionUsesOneDeterministicRandomSequence() {
+        long seed = 0x1182CAFE5EEDL;
+        Random actual = new Random(seed);
+        int fortuneCount = VanillaRawOreDrops.rollRawCount(3, actual);
+        int surviving = VanillaRawOreDrops.applyExplosionDecay(
+                fortuneCount, 0.35F, actual);
+
+        Random oracle = new Random(seed);
+        int expectedCount = OreDropLogic.applyOreBonus(1, 3, oracle);
+        int expectedSurviving = 0;
+        for (int item = 0; item < expectedCount; item++) {
+            if (oracle.nextFloat() <= 0.35F) {
+                expectedSurviving++;
+            }
+        }
+        assertEquals(expectedCount, fortuneCount);
+        assertEquals(expectedSurviving, surviving);
+    }
+
+    private static final class SequenceRandom extends Random {
+        private final float[] values;
+        private int index;
+
+        private SequenceRandom(float... values) {
+            this.values = values;
+        }
+
+        @Override
+        public float nextFloat() {
+            if (index >= values.length) {
+                throw new AssertionError("SequenceRandom exhausted");
+            }
+            return values[index++];
+        }
+
+        private int getCalls() {
+            return index;
+        }
+    }
 }

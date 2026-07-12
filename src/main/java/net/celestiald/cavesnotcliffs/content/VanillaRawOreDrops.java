@@ -38,11 +38,17 @@ public final class VanillaRawOreDrops {
             throw new IllegalStateException("Raw ore drop is not registered: " + replacement);
         }
 
-        int count = rollRawCount(event.getFortuneLevel(), event.getWorld().rand);
+        Random random = event.getWorld().rand;
+        int count = rollRawCount(event.getFortuneLevel(), random);
+        count = applyExplosionDecay(count, event.getDropChance(), random);
         event.getDrops().clear();
-        event.getDrops().add(new ItemStack(rawMaterial, count));
-        // Preserve Forge's incoming drop chance. For base-count-one ores it is the 1.12
-        // equivalent of 1.18's survives_explosion/explosion_decay behavior.
+        if (count > 0) {
+            event.getDrops().add(new ItemStack(rawMaterial, count));
+        }
+        // Forge rolls this once per stack after the event. Java 1.18's explosion_decay instead
+        // filters every raw item independently, so consume the chance above and disable the
+        // legacy all-or-nothing roll.
+        event.setDropChance(1.0F);
     }
 
     static String replacementPath(Block block, boolean silkTouching) {
@@ -60,6 +66,22 @@ public final class VanillaRawOreDrops {
 
     static int rollRawCount(int fortune, Random random) {
         return OreDropLogic.applyOreBonus(1, fortune, random);
+    }
+
+    static int applyExplosionDecay(int count, float survivalChance, Random random) {
+        if (count <= 0 || survivalChance <= 0.0F) {
+            return 0;
+        }
+        if (survivalChance >= 1.0F) {
+            return count;
+        }
+        int surviving = 0;
+        for (int item = 0; item < count; item++) {
+            if (random.nextFloat() <= survivalChance) {
+                surviving++;
+            }
+        }
+        return surviving;
     }
 
     static boolean isVanillaSelfDrop(Block block, List<ItemStack> drops) {
