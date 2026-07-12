@@ -190,6 +190,12 @@ final class V118MountainSurfaceWorldBridge
     }
 
     @Override
+    public boolean canSpruceSaplingSurvive(BlockPos pos) {
+        return inside(pos) && inside(pos.down())
+            && DoublePlantSupportHooks.canLowerSurvive(world, pos);
+    }
+
+    @Override
     public boolean isFrozenSpringValid(BlockPos pos) {
         if (!inside(pos)) {
             return false;

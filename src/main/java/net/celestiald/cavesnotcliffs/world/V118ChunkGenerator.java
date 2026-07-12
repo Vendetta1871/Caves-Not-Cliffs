@@ -182,7 +182,7 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         beeTrees.populateAfterLush(chunkX, chunkZ, decorationBiomes);
         // Large fern index 36 follows the implemented meadow tree at 34.
         mountainSurface.populateLateDoublePlants(chunkX, chunkZ, decorationBiomes);
-        // Indices 40, 44, 46-64, 66-69, 71, 72, 74, and 75 follow.
+        // Indices 39, 40, 42, 44, 46-64, 66-69, 71, 72, 74, and 75 follow.
         mountainSurface.populateVegetation(chunkX, chunkZ, decorationBiomes);
         // TOP_LAYER_MODIFICATION step 10 is the last represented decoration stage.
         mountainSurface.populateTopLayer(chunkX, chunkZ, decorationBiomes);

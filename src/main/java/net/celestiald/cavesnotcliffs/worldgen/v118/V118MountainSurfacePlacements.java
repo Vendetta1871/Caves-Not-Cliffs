@@ -30,7 +30,9 @@ public final class V118MountainSurfacePlacements {
     public static final int PATCH_GRASS_SAVANNA_INDEX = 12;
     public static final int PATCH_TALL_GRASS_2_INDEX = 21;
     public static final int PATCH_LARGE_FERN_INDEX = 36;
+    public static final int TREES_TAIGA_INDEX = 39;
     public static final int TREES_GROVE_INDEX = 40;
+    public static final int TREES_SNOWY_INDEX = 42;
     public static final int FLOWER_SWAMP_INDEX = 44;
     public static final int FLOWER_DEFAULT_INDEX = 46;
     public static final int PATCH_GRASS_TAIGA_INDEX = 47;
@@ -83,6 +85,12 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> LARGE_FERN_BIOMES = immutableSet(
         V118Biome.OLD_GROWTH_PINE_TAIGA, V118Biome.OLD_GROWTH_SPRUCE_TAIGA,
         V118Biome.SNOWY_TAIGA, V118Biome.TAIGA);
+    private static final Set<V118Biome> TAIGA_TREE_BIOMES = immutableSet(
+        V118Biome.SNOWY_TAIGA, V118Biome.TAIGA);
+    private static final Set<V118Biome> GROVE_TREE_BIOMES = immutableSet(
+        V118Biome.GROVE);
+    private static final Set<V118Biome> SNOWY_TREE_BIOMES = immutableSet(
+        V118Biome.ICE_SPIKES, V118Biome.SNOWY_PLAINS);
     private static final Set<V118Biome> FLOWER_SWAMP_BIOMES = immutableSet(
         V118Biome.SWAMP);
     private static final Set<V118Biome> FLOWER_DEFAULT_BIOMES = immutableSet(
@@ -260,8 +268,14 @@ public final class V118MountainSurfacePlacements {
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
         requireArguments(world, regionBiomes);
         DecorationResult result = new DecorationResult();
+        if (appearsIn(TAIGA_TREE_BIOMES, regionBiomes)) {
+            placeTaigaTrees(world, worldSeed, chunkX, chunkZ, result);
+        }
         if (regionBiomes.contains(V118Biome.GROVE)) {
             placeGroveTrees(world, worldSeed, chunkX, chunkZ, result);
+        }
+        if (appearsIn(SNOWY_TREE_BIOMES, regionBiomes)) {
+            placeSnowyTrees(world, worldSeed, chunkX, chunkZ, result);
         }
         boolean flowers = world.supportsFlowerPlacement();
         if (flowers && regionBiomes.contains(V118Biome.SWAMP)) {
@@ -629,37 +643,90 @@ public final class V118MountainSurfacePlacements {
         V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
             TREES_GROVE_INDEX, VEGETAL_DECORATION_STEP);
         int attempts = 10 + (random.nextInt(10) == 9 ? 1 : 0);
-        int originX = chunkX << 4;
-        int originZ = chunkZ << 4;
         for (int attempt = 0; attempt < attempts; ++attempt) {
-            int x = originX + random.nextInt(16);
-            int z = originZ + random.nextInt(16);
-            if (world.worldSurfaceHeight(x, z) - world.oceanFloorHeight(x, z) > 0) {
-                continue;
-            }
-            int y = world.oceanFloorHeight(x, z);
-            if (y <= world.minBuildHeight()
-                    || world.biomeAt(new BlockPos(x, y, z)) != V118Biome.GROVE) {
+            BlockPos origin = sampleTreeOrigin(world, random, chunkX, chunkZ,
+                GROVE_TREE_BIOMES);
+            if (origin == null) {
                 continue;
             }
 
             Kind kind = random.nextFloat() < 0.33333334F ? Kind.PINE : Kind.SPRUCE;
-            BlockPos treeOrigin = scanAbovePowderSnow(world, new BlockPos(x, y, z));
+            BlockPos treeOrigin = scanAbovePowderSnow(world, origin);
             if (treeOrigin == null || !world.isSnowTreeSupport(treeOrigin.down())) {
                 continue;
             }
-            Result tree = V118MountainTreeFeature.place(world, random, treeOrigin, kind);
-            if (!tree.placed()) {
+            recordTree(V118MountainTreeFeature.place(world, random, treeOrigin, kind),
+                result);
+        }
+    }
+
+    private static void placeTaigaTrees(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, DecorationResult result) {
+        V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
+            TREES_TAIGA_INDEX, VEGETAL_DECORATION_STEP);
+        int attempts = 10 + (random.nextInt(10) == 9 ? 1 : 0);
+        for (int attempt = 0; attempt < attempts; ++attempt) {
+            BlockPos origin = sampleTreeOrigin(world, random, chunkX, chunkZ,
+                TAIGA_TREE_BIOMES);
+            if (origin == null) {
                 continue;
             }
-            result.treesPlaced++;
-            result.logsPlaced += tree.logs();
-            result.leavesPlaced += tree.leaves();
-            if (kind == Kind.PINE) {
-                result.pinesPlaced++;
-            } else {
-                result.sprucesPlaced++;
+
+            // RandomSelector chooses the child before its checked-sapling filter runs.
+            Kind kind = random.nextFloat() < 0.33333334F ? Kind.PINE : Kind.SPRUCE;
+            if (!world.canSpruceSaplingSurvive(origin)) {
+                continue;
             }
+            recordTree(V118MountainTreeFeature.place(world, random, origin, kind), result);
+        }
+    }
+
+    private static void placeSnowyTrees(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, DecorationResult result) {
+        V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
+            TREES_SNOWY_INDEX, VEGETAL_DECORATION_STEP);
+        int attempts = random.nextInt(10) == 9 ? 1 : 0;
+        for (int attempt = 0; attempt < attempts; ++attempt) {
+            BlockPos origin = sampleTreeOrigin(world, random, chunkX, chunkZ,
+                SNOWY_TREE_BIOMES);
+            if (origin == null || !world.canSpruceSaplingSurvive(origin)) {
+                continue;
+            }
+            recordTree(V118MountainTreeFeature.place(world, random, origin, Kind.SPRUCE),
+                result);
+        }
+    }
+
+    private static BlockPos sampleTreeOrigin(WorldAccess world, Random random,
+            int chunkX, int chunkZ, Set<V118Biome> featureBiomes) {
+        int x = (chunkX << 4) + random.nextInt(16);
+        int z = (chunkZ << 4) + random.nextInt(16);
+        // SurfaceWaterDepthFilter queries OCEAN_FLOOR before WORLD_SURFACE. The following
+        // height placement performs a second OCEAN_FLOOR query on accepted columns.
+        int oceanFloor = world.oceanFloorHeight(x, z);
+        int worldSurface = world.worldSurfaceHeight(x, z);
+        if (worldSurface - oceanFloor > 0) {
+            return null;
+        }
+        int y = world.oceanFloorHeight(x, z);
+        if (y <= world.minBuildHeight()) {
+            return null;
+        }
+        BlockPos origin = new BlockPos(x, y, z);
+        return featureBiomes.contains(world.biomeAt(origin)) ? origin : null;
+    }
+
+    private static void recordTree(Result tree, DecorationResult result) {
+        if (!tree.placed()) {
+            return;
+        }
+        result.treesPlaced++;
+        result.logsPlaced += tree.logs();
+        result.leavesPlaced += tree.leaves();
+        if (tree.kind() == Kind.PINE) {
+            result.pinesPlaced++;
+        } else {
+            result.sprucesPlaced++;
         }
     }
 
@@ -1109,6 +1176,10 @@ public final class V118MountainSurfacePlacements {
         boolean isPowderSnow(BlockPos pos);
 
         boolean isSnowTreeSupport(BlockPos pos);
+
+        default boolean canSpruceSaplingSurvive(BlockPos pos) {
+            return false;
+        }
 
         boolean isFrozenSpringValid(BlockPos pos);
 

@@ -196,6 +196,21 @@ overridden with the matching official Java 1.18.2 client resources:
 - Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
 - Asset base: <https://resources.download.minecraft.net/>
 
+The spruce log, log-top, leaves, and sapling textures are unmodified Java 1.18.2 client assets.
+Their filenames are adapted only to Java 1.12.2's existing spruce block and item models:
+
+- `assets/minecraft/textures/block/spruce_log.png` ->
+  `assets/minecraft/textures/blocks/log_spruce.png`
+- `assets/minecraft/textures/block/spruce_log_top.png` ->
+  `assets/minecraft/textures/blocks/log_spruce_top.png`
+- `assets/minecraft/textures/block/spruce_leaves.png` ->
+  `assets/minecraft/textures/blocks/leaves_spruce.png`
+- `assets/minecraft/textures/block/spruce_sapling.png` ->
+  `assets/minecraft/textures/blocks/sapling_spruce.png`
+
+- Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Version metadata: <https://piston-meta.mojang.com/mc/game/version_manifest_v2.json>
+
 The dandelion, poppy, and blue-orchid textures are unmodified Java 1.18.2 client assets. Their
 filenames are adapted only to the texture paths used by Java 1.12.2's existing flower models:
 
