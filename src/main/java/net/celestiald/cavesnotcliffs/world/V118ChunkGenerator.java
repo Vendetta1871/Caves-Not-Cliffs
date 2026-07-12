@@ -51,6 +51,7 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
     private final V118OreWorldBridge ordinaryOres;
     private final V118LushCaveWorldBridge lushCaves;
     private final V118BeeTreeWorldBridge beeTrees;
+    private final V118MountainSurfaceWorldBridge mountainSurface;
     private ChunkPrimer cachedStructureColumn;
     private int cachedStructureX;
     private int cachedStructureZ;
@@ -92,6 +93,7 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         ordinaryOres = new V118OreWorldBridge(world, this, oreBlocks);
         lushCaves = new V118LushCaveWorldBridge(world, this);
         beeTrees = new V118BeeTreeWorldBridge(world, this);
+        mountainSurface = new V118MountainSurfaceWorldBridge(world, this);
         registerActiveGenerator(world, this);
     }
 
@@ -111,6 +113,14 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
     public V118Biome getVirtualBiome(int blockX, int blockY, int blockZ) {
         if (!hasVirtualBiomeY(blockY)) {
             throw new IllegalArgumentException("Virtual biome Y is outside -64..319: " + blockY);
+        }
+        return columns.biomeAt(blockX, blockY, blockZ);
+    }
+
+    V118Biome getDecorationBiome(int blockX, int blockY, int blockZ) {
+        if (!hasDecorationBiomeY(blockY)) {
+            throw new IllegalArgumentException(
+                "Decoration biome Y is outside -64..320: " + blockY);
         }
         return columns.biomeAt(blockX, blockY, blockZ);
     }
@@ -156,9 +166,15 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         geodes.populate(chunkX, chunkZ);
         dripstones.populateLarge(chunkX, chunkZ, decorationBiomes);
         ordinaryOres.populate(chunkX, chunkZ, decorationBiomes, dripstones);
+        // FLUID_SPRINGS step 8, after underground decoration and before vegetation.
+        mountainSurface.populateFrozenSprings(chunkX, chunkZ, decorationBiomes);
         beeTrees.populateBeforeLush(chunkX, chunkZ, decorationBiomes);
         lushCaves.populate(chunkX, chunkZ, decorationBiomes);
         beeTrees.populateAfterLush(chunkX, chunkZ, decorationBiomes);
+        // VEGETAL_DECORATION indices 40, 68, and 69 follow the implemented index-34 tree.
+        mountainSurface.populateVegetation(chunkX, chunkZ, decorationBiomes);
+        // TOP_LAYER_MODIFICATION step 10 is the last represented decoration stage.
+        mountainSurface.populateTopLayer(chunkX, chunkZ, decorationBiomes);
         TerrainColumn column = columns.column(chunkX, chunkZ);
 
         for (int sectionY = TerrainColumn.MIN_CUBE_Y;
@@ -260,6 +276,11 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
 
     static boolean hasVirtualBiomeY(int blockY) {
         return blockY >= TerrainColumn.MIN_Y && blockY <= TerrainColumn.MAX_Y;
+    }
+
+    static boolean hasDecorationBiomeY(int blockY) {
+        return blockY >= TerrainColumn.MIN_Y
+            && blockY <= TerrainColumn.MAX_Y_EXCLUSIVE;
     }
 
     private static void registerActiveGenerator(World world,

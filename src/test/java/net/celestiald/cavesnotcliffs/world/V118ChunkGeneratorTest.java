@@ -42,5 +42,11 @@ public class V118ChunkGeneratorTest {
         assertTrue(V118ChunkGenerator.hasVirtualBiomeY(-64));
         assertTrue(V118ChunkGenerator.hasVirtualBiomeY(319));
         assertFalse(V118ChunkGenerator.hasVirtualBiomeY(320));
+
+        assertFalse(V118ChunkGenerator.hasDecorationBiomeY(-65));
+        assertTrue(V118ChunkGenerator.hasDecorationBiomeY(-64));
+        assertTrue(V118ChunkGenerator.hasDecorationBiomeY(319));
+        assertTrue(V118ChunkGenerator.hasDecorationBiomeY(320));
+        assertFalse(V118ChunkGenerator.hasDecorationBiomeY(321));
     }
 }

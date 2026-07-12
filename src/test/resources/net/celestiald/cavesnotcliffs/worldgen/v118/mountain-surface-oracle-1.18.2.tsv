@@ -1,0 +1,42 @@
+# Java 1.18.2 server-named.jar runtime oracle: MultiNoiseBiomeSource featuresPerStep
+feature	spring_lava_frozen	8	2
+feature	trees_grove	9	40
+feature	patch_sugar_cane	9	68
+feature	patch_pumpkin	9	69
+feature	freeze_top_layer	10	0
+# BuiltinRegistries biome-generation membership
+biome	meadow	freeze_top_layer
+biome	grove	spring_lava_frozen,trees_grove,patch_sugar_cane,patch_pumpkin,freeze_top_layer
+biome	snowy_slopes	spring_lava_frozen,patch_sugar_cane,patch_pumpkin,freeze_top_layer
+biome	frozen_peaks	spring_lava_frozen,freeze_top_layer
+biome	jagged_peaks	spring_lava_frozen,freeze_top_layer
+biome	stony_peaks	freeze_top_layer
+# Representative non-mountain origins; the official runtime reports freeze_top_layer
+# for all 50 Overworld biome peers represented by V118Biome.
+biome	plains	freeze_top_layer
+biome	snowy_taiga	freeze_top_layer
+biome	lush_caves	freeze_top_layer
+# Xoroshiro WorldgenRandom; seed=123456789 chunk=(-3,5)
+spring	0	-34	119	80
+spring	1	-47	-3	88
+spring	2	-33	-29	89
+spring	3	-39	-53	82
+spring	4	-43	-56	94
+# First non-negative seed whose top-level rarity filter passes in chunk (0,0)
+rarity	patch_sugar_cane	11	0.026406467
+rarity	patch_pumpkin	466	0.00058966875
+# TreeFeature.doPlace with official PINE/SPRUCE configs; origin=(-19,64,37)
+# Log rows filter the shared trunk/dirt callback to SPRUCE_LOG states.
+# kind seed placed logs log_hash leaves leaf_hash trailing_next_long
+tree	pine	0	true	6	-8645709525183779874	30	-7891177393334446218	-6688467811848818630
+tree	pine	1	true	6	-8645709525183779874	30	-7891177393334446218	3831662765844904176
+tree	pine	-1	true	9	4019472632822206479	30	6750287466746178474	-6233441030884181172
+tree	pine	123456789	true	6	-8645709525183779874	30	-7891177393334446218	7203573180470058788
+tree	pine	-9223372036854775808	true	6	-8645709525183779874	30	-7891177393334446218	-6688467811848818630
+tree	pine	9223372036854775807	true	9	4019472632822206479	30	6750287466746178474	-6233441030884181172
+tree	spruce	0	true	6	-8645709525183779874	99	1437531642181569390	-8292973307042192125
+tree	spruce	1	true	5	7786493018137663983	55	-3192915447753738433	6137546356583794141
+tree	spruce	-1	true	7	1784103348989887304	123	2487464034171886565	7681931065131779340
+tree	spruce	123456789	true	7	1784103348989887304	53	7493525047800083342	-1967508324443428465
+tree	spruce	-9223372036854775808	true	6	-8645709525183779874	99	1437531642181569390	-8292973307042192125
+tree	spruce	9223372036854775807	true	7	1784103348989887304	123	2487464034171886565	7681931065131779340
