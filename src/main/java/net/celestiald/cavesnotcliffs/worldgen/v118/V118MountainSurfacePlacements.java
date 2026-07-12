@@ -26,6 +26,7 @@ public final class V118MountainSurfacePlacements {
     public static final int SPRING_LAVA_FROZEN_INDEX = 2;
     public static final int TREES_GROVE_INDEX = 40;
     public static final int PATCH_DEAD_BUSH_INDEX = 51;
+    public static final int PATCH_WATERLILY_INDEX = 54;
     public static final int PATCH_DEAD_BUSH_2_INDEX = 58;
     public static final int PATCH_DEAD_BUSH_BADLANDS_INDEX = 59;
     public static final int PATCH_SUGAR_CANE_DESERT_INDEX = 62;
@@ -49,6 +50,8 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> DEAD_BUSH_BIOMES = immutableSet(
         V118Biome.OLD_GROWTH_PINE_TAIGA,
         V118Biome.OLD_GROWTH_SPRUCE_TAIGA, V118Biome.SWAMP);
+    private static final Set<V118Biome> WATERLILY_BIOMES = immutableSet(
+        V118Biome.SWAMP);
     private static final Set<V118Biome> DEAD_BUSH_2_BIOMES = immutableSet(
         V118Biome.DESERT);
     private static final Set<V118Biome> DEAD_BUSH_BADLANDS_BIOMES = immutableSet(
@@ -111,6 +114,12 @@ public final class V118MountainSurfacePlacements {
         if (appearsIn(DEAD_BUSH_BIOMES, regionBiomes)) {
             placeDeadBushPatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_DEAD_BUSH_INDEX, 1, DEAD_BUSH_BIOMES, result);
+        }
+        // PATCH_WATERLILY is registered between the shared dead-bush patch at 51 and the
+        // desert-only dead-bush patch at 58.
+        if (world.supportsWaterlilyPlacement()
+                && regionBiomes.contains(V118Biome.SWAMP)) {
+            placeWaterlilyPatch(world, worldSeed, chunkX, chunkZ, result);
         }
         if (regionBiomes.contains(V118Biome.DESERT)) {
             placeDeadBushPatch(world, worldSeed, chunkX, chunkZ,
@@ -251,6 +260,10 @@ public final class V118MountainSurfacePlacements {
 
     static boolean supportsDeadBush(V118Biome biome) {
         return DEAD_BUSH_BIOMES.contains(biome);
+    }
+
+    static boolean supportsWaterlily(V118Biome biome) {
+        return WATERLILY_BIOMES.contains(biome);
     }
 
     static boolean supportsDeadBushBadlands(V118Biome biome) {
@@ -406,6 +419,39 @@ public final class V118MountainSurfacePlacements {
                 }
                 world.setDeadBush(candidate);
                 result.deadBushesPlaced++;
+            }
+        }
+    }
+
+    private static void placeWaterlilyPatch(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, DecorationResult result) {
+        V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
+            PATCH_WATERLILY_INDEX, VEGETAL_DECORATION_STEP);
+        int originX = chunkX << 4;
+        int originZ = chunkZ << 4;
+        // CountPlacement is lazy: each accepted origin completes its configured patch before
+        // InSquarePlacement samples the next origin from this feature stream.
+        for (int outer = 0; outer < 4; ++outer) {
+            int x = originX + random.nextInt(16);
+            int z = originZ + random.nextInt(16);
+            int y = world.worldSurfaceHeight(x, z);
+            if (y <= world.minBuildHeight()) {
+                continue;
+            }
+            BlockPos origin = new BlockPos(x, y, z);
+            if (!WATERLILY_BIOMES.contains(world.biomeAt(origin))) {
+                continue;
+            }
+            for (int attempt = 0; attempt < 10; ++attempt) {
+                BlockPos candidate = origin.add(random.nextInt(8) - random.nextInt(8),
+                    random.nextInt(4) - random.nextInt(4),
+                    random.nextInt(8) - random.nextInt(8));
+                if (!world.isWaterlilyPlacementAir(candidate)
+                        || !world.canWaterlilySurvive(candidate)) {
+                    continue;
+                }
+                world.setWaterlily(candidate);
+                result.waterliliesPlaced++;
             }
         }
     }
@@ -619,6 +665,18 @@ public final class V118MountainSurfacePlacements {
 
         boolean isSugarCanePlacementAir(BlockPos pos);
 
+        default boolean isWaterlilyPlacementAir(BlockPos pos) {
+            return false;
+        }
+
+        default boolean canWaterlilySurvive(BlockPos pos) {
+            return false;
+        }
+
+        default boolean supportsWaterlilyPlacement() {
+            return false;
+        }
+
         default boolean isCactusPlacementAir(BlockPos pos) {
             return isSugarCanePlacementAir(pos);
         }
@@ -655,6 +713,10 @@ public final class V118MountainSurfacePlacements {
 
         void setSugarCane(BlockPos pos);
 
+        default void setWaterlily(BlockPos pos) {
+            throw new UnsupportedOperationException("Waterlily placement is not available");
+        }
+
         default void setCactus(BlockPos pos) {
             throw new UnsupportedOperationException("Cactus placement is not available");
         }
@@ -675,6 +737,7 @@ public final class V118MountainSurfacePlacements {
         private int logsPlaced;
         private int leavesPlaced;
         private int deadBushesPlaced;
+        private int waterliliesPlaced;
         private int sugarCanePlaced;
         private int cactusPlaced;
         private int melonsPlaced;
@@ -712,6 +775,10 @@ public final class V118MountainSurfacePlacements {
 
         public int deadBushesPlaced() {
             return deadBushesPlaced;
+        }
+
+        public int waterliliesPlaced() {
+            return waterliliesPlaced;
         }
 
         public int sugarCanePlaced() {

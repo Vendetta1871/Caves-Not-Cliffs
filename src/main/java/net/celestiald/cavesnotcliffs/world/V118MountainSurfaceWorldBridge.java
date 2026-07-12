@@ -6,6 +6,7 @@ import net.celestiald.cavesnotcliffs.block.LushAzaleaBlocks;
 import net.celestiald.cavesnotcliffs.block.LushCaveVinesBlock;
 import net.celestiald.cavesnotcliffs.block.LushMossBlocks;
 import net.celestiald.cavesnotcliffs.content.DeadBushSupportHooks;
+import net.celestiald.cavesnotcliffs.content.LilyPadSupportHooks;
 import net.celestiald.cavesnotcliffs.content.LushCaveContent;
 import net.celestiald.cavesnotcliffs.content.PlainPumpkinContent;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
@@ -196,6 +197,22 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public boolean isSugarCanePlacementAir(BlockPos pos) {
         return inside(pos) && world.getBlockState(pos).getBlock() == Blocks.AIR;
+    }
+
+    @Override
+    public boolean isWaterlilyPlacementAir(BlockPos pos) {
+        return inside(pos) && world.getBlockState(pos).getBlock() == Blocks.AIR;
+    }
+
+    @Override
+    public boolean canWaterlilySurvive(BlockPos pos) {
+        return inside(pos) && inside(pos.down())
+            && LilyPadSupportHooks.canStay(world, pos);
+    }
+
+    @Override
+    public boolean supportsWaterlilyPlacement() {
+        return true;
     }
 
     @Override
@@ -392,6 +409,13 @@ final class V118MountainSurfaceWorldBridge
     public void setSugarCane(BlockPos pos) {
         if (inside(pos)) {
             world.setBlockState(pos, Blocks.REEDS.getDefaultState(), 2);
+        }
+    }
+
+    @Override
+    public void setWaterlily(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.WATERLILY.getDefaultState(), 2);
         }
     }
 
