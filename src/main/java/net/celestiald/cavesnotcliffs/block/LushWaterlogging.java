@@ -82,7 +82,8 @@ public final class LushWaterlogging {
         }
         World world = event.world;
         for (BlockPos pos : drainDue(world, world.getTotalWorldTime())) {
-            if (world.isBlockLoaded(pos) && isWaterlogged(world.getBlockState(pos))) {
+            if (world.isBlockLoaded(pos)
+                    && CncFluidState.containsWater(world.getBlockState(pos))) {
                 emitSourceWater(world, pos);
             }
         }
