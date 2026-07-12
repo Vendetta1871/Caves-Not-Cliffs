@@ -207,15 +207,7 @@ final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
         if (isOutsideBuildHeight(pos)) {
             return false;
         }
-        IBlockState state = world.getBlockState(pos);
-        Block block = state.getBlock();
-        Material material = state.getMaterial();
-        return material == Material.AIR
-                || block.isLeaves(state, world, pos)
-                || material == Material.PLANTS
-                || material == Material.VINE
-                || block == Blocks.WATER
-                || block == Blocks.FLOWING_WATER;
+        return V118TreeStateRules.isValidTreePos(world, pos);
     }
 
     @Override
