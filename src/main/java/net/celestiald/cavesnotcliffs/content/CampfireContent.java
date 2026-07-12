@@ -225,6 +225,27 @@ public final class CampfireContent extends ElementsCavesNotCliffs.ModElement {
 
         public boolean isSoul() { return soul; }
 
+        /** Places retained source water without applying bucket inventory bookkeeping. */
+        public boolean placeSourceWater(@Nullable Entity source, World world, BlockPos pos,
+                IBlockState state) {
+            if (state.getBlock() != this || state.getValue(WATERLOGGED)) {
+                return false;
+            }
+            if (state.getValue(LIT)) {
+                world.playSound(null, pos, SoundEvents.BLOCK_FIRE_EXTINGUISH,
+                    SoundCategory.BLOCKS, 1.0F, 1.0F);
+                douse(source, world, pos, state);
+            }
+            IBlockState wet = state.withProperty(WATERLOGGED, true)
+                .withProperty(LIT, false);
+            if (!world.setBlockState(pos, wet, 3)) {
+                return false;
+            }
+            scheduleWater(world, pos, wet);
+            LushWaterlogging.schedule(world, pos, true);
+            return true;
+        }
+
         @Override protected BlockStateContainer createBlockState() {
             return new BlockStateContainer(this, FACING, LIT, WATERLOGGED);
         }

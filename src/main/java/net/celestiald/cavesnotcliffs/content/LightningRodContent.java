@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.content;
 
 import net.celestiald.cavesnotcliffs.CavesNotCliffs;
+import net.celestiald.cavesnotcliffs.block.LushWaterlogging;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDirectional;
 import net.minecraft.block.material.Material;
@@ -266,6 +267,28 @@ public final class LightningRodContent {
 
         public boolean isWaterloggedStorage() {
             return waterlogged;
+        }
+
+        /** Places retained source water without applying bucket inventory bookkeeping. */
+        public boolean placeSourceWater(World world, BlockPos pos, IBlockState state) {
+            if (state.getBlock() != this || waterlogged) {
+                return false;
+            }
+            LightningRodBlock target = waterloggedRod;
+            if (target == null) {
+                throw new IllegalStateException("Lightning rod companion was not registered");
+            }
+            boolean powered = state.getValue(POWERED);
+            if (powered) {
+                world.scheduleUpdate(pos, target, ACTIVATION_TICKS);
+            }
+            boolean placed = world.setBlockState(pos, target.getDefaultState()
+                .withProperty(FACING, state.getValue(FACING))
+                .withProperty(POWERED, powered), 3);
+            if (placed) {
+                LushWaterlogging.schedule(world, pos, true);
+            }
+            return placed;
         }
 
         @Override

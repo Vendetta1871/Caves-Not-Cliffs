@@ -4,6 +4,7 @@ import com.google.common.base.Predicate;
 import net.celestiald.cavesnotcliffs.CavesNotCliffs;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.content.AxolotlMechanics;
+import net.celestiald.cavesnotcliffs.content.AxolotlBucketDispenserBehavior;
 import net.celestiald.cavesnotcliffs.content.AxolotlSoundEvents;
 import net.celestiald.cavesnotcliffs.item.ItemAxolotlBucket;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
@@ -91,6 +92,7 @@ public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
 
     @Override
     public void init(FMLInitializationEvent event) {
+        AxolotlBucketDispenserBehavior.register(axolotlBucket);
         // Native biome spawning is supplied by V118ChunkGenerator#getPossibleCreatures;
         // registering against the 1.12 surface projection would leak axolotls into forest ponds.
     }
@@ -351,7 +353,9 @@ public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
         public void saveToBucket(NBTTagCompound tag) {
             tag.setInteger("Variant", getVariant().id());
             tag.setInteger("Age", getGrowingAge());
-            tag.setInteger("HuntingCooldown", huntingCooldown);
+            if (huntingCooldown > 0) {
+                tag.setLong("HuntingCooldown", huntingCooldown);
+            }
             tag.setFloat("Health", getHealth());
             if (isAIDisabled()) {
                 tag.setBoolean("NoAI", true);
@@ -365,6 +369,9 @@ public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
             if (isGlowing()) {
                 tag.setBoolean("Glowing", true);
             }
+            if (getIsInvulnerable()) {
+                tag.setBoolean("Invulnerable", true);
+            }
         }
 
         public void loadFromBucket(ItemStack stack) {
@@ -374,14 +381,28 @@ public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
                 if (tag.hasKey("Age")) {
                     setGrowingAge(tag.getInteger("Age"));
                 }
-                huntingCooldown = Math.max(0, tag.getInteger("HuntingCooldown"));
+                if (tag.hasKey("HuntingCooldown")) {
+                    long remaining = Math.max(0L, tag.getLong("HuntingCooldown"));
+                    huntingCooldown = (int) Math.min(Integer.MAX_VALUE, remaining);
+                }
                 if (tag.hasKey("Health")) {
                     setHealth(Math.min(getMaxHealth(), tag.getFloat("Health")));
                 }
-                setNoAI(tag.getBoolean("NoAI"));
-                setSilent(tag.getBoolean("Silent"));
-                setNoGravity(tag.getBoolean("NoGravity"));
-                setGlowing(tag.getBoolean("Glowing"));
+                if (tag.hasKey("NoAI")) {
+                    setNoAI(tag.getBoolean("NoAI"));
+                }
+                if (tag.hasKey("Silent")) {
+                    setSilent(tag.getBoolean("Silent"));
+                }
+                if (tag.hasKey("NoGravity")) {
+                    setNoGravity(tag.getBoolean("NoGravity"));
+                }
+                if (tag.hasKey("Glowing")) {
+                    setGlowing(tag.getBoolean("Glowing"));
+                }
+                if (tag.hasKey("Invulnerable")) {
+                    setEntityInvulnerable(tag.getBoolean("Invulnerable"));
+                }
             }
             if (stack.hasDisplayName()) {
                 setCustomNameTag(stack.getDisplayName());
