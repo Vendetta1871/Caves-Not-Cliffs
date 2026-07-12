@@ -25,6 +25,7 @@ public final class V118MountainSurfacePlacements {
     public static final int TOP_LAYER_MODIFICATION_STEP = 10;
 
     public static final int SPRING_LAVA_FROZEN_INDEX = 2;
+    public static final int TREES_BADLANDS_INDEX = 5;
     public static final int PATCH_TALL_GRASS_INDEX = 8;
     public static final int FLOWER_WARM_INDEX = 10;
     public static final int PATCH_GRASS_JUNGLE_INDEX = 11;
@@ -37,6 +38,7 @@ public final class V118MountainSurfacePlacements {
     public static final int TREES_WINDSWEPT_HILLS_INDEX = 41;
     public static final int TREES_SNOWY_INDEX = 42;
     public static final int FLOWER_SWAMP_INDEX = 44;
+    public static final int TREES_WATER_INDEX = 45;
     public static final int FLOWER_DEFAULT_INDEX = 46;
     public static final int PATCH_GRASS_TAIGA_INDEX = 47;
     public static final int PATCH_GRASS_FOREST_INDEX = 48;
@@ -73,6 +75,8 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> FROZEN_SPRING_BIOMES = immutableSet(
         V118Biome.GROVE, V118Biome.SNOWY_SLOPES,
         V118Biome.FROZEN_PEAKS, V118Biome.JAGGED_PEAKS);
+    private static final Set<V118Biome> BADLANDS_TREE_BIOMES = immutableSet(
+        V118Biome.WOODED_BADLANDS);
     private static final Set<V118Biome> TALL_GRASS_BIOMES = immutableSet(
         V118Biome.SAVANNA, V118Biome.SAVANNA_PLATEAU);
     private static final Set<V118Biome> FLOWER_WARM_BIOMES = immutableSet(
@@ -100,6 +104,12 @@ public final class V118MountainSurfacePlacements {
         V118Biome.ICE_SPIKES, V118Biome.SNOWY_PLAINS);
     private static final Set<V118Biome> FLOWER_SWAMP_BIOMES = immutableSet(
         V118Biome.SWAMP);
+    private static final Set<V118Biome> WATER_TREE_BIOMES = immutableSet(
+        V118Biome.COLD_OCEAN, V118Biome.DEEP_COLD_OCEAN,
+        V118Biome.DEEP_FROZEN_OCEAN, V118Biome.DEEP_LUKEWARM_OCEAN,
+        V118Biome.DEEP_OCEAN, V118Biome.FROZEN_OCEAN,
+        V118Biome.FROZEN_RIVER, V118Biome.LUKEWARM_OCEAN,
+        V118Biome.OCEAN, V118Biome.RIVER, V118Biome.WARM_OCEAN);
     private static final Set<V118Biome> FLOWER_DEFAULT_BIOMES = immutableSet(
         V118Biome.BEACH, V118Biome.BIRCH_FOREST, V118Biome.COLD_OCEAN,
         V118Biome.DARK_FOREST, V118Biome.DEEP_COLD_OCEAN,
@@ -180,6 +190,19 @@ public final class V118MountainSurfacePlacements {
         V118Biome.BAMBOO_JUNGLE, V118Biome.JUNGLE);
 
     private V118MountainSurfacePlacements() {
+    }
+
+    public static DecorationResult decorateEarlyTrees(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        requireArguments(world, regionBiomes);
+        DecorationResult result = new DecorationResult();
+        if (world.supportsBroadleafTreePlacement()
+                && appearsIn(BADLANDS_TREE_BIOMES, regionBiomes)) {
+            placeOakTrees(world, worldSeed, chunkX, chunkZ,
+                TREES_BADLANDS_INDEX, 5, false,
+                BADLANDS_TREE_BIOMES, result);
+        }
+        return result;
     }
 
     public static DecorationResult decorateEarlyDoublePlants(WorldAccess world, long worldSeed,
@@ -308,6 +331,12 @@ public final class V118MountainSurfacePlacements {
             placeFlowerPatch(world, worldSeed, chunkX, chunkZ,
                 FLOWER_SWAMP_INDEX, 32, 6, 2, true,
                 FLOWER_SWAMP_BIOMES, result);
+        }
+        if (world.supportsBroadleafTreePlacement()
+                && appearsIn(WATER_TREE_BIOMES, regionBiomes)) {
+            placeOakTrees(world, worldSeed, chunkX, chunkZ,
+                TREES_WATER_INDEX, 0, true,
+                WATER_TREE_BIOMES, result);
         }
         if (flowers && appearsIn(FLOWER_DEFAULT_BIOMES, regionBiomes)) {
             placeFlowerPatch(world, worldSeed, chunkX, chunkZ,
@@ -748,6 +777,32 @@ public final class V118MountainSurfacePlacements {
             }
 
             TreeKind kind = random.nextFloat() < 0.1F
+                ? TreeKind.FANCY_OAK : TreeKind.OAK;
+            if (!world.canBroadleafSaplingSurvive(origin)) {
+                continue;
+            }
+            recordBroadleafTree(V118BeeTreeFeature.place(
+                world, random, origin, kind), origin, kind, result);
+        }
+    }
+
+    private static void placeOakTrees(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, int globalIndex, int baseCount,
+            boolean fancySelector, Set<V118Biome> featureBiomes,
+            DecorationResult result) {
+        V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
+            globalIndex, VEGETAL_DECORATION_STEP);
+        int attempts = baseCount + (random.nextInt(10) == 9 ? 1 : 0);
+        for (int attempt = 0; attempt < attempts; ++attempt) {
+            BlockPos origin = sampleTreeOrigin(world, random, chunkX, chunkZ,
+                featureBiomes);
+            if (origin == null) {
+                continue;
+            }
+
+            // trees_water selects its checked child before support. trees_badlands has no
+            // selector and applies its outer checked-sapling filter before the raw oak feature.
+            TreeKind kind = fancySelector && random.nextFloat() < 0.1F
                 ? TreeKind.FANCY_OAK : TreeKind.OAK;
             if (!world.canBroadleafSaplingSurvive(origin)) {
                 continue;

@@ -65,6 +65,12 @@ final class V118MountainSurfaceWorldBridge
             chunkX, chunkZ, regionBiomes);
     }
 
+    V118MountainSurfacePlacements.DecorationResult populateEarlyTrees(
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return V118MountainSurfacePlacements.decorateEarlyTrees(this, world.getSeed(),
+            chunkX, chunkZ, regionBiomes);
+    }
+
     V118MountainSurfacePlacements.DecorationResult populateEarlyDoublePlants(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
         return V118MountainSurfacePlacements.decorateEarlyDoublePlants(this, world.getSeed(),

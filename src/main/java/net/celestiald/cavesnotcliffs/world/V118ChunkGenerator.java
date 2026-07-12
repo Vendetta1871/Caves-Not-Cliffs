@@ -169,6 +169,8 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         // FLUID_SPRINGS step 8 indices 0, 1, then 2, after underground decoration.
         mountainSurface.populateDefaultSprings(chunkX, chunkZ, decorationBiomes);
         mountainSurface.populateFrozenSprings(chunkX, chunkZ, decorationBiomes);
+        // VEGETAL_DECORATION begins with wooded-badlands oak trees at global index 5.
+        mountainSurface.populateEarlyTrees(chunkX, chunkZ, decorationBiomes);
         // VEGETAL_DECORATION index 8 precedes omitted tree index 9 and warm flowers at 10.
         mountainSurface.populateEarlyDoublePlants(chunkX, chunkZ, decorationBiomes);
         // Warm flowers at index 10 follow omitted tree index 9.
@@ -184,7 +186,7 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         mountainSurface.populatePreLateTrees(chunkX, chunkZ, decorationBiomes);
         // Large fern index 36 follows windswept-forest trees at 35.
         mountainSurface.populateLateDoublePlants(chunkX, chunkZ, decorationBiomes);
-        // Indices 39-42, 44, 46-64, 66-69, 71, 72, 74, and 75 follow.
+        // Indices 39-42, 44-64, 66-69, 71, 72, 74, and 75 follow.
         mountainSurface.populateVegetation(chunkX, chunkZ, decorationBiomes);
         // TOP_LAYER_MODIFICATION step 10 is the last represented decoration stage.
         mountainSurface.populateTopLayer(chunkX, chunkZ, decorationBiomes);
