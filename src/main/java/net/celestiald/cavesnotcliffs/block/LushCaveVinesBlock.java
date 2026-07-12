@@ -139,6 +139,13 @@ public final class LushCaveVinesBlock {
         }
 
         @Override
+        public boolean isReplaceable(IBlockAccess world, BlockPos pos) {
+            // Java 1.18.2 cave vines use non-replaceable Material.PLANT. The 1.12 VINE
+            // material is otherwise replaceable and would let block items overwrite a segment.
+            return false;
+        }
+
+        @Override
         public int getLightValue(IBlockState state, IBlockAccess world, BlockPos pos) {
             return state.getValue(BERRIES) ? LushCaveMechanics.CAVE_VINE_LIGHT : 0;
         }
@@ -241,6 +248,11 @@ public final class LushCaveVinesBlock {
         @Override
         public boolean canPlaceBlockAt(World world, BlockPos pos) {
             return canHangFrom(world, pos.up());
+        }
+
+        @Override
+        public boolean isReplaceable(IBlockAccess world, BlockPos pos) {
+            return false;
         }
 
         @Override
