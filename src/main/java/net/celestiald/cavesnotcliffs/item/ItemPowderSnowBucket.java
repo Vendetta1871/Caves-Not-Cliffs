@@ -1,10 +1,13 @@
 package net.celestiald.cavesnotcliffs.item;
 
 import net.celestiald.cavesnotcliffs.block.BlockPowderSnow;
+import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.block.Block;
+import net.minecraft.block.SoundType;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -35,24 +38,35 @@ public final class ItemPowderSnowBucket extends Item {
         IBlockState clicked = world.getBlockState(clickedPos);
         boolean replaceClicked = clicked.getBlock().isReplaceable(world, clickedPos);
         BlockPos placePos = replaceClicked ? clickedPos : clickedPos.offset(facing);
-        if (!player.canPlayerEdit(placePos, facing, held)
+        if (held.isEmpty() || !player.canPlayerEdit(placePos, facing, held)
                 || !world.mayPlace(BlockPowderSnow.block, placePos, false, facing, player)) {
             return EnumActionResult.FAIL;
         }
 
+        IBlockState placed = BlockPowderSnow.block.getDefaultState();
+        if (!world.setBlockState(placePos, placed, 11)) {
+            return EnumActionResult.FAIL;
+        }
+        IBlockState actual = world.getBlockState(placePos);
+        if (actual.getBlock() == BlockPowderSnow.block) {
+            actual.getBlock().onBlockPlacedBy(world, placePos, actual, player, held);
+            if (player instanceof EntityPlayerMP) {
+                CriteriaTriggers.PLACED_BLOCK.trigger(
+                    (EntityPlayerMP) player, placePos, held);
+            }
+        }
+        SoundType sound = actual.getBlock().getSoundType(
+            actual, world, placePos, player);
+        world.playSound(player, placePos, BlockPowderSnow.BUCKET_EMPTY_SOUND,
+            SoundCategory.BLOCKS, (sound.getVolume() + 1.0F) / 2.0F,
+            sound.getPitch() * 0.8F);
         if (!world.isRemote) {
-            IBlockState placed = BlockPowderSnow.block.getDefaultState();
-            if (!world.setBlockState(placePos, placed, 3)) {
-                return EnumActionResult.FAIL;
-            }
-            BlockPowderSnow.block.onBlockPlacedBy(world, placePos, placed, player, held);
-            if (!player.capabilities.isCreativeMode) {
-                player.setHeldItem(hand, new ItemStack(Items.BUCKET));
-            }
             player.addStat(StatList.getObjectUseStats(this));
         }
-        world.playSound(player, placePos, BlockPowderSnow.BUCKET_EMPTY_SOUND,
-            SoundCategory.BLOCKS, 1.0F, 1.0F);
+        if (!player.capabilities.isCreativeMode) {
+            held.shrink(1);
+            player.setHeldItem(hand, new ItemStack(Items.BUCKET));
+        }
         return EnumActionResult.SUCCESS;
     }
 
