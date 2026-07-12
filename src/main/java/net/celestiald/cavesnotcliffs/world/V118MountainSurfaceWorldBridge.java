@@ -26,6 +26,7 @@ import net.celestiald.cavesnotcliffs.worldgen.v118.V118LavaLakePlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Material;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118MountainSurfacePlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118OldGrowthTreeFeature;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118SwampTreeFeature;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDirt;
 import net.minecraft.block.BlockDoublePlant;
@@ -54,7 +55,8 @@ final class V118MountainSurfaceWorldBridge
             V118DesertWellPlacements.WorldAccess,
             V118IceSurfacePlacements.WorldAccess,
             V118LavaLakePlacements.WorldAccess,
-            V118OldGrowthTreeFeature.WorldAccess {
+            V118OldGrowthTreeFeature.WorldAccess,
+            V118SwampTreeFeature.WorldAccess {
     private final World world;
     private final V118ChunkGenerator generator;
     private final SpringValidBlocks springValidBlocks;
@@ -541,6 +543,11 @@ final class V118MountainSurfaceWorldBridge
     }
 
     @Override
+    public boolean canOakSaplingSurvive(BlockPos pos) {
+        return canBroadleafSaplingSurvive(pos);
+    }
+
+    @Override
     public boolean supportsBroadleafTreePlacement() {
         return true;
     }
@@ -548,6 +555,26 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public boolean supportsAcaciaTreePlacement() {
         return true;
+    }
+
+    @Override
+    public void setOakLog(BlockPos pos) {
+        setLog(pos, LogAxis.Y, TreeKind.OAK);
+    }
+
+    @Override
+    public void setOakLeaves(BlockPos pos) {
+        setLeaves(pos, TreeKind.OAK);
+    }
+
+    @Override
+    public void setVine(BlockPos pos, V118SwampTreeFeature.VineAttachment attachment) {
+        if (!inside(pos)) {
+            return;
+        }
+        EnumFacing face = EnumFacing.valueOf(attachment.name());
+        world.setBlockState(pos, Blocks.VINE.getDefaultState()
+            .withProperty(BlockVine.getPropertyFor(face), true), 2);
     }
 
     @Override

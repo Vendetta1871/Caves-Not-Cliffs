@@ -398,6 +398,14 @@ public final class V118MountainSurfacePlacements {
         if (appearsIn(SNOWY_TREE_BIOMES, regionBiomes)) {
             placeSnowyTrees(world, worldSeed, chunkX, chunkZ, result);
         }
+        if (regionBiomes.contains(V118Biome.SWAMP)) {
+            V118SwampTreeFeature.Result trees = V118SwampTreeFeature.place(
+                world, worldSeed, chunkX, chunkZ);
+            result.treesPlaced += trees.trees();
+            result.oaksPlaced += trees.trees();
+            result.logsPlaced += trees.logs();
+            result.leavesPlaced += trees.leaves();
+        }
         boolean flowers = world.supportsFlowerPlacement();
         if (flowers && regionBiomes.contains(V118Biome.SWAMP)) {
             placeFlowerPatch(world, worldSeed, chunkX, chunkZ,
@@ -1488,7 +1496,8 @@ public final class V118MountainSurfacePlacements {
     }
 
     public interface WorldAccess extends V118MountainTreeFeature.WorldAccess,
-            V118BeeTreeFeature.WorldAccess, V118AcaciaTreeFeature.WorldAccess {
+            V118BeeTreeFeature.WorldAccess, V118AcaciaTreeFeature.WorldAccess,
+            V118SwampTreeFeature.WorldAccess {
         V118Biome biomeAt(BlockPos pos);
 
         int worldSurfaceHeight(int blockX, int blockZ);
