@@ -305,17 +305,12 @@ public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
             if (held.getItem() == Items.WATER_BUCKET && isEntityAlive()
                     && axolotlBucket != null) {
                 playSound(AxolotlSoundEvents.BUCKET_FILL, 1.0F, 1.0F);
-                if (!world.isRemote) {
-                    ItemStack filled = ItemAxolotlBucket.capture(this, axolotlBucket);
-                    if (player.capabilities.isCreativeMode) {
-                        if (!player.inventory.addItemStackToInventory(filled)) {
-                            player.dropItem(filled, false);
-                        }
-                    } else {
-                        player.setHeldItem(hand, filled);
-                    }
-                    setDead();
-                }
+                ItemStack filled = ItemAxolotlBucket.capture(this, axolotlBucket);
+                player.setHeldItem(hand,
+                    ItemAxolotlBucket.createFilledResult(held, player, filled));
+                // Java 1.12 has no server-side FILLED_BUCKET criterion; substituting another
+                // trigger would grant the wrong advancement.
+                setDead();
                 return true;
             }
             return super.processInteract(player, hand);
@@ -403,9 +398,6 @@ public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
                 if (tag.hasKey("Invulnerable")) {
                     setEntityInvulnerable(tag.getBoolean("Invulnerable"));
                 }
-            }
-            if (stack.hasDisplayName()) {
-                setCustomNameTag(stack.getDisplayName());
             }
             setFromBucket(true);
             enablePersistence();
