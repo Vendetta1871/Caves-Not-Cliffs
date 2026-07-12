@@ -25,6 +25,7 @@ public final class V118MountainSurfacePlacements {
 
     public static final int SPRING_LAVA_FROZEN_INDEX = 2;
     public static final int TREES_GROVE_INDEX = 40;
+    public static final int PATCH_DEAD_BUSH_2_INDEX = 58;
     public static final int PATCH_SUGAR_CANE_INDEX = 68;
     public static final int PATCH_PUMPKIN_INDEX = 69;
     public static final int FREEZE_TOP_LAYER_INDEX = 0;
@@ -36,6 +37,8 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> FROZEN_SPRING_BIOMES = immutableSet(
         V118Biome.GROVE, V118Biome.SNOWY_SLOPES,
         V118Biome.FROZEN_PEAKS, V118Biome.JAGGED_PEAKS);
+    private static final Set<V118Biome> DEAD_BUSH_2_BIOMES = immutableSet(
+        V118Biome.DESERT);
     private static final Set<V118Biome> ORDINARY_SUGAR_CANE_BIOMES = allBiomesExcept(
         V118Biome.BADLANDS, V118Biome.DESERT, V118Biome.ERODED_BADLANDS,
         V118Biome.FROZEN_PEAKS, V118Biome.JAGGED_PEAKS, V118Biome.LUSH_CAVES,
@@ -73,6 +76,9 @@ public final class V118MountainSurfacePlacements {
         DecorationResult result = new DecorationResult();
         if (regionBiomes.contains(V118Biome.GROVE)) {
             placeGroveTrees(world, worldSeed, chunkX, chunkZ, result);
+        }
+        if (regionBiomes.contains(V118Biome.DESERT)) {
+            placeDeadBushPatch(world, worldSeed, chunkX, chunkZ, result);
         }
         if (appearsIn(ORDINARY_SUGAR_CANE_BIOMES, regionBiomes)) {
             placeSugarCanePatch(world, worldSeed, chunkX, chunkZ, result);
@@ -156,6 +162,10 @@ public final class V118MountainSurfacePlacements {
 
     static boolean supportsGroveTrees(V118Biome biome) {
         return biome == V118Biome.GROVE;
+    }
+
+    static boolean supportsDeadBush2(V118Biome biome) {
+        return DEAD_BUSH_2_BIOMES.contains(biome);
     }
 
     static boolean supportsOrdinarySugarCane(V118Biome biome) {
@@ -248,6 +258,38 @@ public final class V118MountainSurfacePlacements {
             }
         }
         return world.isPowderSnow(cursor) ? null : cursor;
+    }
+
+    private static void placeDeadBushPatch(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, DecorationResult result) {
+        V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
+            PATCH_DEAD_BUSH_2_INDEX, VEGETAL_DECORATION_STEP);
+        int originX = chunkX << 4;
+        int originZ = chunkZ << 4;
+        // CountPlacement's stream is lazy: finish the configured patch (and its random
+        // consumption) before InSquarePlacement samples the next of the two origins.
+        for (int outer = 0; outer < 2; ++outer) {
+            int x = originX + random.nextInt(16);
+            int z = originZ + random.nextInt(16);
+            int y = world.worldSurfaceHeight(x, z);
+            if (y <= world.minBuildHeight()) {
+                continue;
+            }
+            BlockPos origin = new BlockPos(x, y, z);
+            if (!DEAD_BUSH_2_BIOMES.contains(world.biomeAt(origin))) {
+                continue;
+            }
+            for (int attempt = 0; attempt < 4; ++attempt) {
+                BlockPos candidate = origin.add(random.nextInt(8) - random.nextInt(8),
+                    random.nextInt(4) - random.nextInt(4),
+                    random.nextInt(8) - random.nextInt(8));
+                if (!world.isAir(candidate) || !world.canDeadBushSurvive(candidate)) {
+                    continue;
+                }
+                world.setDeadBush(candidate);
+                result.deadBushesPlaced++;
+            }
+        }
     }
 
     private static void placeSugarCanePatch(WorldAccess world, long worldSeed,
@@ -391,6 +433,8 @@ public final class V118MountainSurfacePlacements {
 
         boolean isGrassBlock(BlockPos pos);
 
+        boolean canDeadBushSurvive(BlockPos pos);
+
         boolean canSugarCaneSurvive(BlockPos pos);
 
         boolean hasAdjacentWaterBelow(BlockPos pos);
@@ -405,6 +449,8 @@ public final class V118MountainSurfacePlacements {
 
         void setSnowLayer(BlockPos pos);
 
+        void setDeadBush(BlockPos pos);
+
         void setSugarCane(BlockPos pos);
 
         void setPumpkin(BlockPos pos);
@@ -418,6 +464,7 @@ public final class V118MountainSurfacePlacements {
         private int sprucesPlaced;
         private int logsPlaced;
         private int leavesPlaced;
+        private int deadBushesPlaced;
         private int sugarCanePlaced;
         private int pumpkinsPlaced;
         private int waterFrozen;
@@ -449,6 +496,10 @@ public final class V118MountainSurfacePlacements {
 
         public int leavesPlaced() {
             return leavesPlaced;
+        }
+
+        public int deadBushesPlaced() {
+            return deadBushesPlaced;
         }
 
         public int sugarCanePlaced() {

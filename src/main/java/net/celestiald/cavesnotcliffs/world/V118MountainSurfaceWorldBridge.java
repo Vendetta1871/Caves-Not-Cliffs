@@ -3,6 +3,7 @@ package net.celestiald.cavesnotcliffs.world;
 import net.celestiald.cavesnotcliffs.block.BlockPowderSnow;
 import net.celestiald.cavesnotcliffs.block.LushAzaleaBlocks;
 import net.celestiald.cavesnotcliffs.block.LushMossBlocks;
+import net.celestiald.cavesnotcliffs.content.DeadBushSupportHooks;
 import net.celestiald.cavesnotcliffs.content.LushCaveContent;
 import net.celestiald.cavesnotcliffs.content.PlainPumpkinContent;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
@@ -170,6 +171,12 @@ final class V118MountainSurfaceWorldBridge
     }
 
     @Override
+    public boolean canDeadBushSurvive(BlockPos pos) {
+        return inside(pos) && inside(pos.down())
+            && isDeadBushSupport(world.getBlockState(pos.down()));
+    }
+
+    @Override
     public boolean canSugarCaneSurvive(BlockPos pos) {
         if (!inside(pos)) {
             return false;
@@ -287,6 +294,13 @@ final class V118MountainSurfaceWorldBridge
     }
 
     @Override
+    public void setDeadBush(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.DEADBUSH.getDefaultState(), 2);
+        }
+    }
+
+    @Override
     public void setSugarCane(BlockPos pos) {
         if (inside(pos)) {
             world.setBlockState(pos, Blocks.REEDS.getDefaultState(), 2);
@@ -305,6 +319,10 @@ final class V118MountainSurfaceWorldBridge
 
     static boolean isSugarCaneGround(Block block) {
         return isDirtTag(block) || block == Blocks.SAND;
+    }
+
+    static boolean isDeadBushSupport(IBlockState state) {
+        return DeadBushSupportHooks.isJava118Support(state);
     }
 
     static SpringValidBlocks springValidBlocks(V118BlockStateMapper blockStates) {

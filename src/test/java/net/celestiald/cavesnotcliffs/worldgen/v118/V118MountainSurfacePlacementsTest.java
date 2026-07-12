@@ -31,6 +31,7 @@ public class V118MountainSurfacePlacementsTest {
         assertEquals(2, V118MountainSurfacePlacements.SPRING_LAVA_FROZEN_INDEX);
         assertEquals(9, V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP);
         assertEquals(40, V118MountainSurfacePlacements.TREES_GROVE_INDEX);
+        assertEquals(58, V118MountainSurfacePlacements.PATCH_DEAD_BUSH_2_INDEX);
         assertEquals(68, V118MountainSurfacePlacements.PATCH_SUGAR_CANE_INDEX);
         assertEquals(69, V118MountainSurfacePlacements.PATCH_PUMPKIN_INDEX);
         assertEquals(10, V118MountainSurfacePlacements.TOP_LAYER_MODIFICATION_STEP);
@@ -84,7 +85,69 @@ public class V118MountainSurfacePlacementsTest {
         }
         reader.close();
         assertEquals(new java.util.HashSet<String>(java.util.Arrays.asList(
-            "patch_sugar_cane", "patch_pumpkin")), membershipIds);
+            "patch_dead_bush_2", "patch_sugar_cane", "patch_pumpkin")),
+            membershipIds);
+    }
+
+    @Test
+    public void deadBushDecorationMatchesTheOfficialLazyRuntimeOracle()
+            throws IOException {
+        InputStream stream = getClass().getResourceAsStream(
+            "/net/celestiald/cavesnotcliffs/worldgen/v118/"
+                + "dead-bush-decoration-oracle-1.18.2.tsv");
+        assertTrue(stream != null);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(
+            stream, StandardCharsets.UTF_8));
+        int rows = 0;
+        int metadataRows = 0;
+        int totalWrites = 0;
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.isEmpty() || line.charAt(0) == '#') {
+                continue;
+            }
+            String[] fields = line.split("\\t");
+            if (!"trace".equals(fields[0])) {
+                assertDeadBushOracleMetadata(fields);
+                metadataRows++;
+                continue;
+            }
+            long seed = Long.parseLong(fields[1]);
+            int chunkX = Integer.parseInt(fields[2]);
+            int chunkZ = Integer.parseInt(fields[3]);
+            RecordingWorld world = RecordingWorld.atHeight(
+                Surface.SAND, V118Biome.DESERT, 63);
+
+            DecorationResult result = V118MountainSurfacePlacements.decorateVegetation(
+                world, seed, chunkX, chunkZ, EnumSet.of(V118Biome.DESERT));
+
+            List<BlockPos> expectedOrigins = parseOracleTokenPositions(fields[6]);
+            assertTrue(world.worldSurfaceQueries.size() >= 2);
+            assertEquals(expectedOrigins, world.worldSurfaceQueries.subList(0, 2));
+            List<BlockPos> expectedCandidates = parseOracleTokenPositions(fields[7]);
+            assertEquals(8, expectedCandidates.size());
+            assertTrue(world.airQueries.size() >= 8);
+            assertEquals(expectedCandidates, world.airQueries.subList(0, 8));
+            Set<BlockPos> expectedWrites = new java.util.HashSet<BlockPos>(
+                parsePositions(fields[8]));
+            assertEquals(expectedWrites, writePositions(world, Cell.DEAD_BUSH));
+            assertEquals(expectedWrites.size(), result.deadBushesPlaced());
+            List<String> expectedEvents = parseDeadBushEvents(fields[9]);
+            assertTrue(world.deadBushEvents.size() >= expectedEvents.size());
+            assertEquals(expectedEvents,
+                world.deadBushEvents.subList(0, expectedEvents.size()));
+            assertEquals(52, Integer.parseInt(fields[10]));
+            assertEquals(!expectedWrites.isEmpty(), Boolean.parseBoolean(fields[11]));
+            long oracleTrailing = Long.parseLong(fields[12]);
+            assertEquals(String.format(java.util.Locale.ROOT, "%016x",
+                oracleTrailing), fields[13]);
+            totalWrites += result.deadBushesPlaced();
+            rows++;
+        }
+        reader.close();
+        assertEquals(6, metadataRows);
+        assertEquals(6, rows);
+        assertTrue(totalWrites > 0);
     }
 
     @Test
@@ -257,6 +320,83 @@ public class V118MountainSurfacePlacementsTest {
     }
 
     @Test
+    public void desertDeadBushesWriteTheirRepresentedPeer() {
+        RecordingWorld world = RecordingWorld.flat(Surface.SAND, V118Biome.DESERT);
+        DecorationResult result = V118MountainSurfacePlacements.decorateVegetation(
+            world, 0L, 0, 0, EnumSet.of(V118Biome.DESERT));
+
+        assertEquals(4, result.deadBushesPlaced());
+        assertEquals(result.deadBushesPlaced(), world.writeCount(Cell.DEAD_BUSH));
+        assertEquals(Cell.DEAD_BUSH, world.cell(new BlockPos(11, 81, 9)));
+    }
+
+    @Test
+    public void deadBushBiomeFilterRunsAfterEachWorldSurfaceLookup() {
+        RecordingWorld mixed = RecordingWorld.flat(Surface.SAND, V118Biome.PLAINS);
+        mixed.biomeAtPosition(new BlockPos(12, 81, 10), V118Biome.DESERT);
+
+        DecorationResult result = V118MountainSurfacePlacements.decorateVegetation(
+            mixed, 0L, 0, 0, EnumSet.of(V118Biome.DESERT, V118Biome.PLAINS));
+
+        assertEquals(3, result.deadBushesPlaced());
+        assertEquals(java.util.Arrays.asList(
+            new BlockPos(12, 81, 10), new BlockPos(3, 81, 7)),
+            mixed.worldSurfaceQueries.subList(0, 2));
+        assertEquals(java.util.Arrays.asList(
+            new BlockPos(12, 81, 10), new BlockPos(3, 81, 7)),
+            mixed.biomeQueries.subList(0, 2));
+        assertEquals(java.util.Arrays.asList(
+            new BlockPos(10, 80, 13), new BlockPos(11, 81, 9),
+            new BlockPos(10, 81, 6), new BlockPos(17, 81, 9)),
+            mixed.airQueries.subList(0, 4));
+        assertEquals(3, mixed.deadBushSurvivalQueries.size());
+    }
+
+    @Test
+    public void minimumHeightOriginIsFilteredBeforeTheConfiguredPatch() {
+        RecordingWorld world = RecordingWorld.flat(Surface.SAND, V118Biome.DESERT);
+        world.overrideNextWorldSurfaceHeight(-64);
+
+        V118MountainSurfacePlacements.decorateVegetation(
+            world, 0L, 0, 0, EnumSet.of(V118Biome.DESERT));
+
+        assertEquals(2, world.worldSurfaceQueries.size());
+        assertEquals(new BlockPos(12, -64, 10), world.worldSurfaceQueries.get(0));
+        assertEquals(4, world.airQueries.size());
+    }
+
+    @Test
+    public void mixedDesertRegionsInvokeDeadBushPlacementOnlyOnce() {
+        RecordingWorld single = RecordingWorld.flat(Surface.SAND, V118Biome.DESERT);
+        RecordingWorld mixed = RecordingWorld.flat(Surface.SAND, V118Biome.DESERT);
+        DecorationResult singleResult = V118MountainSurfacePlacements.decorateVegetation(
+            single, 0L, 0, 0, EnumSet.of(V118Biome.DESERT));
+        DecorationResult mixedResult = V118MountainSurfacePlacements.decorateVegetation(
+            mixed, 0L, 0, 0, EnumSet.of(
+                V118Biome.BADLANDS, V118Biome.DESERT, V118Biome.PLAINS));
+
+        assertEquals(singleResult.deadBushesPlaced(), mixedResult.deadBushesPlaced());
+        assertEquals(writePositions(single, Cell.DEAD_BUSH),
+            writePositions(mixed, Cell.DEAD_BUSH));
+    }
+
+    @Test
+    public void patchDeadBush2BelongsOnlyToTheDesert() {
+        int supported = 0;
+        for (V118Biome biome : V118Biome.values()) {
+            if (V118MountainSurfacePlacements.supportsDeadBush2(biome)) {
+                supported++;
+            }
+        }
+        assertEquals(1, supported);
+        assertTrue(V118MountainSurfacePlacements.supportsDeadBush2(V118Biome.DESERT));
+        assertFalse(V118MountainSurfacePlacements.supportsDeadBush2(
+            V118Biome.BADLANDS));
+        assertFalse(V118MountainSurfacePlacements.supportsDeadBush2(
+            V118Biome.WOODED_BADLANDS));
+    }
+
+    @Test
     public void ordinaryCaneAndPumpkinUseTheirExactBiomeMemberships() {
         int caneBiomes = 0;
         int pumpkinBiomes = 0;
@@ -349,6 +489,87 @@ public class V118MountainSurfacePlacementsTest {
         decorateAll(world, 918273645L, 1, 0);
     }
 
+    private static BlockPos parsePosition(String value) {
+        String[] coordinates = value.split(",");
+        return new BlockPos(Integer.parseInt(coordinates[0]),
+            Integer.parseInt(coordinates[1]), Integer.parseInt(coordinates[2]));
+    }
+
+    private static List<BlockPos> parseOracleTokenPositions(String value) {
+        List<BlockPos> result = new ArrayList<BlockPos>();
+        for (String token : value.split(";")) {
+            int start = token.indexOf('@') + 1;
+            int end = token.indexOf(':', start);
+            result.add(parsePosition(token.substring(start,
+                end < 0 ? token.length() : end)));
+        }
+        return result;
+    }
+
+    private static List<String> parseDeadBushEvents(String value) {
+        List<String> result = new ArrayList<String>();
+        for (String token : value.split(">")) {
+            int at = token.indexOf('@');
+            String position = token.substring(at + 1);
+            if (token.startsWith("w@")) {
+                result.add("write:" + position);
+            } else if (token.substring(0, at).contains("a")) {
+                result.add("air:" + position);
+            } else {
+                result.add("surface:" + position);
+            }
+        }
+        return result;
+    }
+
+    private static void assertDeadBushOracleMetadata(String[] fields) {
+        if ("slot".equals(fields[0])) {
+            assertEquals("patch_dead_bush_2", fields[1]);
+            assertEquals("9", fields[2]);
+            assertEquals("58", fields[3]);
+        } else if ("membership".equals(fields[0])) {
+            assertEquals("patch_dead_bush_2", fields[1]);
+            assertEquals("minecraft:desert", fields[2]);
+        } else if ("placed_json".equals(fields[0])) {
+            assertTrue(fields[1].contains("\"count\":2"));
+            assertTrue(fields[1].contains("\"heightmap\":\"WORLD_SURFACE_WG\""));
+        } else if ("configured_json".equals(fields[0])) {
+            assertTrue(fields[1].contains("\"tries\":4"));
+            assertTrue(fields[1].contains("\"xz_spread\":7"));
+            assertTrue(fields[1].contains("\"y_spread\":3"));
+            assertTrue(fields[1].contains("\"Name\":\"minecraft:dead_bush\""));
+        } else if ("support_explicit".equals(fields[0])) {
+            assertTrue(fields[1].contains("minecraft:red_sand"));
+            assertTrue(fields[1].contains("minecraft:black_terracotta"));
+        } else {
+            assertEquals("support_tag", fields[0]);
+            assertEquals("minecraft:dirt", fields[1]);
+            assertTrue(fields[2].contains("minecraft:rooted_dirt"));
+            assertTrue(fields[2].contains("minecraft:moss_block"));
+        }
+    }
+
+    private static List<BlockPos> parsePositions(String value) {
+        if ("-".equals(value)) {
+            return Collections.emptyList();
+        }
+        List<BlockPos> result = new ArrayList<BlockPos>();
+        for (String position : value.split(";")) {
+            result.add(parsePosition(position));
+        }
+        return result;
+    }
+
+    private static Set<BlockPos> writePositions(RecordingWorld world, Cell cell) {
+        Set<BlockPos> result = new java.util.HashSet<BlockPos>();
+        for (Map.Entry<BlockPos, Cell> entry : world.writes.entrySet()) {
+            if (entry.getValue() == cell) {
+                result.add(entry.getKey());
+            }
+        }
+        return result;
+    }
+
     private static void assertTreeOracle(String[] fields) {
         V118MountainTreeFeature.Kind kind =
             V118MountainTreeFeature.Kind.valueOf(fields[1].toUpperCase(java.util.Locale.ROOT));
@@ -401,6 +622,8 @@ public class V118MountainSurfacePlacementsTest {
             V118MountainSurfacePlacements.supportsFrozenSpring(biome));
         assertEquals(features.contains("trees_grove"),
             V118MountainSurfacePlacements.supportsGroveTrees(biome));
+        assertEquals(features.contains("patch_dead_bush_2"),
+            V118MountainSurfacePlacements.supportsDeadBush2(biome));
         assertEquals(features.contains("patch_sugar_cane"),
             V118MountainSurfacePlacements.supportsOrdinarySugarCane(biome));
         assertEquals(features.contains("patch_pumpkin"),
@@ -414,14 +637,17 @@ public class V118MountainSurfacePlacementsTest {
         for (String id : fields[2].split(",")) {
             expected.add(V118Biome.valueOf(id.toUpperCase(java.util.Locale.ROOT)));
         }
+        boolean deadBush = "patch_dead_bush_2".equals(fields[1]);
         boolean cane = "patch_sugar_cane".equals(fields[1]);
         assertTrue("Unknown vegetation membership: " + fields[1],
-            cane || "patch_pumpkin".equals(fields[1]));
-        assertEquals(cane ? 40 : 45, expected.size());
+            deadBush || cane || "patch_pumpkin".equals(fields[1]));
+        assertEquals(deadBush ? 1 : cane ? 40 : 45, expected.size());
         for (V118Biome biome : V118Biome.values()) {
-            boolean actual = cane
-                ? V118MountainSurfacePlacements.supportsOrdinarySugarCane(biome)
-                : V118MountainSurfacePlacements.supportsPumpkin(biome);
+            boolean actual = deadBush
+                ? V118MountainSurfacePlacements.supportsDeadBush2(biome)
+                : cane
+                    ? V118MountainSurfacePlacements.supportsOrdinarySugarCane(biome)
+                    : V118MountainSurfacePlacements.supportsPumpkin(biome);
             assertEquals(biome.id(), expected.contains(biome), actual);
         }
     }
@@ -443,6 +669,9 @@ public class V118MountainSurfacePlacementsTest {
         } else if ("trees_grove".equals(id)) {
             assertEquals(V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP, step);
             assertEquals(V118MountainSurfacePlacements.TREES_GROVE_INDEX, index);
+        } else if ("patch_dead_bush_2".equals(id)) {
+            assertEquals(V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP, step);
+            assertEquals(V118MountainSurfacePlacements.PATCH_DEAD_BUSH_2_INDEX, index);
         } else if ("patch_sugar_cane".equals(id)) {
             assertEquals(V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP, step);
             assertEquals(V118MountainSurfacePlacements.PATCH_SUGAR_CANE_INDEX, index);
@@ -462,6 +691,7 @@ public class V118MountainSurfacePlacementsTest {
         SNOW_BLOCK,
         WATER,
         GRASS,
+        SAND,
         WET_GRASS
     }
 
@@ -470,6 +700,7 @@ public class V118MountainSurfacePlacementsTest {
         STONE,
         DIRT,
         GRASS,
+        SAND,
         SNOW_BLOCK,
         POWDER_SNOW,
         PACKED_ICE,
@@ -479,6 +710,7 @@ public class V118MountainSurfacePlacementsTest {
         SNOW_LAYER,
         SPRUCE_LOG,
         SPRUCE_LEAVES,
+        DEAD_BUSH,
         SUGAR_CANE,
         PUMPKIN
     }
@@ -499,6 +731,13 @@ public class V118MountainSurfacePlacementsTest {
         private final List<Cell> writeOrder = new ArrayList<Cell>();
         private final List<BlockPos> scheduledLava = new ArrayList<BlockPos>();
         private final List<BlockPos> biomeQueries = new ArrayList<BlockPos>();
+        private final List<BlockPos> worldSurfaceQueries = new ArrayList<BlockPos>();
+        private final List<BlockPos> airQueries = new ArrayList<BlockPos>();
+        private final List<BlockPos> deadBushSurvivalQueries =
+            new ArrayList<BlockPos>();
+        private final List<String> deadBushEvents = new ArrayList<String>();
+        private final List<Integer> worldSurfaceHeightOverrides =
+            new ArrayList<Integer>();
 
         static RecordingWorld flat(Surface surface, V118Biome biome) {
             return atHeight(surface, biome, SURFACE_Y);
@@ -526,6 +765,10 @@ public class V118MountainSurfacePlacementsTest {
             base.put(pos.toImmutable(), cell);
         }
 
+        void overrideNextWorldSurfaceHeight(int height) {
+            worldSurfaceHeightOverrides.add(height);
+        }
+
         Cell cell(BlockPos pos) {
             Cell written = writes.get(pos);
             if (written != null) {
@@ -548,6 +791,8 @@ public class V118MountainSurfacePlacementsTest {
                     return Cell.WATER;
                 case GRASS:
                     return Cell.GRASS;
+                case SAND:
+                    return Cell.SAND;
                 case WET_GRASS:
                     return Math.floorMod(pos.getX(), 2) == 0 ? Cell.GRASS : Cell.WATER;
                 case AIR:
@@ -595,7 +840,12 @@ public class V118MountainSurfacePlacementsTest {
 
         @Override
         public int worldSurfaceHeight(int blockX, int blockZ) {
-            return firstAvailable(blockX, blockZ, false, false);
+            int height = worldSurfaceHeightOverrides.isEmpty()
+                ? firstAvailable(blockX, blockZ, false, false)
+                : worldSurfaceHeightOverrides.remove(0);
+            worldSurfaceQueries.add(new BlockPos(blockX, height, blockZ));
+            deadBushEvents.add("surface:" + positionString(blockX, height, blockZ));
+            return height;
         }
 
         @Override
@@ -621,6 +871,7 @@ public class V118MountainSurfacePlacementsTest {
 
         private static boolean blocksMotion(Cell cell) {
             return cell == Cell.STONE || cell == Cell.DIRT || cell == Cell.GRASS
+                || cell == Cell.SAND
                 || cell == Cell.SNOW_BLOCK || cell == Cell.PACKED_ICE || cell == Cell.ICE
                 || cell == Cell.SPRUCE_LOG || cell == Cell.SPRUCE_LEAVES
                 || cell == Cell.PUMPKIN;
@@ -637,6 +888,9 @@ public class V118MountainSurfacePlacementsTest {
 
         @Override
         public boolean isAir(BlockPos pos) {
+            airQueries.add(pos.toImmutable());
+            deadBushEvents.add("air:" + positionString(
+                pos.getX(), pos.getY(), pos.getZ()));
             return cell(pos) == Cell.AIR;
         }
 
@@ -666,6 +920,13 @@ public class V118MountainSurfacePlacementsTest {
         @Override
         public boolean isGrassBlock(BlockPos pos) {
             return cell(pos) == Cell.GRASS;
+        }
+
+        @Override
+        public boolean canDeadBushSurvive(BlockPos pos) {
+            deadBushSurvivalQueries.add(pos.toImmutable());
+            Cell below = cell(pos.down());
+            return below == Cell.DIRT || below == Cell.GRASS || below == Cell.SAND;
         }
 
         @Override
@@ -734,6 +995,17 @@ public class V118MountainSurfacePlacementsTest {
         @Override
         public void setSnowLayer(BlockPos pos) {
             write(pos, Cell.SNOW_LAYER);
+        }
+
+        @Override
+        public void setDeadBush(BlockPos pos) {
+            deadBushEvents.add("write:" + positionString(
+                pos.getX(), pos.getY(), pos.getZ()));
+            write(pos, Cell.DEAD_BUSH);
+        }
+
+        private static String positionString(int x, int y, int z) {
+            return x + "," + y + "," + z;
         }
 
         @Override

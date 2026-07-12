@@ -274,3 +274,16 @@ chunk in X/Z, while ProtoChunk rather than `ensureCanWrite` discards out-of-heig
   `913d4b5a0dcc94efa187902ea69da6d17151e358d2eb89e1969e39c64a5c8c0b`
 - Lush-decoration TSV SHA-256:
   `e51587ee5daf51590a4e626df52c716b78496c3e0c561b44609a31f1e4ab74df`
+
+## Desert dead-bush decoration
+
+`dead-bush-decoration-oracle-1.18.2.tsv` invokes the registered
+`patch_dead_bush_2` placed feature in the mapped official server. It pins the desert-only global
+slot, codec configuration, support catalog, lazy Count(2) event order, all 52 bounded random
+draws, writes, result, and trailing Xoroshiro state for the six edge seeds at chunk `(-3, 5)`.
+The standalone harness is `Cnc118DeadBushDecorationOracle.java.txt`.
+
+- Dead-bush harness SHA-256:
+  `28c2610ca6f9484e973249bdd3a03a0d683cfce7cf461cee5bcacea33de48507`
+- Dead-bush TSV SHA-256:
+  `8b595f57e436b2fe10a3ce453baeaedf62736e193922604b7bf9f85bd323ae8e`

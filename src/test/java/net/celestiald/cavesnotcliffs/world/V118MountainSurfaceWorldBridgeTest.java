@@ -36,6 +36,43 @@ public class V118MountainSurfaceWorldBridgeTest {
     }
 
     @Test
+    public void deadBushUsesOnlyItsJava118DirtSandAndTerracottaSupports() {
+        for (BlockDirt.DirtType dirt : BlockDirt.DirtType.values()) {
+            assertTrue(dirt.getName(), V118MountainSurfaceWorldBridge.isDeadBushSupport(
+                Blocks.DIRT.getDefaultState().withProperty(BlockDirt.VARIANT, dirt)));
+        }
+        assertTrue(V118MountainSurfaceWorldBridge.isDeadBushSupport(
+            Blocks.GRASS.getDefaultState()));
+        assertTrue(V118MountainSurfaceWorldBridge.isDeadBushSupport(
+            Blocks.MYCELIUM.getDefaultState()));
+        assertTrue(V118MountainSurfaceWorldBridge.isDeadBushSupport(
+            new LushAzaleaBlocks.RootedDirt().getDefaultState()));
+        assertTrue(V118MountainSurfaceWorldBridge.isDeadBushSupport(
+            new LushMossBlocks.Moss().getDefaultState()));
+        assertTrue(V118MountainSurfaceWorldBridge.isDeadBushSupport(
+            Blocks.SAND.getStateFromMeta(0)));
+        assertTrue(V118MountainSurfaceWorldBridge.isDeadBushSupport(
+            Blocks.SAND.getStateFromMeta(1)));
+        assertTrue(V118MountainSurfaceWorldBridge.isDeadBushSupport(
+            Blocks.HARDENED_CLAY.getDefaultState()));
+        for (int color = 0; color < 16; ++color) {
+            assertTrue(V118MountainSurfaceWorldBridge.isDeadBushSupport(
+                Blocks.STAINED_HARDENED_CLAY.getStateFromMeta(color)));
+        }
+
+        assertFalse(V118MountainSurfaceWorldBridge.isDeadBushSupport(
+            Blocks.FARMLAND.getDefaultState()));
+        assertFalse(V118MountainSurfaceWorldBridge.isDeadBushSupport(
+            Blocks.STONE.getDefaultState()));
+        assertFalse(V118MountainSurfaceWorldBridge.isDeadBushSupport(
+            Blocks.CLAY.getDefaultState()));
+        assertFalse(V118MountainSurfaceWorldBridge.isDeadBushSupport(
+            Blocks.GRAVEL.getDefaultState()));
+        assertFalse(V118MountainSurfaceWorldBridge.isDeadBushSupport(
+            Blocks.SANDSTONE.getDefaultState()));
+    }
+
+    @Test
     public void defaultSpringsUseExactStatesAcrossMergedJava112Blocks() {
         V118BlockStateMapper states = new V118BlockStateMapper(
             Blocks.LOG.getDefaultState(),
