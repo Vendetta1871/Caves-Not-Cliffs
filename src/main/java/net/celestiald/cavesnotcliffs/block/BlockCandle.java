@@ -16,16 +16,12 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
-import net.minecraft.init.SoundEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.stats.StatBase;
-import net.minecraft.stats.StatList;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.NonNullList;
-import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -184,37 +180,7 @@ public final class BlockCandle extends LushWaterloggedBlock implements CandleLig
             }
             return true;
         }
-        if (!player.capabilities.allowEdit || held.isEmpty()) {
-            return false;
-        }
-        boolean fill = held.getItem() == Items.WATER_BUCKET
-                && !state.getValue(WATERLOGGED);
-        boolean drain = held.getItem() == Items.BUCKET
-                && state.getValue(WATERLOGGED);
-        if (!fill && !drain) {
-            return false;
-        }
-        if (!world.isRemote) {
-            Item used = held.getItem();
-            if (fill && state.getValue(LIT)) {
-                CandleEffects.extinguish(null, world, pos, state);
-                state = world.getBlockState(pos);
-            }
-            IBlockState updated = state.withProperty(WATERLOGGED, fill)
-                    .withProperty(LIT, false);
-            world.setBlockState(pos, updated, 3);
-            scheduleRetainedWater(world, pos, updated);
-            replaceContainer(player, hand, held,
-                    new ItemStack(fill ? Items.BUCKET : Items.WATER_BUCKET));
-            StatBase stat = StatList.getObjectUseStats(used);
-            if (stat != null) {
-                player.addStat(stat);
-            }
-            world.playSound(null, pos,
-                    fill ? SoundEvents.ITEM_BUCKET_EMPTY : SoundEvents.ITEM_BUCKET_FILL,
-                    SoundCategory.BLOCKS, 1.0F, 1.0F);
-        }
-        return true;
+        return false;
     }
 
     @Override
@@ -253,16 +219,4 @@ public final class BlockCandle extends LushWaterloggedBlock implements CandleLig
         }
     }
 
-    private static void replaceContainer(EntityPlayer player, EnumHand hand,
-            ItemStack held, ItemStack replacement) {
-        if (player.capabilities.isCreativeMode) {
-            return;
-        }
-        held.shrink(1);
-        if (held.isEmpty()) {
-            player.setHeldItem(hand, replacement);
-        } else if (!player.inventory.addItemStackToInventory(replacement)) {
-            player.dropItem(replacement, false);
-        }
-    }
 }

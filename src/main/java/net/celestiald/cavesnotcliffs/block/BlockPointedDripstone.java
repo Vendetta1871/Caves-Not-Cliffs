@@ -24,16 +24,12 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
-import net.minecraft.init.SoundEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.stats.StatBase;
-import net.minecraft.stats.StatList;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.NonNullList;
-import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -241,56 +237,6 @@ public final class BlockPointedDripstone extends Block {
                 && ((BlockPointedDripstone) state.getBlock()).waterloggedStorage
                 && world.isAirBlock(pos)) {
             world.setBlockState(pos, Blocks.WATER.getDefaultState(), 3);
-        }
-    }
-
-    @Override
-    public boolean onBlockActivated(World world, BlockPos pos, IBlockState state,
-            EntityPlayer player, EnumHand hand, EnumFacing side,
-            float hitX, float hitY, float hitZ) {
-        ItemStack held = player.getHeldItem(hand);
-        boolean fill = !waterloggedStorage && held.getItem() == Items.WATER_BUCKET;
-        boolean drain = waterloggedStorage && held.getItem() == Items.BUCKET;
-        if ((!fill && !drain) || !world.isBlockModifiable(player, pos)
-                || !player.canPlayerEdit(pos, side, held)) {
-            return false;
-        }
-        if (world.isRemote) {
-            return true;
-        }
-        BlockPointedDripstone target = fill ? waterloggedBlock() : dryBlock();
-        if (target == null) {
-            return false;
-        }
-        world.setBlockState(pos, target.getDefaultState()
-                .withProperty(TIP_DIRECTION, state.getValue(TIP_DIRECTION))
-                .withProperty(THICKNESS, state.getValue(THICKNESS)), 3);
-        Item original = held.getItem();
-        replaceContainer(player, hand, held,
-                new ItemStack(fill ? Items.BUCKET : Items.WATER_BUCKET));
-        StatBase use = StatList.getObjectUseStats(original);
-        if (use != null) {
-            player.addStat(use);
-        }
-        world.playSound(null, pos,
-                fill ? SoundEvents.ITEM_BUCKET_EMPTY : SoundEvents.ITEM_BUCKET_FILL,
-                SoundCategory.BLOCKS, 1.0F, 1.0F);
-        return true;
-    }
-
-    private static void replaceContainer(EntityPlayer player, EnumHand hand,
-            ItemStack held, ItemStack result) {
-        if (player.capabilities.isCreativeMode) {
-            if (!player.inventory.hasItemStack(result)) {
-                player.inventory.addItemStackToInventory(result);
-            }
-            return;
-        }
-        held.shrink(1);
-        if (held.isEmpty()) {
-            player.setHeldItem(hand, result);
-        } else if (!player.inventory.addItemStackToInventory(result)) {
-            player.dropItem(result, false);
         }
     }
 

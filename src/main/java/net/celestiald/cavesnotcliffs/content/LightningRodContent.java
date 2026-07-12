@@ -15,20 +15,15 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.effect.EntityLightningBolt;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
-import net.minecraft.init.Items;
-import net.minecraft.init.SoundEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.stats.StatBase;
-import net.minecraft.stats.StatList;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.Mirror;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Rotation;
-import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -291,6 +286,24 @@ public final class LightningRodContent {
             return placed;
         }
 
+        /** Removes retained source water without applying bucket inventory bookkeeping. */
+        public boolean pickupSourceWater(World world, BlockPos pos, IBlockState state) {
+            if (state.getBlock() != this || !waterlogged) {
+                return false;
+            }
+            LightningRodBlock target = publicRod;
+            if (target == null) {
+                throw new IllegalStateException("Lightning rod block was not registered");
+            }
+            boolean powered = state.getValue(POWERED);
+            if (!world.isRemote && powered) {
+                world.scheduleUpdate(pos, target, ACTIVATION_TICKS);
+            }
+            return world.setBlockState(pos, target.getDefaultState()
+                .withProperty(FACING, state.getValue(FACING))
+                .withProperty(POWERED, powered), 3);
+        }
+
         @Override
         public IBlockState getStateForPlacement(World world, BlockPos pos, EnumFacing facing,
                 float hitX, float hitY, float hitZ, int meta, EntityLivingBase placer,
@@ -324,44 +337,6 @@ public final class LightningRodContent {
         @Override
         public MapColor getMapColor(IBlockState state, IBlockAccess world, BlockPos pos) {
             return MapColor.ADOBE;
-        }
-
-        @Override
-        public boolean onBlockActivated(World world, BlockPos pos, IBlockState state,
-                EntityPlayer player, EnumHand hand, EnumFacing side,
-                float hitX, float hitY, float hitZ) {
-            ItemStack held = player.getHeldItem(hand);
-            boolean fill = !waterlogged && held.getItem() == Items.WATER_BUCKET;
-            boolean drain = waterlogged && held.getItem() == Items.BUCKET;
-            if ((!fill && !drain) || !world.isBlockModifiable(player, pos)
-                    || !player.canPlayerEdit(pos, side, held)) {
-                return false;
-            }
-            if (world.isRemote) {
-                return true;
-            }
-
-            LightningRodBlock target = fill ? waterloggedRod : publicRod;
-            if (target == null) {
-                throw new IllegalStateException("Lightning rod companion was not registered");
-            }
-            boolean powered = state.getValue(POWERED);
-            if (powered) {
-                // The hidden 1.12 water-storage companion is a different block identity, so the
-                // old block's scheduled unpower tick cannot follow the state transition.
-                world.scheduleUpdate(pos, target, ACTIVATION_TICKS);
-            }
-            world.setBlockState(pos, target.getDefaultState()
-                    .withProperty(FACING, state.getValue(FACING))
-                    .withProperty(POWERED, powered), 3);
-            Item original = held.getItem();
-            replaceBucket(player, hand, held,
-                    new ItemStack(fill ? Items.BUCKET : Items.WATER_BUCKET));
-            addUseStat(player, original);
-            world.playSound(null, pos,
-                    fill ? SoundEvents.ITEM_BUCKET_EMPTY : SoundEvents.ITEM_BUCKET_FILL,
-                    SoundCategory.BLOCKS, 1.0F, 1.0F);
-            return true;
         }
 
         @Override
@@ -431,7 +406,8 @@ public final class LightningRodContent {
 
         @Override
         public void onBlockAdded(World world, BlockPos pos, IBlockState state) {
-            if (state.getValue(POWERED) && !world.isUpdateScheduled(pos, this)) {
+            if (!world.isRemote && state.getValue(POWERED)
+                    && !world.isUpdateScheduled(pos, this)) {
                 world.setBlockState(pos, state.withProperty(POWERED, false), 18);
             }
         }
@@ -491,26 +467,6 @@ public final class LightningRodContent {
 
     private static double signedDouble(Random random) {
         return random.nextDouble() * 2.0D - 1.0D;
-    }
-
-    private static void replaceBucket(EntityPlayer player, EnumHand hand, ItemStack held,
-            ItemStack replacement) {
-        if (player.capabilities.isCreativeMode) {
-            return;
-        }
-        held.shrink(1);
-        if (held.isEmpty()) {
-            player.setHeldItem(hand, replacement);
-        } else if (!player.inventory.addItemStackToInventory(replacement)) {
-            player.dropItem(replacement, false);
-        }
-    }
-
-    private static void addUseStat(EntityPlayer player, Item item) {
-        StatBase stat = StatList.getObjectUseStats(item);
-        if (stat != null) {
-            player.addStat(stat);
-        }
     }
 
     private static final class LightningRodItem extends ItemBlock {

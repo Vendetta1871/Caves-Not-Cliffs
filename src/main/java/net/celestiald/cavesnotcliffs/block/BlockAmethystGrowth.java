@@ -19,19 +19,14 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.client.renderer.block.statemap.StateMap;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
-import net.minecraft.init.SoundEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.stats.StatBase;
-import net.minecraft.stats.StatList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
 import net.minecraft.util.Mirror;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.Rotation;
-import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
@@ -194,52 +189,6 @@ public class BlockAmethystGrowth extends Block implements AmethystChimeSource {
         if (isWaterlogged(state) && world.isAirBlock(pos)) {
             world.setBlockState(pos, Blocks.WATER.getDefaultState(), 3);
         }
-    }
-
-    @Override
-    public boolean onBlockActivated(World world, BlockPos pos, IBlockState state,
-            EntityPlayer player, EnumHand hand, EnumFacing facing,
-            float hitX, float hitY, float hitZ) {
-        ItemStack held = player.getHeldItem(hand);
-        boolean waterlogged = isWaterlogged(state);
-        if (held.isEmpty()) {
-            return false;
-        }
-
-        if (!waterlogged && held.getItem() == Items.WATER_BUCKET) {
-            if (!world.isRemote) {
-                BlockAmethystGrowth companion = waterloggedCompanion();
-                if (companion == null) {
-                    return false;
-                }
-                world.setBlockState(pos, companion.getDefaultState()
-                        .withProperty(FACING, state.getValue(FACING))
-                        .withProperty(WATERLOGGED, true), 3);
-                replaceBucket(player, hand, held, new ItemStack(Items.BUCKET));
-                addUseStat(player, Items.WATER_BUCKET);
-                world.playSound(null, pos, SoundEvents.ITEM_BUCKET_EMPTY,
-                        SoundCategory.BLOCKS, 1.0F, 1.0F);
-            }
-            return true;
-        }
-
-        if (waterlogged && held.getItem() == Items.BUCKET) {
-            if (!world.isRemote) {
-                BlockAmethystGrowth dry = publicStageBlock();
-                if (dry == null) {
-                    return false;
-                }
-                world.setBlockState(pos, dry.getDefaultState()
-                        .withProperty(FACING, state.getValue(FACING))
-                        .withProperty(WATERLOGGED, false), 3);
-                replaceBucket(player, hand, held, new ItemStack(Items.WATER_BUCKET));
-                addUseStat(player, Items.BUCKET);
-                world.playSound(null, pos, SoundEvents.ITEM_BUCKET_FILL,
-                        SoundCategory.BLOCKS, 1.0F, 1.0F);
-            }
-            return true;
-        }
-        return false;
     }
 
     @Override
@@ -429,6 +378,10 @@ public class BlockAmethystGrowth extends Block implements AmethystChimeSource {
         return waterloggedCompanion();
     }
 
+    public BlockAmethystGrowth getPublicStageBlock() {
+        return publicStageBlock();
+    }
+
     public String getPublicStagePath() {
         return publicStagePath;
     }
@@ -494,26 +447,6 @@ public class BlockAmethystGrowth extends Block implements AmethystChimeSource {
         }
         world.setBlockState(target, Blocks.FLOWING_WATER.getDefaultState()
                 .withProperty(BlockLiquid.LEVEL, level), 3);
-    }
-
-    private static void replaceBucket(EntityPlayer player, EnumHand hand, ItemStack held,
-            ItemStack replacement) {
-        if (player.capabilities.isCreativeMode) {
-            return;
-        }
-        held.shrink(1);
-        if (held.isEmpty()) {
-            player.setHeldItem(hand, replacement);
-        } else if (!player.inventory.addItemStackToInventory(replacement)) {
-            player.dropItem(replacement, false);
-        }
-    }
-
-    private static void addUseStat(EntityPlayer player, Item item) {
-        StatBase stat = StatList.getObjectUseStats(item);
-        if (stat != null) {
-            player.addStat(stat);
-        }
     }
 
     private static boolean hasSupport(World world, BlockPos pos, EnumFacing facing) {

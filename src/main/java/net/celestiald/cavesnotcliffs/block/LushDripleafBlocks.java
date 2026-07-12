@@ -680,6 +680,13 @@ public final class LushDripleafBlocks {
                 || block == LushCaveContent.BIG_DRIPLEAF_WATERLOGGED;
     }
 
+    /** Default SimpleWaterloggedBlock pickup destroys a plant that cannot survive dry. */
+    public static boolean canSmallDripleafSurvive(World world, BlockPos pos,
+            IBlockState state) {
+        return state.getBlock() instanceof Small
+                && ((Small) state.getBlock()).canSurvive(world, pos, state);
+    }
+
     private static boolean canReplace(World world, BlockPos pos) {
         IBlockState state = world.getBlockState(pos);
         return world.isAirBlock(pos) || isWater(state)

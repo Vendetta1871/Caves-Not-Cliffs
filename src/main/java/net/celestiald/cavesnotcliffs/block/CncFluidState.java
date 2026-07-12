@@ -70,6 +70,10 @@ public final class CncFluidState {
         return isKnownWaterContainer(state) && !containsWater(state);
     }
 
+    public static boolean canPickupSourceWater(IBlockState state) {
+        return isKnownWaterContainer(state) && containsWater(state);
+    }
+
     /**
      * Places source water into a first-party storage state. Inventory, stats and the common
      * bucket-empty sound remain the caller's responsibility.
@@ -81,6 +85,13 @@ public final class CncFluidState {
         }
 
         Block block = state.getBlock();
+        boolean predictsClientState = block instanceof BlockCandle
+            || block instanceof CampfireContent.BlockCustom;
+        // SimpleWaterloggedBlock accepts on the client but mutates only on the server.
+        // CandleBlock and CampfireBlock override that contract to predict wet/unlit state.
+        if (world.isRemote && !predictsClientState) {
+            return true;
+        }
         boolean placed;
         if (block instanceof BlockAmethystGrowth) {
             BlockAmethystGrowth growth = (BlockAmethystGrowth) block;
@@ -106,7 +117,7 @@ public final class CncFluidState {
             Block target = LushCaveContent.HANGING_ROOTS_WATERLOGGED;
             placed = target != null && world.setBlockState(pos, target.getDefaultState(), 3);
         } else if (block instanceof BlockCandle) {
-            if (state.getValue(BlockCandle.LIT)) {
+            if (!world.isRemote && state.getValue(BlockCandle.LIT)) {
                 CandleEffects.extinguish(source instanceof EntityPlayer
                     ? (EntityPlayer) source : null, world, pos, state);
                 state = world.getBlockState(pos);
@@ -128,5 +139,57 @@ public final class CncFluidState {
             LushWaterlogging.schedule(world, pos, true);
         }
         return placed;
+    }
+
+    /**
+     * Removes retained source water while preserving the container's public state. Bucket
+     * inventory, stats and pickup sound remain the caller's responsibility.
+     */
+    public static boolean pickupSourceWater(World world, BlockPos pos, IBlockState state) {
+        if (!canPickupSourceWater(state)) {
+            return false;
+        }
+
+        Block block = state.getBlock();
+        IBlockState dryState;
+        if (block instanceof BlockAmethystGrowth) {
+            BlockAmethystGrowth target =
+                ((BlockAmethystGrowth) block).getPublicStageBlock();
+            dryState = target == null ? null : target.getDefaultState()
+                .withProperty(BlockAmethystGrowth.FACING,
+                    state.getValue(BlockAmethystGrowth.FACING))
+                .withProperty(BlockAmethystGrowth.WATERLOGGED, false);
+        } else if (block instanceof BlockPointedDripstone) {
+            dryState = BlockPointedDripstone.fallingState(state);
+        } else if (block instanceof LushDripleafBlocks.Small
+                || block instanceof LushDripleafBlocks.Stem) {
+            dryState = state.withProperty(LushDripleafBlocks.WATERLOGGED, false);
+        } else if (block instanceof LushDripleafBlocks.Head) {
+            dryState = LushDripleafBlocks.headState(
+                state.getValue(LushDripleafBlocks.FACING), false,
+                state.getValue(LushDripleafBlocks.TILT));
+        } else if (block instanceof LushAzaleaBlocks.HangingRoots) {
+            Block target = LushCaveContent.HANGING_ROOTS;
+            dryState = target == null ? null : target.getDefaultState();
+        } else if (block instanceof BlockCandle) {
+            dryState = state.withProperty(BlockCandle.WATERLOGGED, false);
+        } else if (block instanceof CampfireContent.BlockCustom) {
+            dryState = state.withProperty(CampfireContent.BlockCustom.WATERLOGGED, false);
+        } else if (block instanceof LightningRodContent.LightningRodBlock) {
+            return ((LightningRodContent.LightningRodBlock) block)
+                .pickupSourceWater(world, pos, state);
+        } else {
+            dryState = null;
+        }
+
+        if (dryState == null || !world.setBlockState(pos, dryState, 3)) {
+            return false;
+        }
+        IBlockState placed = world.getBlockState(pos);
+        if (placed.getBlock() instanceof LushDripleafBlocks.Small
+                && !LushDripleafBlocks.canSmallDripleafSurvive(world, pos, placed)) {
+            world.destroyBlock(pos, true);
+        }
+        return true;
     }
 }
