@@ -17,6 +17,8 @@ import net.celestiald.cavesnotcliffs.worldgen.v118.V118BeeTreePlacements.TreeKin
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements.SpringFluid;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118IceSurfacePlacements;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118IceSurfacePlacements.State;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Material;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118MountainSurfacePlacements;
 import net.minecraft.block.Block;
@@ -38,10 +40,13 @@ import java.util.function.Predicate;
 /** Mutable finite-world adapter for the represented native schema-2 surface features. */
 final class V118MountainSurfaceWorldBridge
         implements V118MountainSurfacePlacements.WorldAccess,
-            V118DefaultSpringPlacements.WorldAccess {
+            V118DefaultSpringPlacements.WorldAccess,
+            V118IceSurfacePlacements.WorldAccess {
     private final World world;
     private final V118ChunkGenerator generator;
     private final SpringValidBlocks springValidBlocks;
+    private int iceFeatureChunkX;
+    private int iceFeatureChunkZ;
 
     V118MountainSurfaceWorldBridge(World world, V118ChunkGenerator generator,
             V118BlockStateMapper blockStates) {
@@ -69,6 +74,13 @@ final class V118MountainSurfaceWorldBridge
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
         return V118MountainSurfacePlacements.decorateForestRock(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
+    }
+
+    void populateIceSurface(int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        iceFeatureChunkX = chunkX;
+        iceFeatureChunkZ = chunkZ;
+        V118IceSurfacePlacements.decorate(this, world.getSeed(), chunkX, chunkZ,
+            regionBiomes);
     }
 
     V118MountainSurfacePlacements.DecorationResult populateEarlyTrees(
@@ -183,6 +195,38 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public boolean isAir(BlockPos pos) {
         return inside(pos) && world.isAirBlock(pos);
+    }
+
+    @Override
+    public State stateAt(BlockPos pos) {
+        if (!inside(pos) || world.isAirBlock(pos)) {
+            return State.AIR;
+        }
+        Block block = world.getBlockState(pos).getBlock();
+        if (block == Blocks.DIRT || block == Blocks.GRASS || block == Blocks.MYCELIUM) {
+            return State.PATCH_DIRT;
+        }
+        if (block == Blocks.SNOW) {
+            return State.SNOW_BLOCK;
+        }
+        if (block == Blocks.ICE) {
+            return State.ICE;
+        }
+        if (block == Blocks.PACKED_ICE) {
+            return State.PACKED_ICE;
+        }
+        if (V118TreeStateRules.isDirtTag(block)) {
+            return State.DIRT;
+        }
+        return State.OTHER;
+    }
+
+    @Override
+    public void setPackedIce(BlockPos pos, int flags) {
+        if (inside(pos) && V118LushCaveWorldBridge.insideFeatureChunks(
+                pos.getX(), pos.getZ(), iceFeatureChunkX, iceFeatureChunkZ)) {
+            world.setBlockState(pos, Blocks.PACKED_ICE.getDefaultState(), flags);
+        }
     }
 
     @Override

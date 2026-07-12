@@ -16,14 +16,20 @@ public final class V118DiskFeature {
         if (world.getMaterial(originX, originY, originZ) != V118OreMaterial.WATER) {
             return false;
         }
+        return placeBase(new MaterialDiskAccess(world, configuration), random,
+            configuration.minimumRadius, configuration.maximumRadius,
+            configuration.halfHeight, originX, originY, originZ);
+    }
+
+    /** Shared body used by both DiskReplaceFeature and IcePatchFeature. */
+    static <S> boolean placeBase(BaseDiskAccess<S> world, Random random,
+            int minimumRadius, int maximumRadius, int halfHeight,
+            int originX, int originY, int originZ) {
         boolean placed = false;
-        int upperY = originY + configuration.halfHeight;
-        int lowerY = originY - configuration.halfHeight - 1;
-        boolean falling = configuration.state == V118OreMaterial.SAND
-                || configuration.state == V118OreMaterial.GRAVEL;
-        int radius = configuration.minimumRadius
-                + random.nextInt(configuration.maximumRadius
-                    - configuration.minimumRadius + 1);
+        int upperY = originY + halfHeight;
+        int lowerY = originY - halfHeight - 1;
+        boolean falling = world.outputFalls();
+        int radius = minimumRadius + random.nextInt(maximumRadius - minimumRadius + 1);
 
         for (int x = originX - radius; x <= originX + radius; ++x) {
             for (int z = originZ - radius; z <= originZ + radius; ++z) {
@@ -34,22 +40,86 @@ public final class V118DiskFeature {
                 }
                 boolean replacedAbove = false;
                 for (int y = upperY; y >= lowerY; --y) {
-                    V118OreMaterial current = world.getMaterial(x, y, z);
+                    S current = world.getState(x, y, z);
                     boolean replaced = false;
-                    if (y > lowerY && configuration.targets.contains(current)) {
-                        world.setMaterial(x, y, z, configuration.state);
+                    if (y > lowerY && world.isTarget(current)) {
+                        world.setOutput(x, y, z);
+                        world.markAboveForPostProcessing(x, y, z);
                         placed = true;
                         replaced = true;
                     }
-                    if (falling && replacedAbove && current == V118OreMaterial.AIR) {
-                        // The only red-sand branch is not used by the scoped Overworld catalog.
-                        world.setMaterial(x, y + 1, z, V118OreMaterial.SANDSTONE);
+                    if (falling && replacedAbove && world.isAir(current)) {
+                        world.setFallingSupport(x, y + 1, z);
                     }
                     replacedAbove = replaced;
                 }
             }
         }
         return placed;
+    }
+
+    interface BaseDiskAccess<S> {
+        S getState(int blockX, int blockY, int blockZ);
+
+        boolean isTarget(S state);
+
+        boolean isAir(S state);
+
+        boolean outputFalls();
+
+        void setOutput(int blockX, int blockY, int blockZ);
+
+        void setFallingSupport(int blockX, int blockY, int blockZ);
+
+        void markAboveForPostProcessing(int blockX, int blockY, int blockZ);
+    }
+
+    private static final class MaterialDiskAccess
+            implements BaseDiskAccess<V118OreMaterial> {
+        private final WorldAccess world;
+        private final Configuration configuration;
+
+        private MaterialDiskAccess(WorldAccess world, Configuration configuration) {
+            this.world = world;
+            this.configuration = configuration;
+        }
+
+        @Override
+        public V118OreMaterial getState(int blockX, int blockY, int blockZ) {
+            return world.getMaterial(blockX, blockY, blockZ);
+        }
+
+        @Override
+        public boolean isTarget(V118OreMaterial state) {
+            return configuration.targets.contains(state);
+        }
+
+        @Override
+        public boolean isAir(V118OreMaterial state) {
+            return state == V118OreMaterial.AIR;
+        }
+
+        @Override
+        public boolean outputFalls() {
+            return configuration.state == V118OreMaterial.SAND
+                || configuration.state == V118OreMaterial.GRAVEL;
+        }
+
+        @Override
+        public void setOutput(int blockX, int blockY, int blockZ) {
+            world.setMaterial(blockX, blockY, blockZ, configuration.state);
+        }
+
+        @Override
+        public void setFallingSupport(int blockX, int blockY, int blockZ) {
+            // The only red-sand branch is not used by the scoped Overworld catalog.
+            world.setMaterial(blockX, blockY, blockZ, V118OreMaterial.SANDSTONE);
+        }
+
+        @Override
+        public void markAboveForPostProcessing(int blockX, int blockY, int blockZ) {
+            world.markAboveForPostProcessing(blockX, blockY, blockZ);
+        }
     }
 
     public static final class Configuration {
@@ -100,5 +170,8 @@ public final class V118DiskFeature {
         V118OreMaterial getMaterial(int blockX, int blockY, int blockZ);
 
         void setMaterial(int blockX, int blockY, int blockZ, V118OreMaterial material);
+
+        default void markAboveForPostProcessing(int blockX, int blockY, int blockZ) {
+        }
     }
 }
