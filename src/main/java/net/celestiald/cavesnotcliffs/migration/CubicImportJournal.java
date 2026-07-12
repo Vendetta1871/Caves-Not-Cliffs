@@ -144,12 +144,11 @@ final class CubicImportJournal {
     }
 
     static CubicImportJournal read(Path path) throws IOException {
-        try (InputStream input = new BufferedInputStream(Files.newInputStream(path))) {
-            NBTTagCompound root = CompressedStreamTools.readCompressed(input);
-            CubicImportJournal journal = new CubicImportJournal(root);
-            journal.validate();
-            return journal;
-        }
+        NBTTagCompound root = BoundedNbtReader.readCompressed(
+                path, "cubic import journal");
+        CubicImportJournal journal = new CubicImportJournal(root);
+        journal.validate();
+        return journal;
     }
 
     State getState() throws IOException {

@@ -1,13 +1,10 @@
 package net.celestiald.cavesnotcliffs.migration;
 
-import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -144,8 +141,9 @@ final class LegacyCubicStructureMetadata {
     }
 
     private static NBTTagCompound read(Path file, String kind) throws IOException {
-        try (InputStream input = new BufferedInputStream(Files.newInputStream(file))) {
-            return CompressedStreamTools.readCompressed(input);
+        try {
+            return BoundedNbtReader.readCompressed(
+                    file, "legacy " + kind + " metadata");
         } catch (IOException exception) {
             throw new IOException("Could not read legacy " + kind + " metadata from " + file,
                     exception);

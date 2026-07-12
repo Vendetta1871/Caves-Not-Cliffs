@@ -3,7 +3,6 @@ package net.celestiald.cavesnotcliffs.migration;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsFiniteWorldType;
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldData;
 import net.celestiald.cavesnotcliffs.world.V118BlockStateMapper;
-import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.WorldType;
@@ -12,11 +11,8 @@ import net.minecraft.world.storage.WorldInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -408,13 +404,12 @@ public final class LegacyCubicSaveImporter {
         if (!Files.isRegularFile(file)) {
             return null;
         }
-        try (InputStream input = new BufferedInputStream(new FileInputStream(file.toFile()))) {
-            NBTTagCompound root = CompressedStreamTools.readCompressed(input);
-            if (!root.hasKey("Data", 10)) {
-                throw new IOException(file + " has no compound Data tag");
-            }
-            return new WorldInfo(root.getCompoundTag("Data"));
+        NBTTagCompound root = BoundedNbtReader.readCompressed(
+                file, "legacy cubic world metadata");
+        if (!root.hasKey("Data", 10)) {
+            throw new IOException(file + " has no compound Data tag");
         }
+        return new WorldInfo(root.getCompoundTag("Data"));
     }
 
     private static LegacyCubicDimensionMetadata.Result discoverDimensions(Path worldRoot)

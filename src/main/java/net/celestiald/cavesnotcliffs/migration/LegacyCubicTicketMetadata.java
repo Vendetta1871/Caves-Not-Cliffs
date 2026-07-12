@@ -1,6 +1,5 @@
 package net.celestiald.cavesnotcliffs.migration;
 
-import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 
@@ -48,7 +47,8 @@ final class LegacyCubicTicketMetadata {
     private static void validateFile(Path file) throws IOException {
         NBTTagCompound root;
         try {
-            root = CompressedStreamTools.read(file.toFile());
+            root = BoundedNbtReader.readUncompressed(
+                    file, "legacy forced-chunk metadata");
         } catch (IOException exception) {
             throw new IOException("Could not read legacy forced-chunk metadata from " + file,
                     exception);

@@ -1,11 +1,8 @@
 package net.celestiald.cavesnotcliffs.migration;
 
-import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -130,8 +127,9 @@ final class LegacyCubicDimensionMetadata {
 
     private static Metadata readAndValidate(Path metadata) throws IOException {
         NBTTagCompound root;
-        try (InputStream input = new BufferedInputStream(Files.newInputStream(metadata))) {
-            root = CompressedStreamTools.readCompressed(input);
+        try {
+            root = BoundedNbtReader.readCompressed(
+                    metadata, "CubicChunks dimension metadata");
         } catch (IOException exception) {
             throw new IOException("Could not read CubicChunks dimension metadata at " + metadata,
                     exception);

@@ -1,14 +1,11 @@
 package net.celestiald.cavesnotcliffs.migration;
 
-import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.ResourceLocation;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -44,8 +41,9 @@ final class LegacyCubicRegistrySnapshot {
         }
 
         NBTTagCompound root;
-        try (InputStream input = new BufferedInputStream(Files.newInputStream(normalized))) {
-            root = CompressedStreamTools.readCompressed(input);
+        try {
+            root = BoundedNbtReader.readCompressed(
+                    normalized, "legacy cubic registry snapshot");
         } catch (IOException exception) {
             throw new IOException("Could not read legacy registry snapshot from " + normalized,
                     exception);

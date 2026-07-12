@@ -1,13 +1,10 @@
 package net.celestiald.cavesnotcliffs.migration;
 
-import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -143,8 +140,9 @@ final class LegacyCubicPositionMetadata {
     }
 
     private static NBTTagCompound read(Path file) throws IOException {
-        try (InputStream input = new BufferedInputStream(Files.newInputStream(file))) {
-            return CompressedStreamTools.readCompressed(input);
+        try {
+            return BoundedNbtReader.readCompressed(
+                    file, "legacy cubic position metadata");
         } catch (IOException exception) {
             throw new IOException("Could not read legacy cubic position metadata from " + file,
                     exception);

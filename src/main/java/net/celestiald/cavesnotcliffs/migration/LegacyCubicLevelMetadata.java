@@ -241,10 +241,8 @@ final class LegacyCubicLevelMetadata {
     }
 
     private static NBTTagCompound read(Path path) throws IOException {
-        try (InputStream input = new BufferedInputStream(Files.newInputStream(path,
-                StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS))) {
-            return CompressedStreamTools.readCompressed(input);
-        }
+        return BoundedNbtReader.readCompressed(
+                path, "legacy cubic level metadata");
     }
 
     private static void writeExisting(Path path, NBTTagCompound root) throws IOException {
