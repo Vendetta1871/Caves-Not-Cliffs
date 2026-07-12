@@ -35,6 +35,7 @@ import static org.junit.Assert.assertTrue;
 
 public class PlainPumpkinContentTest {
     private static final String ROOT = "assets/cavesnotcliffs/";
+    private static final String MINECRAFT_ROOT = "assets/minecraft/";
 
     @BeforeClass
     public static void bootstrap() {
@@ -134,6 +135,15 @@ public class PlainPumpkinContentTest {
                 sha1("sounds/block/pumpkin/carve1.ogg"));
         assertEquals("1997fd410166b4e52ede02d23fb8947306f8630d",
                 sha1("sounds/block/pumpkin/carve2.ogg"));
+
+        assertEquals("0561abfa3282a08b86e0c84bb5c799172ca24490",
+                sha1Resource(MINECRAFT_ROOT + "textures/blocks/pumpkin_side.png"));
+        assertEquals("cdc099ca26227975d32d09dbf82c52c33d6e0c57",
+                sha1Resource(MINECRAFT_ROOT + "textures/blocks/pumpkin_top.png"));
+        assertEquals("3f436abe370a2236e74aba4e27f8fa8c64acfef4",
+                sha1Resource(MINECRAFT_ROOT + "textures/blocks/pumpkin_face_off.png"));
+        assertEquals("a2da548d7f93f99b6e736cdf07a33dee779de016",
+                sha1Resource(MINECRAFT_ROOT + "textures/blocks/pumpkin_face_on.png"));
     }
 
     private static JsonObject json(String path) {
@@ -142,7 +152,11 @@ public class PlainPumpkinContentTest {
     }
 
     private static String sha1(String path) throws Exception {
-        byte[] digest = MessageDigest.getInstance("SHA-1").digest(read(ROOT + path));
+        return sha1Resource(ROOT + path);
+    }
+
+    private static String sha1Resource(String path) throws Exception {
+        byte[] digest = MessageDigest.getInstance("SHA-1").digest(read(path));
         StringBuilder result = new StringBuilder();
         for (byte value : digest) {
             result.append(String.format("%02x", value & 255));

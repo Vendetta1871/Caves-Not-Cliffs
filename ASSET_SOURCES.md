@@ -174,12 +174,24 @@ the runtime uses its otherwise equivalent `FLAME` sprite at Mojang's exact offse
 - Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
 - Asset base: <https://resources.download.minecraft.net/>
 
-The plain-pumpkin side/top textures and two pumpkin-carving sounds are unmodified Java 1.18.2
-assets. The stateless block and item models preserve Mojang's texture selection and display
-transform, with only the `blocks` texture directory and mod namespace adapted for Forge 1.12.2.
-The target runtime's `minecraft:pumpkin` remains the carved, directional peer.
+The plain-pumpkin side/top textures, carved-pumpkin face, jack-o-lantern face, and two
+pumpkin-carving sounds are unmodified Java 1.18.2 assets. The stateless block and item models
+preserve Mojang's texture selection and display transform, with only the `blocks` texture
+directory and mod namespace adapted for Forge 1.12.2. The target runtime's
+`minecraft:pumpkin` remains the carved, directional peer; its four legacy texture slots are
+overridden with the matching official Java 1.18.2 client resources:
+
+- `assets/minecraft/textures/block/pumpkin_side.png` ->
+  `assets/minecraft/textures/blocks/pumpkin_side.png`
+- `assets/minecraft/textures/block/pumpkin_top.png` ->
+  `assets/minecraft/textures/blocks/pumpkin_top.png`
+- `assets/minecraft/textures/block/carved_pumpkin.png` ->
+  `assets/minecraft/textures/blocks/pumpkin_face_off.png`
+- `assets/minecraft/textures/block/jack_o_lantern.png` ->
+  `assets/minecraft/textures/blocks/pumpkin_face_on.png`
 
 - Java 1.18.2 client SHA-1: `2e9a3e3107cca00d6bc9c97bf7d149cae163ef21`
+- Version metadata: <https://piston-meta.mojang.com/mc/game/version_manifest_v2.json>
 - Asset-index SHA-1: `d31a2e85ae149dd1b1a7070b22cb8887892fda6c`
 - Sound-definition SHA-1: `438ca03b7388044ed19264a3813cf9cc992df4d5`
 - Asset base: <https://resources.download.minecraft.net/>
