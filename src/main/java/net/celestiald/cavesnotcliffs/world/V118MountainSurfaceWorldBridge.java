@@ -20,6 +20,7 @@ import net.minecraft.block.BlockStone;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.World;
@@ -197,6 +198,35 @@ final class V118MountainSurfaceWorldBridge
     }
 
     @Override
+    public boolean canCactusSurvive(BlockPos pos) {
+        // Keep generation explicit so Forge's extensible canSustainPlant hook cannot widen the
+        // registered 1.18.2 configured feature to unrelated third-party ground blocks.
+        if (!inside(pos)) {
+            return false;
+        }
+        for (EnumFacing direction : EnumFacing.Plane.HORIZONTAL) {
+            IBlockState neighbor = world.getBlockState(pos.offset(direction));
+            if (neighbor.getMaterial().isSolid()
+                    || neighbor.getMaterial() == Material.LAVA) {
+                return false;
+            }
+        }
+        Block support = inside(pos.down())
+            ? world.getBlockState(pos.down()).getBlock() : Blocks.AIR;
+        if (support != Blocks.CACTUS && support != Blocks.SAND) {
+            return false;
+        }
+        IBlockState above = inside(pos.up())
+            ? world.getBlockState(pos.up()) : Blocks.AIR.getDefaultState();
+        return !above.getMaterial().isLiquid();
+    }
+
+    @Override
+    public boolean supportsCactusPlacement() {
+        return true;
+    }
+
+    @Override
     public boolean hasAdjacentWaterBelow(BlockPos pos) {
         BlockPos below = pos.down();
         return containsWater(below.east()) || containsWater(below.west())
@@ -332,6 +362,13 @@ final class V118MountainSurfaceWorldBridge
     public void setSugarCane(BlockPos pos) {
         if (inside(pos)) {
             world.setBlockState(pos, Blocks.REEDS.getDefaultState(), 2);
+        }
+    }
+
+    @Override
+    public void setCactus(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.CACTUS.getDefaultState(), 2);
         }
     }
 

@@ -33,6 +33,8 @@ public final class V118MountainSurfacePlacements {
     public static final int PATCH_SUGAR_CANE_SWAMP_INDEX = 64;
     public static final int PATCH_SUGAR_CANE_INDEX = 68;
     public static final int PATCH_PUMPKIN_INDEX = 69;
+    public static final int PATCH_CACTUS_DESERT_INDEX = 71;
+    public static final int PATCH_CACTUS_DECORATED_INDEX = 72;
     public static final int FREEZE_TOP_LAYER_INDEX = 0;
 
     // Every registered Java 1.18.2 Overworld biome uses globalOverworldGeneration,
@@ -65,6 +67,11 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> PUMPKIN_BIOMES = allBiomesExcept(
         V118Biome.FROZEN_PEAKS, V118Biome.JAGGED_PEAKS, V118Biome.LUSH_CAVES,
         V118Biome.MEADOW, V118Biome.STONY_PEAKS);
+    private static final Set<V118Biome> CACTUS_DESERT_BIOMES = immutableSet(
+        V118Biome.DESERT);
+    private static final Set<V118Biome> CACTUS_DECORATED_BIOMES = immutableSet(
+        V118Biome.BADLANDS, V118Biome.ERODED_BADLANDS,
+        V118Biome.WOODED_BADLANDS);
 
     private V118MountainSurfacePlacements() {
     }
@@ -130,6 +137,17 @@ public final class V118MountainSurfacePlacements {
         }
         if (appearsIn(PUMPKIN_BIOMES, regionBiomes)) {
             placePumpkinPatch(world, worldSeed, chunkX, chunkZ, result);
+        }
+        if (world.supportsCactusPlacement()) {
+            if (regionBiomes.contains(V118Biome.DESERT)) {
+                placeCactusPatch(world, worldSeed, chunkX, chunkZ,
+                    PATCH_CACTUS_DESERT_INDEX, 6, CACTUS_DESERT_BIOMES, result);
+            }
+            if (appearsIn(CACTUS_DECORATED_BIOMES, regionBiomes)) {
+                placeCactusPatch(world, worldSeed, chunkX, chunkZ,
+                    PATCH_CACTUS_DECORATED_INDEX, 13,
+                    CACTUS_DECORATED_BIOMES, result);
+            }
         }
         return result;
     }
@@ -239,6 +257,14 @@ public final class V118MountainSurfacePlacements {
 
     static boolean supportsPumpkin(V118Biome biome) {
         return PUMPKIN_BIOMES.contains(biome);
+    }
+
+    static boolean supportsDesertCactus(V118Biome biome) {
+        return CACTUS_DESERT_BIOMES.contains(biome);
+    }
+
+    static boolean supportsDecoratedCactus(V118Biome biome) {
+        return CACTUS_DECORATED_BIOMES.contains(biome);
     }
 
     static boolean supportsFreezeTopLayer(V118Biome biome) {
@@ -418,6 +444,41 @@ public final class V118MountainSurfacePlacements {
         }
     }
 
+    private static void placeCactusPatch(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, int globalIndex, int rarityChance,
+            Set<V118Biome> featureBiomes, DecorationResult result) {
+        V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
+            globalIndex, VEGETAL_DECORATION_STEP);
+        if (random.nextFloat() >= 1.0F / rarityChance) {
+            return;
+        }
+        BlockPos origin = squareHeightmapPosition(world, random, chunkX, chunkZ);
+        if (origin == null || !featureBiomes.contains(world.biomeAt(origin))) {
+            return;
+        }
+        for (int attempt = 0; attempt < 10; ++attempt) {
+            BlockPos candidate = origin.add(random.nextInt(8) - random.nextInt(8),
+                random.nextInt(4) - random.nextInt(4),
+                random.nextInt(8) - random.nextInt(8));
+            if (!world.isCactusPlacementAir(candidate)
+                    || !world.canCactusSurvive(candidate)) {
+                continue;
+            }
+            int height = 1 + random.nextInt(random.nextInt(3) + 1);
+            int allowedHeight = height;
+            for (int above = 1; above <= height; ++above) {
+                if (!world.isCactusPlacementAir(candidate.up(above))) {
+                    allowedHeight = above - 1;
+                    break;
+                }
+            }
+            for (int layer = 0; layer < allowedHeight; ++layer) {
+                world.setCactus(candidate.up(layer));
+                result.cactusPlaced++;
+            }
+        }
+    }
+
     private static BlockPos squareHeightmapPosition(WorldAccess world, Random random,
             int chunkX, int chunkZ) {
         int x = (chunkX << 4) + random.nextInt(16);
@@ -507,6 +568,18 @@ public final class V118MountainSurfacePlacements {
 
         boolean isSugarCanePlacementAir(BlockPos pos);
 
+        default boolean isCactusPlacementAir(BlockPos pos) {
+            return isSugarCanePlacementAir(pos);
+        }
+
+        default boolean canCactusSurvive(BlockPos pos) {
+            return false;
+        }
+
+        default boolean supportsCactusPlacement() {
+            return false;
+        }
+
         boolean hasAdjacentWaterBelow(BlockPos pos);
 
         boolean canSnowSurvive(BlockPos pos);
@@ -523,6 +596,10 @@ public final class V118MountainSurfacePlacements {
 
         void setSugarCane(BlockPos pos);
 
+        default void setCactus(BlockPos pos) {
+            throw new UnsupportedOperationException("Cactus placement is not available");
+        }
+
         void setPumpkin(BlockPos pos);
     }
 
@@ -536,6 +613,7 @@ public final class V118MountainSurfacePlacements {
         private int leavesPlaced;
         private int deadBushesPlaced;
         private int sugarCanePlaced;
+        private int cactusPlaced;
         private int pumpkinsPlaced;
         private int waterFrozen;
         private int snowLayersPlaced;
@@ -574,6 +652,10 @@ public final class V118MountainSurfacePlacements {
 
         public int sugarCanePlaced() {
             return sugarCanePlaced;
+        }
+
+        public int cactusPlaced() {
+            return cactusPlaced;
         }
 
         public int pumpkinsPlaced() {
