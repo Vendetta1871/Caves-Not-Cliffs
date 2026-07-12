@@ -35,6 +35,8 @@ public final class V118MountainSurfacePlacements {
     public static final int PATCH_PUMPKIN_INDEX = 69;
     public static final int PATCH_CACTUS_DESERT_INDEX = 71;
     public static final int PATCH_CACTUS_DECORATED_INDEX = 72;
+    public static final int PATCH_MELON_SPARSE_INDEX = 74;
+    public static final int PATCH_MELON_INDEX = 75;
     public static final int FREEZE_TOP_LAYER_INDEX = 0;
 
     // Every registered Java 1.18.2 Overworld biome uses globalOverworldGeneration,
@@ -72,6 +74,10 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> CACTUS_DECORATED_BIOMES = immutableSet(
         V118Biome.BADLANDS, V118Biome.ERODED_BADLANDS,
         V118Biome.WOODED_BADLANDS);
+    private static final Set<V118Biome> MELON_SPARSE_BIOMES = immutableSet(
+        V118Biome.SPARSE_JUNGLE);
+    private static final Set<V118Biome> MELON_BIOMES = immutableSet(
+        V118Biome.BAMBOO_JUNGLE, V118Biome.JUNGLE);
 
     private V118MountainSurfacePlacements() {
     }
@@ -138,6 +144,8 @@ public final class V118MountainSurfacePlacements {
         if (appearsIn(PUMPKIN_BIOMES, regionBiomes)) {
             placePumpkinPatch(world, worldSeed, chunkX, chunkZ, result);
         }
+        // Preserve the registered tail of global step 9: pumpkin 69, cactus 71/72,
+        // sparse melon 74, then regular melon 75.
         if (world.supportsCactusPlacement()) {
             if (regionBiomes.contains(V118Biome.DESERT)) {
                 placeCactusPatch(world, worldSeed, chunkX, chunkZ,
@@ -147,6 +155,16 @@ public final class V118MountainSurfacePlacements {
                 placeCactusPatch(world, worldSeed, chunkX, chunkZ,
                     PATCH_CACTUS_DECORATED_INDEX, 13,
                     CACTUS_DECORATED_BIOMES, result);
+            }
+        }
+        if (world.supportsMelonPlacement()) {
+            if (regionBiomes.contains(V118Biome.SPARSE_JUNGLE)) {
+                placeMelonPatch(world, worldSeed, chunkX, chunkZ,
+                    PATCH_MELON_SPARSE_INDEX, 64, MELON_SPARSE_BIOMES, result);
+            }
+            if (appearsIn(MELON_BIOMES, regionBiomes)) {
+                placeMelonPatch(world, worldSeed, chunkX, chunkZ,
+                    PATCH_MELON_INDEX, 6, MELON_BIOMES, result);
             }
         }
         return result;
@@ -265,6 +283,14 @@ public final class V118MountainSurfacePlacements {
 
     static boolean supportsDecoratedCactus(V118Biome biome) {
         return CACTUS_DECORATED_BIOMES.contains(biome);
+    }
+
+    static boolean supportsSparseMelon(V118Biome biome) {
+        return MELON_SPARSE_BIOMES.contains(biome);
+    }
+
+    static boolean supportsMelon(V118Biome biome) {
+        return MELON_BIOMES.contains(biome);
     }
 
     static boolean supportsFreezeTopLayer(V118Biome biome) {
@@ -479,6 +505,31 @@ public final class V118MountainSurfacePlacements {
         }
     }
 
+    private static void placeMelonPatch(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, int globalIndex, int rarityChance,
+            Set<V118Biome> featureBiomes, DecorationResult result) {
+        V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
+            globalIndex, VEGETAL_DECORATION_STEP);
+        if (random.nextFloat() >= 1.0F / rarityChance) {
+            return;
+        }
+        BlockPos origin = squareHeightmapPosition(world, random, chunkX, chunkZ);
+        if (origin == null || !featureBiomes.contains(world.biomeAt(origin))) {
+            return;
+        }
+        for (int attempt = 0; attempt < 64; ++attempt) {
+            BlockPos candidate = origin.add(random.nextInt(8) - random.nextInt(8),
+                random.nextInt(4) - random.nextInt(4),
+                random.nextInt(8) - random.nextInt(8));
+            if (!world.isMelonReplaceable(candidate)
+                    || !world.isGrassBlock(candidate.down())) {
+                continue;
+            }
+            world.setMelon(candidate);
+            result.melonsPlaced++;
+        }
+    }
+
     private static BlockPos squareHeightmapPosition(WorldAccess world, Random random,
             int chunkX, int chunkZ) {
         int x = (chunkX << 4) + random.nextInt(16);
@@ -580,6 +631,14 @@ public final class V118MountainSurfacePlacements {
             return false;
         }
 
+        default boolean isMelonReplaceable(BlockPos pos) {
+            return false;
+        }
+
+        default boolean supportsMelonPlacement() {
+            return false;
+        }
+
         boolean hasAdjacentWaterBelow(BlockPos pos);
 
         boolean canSnowSurvive(BlockPos pos);
@@ -600,6 +659,10 @@ public final class V118MountainSurfacePlacements {
             throw new UnsupportedOperationException("Cactus placement is not available");
         }
 
+        default void setMelon(BlockPos pos) {
+            throw new UnsupportedOperationException("Melon placement is not available");
+        }
+
         void setPumpkin(BlockPos pos);
     }
 
@@ -614,6 +677,7 @@ public final class V118MountainSurfacePlacements {
         private int deadBushesPlaced;
         private int sugarCanePlaced;
         private int cactusPlaced;
+        private int melonsPlaced;
         private int pumpkinsPlaced;
         private int waterFrozen;
         private int snowLayersPlaced;
@@ -656,6 +720,10 @@ public final class V118MountainSurfacePlacements {
 
         public int cactusPlaced() {
             return cactusPlaced;
+        }
+
+        public int melonsPlaced() {
+            return melonsPlaced;
         }
 
         public int pumpkinsPlaced() {

@@ -173,7 +173,7 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         lushCaves.populate(chunkX, chunkZ, decorationBiomes);
         beeTrees.populateAfterLush(chunkX, chunkZ, decorationBiomes);
         // VEGETAL_DECORATION indices 40, 51, 58, 59, 62, 63, 64, 68, 69,
-        // 71, and 72 follow the implemented index-34 tree.
+        // 71, 72, 74, and 75 follow the implemented index-34 tree.
         mountainSurface.populateVegetation(chunkX, chunkZ, decorationBiomes);
         // TOP_LAYER_MODIFICATION step 10 is the last represented decoration stage.
         mountainSurface.populateTopLayer(chunkX, chunkZ, decorationBiomes);

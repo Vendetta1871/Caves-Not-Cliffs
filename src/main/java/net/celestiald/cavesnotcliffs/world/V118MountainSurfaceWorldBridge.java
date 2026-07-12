@@ -3,6 +3,7 @@ package net.celestiald.cavesnotcliffs.world;
 import net.celestiald.cavesnotcliffs.block.BlockPowderSnow;
 import net.celestiald.cavesnotcliffs.block.CncFluidState;
 import net.celestiald.cavesnotcliffs.block.LushAzaleaBlocks;
+import net.celestiald.cavesnotcliffs.block.LushCaveVinesBlock;
 import net.celestiald.cavesnotcliffs.block.LushMossBlocks;
 import net.celestiald.cavesnotcliffs.content.DeadBushSupportHooks;
 import net.celestiald.cavesnotcliffs.content.LushCaveContent;
@@ -227,6 +228,35 @@ final class V118MountainSurfaceWorldBridge
     }
 
     @Override
+    public boolean isMelonReplaceable(BlockPos pos) {
+        return inside(pos) && isMelonReplaceableState(world.getBlockState(pos));
+    }
+
+    static boolean isMelonReplaceableState(IBlockState state) {
+        Block block = state.getBlock();
+        if (block == LushCaveContent.HANGING_ROOTS
+                || block == LushCaveContent.HANGING_ROOTS_WATERLOGGED
+                || block instanceof LushAzaleaBlocks.HangingRoots) {
+            return true;
+        }
+        if (block instanceof LushCaveVinesBlock.Head
+                || block instanceof LushCaveVinesBlock.Body) {
+            return false;
+        }
+        String id = String.valueOf(block.getRegistryName());
+        if ("cavesnotcliffs:glow_berry_vines".equals(id)
+                || "cavesnotcliffs:glow_berry_middle_fill".equals(id)) {
+            return false;
+        }
+        return state.getMaterial().isReplaceable();
+    }
+
+    @Override
+    public boolean supportsMelonPlacement() {
+        return true;
+    }
+
+    @Override
     public boolean hasAdjacentWaterBelow(BlockPos pos) {
         BlockPos below = pos.down();
         return containsWater(below.east()) || containsWater(below.west())
@@ -369,6 +399,13 @@ final class V118MountainSurfaceWorldBridge
     public void setCactus(BlockPos pos) {
         if (inside(pos)) {
             world.setBlockState(pos, Blocks.CACTUS.getDefaultState(), 2);
+        }
+    }
+
+    @Override
+    public void setMelon(BlockPos pos) {
+        if (inside(pos)) {
+            world.setBlockState(pos, Blocks.MELON_BLOCK.getDefaultState(), 2);
         }
     }
 
