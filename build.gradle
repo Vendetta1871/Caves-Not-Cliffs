@@ -82,7 +82,7 @@ processResources {
 def forbiddenMcpFields = [
     'ADOBE', 'AIR', 'ARMOR_CLEANED', 'BANNER_CLEANED', 'BEDROCK',
     'BUCKET', 'BUILDING_BLOCKS', 'CAULDRON', 'CAULDRON_FILLED', 'CAULDRON_USED',
-    'CLAY', 'GLASS', 'GLASS_BOTTLE', 'GRASS', 'IRON',
+    'CLAY', 'FERN', 'GLASS', 'GLASS_BOTTLE', 'GRASS', 'IRON',
     'FLOWING_WATER', 'ITEM_BOTTLE_EMPTY', 'ITEM_BOTTLE_FILL',
     'ITEM_BUCKET_EMPTY', 'ITEM_BUCKET_EMPTY_LAVA', 'ITEM_BUCKET_FILL',
     'ITEM_BUCKET_FILL_LAVA',
@@ -149,6 +149,9 @@ task verifyReleaseJar(dependsOn: reobfJar) {
             }
             if (zip.getEntry('net/celestiald/cavesnotcliffs/core/MushroomSupportTransformer.class') == null) {
                 throw new GradleException('Production jar is missing the mushroom support transformer')
+            }
+            if (zip.getEntry('net/celestiald/cavesnotcliffs/core/DoublePlantSupportTransformer.class') == null) {
+                throw new GradleException('Production jar is missing the double plant support transformer')
             }
             if (zip.getEntry('net/celestiald/cavesnotcliffs/core/SchemaOnePopulationTransformer.class') == null) {
                 throw new GradleException('Production jar is missing the schema-one population transformer')

@@ -24,6 +24,9 @@ public final class V118MountainSurfacePlacements {
     public static final int TOP_LAYER_MODIFICATION_STEP = 10;
 
     public static final int SPRING_LAVA_FROZEN_INDEX = 2;
+    public static final int PATCH_TALL_GRASS_INDEX = 8;
+    public static final int PATCH_TALL_GRASS_2_INDEX = 21;
+    public static final int PATCH_LARGE_FERN_INDEX = 36;
     public static final int TREES_GROVE_INDEX = 40;
     public static final int PATCH_DEAD_BUSH_INDEX = 51;
     public static final int BROWN_MUSHROOM_OLD_GROWTH_INDEX = 52;
@@ -55,6 +58,14 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> FROZEN_SPRING_BIOMES = immutableSet(
         V118Biome.GROVE, V118Biome.SNOWY_SLOPES,
         V118Biome.FROZEN_PEAKS, V118Biome.JAGGED_PEAKS);
+    private static final Set<V118Biome> TALL_GRASS_BIOMES = immutableSet(
+        V118Biome.SAVANNA, V118Biome.SAVANNA_PLATEAU);
+    private static final Set<V118Biome> TALL_GRASS_2_BIOMES = immutableSet(
+        V118Biome.DRIPSTONE_CAVES, V118Biome.LUSH_CAVES, V118Biome.MEADOW,
+        V118Biome.PLAINS, V118Biome.SUNFLOWER_PLAINS);
+    private static final Set<V118Biome> LARGE_FERN_BIOMES = immutableSet(
+        V118Biome.OLD_GROWTH_PINE_TAIGA, V118Biome.OLD_GROWTH_SPRUCE_TAIGA,
+        V118Biome.SNOWY_TAIGA, V118Biome.TAIGA);
     private static final Set<V118Biome> DEAD_BUSH_BIOMES = immutableSet(
         V118Biome.OLD_GROWTH_PINE_TAIGA,
         V118Biome.OLD_GROWTH_SPRUCE_TAIGA, V118Biome.SWAMP);
@@ -102,6 +113,43 @@ public final class V118MountainSurfacePlacements {
         V118Biome.BAMBOO_JUNGLE, V118Biome.JUNGLE);
 
     private V118MountainSurfacePlacements() {
+    }
+
+    public static DecorationResult decorateEarlyDoublePlants(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        requireArguments(world, regionBiomes);
+        DecorationResult result = new DecorationResult();
+        if (world.supportsDoublePlantPlacement()
+                && appearsIn(TALL_GRASS_BIOMES, regionBiomes)) {
+            placeDoublePlantPatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_TALL_GRASS_INDEX, 1, 5, false, TALL_GRASS_BIOMES, result);
+        }
+        return result;
+    }
+
+    public static DecorationResult decoratePreLushDoublePlants(WorldAccess world,
+            long worldSeed, int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        requireArguments(world, regionBiomes);
+        DecorationResult result = new DecorationResult();
+        if (world.supportsDoublePlantPlacement()
+                && appearsIn(TALL_GRASS_2_BIOMES, regionBiomes)) {
+            placeDoublePlantPatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_TALL_GRASS_2_INDEX, tallGrass2Count(chunkX, chunkZ), 32,
+                false, TALL_GRASS_2_BIOMES, result);
+        }
+        return result;
+    }
+
+    public static DecorationResult decorateLateDoublePlants(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        requireArguments(world, regionBiomes);
+        DecorationResult result = new DecorationResult();
+        if (world.supportsDoublePlantPlacement()
+                && appearsIn(LARGE_FERN_BIOMES, regionBiomes)) {
+            placeDoublePlantPatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_LARGE_FERN_INDEX, 1, 5, true, LARGE_FERN_BIOMES, result);
+        }
+        return result;
     }
 
     public static DecorationResult decorateFrozenSprings(WorldAccess world, long worldSeed,
@@ -306,6 +354,26 @@ public final class V118MountainSurfacePlacements {
         return biome == V118Biome.GROVE;
     }
 
+    static boolean supportsTallGrass(V118Biome biome) {
+        return TALL_GRASS_BIOMES.contains(biome);
+    }
+
+    static boolean supportsTallGrass2(V118Biome biome) {
+        return TALL_GRASS_2_BIOMES.contains(biome);
+    }
+
+    static boolean supportsLargeFern(V118Biome biome) {
+        return LARGE_FERN_BIOMES.contains(biome);
+    }
+
+    static int tallGrass2Count(int chunkX, int chunkZ) {
+        int originX = chunkX << 4;
+        int originZ = chunkZ << 4;
+        double noise = V118BiomeTemperature.biomeInfoNoise(
+            originX / 200.0D, originZ / 200.0D);
+        return noise < -0.8D ? 0 : 7;
+    }
+
     static boolean supportsDeadBush2(V118Biome biome) {
         return DEAD_BUSH_2_BIOMES.contains(biome);
     }
@@ -456,6 +524,42 @@ public final class V118MountainSurfacePlacements {
             }
         }
         return world.isPowderSnow(cursor) ? null : cursor;
+    }
+
+    private static void placeDoublePlantPatch(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, int globalIndex, int outerAttempts,
+            int rarityChance, boolean largeFern, Set<V118Biome> featureBiomes,
+            DecorationResult result) {
+        V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
+            globalIndex, VEGETAL_DECORATION_STEP);
+        // Count/noise-count streams are lazy: each output runs rarity and completes its
+        // configured patch before the next output is evaluated.
+        for (int outer = 0; outer < outerAttempts; ++outer) {
+            if (random.nextFloat() >= 1.0F / rarityChance) {
+                continue;
+            }
+            BlockPos origin = squareHeightmapPosition(world, random, chunkX, chunkZ);
+            if (origin == null || !featureBiomes.contains(world.biomeAt(origin))) {
+                continue;
+            }
+            for (int attempt = 0; attempt < 96; ++attempt) {
+                BlockPos candidate = origin.add(random.nextInt(8) - random.nextInt(8),
+                    random.nextInt(4) - random.nextInt(4),
+                    random.nextInt(8) - random.nextInt(8));
+                if (!world.isDoublePlantPlacementAir(candidate)
+                        || !world.canDoublePlantSurvive(candidate)
+                        || !world.isDoublePlantUpperEmpty(candidate.up())) {
+                    continue;
+                }
+                if (largeFern) {
+                    world.setLargeFern(candidate);
+                    result.largeFernsPlaced++;
+                } else {
+                    world.setTallGrass(candidate);
+                    result.tallGrassPlaced++;
+                }
+            }
+        }
     }
 
     private static void placeDeadBushPatch(WorldAccess world, long worldSeed,
@@ -768,6 +872,22 @@ public final class V118MountainSurfacePlacements {
 
         boolean isSugarCanePlacementAir(BlockPos pos);
 
+        default boolean isDoublePlantPlacementAir(BlockPos pos) {
+            return false;
+        }
+
+        default boolean canDoublePlantSurvive(BlockPos pos) {
+            return false;
+        }
+
+        default boolean isDoublePlantUpperEmpty(BlockPos pos) {
+            return false;
+        }
+
+        default boolean supportsDoublePlantPlacement() {
+            return false;
+        }
+
         default boolean isMushroomPlacementAir(BlockPos pos) {
             return false;
         }
@@ -828,6 +948,14 @@ public final class V118MountainSurfacePlacements {
 
         void setSugarCane(BlockPos pos);
 
+        default void setTallGrass(BlockPos pos) {
+            throw new UnsupportedOperationException("Tall-grass placement is not available");
+        }
+
+        default void setLargeFern(BlockPos pos) {
+            throw new UnsupportedOperationException("Large-fern placement is not available");
+        }
+
         default void setBrownMushroom(BlockPos pos) {
             throw new UnsupportedOperationException("Brown mushroom placement is not available");
         }
@@ -859,6 +987,8 @@ public final class V118MountainSurfacePlacements {
         private int sprucesPlaced;
         private int logsPlaced;
         private int leavesPlaced;
+        private int tallGrassPlaced;
+        private int largeFernsPlaced;
         private int deadBushesPlaced;
         private int brownMushroomsPlaced;
         private int redMushroomsPlaced;
@@ -896,6 +1026,14 @@ public final class V118MountainSurfacePlacements {
 
         public int leavesPlaced() {
             return leavesPlaced;
+        }
+
+        public int tallGrassPlaced() {
+            return tallGrassPlaced;
+        }
+
+        public int largeFernsPlaced() {
+            return largeFernsPlaced;
         }
 
         public int deadBushesPlaced() {

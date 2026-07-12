@@ -167,13 +167,13 @@ final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
 
     @Override
     public boolean placePlant(BlockPos pos, Plant plant) {
-        if (plant == null || isOutsideBuildHeight(pos) || !world.isAirBlock(pos)
+        if (plant == null || isOutsideBuildHeight(pos)
+                || world.getBlockState(pos).getBlock() != Blocks.AIR
                 || !saplingHasSupport(pos)) {
             return false;
         }
         if (plant.isDoublePlant()) {
-            if (pos.getY() + 1 >= TerrainColumn.MAX_Y_EXCLUSIVE
-                    || !world.isAirBlock(pos.up())) {
+            if (!world.isAirBlock(pos.up())) {
                 return false;
             }
             Blocks.DOUBLE_PLANT.placeAt(world, pos, doublePlant(plant), 2);

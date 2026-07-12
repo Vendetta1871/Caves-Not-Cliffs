@@ -6,6 +6,7 @@ import net.celestiald.cavesnotcliffs.block.LushAzaleaBlocks;
 import net.celestiald.cavesnotcliffs.block.LushCaveVinesBlock;
 import net.celestiald.cavesnotcliffs.block.LushMossBlocks;
 import net.celestiald.cavesnotcliffs.content.DeadBushSupportHooks;
+import net.celestiald.cavesnotcliffs.content.DoublePlantSupportHooks;
 import net.celestiald.cavesnotcliffs.content.LilyPadSupportHooks;
 import net.celestiald.cavesnotcliffs.content.LushCaveContent;
 import net.celestiald.cavesnotcliffs.content.MushroomSupportHooks;
@@ -18,6 +19,7 @@ import net.celestiald.cavesnotcliffs.worldgen.v118.V118Material;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118MountainSurfacePlacements;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDirt;
+import net.minecraft.block.BlockDoublePlant;
 import net.minecraft.block.BlockLeaves;
 import net.minecraft.block.BlockStone;
 import net.minecraft.block.material.Material;
@@ -58,6 +60,24 @@ final class V118MountainSurfaceWorldBridge
     V118MountainSurfacePlacements.DecorationResult populateFrozenSprings(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
         return V118MountainSurfacePlacements.decorateFrozenSprings(this, world.getSeed(),
+            chunkX, chunkZ, regionBiomes);
+    }
+
+    V118MountainSurfacePlacements.DecorationResult populateEarlyDoublePlants(
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return V118MountainSurfacePlacements.decorateEarlyDoublePlants(this, world.getSeed(),
+            chunkX, chunkZ, regionBiomes);
+    }
+
+    V118MountainSurfacePlacements.DecorationResult populatePreLushDoublePlants(
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return V118MountainSurfacePlacements.decoratePreLushDoublePlants(this, world.getSeed(),
+            chunkX, chunkZ, regionBiomes);
+    }
+
+    V118MountainSurfacePlacements.DecorationResult populateLateDoublePlants(
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return V118MountainSurfacePlacements.decorateLateDoublePlants(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
     }
 
@@ -198,6 +218,28 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public boolean isSugarCanePlacementAir(BlockPos pos) {
         return inside(pos) && world.getBlockState(pos).getBlock() == Blocks.AIR;
+    }
+
+    @Override
+    public boolean isDoublePlantPlacementAir(BlockPos pos) {
+        return inside(pos) && world.getBlockState(pos).getBlock() == Blocks.AIR;
+    }
+
+    @Override
+    public boolean canDoublePlantSurvive(BlockPos pos) {
+        return inside(pos) && inside(pos.down())
+            && DoublePlantSupportHooks.canLowerSurvive(world, pos);
+    }
+
+    @Override
+    public boolean isDoublePlantUpperEmpty(BlockPos pos) {
+        return (inside(pos) || pos.getY() == TerrainColumn.MAX_Y_EXCLUSIVE)
+            && world.isAirBlock(pos);
+    }
+
+    @Override
+    public boolean supportsDoublePlantPlacement() {
+        return true;
     }
 
     @Override
@@ -426,6 +468,22 @@ final class V118MountainSurfaceWorldBridge
     public void setSugarCane(BlockPos pos) {
         if (inside(pos)) {
             world.setBlockState(pos, Blocks.REEDS.getDefaultState(), 2);
+        }
+    }
+
+    @Override
+    public void setTallGrass(BlockPos pos) {
+        if (inside(pos)) {
+            Blocks.DOUBLE_PLANT.placeAt(world, pos,
+                BlockDoublePlant.EnumPlantType.byMetadata(2), 2);
+        }
+    }
+
+    @Override
+    public void setLargeFern(BlockPos pos) {
+        if (inside(pos)) {
+            Blocks.DOUBLE_PLANT.placeAt(world, pos,
+                BlockDoublePlant.EnumPlantType.byMetadata(3), 2);
         }
     }
 
