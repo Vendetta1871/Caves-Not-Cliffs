@@ -290,3 +290,19 @@ is `Cnc118DeadBushDecorationOracle.java.txt`.
   `a4c5087d0ed508e37c6e71f2b4366257a2c8702a697cf425f073979133ac93a2`
 - Dead-bush TSV SHA-256:
   `d8ff002d52a9c205208a196d77e2141e13de11af4c6a4afe70d25feb6710d30e`
+
+## Sugar-cane decoration family
+
+`sugar-cane-decoration-oracle-1.18.2.tsv` invokes all four registered sugar-cane
+placed features in the mapped official server. It pins their exact biome memberships, global
+slots 62/63/64/68, placement and configured-feature codecs, rarity filters, candidate columns,
+obstruction truncation, writes, results, random-call hashes, and trailing Xoroshiro state for the
+six edge seeds at chunk `(-3, 5)`, plus one passing trace for every rarity-gated wrapper. The
+standalone harness is `Cnc118SugarCaneDecorationOracle.java.txt`; a separately authored wet-stripe
+harness reproduced all 24 edge-seed results, planned block totals, random-call counts, and trailing
+states.
+
+- Sugar-cane harness SHA-256:
+  `12fe129cb4d4dcbac5658995e2473bf31184178625f81de78494483505a4eae7`
+- Sugar-cane TSV SHA-256:
+  `e0562504c8d40b92deb3ffbb5fa5fecb683b5a841636446177370951b5cfc07c`

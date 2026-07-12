@@ -28,6 +28,9 @@ public final class V118MountainSurfacePlacements {
     public static final int PATCH_DEAD_BUSH_INDEX = 51;
     public static final int PATCH_DEAD_BUSH_2_INDEX = 58;
     public static final int PATCH_DEAD_BUSH_BADLANDS_INDEX = 59;
+    public static final int PATCH_SUGAR_CANE_DESERT_INDEX = 62;
+    public static final int PATCH_SUGAR_CANE_BADLANDS_INDEX = 63;
+    public static final int PATCH_SUGAR_CANE_SWAMP_INDEX = 64;
     public static final int PATCH_SUGAR_CANE_INDEX = 68;
     public static final int PATCH_PUMPKIN_INDEX = 69;
     public static final int FREEZE_TOP_LAYER_INDEX = 0;
@@ -47,6 +50,13 @@ public final class V118MountainSurfacePlacements {
     private static final Set<V118Biome> DEAD_BUSH_BADLANDS_BIOMES = immutableSet(
         V118Biome.BADLANDS, V118Biome.ERODED_BADLANDS,
         V118Biome.WOODED_BADLANDS);
+    private static final Set<V118Biome> SUGAR_CANE_DESERT_BIOMES = immutableSet(
+        V118Biome.DESERT);
+    private static final Set<V118Biome> SUGAR_CANE_BADLANDS_BIOMES = immutableSet(
+        V118Biome.BADLANDS, V118Biome.ERODED_BADLANDS,
+        V118Biome.WOODED_BADLANDS);
+    private static final Set<V118Biome> SUGAR_CANE_SWAMP_BIOMES = immutableSet(
+        V118Biome.SWAMP);
     private static final Set<V118Biome> ORDINARY_SUGAR_CANE_BIOMES = allBiomesExcept(
         V118Biome.BADLANDS, V118Biome.DESERT, V118Biome.ERODED_BADLANDS,
         V118Biome.FROZEN_PEAKS, V118Biome.JAGGED_PEAKS, V118Biome.LUSH_CAVES,
@@ -98,8 +108,25 @@ public final class V118MountainSurfacePlacements {
                 PATCH_DEAD_BUSH_BADLANDS_INDEX, 20,
                 DEAD_BUSH_BADLANDS_BIOMES, result);
         }
+        if (regionBiomes.contains(V118Biome.DESERT)) {
+            placeSugarCanePatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_SUGAR_CANE_DESERT_INDEX, 0,
+                SUGAR_CANE_DESERT_BIOMES, result);
+        }
+        if (appearsIn(SUGAR_CANE_BADLANDS_BIOMES, regionBiomes)) {
+            placeSugarCanePatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_SUGAR_CANE_BADLANDS_INDEX, 5,
+                SUGAR_CANE_BADLANDS_BIOMES, result);
+        }
+        if (regionBiomes.contains(V118Biome.SWAMP)) {
+            placeSugarCanePatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_SUGAR_CANE_SWAMP_INDEX, 3,
+                SUGAR_CANE_SWAMP_BIOMES, result);
+        }
         if (appearsIn(ORDINARY_SUGAR_CANE_BIOMES, regionBiomes)) {
-            placeSugarCanePatch(world, worldSeed, chunkX, chunkZ, result);
+            placeSugarCanePatch(world, worldSeed, chunkX, chunkZ,
+                PATCH_SUGAR_CANE_INDEX, 6,
+                ORDINARY_SUGAR_CANE_BIOMES, result);
         }
         if (appearsIn(PUMPKIN_BIOMES, regionBiomes)) {
             placePumpkinPatch(world, worldSeed, chunkX, chunkZ, result);
@@ -196,6 +223,18 @@ public final class V118MountainSurfacePlacements {
 
     static boolean supportsOrdinarySugarCane(V118Biome biome) {
         return ORDINARY_SUGAR_CANE_BIOMES.contains(biome);
+    }
+
+    static boolean supportsDesertSugarCane(V118Biome biome) {
+        return SUGAR_CANE_DESERT_BIOMES.contains(biome);
+    }
+
+    static boolean supportsBadlandsSugarCane(V118Biome biome) {
+        return SUGAR_CANE_BADLANDS_BIOMES.contains(biome);
+    }
+
+    static boolean supportsSwampSugarCane(V118Biome biome) {
+        return SUGAR_CANE_SWAMP_BIOMES.contains(biome);
     }
 
     static boolean supportsPumpkin(V118Biome biome) {
@@ -320,29 +359,31 @@ public final class V118MountainSurfacePlacements {
     }
 
     private static void placeSugarCanePatch(WorldAccess world, long worldSeed,
-            int chunkX, int chunkZ, DecorationResult result) {
+            int chunkX, int chunkZ, int globalIndex, int rarityChance,
+            Set<V118Biome> featureBiomes, DecorationResult result) {
         V118WorldgenRandom random = featureRandom(worldSeed, chunkX, chunkZ,
-            PATCH_SUGAR_CANE_INDEX, VEGETAL_DECORATION_STEP);
-        if (random.nextFloat() >= 1.0F / 6.0F) {
+            globalIndex, VEGETAL_DECORATION_STEP);
+        if (rarityChance > 0 && random.nextFloat() >= 1.0F / rarityChance) {
             return;
         }
         BlockPos origin = squareHeightmapPosition(world, random, chunkX, chunkZ);
         if (origin == null
-                || !ORDINARY_SUGAR_CANE_BIOMES.contains(world.biomeAt(origin))) {
+                || !featureBiomes.contains(world.biomeAt(origin))) {
             return;
         }
         for (int attempt = 0; attempt < 20; ++attempt) {
             BlockPos candidate = origin.add(random.nextInt(5) - random.nextInt(5),
                 random.nextInt(1) - random.nextInt(1),
                 random.nextInt(5) - random.nextInt(5));
-            if (!world.isAir(candidate) || !world.canSugarCaneSurvive(candidate)
+            if (!world.isSugarCanePlacementAir(candidate)
+                    || !world.canSugarCaneSurvive(candidate)
                     || !world.hasAdjacentWaterBelow(candidate)) {
                 continue;
             }
             int height = 2 + random.nextInt(random.nextInt(3) + 1);
             int allowedHeight = height;
             for (int above = 1; above <= height; ++above) {
-                if (!world.isAir(candidate.up(above))) {
+                if (!world.isSugarCanePlacementAir(candidate.up(above))) {
                     allowedHeight = above - 1;
                     break;
                 }
@@ -463,6 +504,8 @@ public final class V118MountainSurfacePlacements {
         boolean canDeadBushSurvive(BlockPos pos);
 
         boolean canSugarCaneSurvive(BlockPos pos);
+
+        boolean isSugarCanePlacementAir(BlockPos pos);
 
         boolean hasAdjacentWaterBelow(BlockPos pos);
 

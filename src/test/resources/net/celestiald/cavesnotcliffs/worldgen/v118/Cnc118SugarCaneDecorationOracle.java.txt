@@ -1,0 +1,513 @@
+import com.google.gson.JsonElement;
+import com.mojang.serialization.JsonOps;
+import java.io.PrintWriter;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.BiomeSource;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
+import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
+import net.minecraft.world.level.levelgen.WorldgenRandom;
+import net.minecraft.world.level.levelgen.XoroshiroRandomSource;
+import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
+import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+
+/** Registered Java 1.18.2 sugar-cane placed-feature catalog and runtime traces. */
+public final class Cnc118SugarCaneDecorationOracle {
+    private static final long[] SEEDS = {
+        0L, 1L, -1L, 123456789L, Long.MIN_VALUE, Long.MAX_VALUE
+    };
+    private static final int CHUNK_X = -3;
+    private static final int CHUNK_Z = 5;
+    private static final int STEP = 9;
+    private static final int ORIGIN_Y = 64;
+    private static final FeatureCase[] FEATURES = {
+        new FeatureCase("patch_sugar_cane_desert", 62, 0, 0L,
+            "minecraft:desert", "minecraft:desert"),
+        new FeatureCase("patch_sugar_cane_badlands", 63, 5, 10L,
+            "minecraft:badlands", "minecraft:badlands",
+            "minecraft:eroded_badlands", "minecraft:wooded_badlands"),
+        new FeatureCase("patch_sugar_cane_swamp", 64, 3, 2L,
+            "minecraft:swamp", "minecraft:swamp"),
+        new FeatureCase("patch_sugar_cane", 68, 6, 3L,
+            "minecraft:plains",
+            "minecraft:bamboo_jungle", "minecraft:beach",
+            "minecraft:birch_forest", "minecraft:cold_ocean",
+            "minecraft:dark_forest", "minecraft:deep_cold_ocean",
+            "minecraft:deep_frozen_ocean", "minecraft:deep_lukewarm_ocean",
+            "minecraft:deep_ocean", "minecraft:dripstone_caves",
+            "minecraft:flower_forest", "minecraft:forest",
+            "minecraft:frozen_ocean", "minecraft:frozen_river",
+            "minecraft:grove", "minecraft:ice_spikes", "minecraft:jungle",
+            "minecraft:lukewarm_ocean", "minecraft:mushroom_fields",
+            "minecraft:ocean", "minecraft:old_growth_birch_forest",
+            "minecraft:old_growth_pine_taiga",
+            "minecraft:old_growth_spruce_taiga", "minecraft:plains",
+            "minecraft:river", "minecraft:savanna",
+            "minecraft:savanna_plateau", "minecraft:snowy_beach",
+            "minecraft:snowy_plains", "minecraft:snowy_slopes",
+            "minecraft:snowy_taiga", "minecraft:sparse_jungle",
+            "minecraft:stony_shore", "minecraft:sunflower_plains",
+            "minecraft:taiga", "minecraft:warm_ocean",
+            "minecraft:windswept_forest",
+            "minecraft:windswept_gravelly_hills",
+            "minecraft:windswept_hills", "minecraft:windswept_savanna")
+    };
+
+    public static void main(String[] args) throws Exception {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        BuiltinRegistries.bootstrap();
+
+        MultiNoiseBiomeSource source = MultiNoiseBiomeSource.Preset.OVERWORLD.biomeSource(
+            BuiltinRegistries.BIOME);
+        List<BiomeSource.StepFeatureData> steps = source.featuresPerStep();
+        RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE,
+            BuiltinRegistries.ACCESS);
+        PrintWriter out = args.length == 0
+            ? new PrintWriter(System.out, true)
+            : new PrintWriter(args[0], StandardCharsets.UTF_8.name());
+
+        out.println("# official mapped Minecraft Java 1.18.2 sugar-cane family oracle");
+        out.println("# trace world: forced MOTION_BLOCKING y=64; even-x cane/water stripes; deterministic y=65/66 obstructions");
+        out.println("# trace columns: feature,seed,cx,cz,decorationSeed,featureSeed,rarity,origin,candidates,accepted,planned,truncatedCandidates,truncatedBlocks,writes,candidateHash,writeHash,eventHash,rngHash,featureNextCalls,result,trailingLong,trailingHex");
+        for (FeatureCase feature : FEATURES) {
+            PlacedFeature placed = placed(feature);
+            int[] location = findLocation(steps, placed);
+            if (location[0] != STEP || location[1] != feature.index) {
+                throw new IllegalStateException("unexpected " + feature.id + " slot "
+                    + location[0] + "/" + location[1]);
+            }
+            List<String> members = members(placed);
+            if (!members.equals(feature.members)) {
+                throw new IllegalStateException("unexpected " + feature.id
+                    + " membership " + members);
+            }
+            String placedJson = PlacedFeature.DIRECT_CODEC.encodeStart(ops, placed)
+                .result().orElseThrow(() -> new IllegalStateException("placed codec failed"))
+                .toString();
+            ConfiguredFeature<?, ?> configured = placed.feature().value();
+            String configuredJson = ConfiguredFeature.DIRECT_CODEC
+                .encodeStart(ops, configured).result()
+                .orElseThrow(() -> new IllegalStateException("configured codec failed"))
+                .toString();
+            out.println("slot\t" + feature.id + "\t" + location[0]
+                + "\t" + location[1]);
+            out.println("membership\t" + feature.id + "\t"
+                + String.join(",", members));
+            out.println("rarity\t" + feature.id + "\t" + feature.rarityChance);
+            out.println("passing_seed\t" + feature.id + "\t" + feature.passingSeed);
+            out.println("placed_json\t" + feature.id + "\t" + placedJson);
+            out.println("configured_json\t" + feature.id + "\t" + configuredJson);
+        }
+        for (FeatureCase feature : FEATURES) {
+            for (long seed : SEEDS) {
+                writeTrace(out, source, feature, seed, "trace");
+            }
+            if (feature.rarityChance > 0) {
+                writeTrace(out, source, feature, feature.passingSeed,
+                    "selected_trace");
+            }
+        }
+        out.flush();
+        if (args.length != 0) out.close();
+    }
+
+    private static void writeTrace(PrintWriter out, MultiNoiseBiomeSource source,
+            FeatureCase feature, long seed, String rowType) {
+        Trace trace = new Trace(feature, CHUNK_X, CHUNK_Z);
+        FlatCaneWorld world = new FlatCaneWorld(seed, trace, feature.traceBiome);
+        NoiseBasedChunkGenerator generator = new NoiseBasedChunkGenerator(
+            BuiltinRegistries.STRUCTURE_SETS, BuiltinRegistries.NOISE,
+            source, seed, BuiltinRegistries.NOISE_GENERATOR_SETTINGS.getHolderOrThrow(
+                NoiseGeneratorSettings.OVERWORLD));
+        TracingRandom random = new TracingRandom(trace);
+        long decorationSeed = random.setDecorationSeed(seed,
+            CHUNK_X << 4, CHUNK_Z << 4);
+        long featureSeed = decorationSeed + feature.index + 10000L * STEP;
+        random.setFeatureSeed(decorationSeed, feature.index, STEP);
+        int before = random.getCount();
+        random.tracing = true;
+        boolean result = placed(feature).placeWithBiomeCheck(world.level,
+            generator, random, new BlockPos(CHUNK_X << 4, -64, CHUNK_Z << 4));
+        random.tracing = false;
+        int featureNextCalls = random.getCount() - before;
+        trace.finish(result);
+        long trailing = random.nextLong();
+        out.println(rowType + "\t" + feature.id + "\t" + seed + "\t"
+            + CHUNK_X + "\t" + CHUNK_Z + "\t" + decorationSeed + "\t"
+            + featureSeed + "\t" + trace.rarityString() + "\t"
+            + trace.originString() + "\t" + trace.candidateCount + "\t"
+            + trace.acceptedCount + "\t" + trace.plannedBlocks + "\t"
+            + trace.truncatedCandidates + "\t" + trace.truncatedBlocks + "\t"
+            + trace.writeCount + "\t" + trace.candidateHash + "\t"
+            + trace.writeHash + "\t" + trace.eventHash + "\t"
+            + trace.rngHash + "\t" + featureNextCalls + "\t" + result
+            + "\t" + trailing + "\t"
+            + String.format(Locale.ROOT, "%016x", trailing));
+    }
+
+    private static PlacedFeature placed(FeatureCase feature) {
+        PlacedFeature placed = BuiltinRegistries.PLACED_FEATURE.get(
+            new ResourceLocation(feature.id));
+        if (placed == null) throw new IllegalStateException("missing " + feature.id);
+        return placed;
+    }
+
+    private static int[] findLocation(List<BiomeSource.StepFeatureData> steps,
+            PlacedFeature placed) {
+        int foundStep = -1;
+        int foundIndex = -1;
+        for (int step = 0; step < steps.size(); ++step) {
+            int index = steps.get(step).features().indexOf(placed);
+            if (index < 0) continue;
+            if (foundStep >= 0) throw new IllegalStateException("feature appears twice");
+            foundStep = step;
+            foundIndex = index;
+        }
+        return new int[] {foundStep, foundIndex};
+    }
+
+    private static List<String> members(PlacedFeature placed) {
+        List<String> result = new ArrayList<>();
+        for (Map.Entry<ResourceKey<Biome>, Biome> entry
+                : BuiltinRegistries.BIOME.entrySet()) {
+            if (entry.getValue().getGenerationSettings().hasFeature(placed)) {
+                result.add(entry.getKey().location().toString());
+            }
+        }
+        Collections.sort(result);
+        return result;
+    }
+
+    private static final class TracingRandom extends WorldgenRandom {
+        final Trace trace;
+        boolean tracing;
+
+        TracingRandom(Trace trace) {
+            super(new XoroshiroRandomSource(0L));
+            this.trace = trace;
+        }
+
+        @Override
+        public float nextFloat() {
+            float value = super.nextFloat();
+            if (tracing) trace.nextFloat(value);
+            return value;
+        }
+
+        @Override
+        public int nextInt(int bound) {
+            int value = super.nextInt(bound);
+            if (tracing) trace.nextInt(bound, value);
+            return value;
+        }
+    }
+
+    private static final class FlatCaneWorld implements InvocationHandler {
+        final long seed;
+        final Trace trace;
+        final Map<Long, BlockState> writes = new LinkedHashMap<>();
+        final Holder<Biome> biome;
+        final WorldGenLevel level;
+
+        FlatCaneWorld(long seed, Trace trace, String biomeId) {
+            this.seed = seed;
+            biome = BuiltinRegistries.BIOME.getHolderOrThrow(ResourceKey.create(
+                Registry.BIOME_REGISTRY, new ResourceLocation(biomeId)));
+            this.trace = trace;
+            level = (WorldGenLevel) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[] {WorldGenLevel.class}, this);
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) {
+            String name = method.getName();
+            int count = method.getParameterCount();
+            if (name.equals("getMinBuildHeight")) return -64;
+            if (name.equals("getMaxBuildHeight")) return 320;
+            if (name.equals("getHeight") && count == 0) return 384;
+            if (name.equals("getHeight") && count == 3) {
+                int x = (Integer) args[1];
+                int z = (Integer) args[2];
+                trace.origin(x, ORIGIN_Y, z);
+                return ORIGIN_Y;
+            }
+            if (name.equals("getBiome")) {
+                trace.biome(((BlockPos) args[0]).immutable());
+                return biome;
+            }
+            if (name.equals("getSeed")) return seed;
+            if (name.equals("ensureCanWrite")) return true;
+            if (name.equals("getBlockState")) {
+                return stateAt(((BlockPos) args[0]).immutable());
+            }
+            if (name.equals("getFluidState")) {
+                return stateAt(((BlockPos) args[0]).immutable()).getFluidState();
+            }
+            if (name.equals("setBlock")) {
+                BlockPos pos = ((BlockPos) args[0]).immutable();
+                BlockState state = (BlockState) args[1];
+                writes.put(pos.asLong(), state);
+                trace.write(pos, state);
+                return true;
+            }
+            Class<?> type = method.getReturnType();
+            if (type == boolean.class) return false;
+            if (type == int.class) return 0;
+            if (type == long.class) return 0L;
+            if (type == float.class) return 0.0F;
+            if (type == double.class) return 0.0D;
+            return null;
+        }
+
+        private BlockState stateAt(BlockPos pos) {
+            BlockState written = writes.get(pos.asLong());
+            if (written != null) return written;
+            if (pos.getY() <= 62) return Blocks.SAND.defaultBlockState();
+            if (pos.getY() == 63) {
+                return Math.floorMod(pos.getX(), 2) == 0
+                    ? Blocks.SUGAR_CANE.defaultBlockState()
+                    : Blocks.WATER.defaultBlockState();
+            }
+            if (pos.getY() == 65 && Math.floorMod(pos.getZ(), 7) == 0
+                    || pos.getY() == 66 && Math.floorMod(pos.getZ(), 5) == 0) {
+                return Blocks.STONE.defaultBlockState();
+            }
+            return Blocks.AIR.defaultBlockState();
+        }
+    }
+
+    private static final class Trace {
+        private static final long FNV_OFFSET = 0xcbf29ce484222325L;
+        private static final long FNV_PRIME = 0x100000001b3L;
+        private static final int[] OFFSET_BOUNDS = {5, 5, 1, 1, 5, 5};
+
+        final FeatureCase feature;
+        final int chunkX;
+        final int chunkZ;
+        final List<Integer> originDraws = new ArrayList<>();
+        Candidate current;
+        BlockPos origin;
+        Float rarity;
+        int heightOuter = -1;
+        boolean awaitingHeightSecond;
+        int candidateCount;
+        int acceptedCount;
+        int plannedBlocks;
+        int truncatedCandidates;
+        int truncatedBlocks;
+        int writeCount;
+        long candidateHash = FNV_OFFSET;
+        long writeHash = FNV_OFFSET;
+        long eventHash = FNV_OFFSET;
+        long rngHash = FNV_OFFSET;
+
+        Trace(FeatureCase feature, int chunkX, int chunkZ) {
+            this.feature = feature;
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
+        }
+
+        void nextFloat(float value) {
+            if (feature.rarityChance == 0 || rarity != null || !originDraws.isEmpty()) {
+                throw new IllegalStateException("unexpected rarity draw");
+            }
+            rarity = value;
+            rng("f=" + Float.toHexString(value));
+        }
+
+        void nextInt(int bound, int value) {
+            rng("i" + bound + "=" + value);
+            if (originDraws.size() < 2) {
+                if (bound != 16) throw new IllegalStateException("expected origin bound 16");
+                originDraws.add(value);
+                return;
+            }
+            if (awaitingHeightSecond) {
+                if (bound != heightOuter + 1) {
+                    throw new IllegalStateException("unexpected biased-height inner bound");
+                }
+                current.planned = 2 + value;
+                plannedBlocks += current.planned;
+                acceptedCount++;
+                event("height@" + current.index + "=" + current.planned);
+                awaitingHeightSecond = false;
+                return;
+            }
+            if (current != null && current.draws.size() == OFFSET_BOUNDS.length) {
+                if (current.planned < 0 && bound == 3) {
+                    heightOuter = value;
+                    awaitingHeightSecond = true;
+                    return;
+                }
+                finishCurrent();
+            }
+            if (current == null) {
+                if (candidateCount >= 20 || bound != OFFSET_BOUNDS[0]) {
+                    throw new IllegalStateException("unexpected candidate start");
+                }
+                current = new Candidate(candidateCount++);
+            }
+            int draw = current.draws.size();
+            if (draw >= OFFSET_BOUNDS.length || bound != OFFSET_BOUNDS[draw]) {
+                throw new IllegalStateException("unexpected candidate bound " + bound);
+            }
+            current.draws.add(value);
+            if (current.draws.size() == OFFSET_BOUNDS.length) {
+                int dx = current.draws.get(0) - current.draws.get(1);
+                int dz = current.draws.get(4) - current.draws.get(5);
+                current.pos = origin.offset(dx, 0, dz).immutable();
+                candidateHash = hash(candidateHash, position(current.pos));
+                event("candidate@" + current.index + "=" + position(current.pos));
+            }
+        }
+
+        void origin(int x, int y, int z) {
+            if (originDraws.size() != 2 || origin != null) {
+                throw new IllegalStateException("heightmap outside origin placement");
+            }
+            int expectedX = (chunkX << 4) + originDraws.get(0);
+            int expectedZ = (chunkZ << 4) + originDraws.get(1);
+            if (x != expectedX || z != expectedZ || y != ORIGIN_Y) {
+                throw new IllegalStateException("origin mismatch");
+            }
+            origin = new BlockPos(x, y, z);
+            event("origin=" + position(origin));
+        }
+
+        void biome(BlockPos pos) {
+            if (!pos.equals(origin)) throw new IllegalStateException("biome origin mismatch");
+            event("biome+");
+        }
+
+        void write(BlockPos pos, BlockState state) {
+            if (current == null || current.planned < 0 || !state.is(Blocks.SUGAR_CANE)) {
+                throw new IllegalStateException("unexpected write " + state);
+            }
+            current.writes++;
+            writeCount++;
+            writeHash = hash(writeHash, position(pos));
+            event("write@" + current.index + "=" + position(pos));
+        }
+
+        void finish(boolean result) {
+            if (awaitingHeightSecond) {
+                throw new IllegalStateException("incomplete height sample");
+            }
+            finishCurrent();
+            boolean rarityPassed = feature.rarityChance == 0
+                || rarity != null && rarity < 1.0F / feature.rarityChance;
+            if (rarityPassed) {
+                if (origin == null || candidateCount != 20) {
+                    throw new IllegalStateException("incomplete accepted placement");
+                }
+            } else if (origin != null || candidateCount != 0) {
+                throw new IllegalStateException("rarity rejection was not lazy");
+            }
+            if (result != (acceptedCount > 0)) {
+                throw new IllegalStateException("placed-feature result mismatch");
+            }
+        }
+
+        private void finishCurrent() {
+            if (current == null) return;
+            if (current.planned >= 0) {
+                int truncated = current.planned - current.writes;
+                if (truncated < 0) throw new IllegalStateException("too many column writes");
+                if (truncated > 0) {
+                    truncatedCandidates++;
+                    truncatedBlocks += truncated;
+                    event("truncate@" + current.index + "=" + truncated);
+                }
+            } else if (current.writes != 0) {
+                throw new IllegalStateException("rejected candidate wrote blocks");
+            }
+            current = null;
+            heightOuter = -1;
+        }
+
+        String rarityString() {
+            return rarity == null ? "-" : Float.toHexString(rarity);
+        }
+
+        String originString() {
+            return origin == null ? "-" : position(origin);
+        }
+
+        private void rng(String value) {
+            rngHash = hash(rngHash, value);
+        }
+
+        private void event(String value) {
+            eventHash = hash(eventHash, value);
+        }
+
+        private static long hash(long value, String text) {
+            for (byte next : text.getBytes(StandardCharsets.UTF_8)) {
+                value ^= next & 0xFFL;
+                value *= FNV_PRIME;
+            }
+            value ^= 0;
+            return value * FNV_PRIME;
+        }
+
+        private static String position(BlockPos pos) {
+            return pos.getX() + "," + pos.getY() + "," + pos.getZ();
+        }
+    }
+
+    private static final class Candidate {
+        final int index;
+        final List<Integer> draws = new ArrayList<>();
+        BlockPos pos;
+        int planned = -1;
+        int writes;
+
+        Candidate(int index) {
+            this.index = index;
+        }
+    }
+
+    private static final class FeatureCase {
+        final String id;
+        final int index;
+        final int rarityChance;
+        final long passingSeed;
+        final String traceBiome;
+        final List<String> members;
+
+        FeatureCase(String id, int index, int rarityChance, long passingSeed,
+                String traceBiome, String... members) {
+            this.id = id;
+            this.index = index;
+            this.rarityChance = rarityChance;
+            this.passingSeed = passingSeed;
+            this.traceBiome = traceBiome;
+            this.members = Collections.unmodifiableList(
+                new ArrayList<>(Arrays.asList(members)));
+        }
+    }
+}

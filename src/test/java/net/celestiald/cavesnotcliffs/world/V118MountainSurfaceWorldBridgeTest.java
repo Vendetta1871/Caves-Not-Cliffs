@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.world;
 
 import net.celestiald.cavesnotcliffs.block.LushAzaleaBlocks;
+import net.celestiald.cavesnotcliffs.block.LushDripleafBlocks;
 import net.celestiald.cavesnotcliffs.block.LushMossBlocks;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements.SpringFluid;
 import net.minecraft.block.BlockDirt;
@@ -33,6 +34,24 @@ public class V118MountainSurfaceWorldBridgeTest {
             new LushMossBlocks.Moss()));
         assertFalse(V118MountainSurfaceWorldBridge.isSugarCaneGround(Blocks.STONE));
         assertFalse(V118MountainSurfaceWorldBridge.isSugarCaneGround(Blocks.FARMLAND));
+    }
+
+    @Test
+    public void motionBlockingHeightSeesRetainedVanillaWater() {
+        LushDripleafBlocks.Small dripleaf = new LushDripleafBlocks.Small();
+        assertTrue(V118MountainSurfaceWorldBridge.isMotionBlockingState(
+            Blocks.STONE.getDefaultState()));
+        assertTrue(V118MountainSurfaceWorldBridge.isMotionBlockingState(
+            Blocks.WATER.getDefaultState()));
+        assertTrue(V118MountainSurfaceWorldBridge.isMotionBlockingState(
+            Blocks.FLOWING_LAVA.getDefaultState()));
+        assertTrue(V118MountainSurfaceWorldBridge.isMotionBlockingState(
+            dripleaf.getDefaultState().withProperty(
+                LushDripleafBlocks.WATERLOGGED, true)));
+        assertFalse(V118MountainSurfaceWorldBridge.isMotionBlockingState(
+            dripleaf.getDefaultState()));
+        assertFalse(V118MountainSurfaceWorldBridge.isMotionBlockingState(
+            Blocks.AIR.getDefaultState()));
     }
 
     @Test

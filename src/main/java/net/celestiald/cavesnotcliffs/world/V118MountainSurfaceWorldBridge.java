@@ -98,9 +98,13 @@ final class V118MountainSurfaceWorldBridge
 
     @Override
     public int motionBlockingHeight(int blockX, int blockZ) {
-        return firstAvailableHeight(blockX, blockZ, state ->
-            !isPowderSnow(state) && (state.getMaterial().blocksMovement()
-                || state.getMaterial().isLiquid()));
+        return firstAvailableHeight(blockX, blockZ,
+            V118MountainSurfaceWorldBridge::isMotionBlockingState);
+    }
+
+    static boolean isMotionBlockingState(IBlockState state) {
+        return !isPowderSnow(state) && (state.getMaterial().blocksMovement()
+            || state.getMaterial().isLiquid() || CncFluidState.containsWater(state));
     }
 
     private int firstAvailableHeight(int blockX, int blockZ,
@@ -185,6 +189,11 @@ final class V118MountainSurfaceWorldBridge
         Block support = world.getBlockState(pos.down()).getBlock();
         return support == Blocks.REEDS
             || isSugarCaneGround(support) && hasSugarCaneSurvivalFluid(pos);
+    }
+
+    @Override
+    public boolean isSugarCanePlacementAir(BlockPos pos) {
+        return inside(pos) && world.getBlockState(pos).getBlock() == Blocks.AIR;
     }
 
     @Override

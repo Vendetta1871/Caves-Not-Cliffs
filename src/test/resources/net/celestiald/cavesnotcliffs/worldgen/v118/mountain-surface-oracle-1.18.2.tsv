@@ -4,6 +4,9 @@ feature	trees_grove	9	40
 feature	patch_dead_bush	9	51
 feature	patch_dead_bush_2	9	58
 feature	patch_dead_bush_badlands	9	59
+feature	patch_sugar_cane_desert	9	62
+feature	patch_sugar_cane_badlands	9	63
+feature	patch_sugar_cane_swamp	9	64
 feature	patch_sugar_cane	9	68
 feature	patch_pumpkin	9	69
 feature	freeze_top_layer	10	0
@@ -17,19 +20,22 @@ biome	stony_peaks	freeze_top_layer
 # Representative non-mountain origins; the official runtime reports freeze_top_layer
 # for all 50 Overworld biome peers represented by V118Biome.
 biome	plains	patch_sugar_cane,patch_pumpkin,freeze_top_layer
-biome	desert	patch_dead_bush_2,patch_pumpkin,freeze_top_layer
+biome	desert	patch_dead_bush_2,patch_sugar_cane_desert,patch_pumpkin,freeze_top_layer
 biome	old_growth_pine_taiga	patch_dead_bush,patch_sugar_cane,patch_pumpkin,freeze_top_layer
 biome	old_growth_spruce_taiga	patch_dead_bush,patch_sugar_cane,patch_pumpkin,freeze_top_layer
-biome	swamp	patch_dead_bush,patch_pumpkin,freeze_top_layer
-biome	badlands	patch_dead_bush_badlands,patch_pumpkin,freeze_top_layer
-biome	eroded_badlands	patch_dead_bush_badlands,patch_pumpkin,freeze_top_layer
-biome	wooded_badlands	patch_dead_bush_badlands,patch_pumpkin,freeze_top_layer
+biome	swamp	patch_dead_bush,patch_sugar_cane_swamp,patch_pumpkin,freeze_top_layer
+biome	badlands	patch_dead_bush_badlands,patch_sugar_cane_badlands,patch_pumpkin,freeze_top_layer
+biome	eroded_badlands	patch_dead_bush_badlands,patch_sugar_cane_badlands,patch_pumpkin,freeze_top_layer
+biome	wooded_badlands	patch_dead_bush_badlands,patch_sugar_cane_badlands,patch_pumpkin,freeze_top_layer
 biome	snowy_taiga	patch_sugar_cane,patch_pumpkin,freeze_top_layer
 biome	lush_caves	freeze_top_layer
 # Exact BuiltinRegistries membership across all 50 represented Overworld biomes.
 membership	patch_dead_bush	old_growth_pine_taiga,old_growth_spruce_taiga,swamp
 membership	patch_dead_bush_2	desert
 membership	patch_dead_bush_badlands	badlands,eroded_badlands,wooded_badlands
+membership	patch_sugar_cane_desert	desert
+membership	patch_sugar_cane_badlands	badlands,eroded_badlands,wooded_badlands
+membership	patch_sugar_cane_swamp	swamp
 membership	patch_sugar_cane	bamboo_jungle,beach,birch_forest,cold_ocean,dark_forest,deep_cold_ocean,deep_frozen_ocean,deep_lukewarm_ocean,deep_ocean,dripstone_caves,flower_forest,forest,frozen_ocean,frozen_river,grove,ice_spikes,jungle,lukewarm_ocean,mushroom_fields,ocean,old_growth_birch_forest,old_growth_pine_taiga,old_growth_spruce_taiga,plains,river,savanna,savanna_plateau,snowy_beach,snowy_plains,snowy_slopes,snowy_taiga,sparse_jungle,stony_shore,sunflower_plains,taiga,warm_ocean,windswept_forest,windswept_gravelly_hills,windswept_hills,windswept_savanna
 membership	patch_pumpkin	badlands,bamboo_jungle,beach,birch_forest,cold_ocean,dark_forest,deep_cold_ocean,deep_frozen_ocean,deep_lukewarm_ocean,deep_ocean,desert,dripstone_caves,eroded_badlands,flower_forest,forest,frozen_ocean,frozen_river,grove,ice_spikes,jungle,lukewarm_ocean,mushroom_fields,ocean,old_growth_birch_forest,old_growth_pine_taiga,old_growth_spruce_taiga,plains,river,savanna,savanna_plateau,snowy_beach,snowy_plains,snowy_slopes,snowy_taiga,sparse_jungle,stony_shore,sunflower_plains,swamp,taiga,warm_ocean,windswept_forest,windswept_gravelly_hills,windswept_hills,windswept_savanna,wooded_badlands
 # Xoroshiro WorldgenRandom; seed=123456789 chunk=(-3,5)

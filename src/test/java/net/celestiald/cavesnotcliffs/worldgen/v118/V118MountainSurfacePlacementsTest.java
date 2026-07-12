@@ -35,6 +35,12 @@ public class V118MountainSurfacePlacementsTest {
         assertEquals(58, V118MountainSurfacePlacements.PATCH_DEAD_BUSH_2_INDEX);
         assertEquals(59,
             V118MountainSurfacePlacements.PATCH_DEAD_BUSH_BADLANDS_INDEX);
+        assertEquals(62,
+            V118MountainSurfacePlacements.PATCH_SUGAR_CANE_DESERT_INDEX);
+        assertEquals(63,
+            V118MountainSurfacePlacements.PATCH_SUGAR_CANE_BADLANDS_INDEX);
+        assertEquals(64,
+            V118MountainSurfacePlacements.PATCH_SUGAR_CANE_SWAMP_INDEX);
         assertEquals(68, V118MountainSurfacePlacements.PATCH_SUGAR_CANE_INDEX);
         assertEquals(69, V118MountainSurfacePlacements.PATCH_PUMPKIN_INDEX);
         assertEquals(10, V118MountainSurfacePlacements.TOP_LAYER_MODIFICATION_STEP);
@@ -89,7 +95,9 @@ public class V118MountainSurfacePlacementsTest {
         reader.close();
         assertEquals(new java.util.HashSet<String>(java.util.Arrays.asList(
             "patch_dead_bush", "patch_dead_bush_2",
-            "patch_dead_bush_badlands", "patch_sugar_cane", "patch_pumpkin")),
+            "patch_dead_bush_badlands", "patch_sugar_cane_desert",
+            "patch_sugar_cane_badlands", "patch_sugar_cane_swamp",
+            "patch_sugar_cane", "patch_pumpkin")),
             membershipIds);
     }
 
@@ -180,6 +188,82 @@ public class V118MountainSurfacePlacementsTest {
         assertEquals(Integer.valueOf(6),
             traceRows.get("patch_dead_bush_badlands"));
         assertEquals(1, mixedRows);
+        assertTrue(totalWrites > 0);
+    }
+
+    @Test
+    public void sugarCaneFamilyMatchesTheOfficialRegisteredRuntimeOracle()
+            throws IOException {
+        InputStream stream = getClass().getResourceAsStream(
+            "/net/celestiald/cavesnotcliffs/worldgen/v118/"
+                + "sugar-cane-decoration-oracle-1.18.2.tsv");
+        assertTrue(stream != null);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(
+            stream, StandardCharsets.UTF_8));
+        Map<String, Integer> traceRows = new HashMap<String, Integer>();
+        int metadataRows = 0;
+        int passingRows = 0;
+        int totalWrites = 0;
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.isEmpty() || line.charAt(0) == '#') {
+                continue;
+            }
+            String[] fields = line.split("\\t");
+            if (!"trace".equals(fields[0]) && !"selected_trace".equals(fields[0])) {
+                assertSugarCaneOracleMetadata(fields);
+                metadataRows++;
+                continue;
+            }
+            String feature = fields[1];
+            long seed = Long.parseLong(fields[2]);
+            int chunkX = Integer.parseInt(fields[3]);
+            int chunkZ = Integer.parseInt(fields[4]);
+            int index = sugarCaneFeatureIndex(feature);
+            assertEquals(Long.parseLong(fields[5]) + 90000L + index,
+                Long.parseLong(fields[6]));
+            RecordingWorld world = RecordingWorld.sugarCaneOracle(
+                sugarCaneTraceBiome(feature));
+            DecorationResult result = V118MountainSurfacePlacements.decorateVegetation(
+                world, seed, chunkX, chunkZ,
+                EnumSet.of(sugarCaneTraceBiome(feature)));
+
+            int expectedWrites = Integer.parseInt(fields[14]);
+            assertEquals(expectedWrites, result.sugarCanePlaced());
+            assertEquals(expectedWrites, world.writeCount(Cell.SUGAR_CANE));
+            assertEquals(Long.parseLong(fields[16]),
+                hashPositionEvents(world.sugarCaneWrites));
+            boolean expectedResult = Boolean.parseBoolean(fields[20]);
+            assertEquals(expectedResult, expectedWrites > 0);
+            assertEquals(String.format(java.util.Locale.ROOT, "%016x",
+                Long.parseLong(fields[21])), fields[22]);
+
+            int accepted = Integer.parseInt(fields[10]);
+            int expectedCalls = ("patch_sugar_cane_desert".equals(feature)
+                ? 122 : expectedResult ? 123 : 1) + (expectedResult ? accepted * 2 : 0);
+            assertEquals(expectedCalls, Integer.parseInt(fields[19]));
+            if (expectedResult) {
+                assertEquals(Collections.singletonList(parsePosition(fields[8])),
+                    world.motionBlockingQueries);
+                passingRows++;
+            } else {
+                assertEquals("-", fields[8]);
+                assertTrue(world.motionBlockingQueries.isEmpty());
+            }
+            Integer count = traceRows.get(feature);
+            traceRows.put(feature, count == null ? 1 : count + 1);
+            totalWrites += expectedWrites;
+        }
+        reader.close();
+        assertEquals(24, metadataRows);
+        assertEquals(Integer.valueOf(6),
+            traceRows.get("patch_sugar_cane_desert"));
+        assertEquals(Integer.valueOf(7),
+            traceRows.get("patch_sugar_cane_badlands"));
+        assertEquals(Integer.valueOf(7),
+            traceRows.get("patch_sugar_cane_swamp"));
+        assertEquals(Integer.valueOf(7), traceRows.get("patch_sugar_cane"));
+        assertEquals(10, passingRows);
         assertTrue(totalWrites > 0);
     }
 
@@ -396,8 +480,8 @@ public class V118MountainSurfacePlacementsTest {
         assertEquals(2, world.worldSurfaceQueries.size());
         assertEquals(new BlockPos(12, -64, 10), world.worldSurfaceQueries.get(0));
         assertEquals(new BlockPos(10, 81, 15), world.worldSurfaceQueries.get(1));
-        assertEquals(Collections.singletonList(new BlockPos(10, 81, 15)),
-            world.biomeQueries);
+        assertEquals(new BlockPos(10, 81, 15), world.biomeQueries.get(0));
+        assertEquals(2, world.biomeQueries.size());
         assertEquals(4, world.airQueries.size());
     }
 
@@ -502,10 +586,22 @@ public class V118MountainSurfacePlacementsTest {
     @Test
     public void ordinaryCaneAndPumpkinUseTheirExactBiomeMemberships() {
         int caneBiomes = 0;
+        int desertCaneBiomes = 0;
+        int badlandsCaneBiomes = 0;
+        int swampCaneBiomes = 0;
         int pumpkinBiomes = 0;
         for (V118Biome biome : V118Biome.values()) {
             if (V118MountainSurfacePlacements.supportsOrdinarySugarCane(biome)) {
                 caneBiomes++;
+            }
+            if (V118MountainSurfacePlacements.supportsDesertSugarCane(biome)) {
+                desertCaneBiomes++;
+            }
+            if (V118MountainSurfacePlacements.supportsBadlandsSugarCane(biome)) {
+                badlandsCaneBiomes++;
+            }
+            if (V118MountainSurfacePlacements.supportsSwampSugarCane(biome)) {
+                swampCaneBiomes++;
             }
             if (V118MountainSurfacePlacements.supportsPumpkin(biome)) {
                 pumpkinBiomes++;
@@ -513,6 +609,9 @@ public class V118MountainSurfacePlacementsTest {
         }
         assertEquals(50, V118Biome.values().length);
         assertEquals(40, caneBiomes);
+        assertEquals(1, desertCaneBiomes);
+        assertEquals(3, badlandsCaneBiomes);
+        assertEquals(1, swampCaneBiomes);
         assertEquals(45, pumpkinBiomes);
 
         assertFalse(V118MountainSurfacePlacements.supportsOrdinarySugarCane(
@@ -527,6 +626,66 @@ public class V118MountainSurfacePlacementsTest {
         assertTrue(V118MountainSurfacePlacements.supportsOrdinarySugarCane(
             V118Biome.SNOWY_SLOPES));
         assertTrue(V118MountainSurfacePlacements.supportsPumpkin(V118Biome.SNOWY_SLOPES));
+    }
+
+    @Test
+    public void everySugarCaneWrapperFiltersMinimumHeightAndOriginBiomeLazily() {
+        V118Biome[] biomes = {V118Biome.DESERT, V118Biome.BADLANDS,
+            V118Biome.SWAMP, V118Biome.PLAINS};
+        long[] passingSeeds = {0L, 10L, 2L, 3L};
+        for (int i = 0; i < biomes.length; ++i) {
+            RecordingWorld minimum = RecordingWorld.sugarCaneOracle(biomes[i]);
+            minimum.overrideNextMotionBlockingHeight(-64);
+            DecorationResult minimumResult =
+                V118MountainSurfacePlacements.decorateVegetation(
+                    minimum, passingSeeds[i], -3, 5, EnumSet.of(biomes[i]));
+            assertEquals(biomes[i].id(), 0, minimumResult.sugarCanePlaced());
+            assertTrue(biomes[i].id(), minimum.sugarCaneAirQueries.isEmpty());
+
+            RecordingWorld wrongBiome =
+                RecordingWorld.sugarCaneOracle(V118Biome.LUSH_CAVES);
+            DecorationResult wrongBiomeResult =
+                V118MountainSurfacePlacements.decorateVegetation(
+                    wrongBiome, passingSeeds[i], -3, 5,
+                    EnumSet.of(biomes[i], V118Biome.LUSH_CAVES));
+            assertEquals(biomes[i].id(), 0, wrongBiomeResult.sugarCanePlaced());
+            assertTrue(biomes[i].id(), wrongBiome.sugarCaneAirQueries.isEmpty());
+            assertEquals(biomes[i].id(), 1, wrongBiome.motionBlockingQueries.size());
+        }
+    }
+
+    @Test
+    public void sugarCaneUsesExactAirAndFiltersOnlyTheHeightmapOriginBiome() {
+        RecordingWorld exactAir = RecordingWorld.flat(Surface.GRASS, V118Biome.PLAINS);
+        BlockPos syntheticAir = new BlockPos(0, 81, 0);
+        exactAir.base(syntheticAir, Cell.MOD_AIR);
+        assertTrue(exactAir.isAir(syntheticAir));
+        assertFalse(exactAir.isSugarCanePlacementAir(syntheticAir));
+
+        RecordingWorld crossBiome =
+            RecordingWorld.sugarCaneOracle(V118Biome.LUSH_CAVES);
+        BlockPos origin = new BlockPos(-38, 64, 87);
+        crossBiome.biomeAtPosition(origin, V118Biome.PLAINS);
+        DecorationResult result = V118MountainSurfacePlacements.decorateVegetation(
+            crossBiome, 3L, -3, 5,
+            EnumSet.of(V118Biome.LUSH_CAVES, V118Biome.PLAINS));
+        assertEquals(Collections.singletonList(origin), crossBiome.biomeQueries);
+        assertTrue(result.sugarCanePlaced() > 0);
+        assertFalse(crossBiome.sugarCaneWrites.isEmpty());
+    }
+
+    @Test
+    public void mixedBadlandsRegionInvokesItsSharedCaneWrapperOnlyOnce() {
+        RecordingWorld single = RecordingWorld.sugarCaneOracle(V118Biome.BADLANDS);
+        RecordingWorld mixed = RecordingWorld.sugarCaneOracle(V118Biome.BADLANDS);
+        DecorationResult singleResult = V118MountainSurfacePlacements.decorateVegetation(
+            single, 10L, -3, 5, EnumSet.of(V118Biome.BADLANDS));
+        DecorationResult mixedResult = V118MountainSurfacePlacements.decorateVegetation(
+            mixed, 10L, -3, 5, EnumSet.of(V118Biome.BADLANDS,
+                V118Biome.ERODED_BADLANDS, V118Biome.WOODED_BADLANDS));
+        assertEquals(singleResult.sugarCanePlaced(), mixedResult.sugarCanePlaced());
+        assertEquals(single.sugarCaneWrites, mixed.sugarCaneWrites);
+        assertEquals(1, mixed.motionBlockingQueries.size());
     }
 
     @Test
@@ -731,6 +890,113 @@ public class V118MountainSurfacePlacementsTest {
         }
     }
 
+    private static void assertSugarCaneOracleMetadata(String[] fields) {
+        String feature = fields[1];
+        int index = sugarCaneFeatureIndex(feature);
+        if ("slot".equals(fields[0])) {
+            assertEquals("9", fields[2]);
+            assertEquals(Integer.toString(index), fields[3]);
+        } else if ("membership".equals(fields[0])) {
+            Set<String> expected = new java.util.HashSet<String>(
+                java.util.Arrays.asList(fields[2].split(",")));
+            for (V118Biome biome : V118Biome.values()) {
+                assertEquals(biome.id(), expected.contains(biome.id()),
+                    supportsSugarCaneFeature(feature, biome));
+            }
+        } else if ("rarity".equals(fields[0])) {
+            int expected = "patch_sugar_cane_desert".equals(feature) ? 0
+                : "patch_sugar_cane_badlands".equals(feature) ? 5
+                : "patch_sugar_cane_swamp".equals(feature) ? 3 : 6;
+            assertEquals(expected, Integer.parseInt(fields[2]));
+        } else if ("passing_seed".equals(fields[0])) {
+            long expected = "patch_sugar_cane_desert".equals(feature) ? 0L
+                : "patch_sugar_cane_badlands".equals(feature) ? 10L
+                : "patch_sugar_cane_swamp".equals(feature) ? 2L : 3L;
+            assertEquals(expected, Long.parseLong(fields[2]));
+        } else if ("placed_json".equals(fields[0])) {
+            assertTrue(fields[2].contains("\"feature\":\"minecraft:patch_sugar_cane\""));
+            assertTrue(fields[2].contains("\"heightmap\":\"MOTION_BLOCKING\""));
+            assertTrue(fields[2].contains("\"type\":\"minecraft:biome\""));
+            assertEquals("patch_sugar_cane_desert".equals(feature),
+                !fields[2].contains("\"type\":\"minecraft:rarity_filter\""));
+        } else {
+            assertEquals("configured_json", fields[0]);
+            assertTrue(fields[2].contains("\"tries\":20"));
+            assertTrue(fields[2].contains("\"xz_spread\":4"));
+            assertTrue(fields[2].contains("\"y_spread\":0"));
+            assertTrue(fields[2].contains("\"type\":\"minecraft:biased_to_bottom\""));
+            assertTrue(fields[2].contains("\"min_inclusive\":2"));
+            assertTrue(fields[2].contains("\"max_inclusive\":4"));
+            assertTrue(fields[2].contains("\"Name\":\"minecraft:sugar_cane\""));
+            assertTrue(fields[2].contains("\"blocks\":\"minecraft:air\""));
+            assertTrue(fields[2].contains("\"fluids\":[\"minecraft:water\","
+                + "\"minecraft:flowing_water\"]"));
+        }
+    }
+
+    private static int sugarCaneFeatureIndex(String feature) {
+        if ("patch_sugar_cane_desert".equals(feature)) {
+            return V118MountainSurfacePlacements.PATCH_SUGAR_CANE_DESERT_INDEX;
+        }
+        if ("patch_sugar_cane_badlands".equals(feature)) {
+            return V118MountainSurfacePlacements.PATCH_SUGAR_CANE_BADLANDS_INDEX;
+        }
+        if ("patch_sugar_cane_swamp".equals(feature)) {
+            return V118MountainSurfacePlacements.PATCH_SUGAR_CANE_SWAMP_INDEX;
+        }
+        if ("patch_sugar_cane".equals(feature)) {
+            return V118MountainSurfacePlacements.PATCH_SUGAR_CANE_INDEX;
+        }
+        throw new AssertionError("Unknown sugar-cane oracle feature: " + feature);
+    }
+
+    private static V118Biome sugarCaneTraceBiome(String feature) {
+        if ("patch_sugar_cane_desert".equals(feature)) {
+            return V118Biome.DESERT;
+        }
+        if ("patch_sugar_cane_badlands".equals(feature)) {
+            return V118Biome.BADLANDS;
+        }
+        if ("patch_sugar_cane_swamp".equals(feature)) {
+            return V118Biome.SWAMP;
+        }
+        if ("patch_sugar_cane".equals(feature)) {
+            return V118Biome.PLAINS;
+        }
+        throw new AssertionError("Unknown sugar-cane oracle feature: " + feature);
+    }
+
+    private static boolean supportsSugarCaneFeature(String feature, V118Biome biome) {
+        if ("patch_sugar_cane_desert".equals(feature)) {
+            return V118MountainSurfacePlacements.supportsDesertSugarCane(biome);
+        }
+        if ("patch_sugar_cane_badlands".equals(feature)) {
+            return V118MountainSurfacePlacements.supportsBadlandsSugarCane(biome);
+        }
+        if ("patch_sugar_cane_swamp".equals(feature)) {
+            return V118MountainSurfacePlacements.supportsSwampSugarCane(biome);
+        }
+        if ("patch_sugar_cane".equals(feature)) {
+            return V118MountainSurfacePlacements.supportsOrdinarySugarCane(biome);
+        }
+        throw new AssertionError("Unknown sugar-cane oracle feature: " + feature);
+    }
+
+    private static long hashPositionEvents(List<BlockPos> positions) {
+        long hash = 0xcbf29ce484222325L;
+        for (BlockPos position : positions) {
+            byte[] bytes = (position.getX() + "," + position.getY() + ","
+                + position.getZ()).getBytes(StandardCharsets.UTF_8);
+            for (byte value : bytes) {
+                hash ^= value & 0xFFL;
+                hash *= 0x100000001b3L;
+            }
+            hash ^= 0;
+            hash *= 0x100000001b3L;
+        }
+        return hash;
+    }
+
     private static List<BlockPos> parsePositions(String value) {
         if ("-".equals(value)) {
             return Collections.emptyList();
@@ -810,6 +1076,12 @@ public class V118MountainSurfacePlacementsTest {
             V118MountainSurfacePlacements.supportsDeadBush2(biome));
         assertEquals(features.contains("patch_dead_bush_badlands"),
             V118MountainSurfacePlacements.supportsDeadBushBadlands(biome));
+        assertEquals(features.contains("patch_sugar_cane_desert"),
+            V118MountainSurfacePlacements.supportsDesertSugarCane(biome));
+        assertEquals(features.contains("patch_sugar_cane_badlands"),
+            V118MountainSurfacePlacements.supportsBadlandsSugarCane(biome));
+        assertEquals(features.contains("patch_sugar_cane_swamp"),
+            V118MountainSurfacePlacements.supportsSwampSugarCane(biome));
         assertEquals(features.contains("patch_sugar_cane"),
             V118MountainSurfacePlacements.supportsOrdinarySugarCane(biome));
         assertEquals(features.contains("patch_pumpkin"),
@@ -826,12 +1098,17 @@ public class V118MountainSurfacePlacementsTest {
         boolean deadBush = "patch_dead_bush".equals(fields[1]);
         boolean deadBush2 = "patch_dead_bush_2".equals(fields[1]);
         boolean badlandsDeadBush = "patch_dead_bush_badlands".equals(fields[1]);
-        boolean cane = "patch_sugar_cane".equals(fields[1]);
+        boolean desertCane = "patch_sugar_cane_desert".equals(fields[1]);
+        boolean badlandsCane = "patch_sugar_cane_badlands".equals(fields[1]);
+        boolean swampCane = "patch_sugar_cane_swamp".equals(fields[1]);
+        boolean ordinaryCane = "patch_sugar_cane".equals(fields[1]);
+        boolean cane = desertCane || badlandsCane || swampCane || ordinaryCane;
         assertTrue("Unknown vegetation membership: " + fields[1],
             deadBush || deadBush2 || badlandsDeadBush || cane
                 || "patch_pumpkin".equals(fields[1]));
         assertEquals(deadBush || badlandsDeadBush ? 3
-            : deadBush2 ? 1 : cane ? 40 : 45, expected.size());
+            : deadBush2 || desertCane || swampCane ? 1
+            : badlandsCane ? 3 : ordinaryCane ? 40 : 45, expected.size());
         for (V118Biome biome : V118Biome.values()) {
             boolean actual = deadBush
                 ? V118MountainSurfacePlacements.supportsDeadBush(biome)
@@ -841,8 +1118,7 @@ public class V118MountainSurfacePlacementsTest {
                         ? V118MountainSurfacePlacements
                             .supportsDeadBushBadlands(biome)
                         : cane
-                            ? V118MountainSurfacePlacements
-                                .supportsOrdinarySugarCane(biome)
+                            ? supportsSugarCaneFeature(fields[1], biome)
                             : V118MountainSurfacePlacements.supportsPumpkin(biome);
             assertEquals(biome.id(), expected.contains(biome), actual);
         }
@@ -875,6 +1151,18 @@ public class V118MountainSurfacePlacementsTest {
             assertEquals(V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP, step);
             assertEquals(V118MountainSurfacePlacements.PATCH_DEAD_BUSH_BADLANDS_INDEX,
                 index);
+        } else if ("patch_sugar_cane_desert".equals(id)) {
+            assertEquals(V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP, step);
+            assertEquals(V118MountainSurfacePlacements.PATCH_SUGAR_CANE_DESERT_INDEX,
+                index);
+        } else if ("patch_sugar_cane_badlands".equals(id)) {
+            assertEquals(V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP, step);
+            assertEquals(V118MountainSurfacePlacements.PATCH_SUGAR_CANE_BADLANDS_INDEX,
+                index);
+        } else if ("patch_sugar_cane_swamp".equals(id)) {
+            assertEquals(V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP, step);
+            assertEquals(V118MountainSurfacePlacements.PATCH_SUGAR_CANE_SWAMP_INDEX,
+                index);
         } else if ("patch_sugar_cane".equals(id)) {
             assertEquals(V118MountainSurfacePlacements.VEGETAL_DECORATION_STEP, step);
             assertEquals(V118MountainSurfacePlacements.PATCH_SUGAR_CANE_INDEX, index);
@@ -895,11 +1183,13 @@ public class V118MountainSurfacePlacementsTest {
         WATER,
         GRASS,
         SAND,
-        WET_GRASS
+        WET_GRASS,
+        CANE_ORACLE
     }
 
     private enum Cell {
         AIR,
+        MOD_AIR,
         STONE,
         DIRT,
         GRASS,
@@ -937,10 +1227,15 @@ public class V118MountainSurfacePlacementsTest {
         private final List<BlockPos> biomeQueries = new ArrayList<BlockPos>();
         private final List<BlockPos> worldSurfaceQueries = new ArrayList<BlockPos>();
         private final List<BlockPos> airQueries = new ArrayList<BlockPos>();
+        private final List<BlockPos> sugarCaneAirQueries = new ArrayList<BlockPos>();
+        private final List<BlockPos> sugarCaneWrites = new ArrayList<BlockPos>();
+        private final List<BlockPos> motionBlockingQueries = new ArrayList<BlockPos>();
         private final List<BlockPos> deadBushSurvivalQueries =
             new ArrayList<BlockPos>();
         private final List<String> deadBushEvents = new ArrayList<String>();
         private final List<Integer> worldSurfaceHeightOverrides =
+            new ArrayList<Integer>();
+        private final List<Integer> motionBlockingHeightOverrides =
             new ArrayList<Integer>();
 
         static RecordingWorld flat(Surface surface, V118Biome biome) {
@@ -949,6 +1244,10 @@ public class V118MountainSurfacePlacementsTest {
 
         static RecordingWorld atHeight(Surface surface, V118Biome biome, int surfaceY) {
             return new RecordingWorld(surface, biome, surfaceY);
+        }
+
+        static RecordingWorld sugarCaneOracle(V118Biome biome) {
+            return new RecordingWorld(Surface.CANE_ORACLE, biome, 63);
         }
 
         private RecordingWorld(Surface surface, V118Biome biome, int surfaceY) {
@@ -977,6 +1276,10 @@ public class V118MountainSurfacePlacementsTest {
             worldSurfaceHeightOverrides.add(height);
         }
 
+        void overrideNextMotionBlockingHeight(int height) {
+            motionBlockingHeightOverrides.add(height);
+        }
+
         Cell cell(BlockPos pos) {
             Cell written = writes.get(pos);
             if (written != null) {
@@ -985,6 +1288,20 @@ public class V118MountainSurfacePlacementsTest {
             Cell override = base.get(pos);
             if (override != null) {
                 return override;
+            }
+            if (surface == Surface.CANE_ORACLE) {
+                if (pos.getY() <= 62) {
+                    return Cell.SAND;
+                }
+                if (pos.getY() == 63) {
+                    return Math.floorMod(pos.getX(), 2) == 0
+                        ? Cell.SUGAR_CANE : Cell.WATER;
+                }
+                if (pos.getY() == 65 && Math.floorMod(pos.getZ(), 7) == 0
+                        || pos.getY() == 66 && Math.floorMod(pos.getZ(), 5) == 0) {
+                    return Cell.STONE;
+                }
+                return Cell.AIR;
             }
             if (pos.getY() < surfaceY) {
                 return Cell.STONE;
@@ -1066,6 +1383,15 @@ public class V118MountainSurfacePlacementsTest {
 
         @Override
         public int motionBlockingHeight(int blockX, int blockZ) {
+            if (!motionBlockingHeightOverrides.isEmpty()) {
+                int height = motionBlockingHeightOverrides.remove(0);
+                motionBlockingQueries.add(new BlockPos(blockX, height, blockZ));
+                return height;
+            }
+            if (surface == Surface.CANE_ORACLE) {
+                motionBlockingQueries.add(new BlockPos(blockX, 64, blockZ));
+                return 64;
+            }
             return firstAvailable(blockX, blockZ, true, true);
         }
 
@@ -1102,7 +1428,8 @@ public class V118MountainSurfacePlacementsTest {
             airQueries.add(pos.toImmutable());
             deadBushEvents.add("air:" + positionString(
                 pos.getX(), pos.getY(), pos.getZ()));
-            return cell(pos) == Cell.AIR;
+            Cell cell = cell(pos);
+            return cell == Cell.AIR || cell == Cell.MOD_AIR;
         }
 
         @Override
@@ -1143,15 +1470,22 @@ public class V118MountainSurfacePlacementsTest {
         @Override
         public boolean canSugarCaneSurvive(BlockPos pos) {
             Cell below = cell(pos.down());
-            return (below == Cell.GRASS || below == Cell.DIRT)
+            return below == Cell.SUGAR_CANE
+                || (below == Cell.GRASS || below == Cell.DIRT || below == Cell.SAND)
                 && hasAdjacentWaterBelow(pos);
+        }
+
+        @Override
+        public boolean isSugarCanePlacementAir(BlockPos pos) {
+            sugarCaneAirQueries.add(pos.toImmutable());
+            return cell(pos) == Cell.AIR;
         }
 
         @Override
         public boolean hasAdjacentWaterBelow(BlockPos pos) {
             BlockPos below = pos.down();
             return isWater(below.east()) || isWater(below.west())
-                || isWater(below.north()) || isWater(below.south());
+                || isWater(below.south()) || isWater(below.north());
         }
 
         @Override
@@ -1221,6 +1555,7 @@ public class V118MountainSurfacePlacementsTest {
 
         @Override
         public void setSugarCane(BlockPos pos) {
+            sugarCaneWrites.add(pos.toImmutable());
             write(pos, Cell.SUGAR_CANE);
         }
 
