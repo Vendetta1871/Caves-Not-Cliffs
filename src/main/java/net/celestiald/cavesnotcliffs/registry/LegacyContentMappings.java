@@ -15,6 +15,9 @@ import java.util.Map;
  * internal IDs until the chunk converter can preserve their semantic state.</p>
  */
 public final class LegacyContentMappings {
+    private static final String LEGACY_LAVA_CAULDRON = "lavacauldron";
+    private static final ResourceLocation VANILLA_CAULDRON =
+            new ResourceLocation("minecraft", "cauldron");
     private static final Map<String, String> BLOCK_PATHS;
     private static final Map<String, String> ITEM_PATHS;
 
@@ -35,6 +38,7 @@ public final class LegacyContentMappings {
         map(blocks, "moss_layer", "moss_carpet");
         map(blocks, "dripstone", "dripstone_block");
         map(blocks, "stalactite", "pointed_dripstone");
+        map(blocks, LEGACY_LAVA_CAULDRON, "lava_cauldron");
         // amethyst_geode remains registered as a hidden marker until its chunk conversion runs.
         map(blocks, "geode_casing", "smooth_basalt");
         map(blocks, "amethyst_crystal_stage_1", "small_amethyst_bud");
@@ -142,6 +146,11 @@ public final class LegacyContentMappings {
     public static ResourceLocation canonicalItemLocation(ResourceLocation location) {
         if (!CavesNotCliffs.MODID.equals(location.getResourceDomain())) {
             return location;
+        }
+        // The v2 lava cauldron is hidden block-state storage. Old obtainable stacks become the
+        // canonical vanilla cauldron item instead of targeting a deliberately absent ItemBlock.
+        if (LEGACY_LAVA_CAULDRON.equals(location.getResourcePath())) {
+            return VANILLA_CAULDRON;
         }
         return new ResourceLocation(CavesNotCliffs.MODID,
                 canonicalItemPath(location.getResourcePath()));
