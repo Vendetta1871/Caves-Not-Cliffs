@@ -20,6 +20,9 @@ public final class SchemaOnePopulationTransformer implements IClassTransformer {
     static final String FORGE_OWNER =
             "net/minecraftforge/fml/common/registry/GameRegistry";
     static final String FORGE_NAME = "generateWorld";
+    static final String GALACTICRAFT_OWNER =
+            "micdoodle8/mods/galacticraft/core/TransformerHooks";
+    static final String GALACTICRAFT_NAME = "otherModGenerate";
     static final String FORGE_DESC = "(IILnet/minecraft/world/World;"
             + GENERATOR_DESC + "Lnet/minecraft/world/chunk/IChunkProvider;)V";
     static final String HOOK_OWNER =
@@ -82,9 +85,11 @@ public final class SchemaOnePopulationTransformer implements IClassTransformer {
                 continue;
             }
             MethodInsnNode call = (MethodInsnNode) instruction;
+            boolean forge = FORGE_OWNER.equals(call.owner) && FORGE_NAME.equals(call.name);
+            boolean galacticraft = GALACTICRAFT_OWNER.equals(call.owner)
+                    && GALACTICRAFT_NAME.equals(call.name);
             if (call.getOpcode() == Opcodes.INVOKESTATIC
-                    && FORGE_OWNER.equals(call.owner)
-                    && FORGE_NAME.equals(call.name)
+                    && (forge || galacticraft)
                     && FORGE_DESC.equals(call.desc)) {
                 if (result != null) {
                     throw failure("multiple Forge world-generation calls in "
