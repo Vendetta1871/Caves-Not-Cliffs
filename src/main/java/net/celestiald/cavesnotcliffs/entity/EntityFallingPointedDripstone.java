@@ -41,7 +41,7 @@ public final class EntityFallingPointedDripstone extends ElementsCavesNotCliffs.
     @Override
     public void initElements() {
         EntityRegistry.registerModEntity(CncEntity.ID, EntityCustom.class,
-                "falling_pointed_dripstone", NETWORK_ID,
+                "cavesnotcliffs.falling_pointed_dripstone", NETWORK_ID,
                 CavesNotCliffs.instance, 64, 3, true);
     }
 

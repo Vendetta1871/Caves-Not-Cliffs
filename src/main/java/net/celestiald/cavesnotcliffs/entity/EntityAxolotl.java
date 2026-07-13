@@ -79,7 +79,7 @@ public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void initElements() {
         EntityRegistry.registerModEntity(CncRegistryIds.AXOLOTL,
-                EntityCustom.class, "axolotl", NETWORK_ID, CavesNotCliffs.instance,
+                EntityCustom.class, "cavesnotcliffs.axolotl", NETWORK_ID, CavesNotCliffs.instance,
                 80, 3, true, EGG_PRIMARY, EGG_SECONDARY);
         elements.items.add(() -> new ItemAxolotlBucket()
                 .setRegistryName(CncRegistryIds.AXOLOTL_BUCKET));

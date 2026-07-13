@@ -77,7 +77,7 @@ public final class EntityBee extends ElementsCavesNotCliffs.ModElement {
     public void initElements() {
         BeeSoundEvents.registerAll();
         EntityRegistry.registerModEntity(CncRegistryIds.BEE,
-                EntityCustom.class, "bee", NETWORK_ID, CavesNotCliffs.instance,
+                EntityCustom.class, "cavesnotcliffs.bee", NETWORK_ID, CavesNotCliffs.instance,
                 80, 3, true, EGG_PRIMARY, EGG_SECONDARY);
     }
 
