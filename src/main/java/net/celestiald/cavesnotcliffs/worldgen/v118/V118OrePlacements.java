@@ -57,11 +57,18 @@ public final class V118OrePlacements {
     public static DecorationResult decorate(WorldAccess world, long worldSeed, int chunkX,
             int chunkZ, Set<V118Biome> regionBiomes,
             BetweenDecorationSteps betweenSteps) {
+        return decorate(world, worldSeed, chunkX, chunkZ, regionBiomes, betweenSteps,
+                FeatureGate.ALLOW_ALL);
+    }
+
+    public static DecorationResult decorate(WorldAccess world, long worldSeed, int chunkX,
+            int chunkZ, Set<V118Biome> regionBiomes,
+            BetweenDecorationSteps betweenSteps, FeatureGate featureGate) {
         if (world == null || regionBiomes == null) {
             throw new NullPointerException("world and regionBiomes are required");
         }
-        if (betweenSteps == null) {
-            throw new NullPointerException("betweenSteps");
+        if (betweenSteps == null || featureGate == null) {
+            throw new NullPointerException("betweenSteps and featureGate are required");
         }
         V118WorldgenRandom random = new V118WorldgenRandom(0L);
         int originX = chunkX << 4;
@@ -89,7 +96,7 @@ public final class V118OrePlacements {
                         regionBiomes, random);
                 softDisksDecorated = true;
             }
-            if (!feature.belongsToAny(regionBiomes)) {
+            if (!feature.belongsToAny(regionBiomes) || !featureGate.allow(feature)) {
                 continue;
             }
             random.setFeatureSeed(decorationSeed, feature.globalFeatureIndex,
@@ -98,6 +105,12 @@ public final class V118OrePlacements {
                 originZ));
         }
         return new DecorationResult(decorationSeed, results);
+    }
+
+    public interface FeatureGate {
+        FeatureGate ALLOW_ALL = feature -> true;
+
+        boolean allow(PlacedOre feature);
     }
 
     public interface BetweenDecorationSteps {

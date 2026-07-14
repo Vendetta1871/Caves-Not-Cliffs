@@ -26,15 +26,28 @@ public final class V118DefaultSpringPlacements {
 
     public static DecorationResult decorate(WorldAccess world, long worldSeed,
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return decorate(world, worldSeed, chunkX, chunkZ, regionBiomes,
+                SpringGate.ALLOW_ALL);
+    }
+
+    public static DecorationResult decorate(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes, SpringGate springGate) {
         requireArguments(world, regionBiomes);
+        if (springGate == null) {
+            throw new NullPointerException("springGate");
+        }
         DecorationResult result = new DecorationResult();
         if (!appearsIn(regionBiomes)) {
             return result;
         }
 
         // MultiNoiseBiomeSource's global step ordering is water index 0, then lava index 1.
-        decorateFluid(world, worldSeed, chunkX, chunkZ, SpringFluid.WATER, result);
-        decorateFluid(world, worldSeed, chunkX, chunkZ, SpringFluid.LAVA, result);
+        if (springGate.allow(SpringFluid.WATER)) {
+            decorateFluid(world, worldSeed, chunkX, chunkZ, SpringFluid.WATER, result);
+        }
+        if (springGate.allow(SpringFluid.LAVA)) {
+            decorateFluid(world, worldSeed, chunkX, chunkZ, SpringFluid.LAVA, result);
+        }
         return result;
     }
 
@@ -150,6 +163,12 @@ public final class V118DefaultSpringPlacements {
     public enum SpringFluid {
         WATER,
         LAVA
+    }
+
+    public interface SpringGate {
+        SpringGate ALLOW_ALL = fluid -> true;
+
+        boolean allow(SpringFluid fluid);
     }
 
     public interface WorldAccess {

@@ -39,9 +39,17 @@ final class V118OreWorldBridge implements V118OrePlacements.WorldAccess {
     V118OrePlacements.DecorationResult populate(int chunkX, int chunkZ,
             Set<V118Biome> regionBiomes,
             V118OrePlacements.BetweenDecorationSteps betweenSteps) {
+        return populate(chunkX, chunkZ, regionBiomes, betweenSteps,
+                V118OrePlacements.FeatureGate.ALLOW_ALL);
+    }
+
+    V118OrePlacements.DecorationResult populate(int chunkX, int chunkZ,
+            Set<V118Biome> regionBiomes,
+            V118OrePlacements.BetweenDecorationSteps betweenSteps,
+            V118OrePlacements.FeatureGate featureGate) {
         oceanFloorHeights.clear();
         return V118OrePlacements.decorate(this, world.getSeed(), chunkX, chunkZ,
-            regionBiomes, betweenSteps);
+            regionBiomes, betweenSteps, featureGate);
     }
 
     @Override

@@ -72,21 +72,27 @@ final class VanillaStructureBridge {
     }
 
     /** Runs only MapGenStructure's population stage with vanilla's chunk seed. */
-    void populate(int chunkX, int chunkZ) {
+    boolean populate(int chunkX, int chunkZ) {
         if (generators.isEmpty()) {
-            return;
+            return false;
         }
         Random random = new Random(populationSeed(world.getSeed(), chunkX, chunkZ));
         ChunkPos position = new ChunkPos(chunkX, chunkZ);
+        boolean villageGenerated = false;
         boolean previousFallInstantly = BlockFalling.fallInstantly;
         BlockFalling.fallInstantly = true;
         try {
-            for (MapGenStructure generator : generators) {
-                generator.generateStructure(world, random, position);
+            for (int index = 0; index < generators.size(); ++index) {
+                boolean generated = generators.get(index).generateStructure(
+                        world, random, position);
+                if (generated && "village".equals(names.get(index))) {
+                    villageGenerated = true;
+                }
             }
         } finally {
             BlockFalling.fallInstantly = previousFallInstantly;
         }
+        return villageGenerated;
     }
 
     void recreateStructures(Chunk column) {

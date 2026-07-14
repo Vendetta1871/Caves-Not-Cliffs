@@ -84,8 +84,15 @@ final class V118MountainSurfaceWorldBridge
 
     V118DefaultSpringPlacements.DecorationResult populateDefaultSprings(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return populateDefaultSprings(chunkX, chunkZ, regionBiomes,
+                V118DefaultSpringPlacements.SpringGate.ALLOW_ALL);
+    }
+
+    V118DefaultSpringPlacements.DecorationResult populateDefaultSprings(
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes,
+            V118DefaultSpringPlacements.SpringGate springGate) {
         return V118DefaultSpringPlacements.decorate(this, world.getSeed(),
-            chunkX, chunkZ, regionBiomes);
+            chunkX, chunkZ, regionBiomes, springGate);
     }
 
     int populateLavaLakes(int chunkX, int chunkZ) {
