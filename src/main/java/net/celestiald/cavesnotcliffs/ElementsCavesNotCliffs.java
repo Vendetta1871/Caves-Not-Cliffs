@@ -8,12 +8,8 @@ package net.celestiald.cavesnotcliffs;
 
 import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldTypes;
 
-import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.common.registry.EntityEntry;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.IGuiHandler;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -23,7 +19,6 @@ import net.minecraftforge.fml.common.IFuelHandler;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 
-import net.minecraft.world.storage.WorldSavedData;
 import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.biome.Biome;
@@ -32,7 +27,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.potion.Potion;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Item;
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.block.Block;
 
@@ -70,8 +64,6 @@ public class ElementsCavesNotCliffs implements IFuelHandler, IWorldGenerator {
 		}
 		Collections.sort(elements);
 		elements.forEach(ElementsCavesNotCliffs.ModElement::initElements);
-		this.addNetworkMessage(CavesNotCliffsVariables.WorldSavedDataSyncMessageHandler.class,
-				CavesNotCliffsVariables.WorldSavedDataSyncMessage.class, Side.SERVER, Side.CLIENT);
 	}
 
 	public void registerSounds(RegistryEvent.Register<net.minecraft.util.SoundEvent> event) {
@@ -109,36 +101,6 @@ public class ElementsCavesNotCliffs implements IFuelHandler, IWorldGenerator {
 		return 0;
 	}
 
-	@SubscribeEvent
-	public void onPlayerLoggedIn(net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent event) {
-		if (!event.player.world.isRemote) {
-			WorldSavedData mapdata = CavesNotCliffsVariables.MapVariables.get(event.player.world);
-			WorldSavedData worlddata = CavesNotCliffsVariables.WorldVariables.get(event.player.world);
-			if (mapdata != null)
-				CavesNotCliffs.PACKET_HANDLER.sendTo(new CavesNotCliffsVariables.WorldSavedDataSyncMessage(0, mapdata),
-						(EntityPlayerMP) event.player);
-			if (worlddata != null)
-				CavesNotCliffs.PACKET_HANDLER.sendTo(new CavesNotCliffsVariables.WorldSavedDataSyncMessage(1, worlddata),
-						(EntityPlayerMP) event.player);
-		}
-	}
-
-	@SubscribeEvent
-	public void onPlayerChangedDimension(net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerChangedDimensionEvent event) {
-		if (!event.player.world.isRemote) {
-			WorldSavedData worlddata = CavesNotCliffsVariables.WorldVariables.get(event.player.world);
-			if (worlddata != null)
-				CavesNotCliffs.PACKET_HANDLER.sendTo(new CavesNotCliffsVariables.WorldSavedDataSyncMessage(1, worlddata),
-						(EntityPlayerMP) event.player);
-		}
-	}
-	private int messageID = 0;
-	public <T extends IMessage, V extends IMessage> void addNetworkMessage(Class<? extends IMessageHandler<T, V>> handler, Class<T> messageClass,
-			Side... sides) {
-		for (Side side : sides)
-			CavesNotCliffs.PACKET_HANDLER.registerMessage(handler, messageClass, messageID, side);
-		messageID++;
-	}
 	public static class GuiHandler implements IGuiHandler {
 		@Override
 		public Object getServerGuiElement(int id, EntityPlayer player, World world, int x, int y, int z) {

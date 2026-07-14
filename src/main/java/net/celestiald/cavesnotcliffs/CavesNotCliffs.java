@@ -21,7 +21,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.common.registry.EntityEntry;
-import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
@@ -67,7 +66,6 @@ import java.util.function.Supplier;
 public class CavesNotCliffs {
 	public static final String MODID = "cavesnotcliffs";
 	public static final String VERSION = "2.0.0";
-	public static final SimpleNetworkWrapper PACKET_HANDLER = NetworkRegistry.INSTANCE.newSimpleChannel("cavesnotcliffs:a");
 	public static CavesNotCliffsWorldType WORLD_TYPE;
 	@SidedProxy(clientSide = "net.celestiald.cavesnotcliffs.ClientProxyCavesNotCliffs", serverSide = "net.celestiald.cavesnotcliffs.ServerProxyCavesNotCliffs")
 	public static IProxyCavesNotCliffs proxy;
