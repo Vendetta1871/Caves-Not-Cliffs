@@ -65,6 +65,10 @@ public final class LavaCauldronHandler {
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onRightClickCauldron(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getUseBlock()
+                == net.minecraftforge.fml.common.eventhandler.Event.Result.DENY) {
+            return;
+        }
         World world = event.getWorld();
         BlockPos pos = event.getPos();
         IBlockState vanilla = world.getBlockState(pos);

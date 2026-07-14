@@ -28,8 +28,12 @@ public final class WaterBucketInteractionHandler {
     private WaterBucketInteractionHandler() {
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getUseItem()
+                == net.minecraftforge.fml.common.eventhandler.Event.Result.DENY) {
+            return;
+        }
         World world = event.getWorld();
         BlockPos pos = event.getPos();
         EntityPlayer player = event.getEntityPlayer();

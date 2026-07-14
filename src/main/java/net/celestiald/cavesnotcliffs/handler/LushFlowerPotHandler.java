@@ -22,8 +22,12 @@ public final class LushFlowerPotHandler {
     private LushFlowerPotHandler() {
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRightClickPot(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getUseItem()
+                == net.minecraftforge.fml.common.eventhandler.Event.Result.DENY) {
+            return;
+        }
         World world = event.getWorld();
         if (world.getBlockState(event.getPos()).getBlock() != Blocks.FLOWER_POT) {
             return;
@@ -43,7 +47,9 @@ public final class LushFlowerPotHandler {
         }
 
         EntityPlayer player = event.getEntityPlayer();
-        if (!player.canPlayerEdit(event.getPos(), event.getFace(), held)) {
+        if (event.getFace() == null
+                || !world.isBlockModifiable(player, event.getPos())
+                || !player.canPlayerEdit(event.getPos(), event.getFace(), held)) {
             return;
         }
         event.setCanceled(true);

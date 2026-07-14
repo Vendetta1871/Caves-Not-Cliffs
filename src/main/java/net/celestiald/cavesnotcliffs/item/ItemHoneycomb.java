@@ -22,9 +22,19 @@ public final class ItemHoneycomb extends Item {
         if (waxed == null) {
             return EnumActionResult.PASS;
         }
-        stack.shrink(1);
-        world.setBlockState(pos, waxed, 11);
-        HoneyWaxingEffects.play(world, pos);
+        if (!world.isBlockModifiable(player, pos)
+                || !player.canPlayerEdit(pos, facing, stack)) {
+            return EnumActionResult.FAIL;
+        }
+        if (!world.isRemote) {
+            if (!world.setBlockState(pos, waxed, 11)) {
+                return EnumActionResult.FAIL;
+            }
+            if (!player.capabilities.isCreativeMode) {
+                stack.shrink(1);
+            }
+            HoneyWaxingEffects.play(world, pos);
+        }
         return EnumActionResult.SUCCESS;
     }
 }

@@ -36,13 +36,21 @@ public final class CandleInteractionHandler {
     private CandleInteractionHandler() {
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getUseItem()
+                == net.minecraftforge.fml.common.eventhandler.Event.Result.DENY) {
+            return;
+        }
         World world = event.getWorld();
         BlockPos pos = event.getPos();
         IBlockState state = world.getBlockState(pos);
         ItemStack held = event.getItemStack();
         EntityPlayer player = event.getEntityPlayer();
+        if (event.getFace() == null || !world.isBlockModifiable(player, pos)
+                || !player.canPlayerEdit(pos, event.getFace(), held)) {
+            return;
+        }
 
         if (insertCandleIntoCake(world, pos, state, player, held)) {
             succeed(event);
