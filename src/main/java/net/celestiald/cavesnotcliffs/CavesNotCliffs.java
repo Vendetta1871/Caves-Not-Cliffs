@@ -43,6 +43,7 @@ import net.minecraft.potion.Potion;
 import net.minecraft.item.Item;
 import net.minecraft.block.Block;
 import net.celestiald.cavesnotcliffs.command.CommandCaveBiome;
+import net.celestiald.cavesnotcliffs.compat.FutureMcCompat;
 import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
 import net.celestiald.cavesnotcliffs.content.DungeonChestContent;
 import net.celestiald.cavesnotcliffs.content.OreDictionaryCompat;
@@ -119,6 +120,7 @@ public class CavesNotCliffs {
 		// This initial pass makes the fixed wrapper names available to dedicated-server properties.
 		// Later lifecycle passes pick up world types registered by later load-complete handlers.
 		CavesNotCliffsWorldTypes.registerWrappers();
+		FutureMcCompat.initialize();
 	}
 
 	@Mod.EventHandler

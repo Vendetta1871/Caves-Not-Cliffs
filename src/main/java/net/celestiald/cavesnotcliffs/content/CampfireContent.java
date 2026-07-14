@@ -12,6 +12,7 @@ import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.PropertyBool;
 import net.minecraft.block.properties.PropertyDirection;
+import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -61,6 +62,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nullable;
 import java.util.Random;
+import java.util.Map;
 
 /** Ordinary/soul campfires and soul soil with Java 1.18.2 behavior. */
 @ElementsCavesNotCliffs.ModElement.Tag
@@ -115,8 +117,25 @@ public final class CampfireContent extends ElementsCavesNotCliffs.ModElement {
     }
 
     public static boolean isLitCampfire(IBlockState state) {
-        return state != null && state.getBlock() instanceof BlockCustom
-            && state.getValue(BlockCustom.LIT);
+        if (state == null) {
+            return false;
+        }
+        if (state.getBlock() instanceof BlockCustom) {
+            return state.getValue(BlockCustom.LIT);
+        }
+        net.minecraft.util.ResourceLocation id = state.getBlock().getRegistryName();
+        if (id == null || !"futuremc".equals(id.getResourceDomain())
+                || !("campfire".equals(id.getResourcePath())
+                || "soul_campfire".equals(id.getResourcePath()))) {
+            return false;
+        }
+        for (Map.Entry<IProperty<?>, Comparable<?>> property
+                : state.getProperties().entrySet()) {
+            if ("lit".equals(property.getKey().getName())) {
+                return Boolean.TRUE.equals(property.getValue());
+            }
+        }
+        return false;
     }
 
     public static boolean isSignalFire(World world, BlockPos pos) {
