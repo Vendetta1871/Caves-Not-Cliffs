@@ -158,7 +158,7 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
                 slicer.slice(terrain, sectionY, chunk, skylight);
             }
         }
-        slicer.projectSurfaceBiomes(terrain, chunk.getBiomeArray());
+        slicer.projectSurfaceBiomes(terrain, chunk);
         chunk.generateSkylightMap();
         return chunk;
     }
