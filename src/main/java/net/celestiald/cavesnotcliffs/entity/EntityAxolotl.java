@@ -367,11 +367,15 @@ public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
             if (getIsInvulnerable()) {
                 tag.setBoolean("Invulnerable", true);
             }
+            NBTTagCompound entityData = serializeNBT();
+            copyCompound(entityData, tag, "ForgeData");
+            copyCompound(entityData, tag, "ForgeCaps");
         }
 
         public void loadFromBucket(ItemStack stack) {
             NBTTagCompound tag = stack.getTagCompound();
             if (tag != null) {
+                restoreForgeData(tag);
                 setVariant(AxolotlMechanics.Variant.byId(tag.getInteger("Variant")));
                 if (tag.hasKey("Age")) {
                     setGrowingAge(tag.getInteger("Age"));
@@ -402,6 +406,24 @@ public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
             setFromBucket(true);
             enablePersistence();
             rehydrate();
+        }
+
+        private void restoreForgeData(NBTTagCompound bucketData) {
+            if (!bucketData.hasKey("ForgeData", 10)
+                    && !bucketData.hasKey("ForgeCaps", 10)) {
+                return;
+            }
+            NBTTagCompound entityData = serializeNBT();
+            copyCompound(bucketData, entityData, "ForgeData");
+            copyCompound(bucketData, entityData, "ForgeCaps");
+            deserializeNBT(entityData);
+        }
+
+        private static void copyCompound(NBTTagCompound source,
+                NBTTagCompound target, String key) {
+            if (source.hasKey(key, 10)) {
+                target.setTag(key, source.getCompoundTag(key).copy());
+            }
         }
 
         public AxolotlMechanics.Variant getVariant() {
