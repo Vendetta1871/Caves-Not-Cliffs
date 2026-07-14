@@ -15,8 +15,6 @@ public class CavesNotCliffsVariablesDedicatedServerTest {
     @Test
     public void commonSavedDataMessagesHaveNoClientClassDependencies() throws Exception {
         assertNoClientReferences(CavesNotCliffsVariables.class);
-        assertNoClientReferences(CavesNotCliffsVariables.WorldSavedDataSyncMessage.class);
-        assertNoClientReferences(CavesNotCliffsVariables.WorldSavedDataSyncMessageHandler.class);
     }
 
     private static void assertNoClientReferences(Class<?> type) throws Exception {

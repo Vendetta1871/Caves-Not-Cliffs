@@ -1280,6 +1280,65 @@ public class V118MountainSurfacePlacementsTest {
             motionBlockingHeightOverrides.add(height);
         }
 
+        @Override
+        public void setVine(BlockPos pos,
+                V118SwampTreeFeature.VineAttachment attachment) {
+            throw new UnsupportedOperationException("Vine placement is not available");
+        }
+
+        @Override
+        public boolean canOakSaplingSurvive(BlockPos pos) {
+            return false;
+        }
+
+        @Override
+        public boolean isVine(BlockPos pos) {
+            return false;
+        }
+
+        @Override
+        public boolean isDirtExceptGrassAndMycelium(BlockPos pos) {
+            return cell(pos) == Cell.DIRT;
+        }
+
+        @Override
+        public void setOakLog(BlockPos pos) {
+            throw new UnsupportedOperationException("Oak placement is not available");
+        }
+
+        @Override
+        public void setOakLeaves(BlockPos pos) {
+            throw new UnsupportedOperationException("Oak placement is not available");
+        }
+
+        @Override
+        public boolean isDirtOrMushroomGrowBlock(BlockPos pos) {
+            Cell cell = cell(pos);
+            return cell == Cell.DIRT || cell == Cell.GRASS;
+        }
+
+        @Override
+        public boolean isLeaves(BlockPos pos) {
+            return cell(pos) == Cell.SPRUCE_LEAVES;
+        }
+
+        @Override
+        public boolean isSolidRender(BlockPos pos) {
+            return blocksMotion(cell(pos));
+        }
+
+        @Override
+        public void setMushroomCap(BlockPos pos,
+                V118MushroomIslandVegetationFeature.MushroomKind kind,
+                V118MushroomIslandVegetationFeature.MushroomFaces faces) {
+            throw new UnsupportedOperationException("Mushroom placement is not available");
+        }
+
+        @Override
+        public void setMushroomStem(BlockPos pos) {
+            throw new UnsupportedOperationException("Mushroom placement is not available");
+        }
+
         Cell cell(BlockPos pos) {
             Cell written = writes.get(pos);
             if (written != null) {
