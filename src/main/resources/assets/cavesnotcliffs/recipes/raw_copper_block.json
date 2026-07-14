@@ -7,7 +7,8 @@
   ],
   "key": {
     "#": {
-      "item": "cavesnotcliffs:raw_copper"
+      "type": "forge:ore_dict",
+      "ore": "rawCopper"
     }
   },
   "result": {

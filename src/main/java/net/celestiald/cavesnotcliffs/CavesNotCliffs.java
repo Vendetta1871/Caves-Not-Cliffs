@@ -45,6 +45,7 @@ import net.minecraft.block.Block;
 import net.celestiald.cavesnotcliffs.command.CommandCaveBiome;
 import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
 import net.celestiald.cavesnotcliffs.content.DungeonChestContent;
+import net.celestiald.cavesnotcliffs.content.OreDictionaryCompat;
 import net.celestiald.cavesnotcliffs.handler.LavaCauldronHandler;
 import net.celestiald.cavesnotcliffs.migration.ImportedHeightMapRebuildHandler;
 import net.celestiald.cavesnotcliffs.stonecutter.CncGuiHandler;
@@ -104,6 +105,7 @@ public class CavesNotCliffs {
 	public void init(FMLInitializationEvent event) {
 		elements.getElements().forEach(element -> element.init(event));
 		CncMaterialContent.registerSmelting();
+		OreDictionaryCompat.register();
 		proxy.init(event);
 	}
 

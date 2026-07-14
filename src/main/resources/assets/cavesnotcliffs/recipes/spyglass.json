@@ -2,8 +2,8 @@
   "type": "minecraft:crafting_shaped",
   "pattern": [" # ", " X ", " X "],
   "key": {
-    "#": {"item": "cavesnotcliffs:amethyst_shard"},
-    "X": {"item": "cavesnotcliffs:copper_ingot"}
+    "#": {"type": "forge:ore_dict", "ore": "gemAmethyst"},
+    "X": {"type": "forge:ore_dict", "ore": "ingotCopper"}
   },
   "result": {"item": "cavesnotcliffs:spyglass"}
 }

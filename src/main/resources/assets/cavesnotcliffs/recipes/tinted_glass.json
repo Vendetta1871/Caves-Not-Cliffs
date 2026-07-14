@@ -3,7 +3,7 @@
   "pattern": [" S ", "SGS", " S "],
   "key": {
     "G": {"item": "minecraft:glass"},
-    "S": {"item": "cavesnotcliffs:amethyst_shard"}
+    "S": {"type": "forge:ore_dict", "ore": "gemAmethyst"}
   },
   "result": {"item": "cavesnotcliffs:tinted_glass", "count": 2}
 }
