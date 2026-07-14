@@ -87,8 +87,8 @@ public final class AxolotlBucketRelease {
             axolotl.setCustomNameTag(bucket.getDisplayName());
         }
         ItemMonsterPlacer.applyItemEntityDataToEntity(world, player, bucket, axolotl);
-        world.spawnEntity(axolotl);
         axolotl.loadFromBucket(bucket);
+        world.spawnEntity(axolotl);
     }
 
     private static void playEmptySound(@Nullable EntityPlayer player, World world,
