@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -164,8 +165,8 @@ public class DeadBushSupportTransformerTest {
     public void corePluginRegistersTheDeadBushTransformer() {
         String[] transformers = new CavesNotCliffsCorePlugin()
                 .getASMTransformerClass();
-        assertEquals(DeadBushSupportTransformer.class.getName(),
-                transformers[transformers.length - 2]);
+        assertTrue(Arrays.asList(transformers).contains(
+                DeadBushSupportTransformer.class.getName()));
     }
 
     private static List<NamedState> officialSupports() {

@@ -195,10 +195,14 @@ public class SugarCaneSupportTransformerTest {
     public void corePluginRegistersSugarCaneImmediatelyAfterDeadBush() {
         String[] transformers = new CavesNotCliffsCorePlugin()
                 .getASMTransformerClass();
+        int deadBush = Arrays.asList(transformers).indexOf(
+                DeadBushSupportTransformer.class.getName());
+        assertTrue(deadBush >= 0);
+        assertTrue(deadBush + 1 < transformers.length);
         assertEquals(DeadBushSupportTransformer.class.getName(),
-                transformers[transformers.length - 2]);
+                transformers[deadBush]);
         assertEquals(SugarCaneSupportTransformer.class.getName(),
-                transformers[transformers.length - 1]);
+                transformers[deadBush + 1]);
     }
 
     private static void assertHookShape(byte[] bytes, String methodName,

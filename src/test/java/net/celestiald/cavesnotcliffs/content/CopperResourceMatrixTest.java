@@ -82,9 +82,9 @@ public class CopperResourceMatrixTest {
                 assertRecipe(slab, cut, slab, 6, "###");
             }
         }
-        assertRecipe("copper_block", "copper_ingot", "copper_block", 1,
+        assertOreRecipe("copper_block", "ingotCopper", "copper_block", 1,
                 "###", "###", "###");
-        assertRecipe("lightning_rod", "copper_ingot", "lightning_rod", 1,
+        assertOreRecipe("lightning_rod", "ingotCopper", "lightning_rod", 1,
                 "#", "#", "#");
         JsonObject ingot = json("recipes/copper_ingot.json");
         assertEquals("minecraft:crafting_shapeless", ingot.get("type").getAsString());
@@ -206,6 +206,23 @@ public class CopperResourceMatrixTest {
         assertEquals("minecraft:crafting_shaped", json.get("type").getAsString());
         assertEquals("cavesnotcliffs:" + ingredient,
                 json.getAsJsonObject("key").getAsJsonObject("#").get("item").getAsString());
+        assertEquals("cavesnotcliffs:" + result,
+                json.getAsJsonObject("result").get("item").getAsString());
+        assertEquals(count, json.getAsJsonObject("result").has("count")
+                ? json.getAsJsonObject("result").get("count").getAsInt() : 1);
+        assertEquals(pattern.length, json.getAsJsonArray("pattern").size());
+        for (int i = 0; i < pattern.length; i++) {
+            assertEquals(pattern[i], json.getAsJsonArray("pattern").get(i).getAsString());
+        }
+    }
+
+    private static void assertOreRecipe(String recipe, String ore, String result,
+            int count, String... pattern) {
+        JsonObject json = json("recipes/" + recipe + ".json");
+        assertEquals("minecraft:crafting_shaped", json.get("type").getAsString());
+        JsonObject ingredient = json.getAsJsonObject("key").getAsJsonObject("#");
+        assertEquals("forge:ore_dict", ingredient.get("type").getAsString());
+        assertEquals(ore, ingredient.get("ore").getAsString());
         assertEquals("cavesnotcliffs:" + result,
                 json.getAsJsonObject("result").get("item").getAsString());
         assertEquals(count, json.getAsJsonObject("result").has("count")

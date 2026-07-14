@@ -1,6 +1,8 @@
 package net.celestiald.cavesnotcliffs.worldgen.v118;
 
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118MountainSurfacePlacements.DecorationResult;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118MountainSurfacePlacements.VegetationCategory;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118MountainSurfacePlacements.VegetationGate;
 import net.minecraft.util.math.BlockPos;
 import org.junit.Test;
 
@@ -25,6 +27,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class V118MountainSurfacePlacementsTest {
+    private static final VegetationGate DEAD_BUSH_ONLY =
+        category -> category == VegetationCategory.DEAD_BUSH;
+
     @Test
     public void catalogPinsOfficialGlobalFeatureSlots() {
         assertEquals(8, V118MountainSurfacePlacements.FLUID_SPRINGS_STEP);
@@ -143,7 +148,7 @@ public class V118MountainSurfacePlacementsTest {
             DecorationResult result = V118MountainSurfacePlacements.decorateVegetation(
                 world, seed, chunkX, chunkZ, mixed
                     ? EnumSet.of(memberBiome, V118Biome.PLAINS)
-                    : EnumSet.of(memberBiome));
+                    : EnumSet.of(memberBiome), DEAD_BUSH_ONLY);
 
             List<BlockPos> expectedOrigins = parseOracleTokenPositions(fields[7]);
             assertEquals(deadBushOuterAttempts(feature), expectedOrigins.size());
@@ -493,7 +498,7 @@ public class V118MountainSurfacePlacementsTest {
         world.biomeAtPosition(origin, V118Biome.SWAMP);
 
         DecorationResult result = V118MountainSurfacePlacements.decorateVegetation(
-            world, 0L, -3, 5, EnumSet.of(V118Biome.SWAMP));
+            world, 0L, -3, 5, EnumSet.of(V118Biome.SWAMP), DEAD_BUSH_ONLY);
 
         assertEquals(Collections.singletonList(origin),
             world.biomeQueries.subList(0, 1));
@@ -525,12 +530,13 @@ public class V118MountainSurfacePlacementsTest {
             Surface.SAND, V118Biome.SWAMP);
         DecorationResult ordinaryResult =
             V118MountainSurfacePlacements.decorateVegetation(
-                ordinary, 0L, 0, 0, EnumSet.of(V118Biome.SWAMP));
+                ordinary, 0L, 0, 0, EnumSet.of(V118Biome.SWAMP), DEAD_BUSH_ONLY);
         DecorationResult ordinaryMixedResult =
             V118MountainSurfacePlacements.decorateVegetation(
                 ordinaryMixed, 0L, 0, 0, EnumSet.of(
                     V118Biome.OLD_GROWTH_PINE_TAIGA,
-                    V118Biome.OLD_GROWTH_SPRUCE_TAIGA, V118Biome.SWAMP));
+                    V118Biome.OLD_GROWTH_SPRUCE_TAIGA, V118Biome.SWAMP),
+                DEAD_BUSH_ONLY);
         assertEquals(ordinaryResult.deadBushesPlaced(),
             ordinaryMixedResult.deadBushesPlaced());
         assertEquals(writePositions(ordinary, Cell.DEAD_BUSH),
@@ -542,12 +548,13 @@ public class V118MountainSurfacePlacementsTest {
             Surface.SAND, V118Biome.BADLANDS);
         DecorationResult badlandsResult =
             V118MountainSurfacePlacements.decorateVegetation(
-                badlands, 0L, 0, 0, EnumSet.of(V118Biome.BADLANDS));
+                badlands, 0L, 0, 0, EnumSet.of(V118Biome.BADLANDS),
+                DEAD_BUSH_ONLY);
         DecorationResult badlandsMixedResult =
             V118MountainSurfacePlacements.decorateVegetation(
                 badlandsMixed, 0L, 0, 0, EnumSet.of(
                     V118Biome.BADLANDS, V118Biome.ERODED_BADLANDS,
-                    V118Biome.WOODED_BADLANDS));
+                    V118Biome.WOODED_BADLANDS), DEAD_BUSH_ONLY);
         assertEquals(badlandsResult.deadBushesPlaced(),
             badlandsMixedResult.deadBushesPlaced());
         assertEquals(writePositions(badlands, Cell.DEAD_BUSH),
@@ -559,7 +566,8 @@ public class V118MountainSurfacePlacementsTest {
                 V118Biome.OLD_GROWTH_PINE_TAIGA,
                 V118Biome.OLD_GROWTH_SPRUCE_TAIGA, V118Biome.SWAMP,
                 V118Biome.DESERT, V118Biome.BADLANDS,
-                V118Biome.ERODED_BADLANDS, V118Biome.WOODED_BADLANDS));
+                V118Biome.ERODED_BADLANDS, V118Biome.WOODED_BADLANDS),
+            DEAD_BUSH_ONLY);
         assertEquals(1 + 2 + 20, all.worldSurfaceQueries.size());
         assertEquals(0, all.deadBushSurvivalQueries.size());
     }
