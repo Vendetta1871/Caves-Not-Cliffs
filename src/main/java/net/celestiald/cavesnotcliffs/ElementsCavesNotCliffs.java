@@ -6,6 +6,8 @@
  */
 package net.celestiald.cavesnotcliffs;
 
+import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldTypes;
+
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.common.registry.EntityEntry;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
@@ -74,11 +76,26 @@ public class ElementsCavesNotCliffs implements IFuelHandler, IWorldGenerator {
 
 	public void registerSounds(RegistryEvent.Register<net.minecraft.util.SoundEvent> event) {
 		for (Map.Entry<ResourceLocation, net.minecraft.util.SoundEvent> sound : sounds.entrySet())
-			event.getRegistry().register(sound.getValue().setRegistryName(sound.getKey()));
+			event.getRegistry().register(prepareSoundRegistration(sound.getKey(), sound.getValue()));
+	}
+
+	static net.minecraft.util.SoundEvent prepareSoundRegistration(ResourceLocation expected,
+			net.minecraft.util.SoundEvent sound) {
+		ResourceLocation registered = sound.getRegistryName();
+		if (registered == null)
+			return sound.setRegistryName(expected);
+		if (!expected.equals(registered))
+			throw new IllegalStateException("Sound registry name mismatch: expected " + expected
+					+ " but was " + registered);
+		return sound;
 	}
 
 	@Override
 	public void generate(Random random, int chunkX, int chunkZ, World world, IChunkGenerator cg, IChunkProvider cp) {
+		// Schema 2 either owns the 1.18 feature order or delegates population to the selected
+		// base generator. Forge must not replay the draft-v2 MCreator decorators in either path.
+		if (CavesNotCliffsWorldTypes.isWrapper(world.getWorldType()))
+			return;
 		elements.forEach(element -> element.generateWorld(random, chunkX * 16, chunkZ * 16, world, world.provider.getDimension(), cg, cp));
 	}
 

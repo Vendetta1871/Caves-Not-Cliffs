@@ -1,0 +1,6 @@
+{
+  "multipart": [
+    {"apply":{"model":"cavesnotcliffs:hanging_roots"}},
+    {"apply":{"model":"cavesnotcliffs:amethyst_water_overlay"}}
+  ]
+}

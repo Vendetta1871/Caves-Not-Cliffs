@@ -1,0 +1,1 @@
+{ "parent": "block/wall_post", "textures": { "wall": "cavesnotcliffs:blocks/tuff", "particle": "cavesnotcliffs:blocks/tuff" } }

@@ -15,16 +15,15 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockMoss extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:moss")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:moss_block")
     public static final Block block = null;
 
     public BlockMoss(ElementsCavesNotCliffs instance) { super(instance, 35); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("moss"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("moss_block"));
         elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
     }
 
@@ -38,7 +37,7 @@ public class BlockMoss extends ElementsCavesNotCliffs.ModElement {
     private static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.GRASS);
-            setUnlocalizedName("moss");
+            setUnlocalizedName("moss_block");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.PLANT);
             setHardness(0.1f);

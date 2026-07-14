@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "group": "waxed_cut_copper_stairs",
+  "pattern": [
+    "#  ",
+    "## ",
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "cavesnotcliffs:waxed_cut_copper"
+    }
+  },
+  "result": {
+    "item": "cavesnotcliffs:waxed_cut_copper_stairs",
+    "count": 4
+  }
+}

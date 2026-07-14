@@ -1,127 +1,52 @@
-
 package net.celestiald.cavesnotcliffs.block;
 
-import net.minecraftforge.fml.relauncher.SideOnly;
-import net.minecraftforge.fml.relauncher.Side;
+import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.minecraft.block.Block;
+import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.common.registry.GameRegistry;
-import net.minecraftforge.client.model.ModelLoader;
-import net.minecraftforge.client.event.ModelRegistryEvent;
-import net.minecraft.block.Block;
-import net.minecraft.util.BlockRenderLayer;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.block.state.BlockStateContainer;
-import net.minecraft.block.properties.PropertyDirection;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.World;
-import java.util.Random;
-import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockAmethystCrystalStage1 extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:amethyst_crystal_stage_1")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:small_amethyst_bud")
     public static final Block block = null;
 
-    public BlockAmethystCrystalStage1(ElementsCavesNotCliffs instance) { super(instance, 32); }
+    public BlockAmethystCrystalStage1(ElementsCavesNotCliffs instance) {
+        super(instance, 32);
+    }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("cavesnotcliffs", "amethyst_crystal_stage_1"));
+        elements.blocks.add(() -> new BlockCustom()
+                .setRegistryName("cavesnotcliffs", "small_amethyst_bud"));
         elements.items.add(() -> {
-            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal_stage_1"));
-            return new ItemBlock(b).setRegistryName(b.getRegistryName());
+            Block registered = ForgeRegistries.BLOCKS.getValue(
+                    new ResourceLocation("cavesnotcliffs", "small_amethyst_bud"));
+            return new ItemBlock(registered).setRegistryName(registered.getRegistryName());
         });
     }
 
     @SideOnly(Side.CLIENT)
     @Override
     public void registerModels(ModelRegistryEvent event) {
-        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal_stage_1"));
-        if (item != null)
-            ModelLoader.setCustomModelResourceLocation(item, 0,
-                new ModelResourceLocation("cavesnotcliffs:amethyst_crystal_stage_1", "inventory"));
+        Block registered = ForgeRegistries.BLOCKS.getValue(
+                new ResourceLocation("cavesnotcliffs", "small_amethyst_bud"));
+        if (registered != null) {
+            BlockAmethystGrowth.registerItemModel(registered,
+                    new ModelResourceLocation("cavesnotcliffs:small_amethyst_bud", "inventory"));
+        }
     }
 
-    public static class BlockCustom extends Block {
-        public static final PropertyDirection FACING = PropertyDirection.create("facing");
-        private static final AxisAlignedBB AABB = new AxisAlignedBB(0.1, 0.0, 0.1, 0.9, 0.5, 0.9);
-
+    /** Small bud: height 3, offset 4, light level 1. */
+    public static class BlockCustom extends BlockAmethystGrowth {
         public BlockCustom() {
-            super(Material.ROCK);
-            setUnlocalizedName("amethyst_crystal_stage_1");
-            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
-            setSoundType(SoundType.GLASS);
-            setHardness(1.5f);
-            setResistance(1.0f);
-            setTickRandomly(true);
-            setDefaultState(blockState.getBaseState().withProperty(FACING, EnumFacing.UP));
-        }
-
-        @Override public boolean isOpaqueCube(IBlockState state) { return false; }
-        @Override public boolean isFullCube(IBlockState state) { return false; }
-        @Override public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess source, BlockPos pos) { return AABB; }
-        @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
-
-        @Override
-        public IBlockState getStateForPlacement(World world, BlockPos pos, EnumFacing facing, float hitX, float hitY, float hitZ, int meta, EntityLivingBase placer) {
-            return getDefaultState().withProperty(FACING, facing);
-        }
-
-        @Override
-        protected BlockStateContainer createBlockState() {
-            return new BlockStateContainer(this, FACING);
-        }
-
-        @Override
-        public IBlockState getStateFromMeta(int meta) {
-            return getDefaultState().withProperty(FACING, EnumFacing.getFront(meta & 7));
-        }
-
-        @Override
-        public int getMetaFromState(IBlockState state) {
-            return state.getValue(FACING).getIndex();
-        }
-
-        @Override
-        public Item getItemDropped(IBlockState state, Random rand, int fortune) {
-            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal"));
-            return b != null ? Item.getItemFromBlock(b) : net.minecraft.init.Items.AIR;
-        }
-
-        @Override
-        public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos) {
-            if (!worldIn.isRemote) {
-                EnumFacing facing = state.getValue(FACING);
-                BlockPos support = pos.offset(facing.getOpposite());
-                if (fromPos.equals(support) && !worldIn.getBlockState(support).isSideSolid(worldIn, support, facing)) {
-                    worldIn.destroyBlock(pos, true);
-                }
-            }
-        }
-
-        @Override
-        public void randomTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
-            if (!worldIn.isRemote && rand.nextInt(5) == 0) {
-                EnumFacing facing = state.getValue(FACING);
-                Block support = worldIn.getBlockState(pos.offset(facing.getOpposite())).getBlock();
-                Block geode = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_geode"));
-                Block casing = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "geode_casing"));
-                Block stage2 = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "amethyst_crystal_stage_2"));
-                if (stage2 != null && (support == geode || support == casing)) {
-                    worldIn.setBlockState(pos, stage2.getDefaultState()
-                        .withProperty(BlockAmethystCrystalStage2.BlockCustom.FACING, facing));
-                }
-            }
+            super("small_amethyst_bud", 3, 4, 1, false);
+            setCreativeTab(net.minecraft.creativetab.CreativeTabs.DECORATIONS);
         }
     }
 }

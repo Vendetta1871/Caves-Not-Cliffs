@@ -20,7 +20,6 @@ import net.minecraft.world.World;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import java.util.Random;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDripleafPlant2 extends ElementsCavesNotCliffs.ModElement {
     @GameRegistry.ObjectHolder("cavesnotcliffs:dripleaf_plant_2")
     public static final Block block = null;
@@ -30,24 +29,15 @@ public class BlockDripleafPlant2 extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void initElements() {
         elements.blocks.add(() -> new BlockCustom().setRegistryName("dripleaf_plant_2"));
-        elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
-    }
-
-    @SideOnly(Side.CLIENT)
-    @Override
-    public void registerModels(ModelRegistryEvent event) {
-        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:dripleaf_plant_2", "inventory"));
     }
 
     private static class BlockCustom extends Block {
         public BlockCustom() {
-            super(Material.AIR);
+            super(Material.PLANTS);
             setUnlocalizedName("dripleaf_plant_2");
             setSoundType(SoundType.PLANT);
             setHardness(0.0f);
             setResistance(0.0f);
-            setTickRandomly(true);
         }
 
         @Override public boolean isOpaqueCube(IBlockState state) { return false; }
@@ -56,9 +46,14 @@ public class BlockDripleafPlant2 extends ElementsCavesNotCliffs.ModElement {
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
 
         @Override
-        public void randomTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
-            if (!worldIn.isRemote && BlockDripleafplant1.block != null)
-                worldIn.setBlockState(pos, BlockDripleafplant1.block.getDefaultState(), 3);
+        public Item getItemDropped(IBlockState state, Random random, int fortune) {
+            return Item.getItemFromBlock(BlockDripleafPlant.block);
+        }
+
+        @Override
+        public void updateTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
+            if (!worldIn.isRemote && BlockDripleafPlant.block != null)
+                worldIn.setBlockState(pos, BlockDripleafPlant.block.getDefaultState(), 3);
         }
     }
 }

@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "variant=default": { "model": "cavesnotcliffs:oxidized_cut_copper_slab_double" }
+  }
+}

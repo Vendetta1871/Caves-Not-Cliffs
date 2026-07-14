@@ -25,9 +25,12 @@ import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLLoadCompleteEvent;
+import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -39,32 +42,58 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.potion.Potion;
 import net.minecraft.item.Item;
 import net.minecraft.block.Block;
+import net.celestiald.cavesnotcliffs.command.CommandCaveBiome;
+import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
+import net.celestiald.cavesnotcliffs.content.DungeonChestContent;
+import net.celestiald.cavesnotcliffs.handler.LavaCauldronHandler;
+import net.celestiald.cavesnotcliffs.migration.ImportedHeightMapRebuildHandler;
+import net.celestiald.cavesnotcliffs.stonecutter.CncGuiHandler;
+import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
+import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldTypes;
+import net.celestiald.cavesnotcliffs.world.LegacySchemaOnePopulationHandler;
+import net.celestiald.cavesnotcliffs.world.LegacySchemaTwoFluidHandler;
+import net.celestiald.cavesnotcliffs.world.WorldHeightBootstrap;
+import net.celestiald.cavesnotcliffs.world.VirtualBiomeResolverRegistry;
+import net.celestiald.cavesnotcliffs.network.TerrainContractNetwork;
+import net.celestiald.cavebiomes.api.BiomeLayerAPI;
+import net.celestiald.cavebiomes.api.IWorldVerticalBiomeProvider;
 
 import java.util.function.Supplier;
 
-@Mod(modid = CavesNotCliffs.MODID, version = CavesNotCliffs.VERSION)
+@Mod(modid = CavesNotCliffs.MODID, version = CavesNotCliffs.VERSION,
+		dependencies = "required-after:forge@[14.23.5.2860,);required-after:cavebiomesapi@[1.1.0,)")
 public class CavesNotCliffs {
 	public static final String MODID = "cavesnotcliffs";
-	public static final String VERSION = "1.0.0";
+	public static final String VERSION = "2.0.0";
 	public static final SimpleNetworkWrapper PACKET_HANDLER = NetworkRegistry.INSTANCE.newSimpleChannel("cavesnotcliffs:a");
+	public static CavesNotCliffsWorldType WORLD_TYPE;
 	@SidedProxy(clientSide = "net.celestiald.cavesnotcliffs.ClientProxyCavesNotCliffs", serverSide = "net.celestiald.cavesnotcliffs.ServerProxyCavesNotCliffs")
 	public static IProxyCavesNotCliffs proxy;
 	@Mod.Instance(MODID)
 	public static CavesNotCliffs instance;
 	public ElementsCavesNotCliffs elements = new ElementsCavesNotCliffs();
+	private final WorldHeightBootstrap worldHeightBootstrap = new WorldHeightBootstrap();
+	private final IWorldVerticalBiomeProvider verticalBiomeProvider =
+			(world, x, y, z, base) -> VirtualBiomeResolverRegistry.resolve(
+					world, x, y, z, base);
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
-		// The lava cauldron is implemented as a Mixin, which is provided at runtime by the
-		// MixinBootstrap mod. If the coremod couldn't boot Mixin, stop here with a clear message
-		// rather than letting the game run with a half-applied, broken cauldron.
-		if (Boolean.getBoolean("cavesnotcliffs.mixinMissing")) {
-			throw new RuntimeException("Caves Not Cliffs requires the MixinBootstrap mod. "
-					+ "Download it from https://modrinth.com/mod/mixinbootstrap and put it in your mods folder.");
+		DungeonChestContent.registerTileEntity();
+		// Creating the hidden alias registers it before level.dat or server.properties is parsed.
+		if (WORLD_TYPE == null) {
+			WORLD_TYPE = new CavesNotCliffsWorldType();
 		}
+		MinecraftForge.EVENT_BUS.register(worldHeightBootstrap);
+		BiomeLayerAPI.register(verticalBiomeProvider);
+		TerrainContractNetwork.initialize();
+		MinecraftForge.EVENT_BUS.register(LavaCauldronHandler.INSTANCE);
+		MinecraftForge.EVENT_BUS.register(ImportedHeightMapRebuildHandler.INSTANCE);
+		MinecraftForge.EVENT_BUS.register(LegacySchemaOnePopulationHandler.INSTANCE);
+		MinecraftForge.EVENT_BUS.register(LegacySchemaTwoFluidHandler.INSTANCE);
 		MinecraftForge.EVENT_BUS.register(this);
 		GameRegistry.registerWorldGenerator(elements, 5);
 		GameRegistry.registerFuelHandler(elements);
-		NetworkRegistry.INSTANCE.registerGuiHandler(this, new ElementsCavesNotCliffs.GuiHandler());
+		NetworkRegistry.INSTANCE.registerGuiHandler(this, new CncGuiHandler());
 		elements.preInit(event);
 		MinecraftForge.EVENT_BUS.register(elements);
 		elements.getElements().forEach(element -> element.preInit(event));
@@ -74,6 +103,7 @@ public class CavesNotCliffs {
 	@Mod.EventHandler
 	public void init(FMLInitializationEvent event) {
 		elements.getElements().forEach(element -> element.init(event));
+		CncMaterialContent.registerSmelting();
 		proxy.init(event);
 	}
 
@@ -83,7 +113,31 @@ public class CavesNotCliffs {
 	}
 
 	@Mod.EventHandler
+	public void loadComplete(FMLLoadCompleteEvent event) {
+		// This initial pass makes the fixed wrapper names available to dedicated-server properties.
+		// Later lifecycle passes pick up world types registered by later load-complete handlers.
+		CavesNotCliffsWorldTypes.registerWrappers();
+	}
+
+	@Mod.EventHandler
+	public void serverAboutToStart(FMLServerAboutToStartEvent event) {
+		// Forge fires this immediately before loadAllWorlds, so every persisted wrapper name must
+		// be registered before WorldInfo parses level.dat. The core hook runs the one-time cubic
+		// import after vanilla creates its save handler/session lock and before WorldInfo is read.
+		CavesNotCliffsWorldTypes.registerWrappers();
+	}
+
+	@SubscribeEvent
+	@SideOnly(Side.CLIENT)
+	public void clientConnected(FMLNetworkEvent.ClientConnectedToServerEvent event) {
+		// This event is posted synchronously when the FML handshake completes and before the
+		// vanilla join packet is handled, whose WorldType field is decoded by name.
+		CavesNotCliffsWorldTypes.registerWrappers();
+	}
+
+	@Mod.EventHandler
 	public void serverLoad(FMLServerStartingEvent event) {
+		event.registerServerCommand(new CommandCaveBiome());
 		elements.getElements().forEach(element -> element.serverLoad(event));
 		proxy.serverLoad(event);
 	}

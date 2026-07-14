@@ -1,0 +1,62 @@
+import java.io.PrintWriter;
+import java.lang.reflect.*;
+import java.util.*;
+import java.util.stream.Stream;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
+import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.biome.*;
+import net.minecraft.world.level.levelgen.*;
+import net.minecraft.world.level.levelgen.placement.*;
+
+/** Emits modifier-chain origins from official mapped Java 1.18.2 placed features. */
+public final class Cnc118OrePlacementOracle {
+  private static final long[] SEEDS={0L,1L,-1L,123456789L,Long.MIN_VALUE,Long.MAX_VALUE};
+  private static final int[][] CHUNKS={{0,0},{-1,0},{0,-1},{-1,-1},{1,-2},{-33,17}};
+  private static final Set<String> IDS=new LinkedHashSet<>(Arrays.asList(
+    "ore_dirt","ore_gravel","ore_granite_upper","ore_granite_lower","ore_diorite_upper","ore_diorite_lower","ore_andesite_upper","ore_andesite_lower","ore_tuff","ore_coal_upper","ore_coal_lower","ore_iron_upper","ore_iron_middle","ore_iron_small","ore_gold","ore_gold_lower","ore_redstone","ore_redstone_lower","ore_diamond","ore_diamond_large","ore_diamond_buried","ore_lapis","ore_lapis_buried","ore_copper_large","ore_copper","ore_gold_extra","ore_emerald","ore_infested"));
+
+  public static void main(String[] args)throws Exception{
+    SharedConstants.tryDetectVersion(); Bootstrap.bootStrap(); BuiltinRegistries.bootstrap();
+    PrintWriter out=new PrintWriter(args[0],"UTF-8");
+    out.println("# official Minecraft Java 1.18.2 ordinary ore placement origins");
+    MultiNoiseBiomeSource biomes=MultiNoiseBiomeSource.Preset.OVERWORLD.biomeSource(BuiltinRegistries.BIOME);
+    Map<PlacedFeature,int[]> locations=new HashMap<>();
+    List<BiomeSource.StepFeatureData> steps=biomes.featuresPerStep();
+    for(int step=0;step<steps.size();step++)for(int index=0;index<steps.get(step).features().size();index++)locations.put(steps.get(step).features().get(index),new int[]{step,index});
+    WorldGenLevel level=(WorldGenLevel)Proxy.newProxyInstance(Cnc118OrePlacementOracle.class.getClassLoader(),new Class[]{WorldGenLevel.class},(proxy,method,arguments)->{
+      if(method.getName().equals("getMinBuildHeight"))return -64;
+      if(method.getName().equals("getHeight")&&method.getParameterCount()==0)return 384;
+      if(method.getReturnType()==boolean.class)return false;
+      if(method.getReturnType()==int.class)return 0;
+      if(method.getReturnType()==long.class)return 0L;
+      return null;
+    });
+    for(String profile:new String[]{"normal","large","amplified"}){
+      net.minecraft.core.Holder<NoiseGeneratorSettings> settings=BuiltinRegistries.NOISE_GENERATOR_SETTINGS.getHolderOrThrow(profile.equals("large")?NoiseGeneratorSettings.LARGE_BIOMES:profile.equals("amplified")?NoiseGeneratorSettings.AMPLIFIED:NoiseGeneratorSettings.OVERWORLD);
+      for(int caseIndex=0;caseIndex<SEEDS.length;caseIndex++){
+        long seed=SEEDS[caseIndex]; int chunkX=CHUNKS[caseIndex][0],chunkZ=CHUNKS[caseIndex][1];
+        NoiseBasedChunkGenerator generator=new NoiseBasedChunkGenerator(BuiltinRegistries.STRUCTURE_SETS,BuiltinRegistries.NOISE,biomes,seed,settings);
+        PlacementContext context=new PlacementContext(level,generator,Optional.empty());
+        WorldgenRandom random=new WorldgenRandom(new XoroshiroRandomSource(0L));
+        long decoration=random.setDecorationSeed(seed,chunkX<<4,chunkZ<<4);
+        BlockPos origin=new BlockPos(chunkX<<4,-64,chunkZ<<4);
+        for(String id:IDS){
+          PlacedFeature placed=BuiltinRegistries.PLACED_FEATURE.get(new net.minecraft.resources.ResourceLocation(id));
+          int[] location=locations.get(placed); random.setFeatureSeed(decoration,location[1],location[0]);
+          Stream<BlockPos> positions=Stream.of(origin);
+          for(PlacementModifier modifier:placed.placement()){
+            if(modifier instanceof BiomeFilter)break;
+            positions=positions.flatMap(position->modifier.getPositions(context,random,position));
+          }
+          List<BlockPos> result=positions.toList(); StringJoiner encoded=new StringJoiner(";");
+          for(BlockPos position:result)encoded.add(position.getX()+","+position.getY()+","+position.getZ());
+          out.println("case\t"+profile+"\t"+seed+"\t"+chunkX+"\t"+chunkZ+"\t"+id+"\t"+result.size()+"\t"+(result.isEmpty()?"-":encoded.toString()));
+        }
+      }
+    }
+    out.close();
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "group": "waxed_weathered_cut_copper_slab",
+  "pattern": [
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "cavesnotcliffs:waxed_weathered_cut_copper"
+    }
+  },
+  "result": {
+    "item": "cavesnotcliffs:waxed_weathered_cut_copper_slab",
+    "data": 0,
+    "count": 6
+  }
+}

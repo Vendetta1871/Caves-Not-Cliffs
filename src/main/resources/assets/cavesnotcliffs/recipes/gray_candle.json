@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "group": "dyed_candle",
+  "ingredients": [
+    {"item": "cavesnotcliffs:candle"},
+    {"item": "minecraft:dye", "data": 8}
+  ],
+  "result": {"item": "cavesnotcliffs:gray_candle"}
+}

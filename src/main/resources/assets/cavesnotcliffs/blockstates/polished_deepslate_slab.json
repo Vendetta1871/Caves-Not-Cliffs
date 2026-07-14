@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "half=bottom,variant=default": { "model": "cavesnotcliffs:polished_deepslate_slab" },
+    "half=top,variant=default":    { "model": "cavesnotcliffs:polished_deepslate_slab_top" }
+  }
+}

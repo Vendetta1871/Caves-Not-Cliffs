@@ -1,0 +1,14 @@
+{
+  "multipart": [
+    { "when": { "north": "true" }, "apply": { "model": "cavesnotcliffs:red_mushroom_cap" } },
+    { "when": { "east": "true" }, "apply": { "model": "cavesnotcliffs:red_mushroom_cap", "y": 90, "uvlock": true } },
+    { "when": { "south": "true" }, "apply": { "model": "cavesnotcliffs:red_mushroom_cap", "y": 180, "uvlock": true } },
+    { "when": { "west": "true" }, "apply": { "model": "cavesnotcliffs:red_mushroom_cap", "y": 270, "uvlock": true } },
+    { "when": { "north": "false" }, "apply": { "model": "cavesnotcliffs:mushroom_block_inside" } },
+    { "when": { "east": "false" }, "apply": { "model": "cavesnotcliffs:mushroom_block_inside", "y": 90 } },
+    { "when": { "south": "false" }, "apply": { "model": "cavesnotcliffs:mushroom_block_inside", "y": 180 } },
+    { "when": { "west": "false" }, "apply": { "model": "cavesnotcliffs:mushroom_block_inside", "y": 270 } },
+    { "apply": { "model": "cavesnotcliffs:mushroom_block_inside", "x": 270 } },
+    { "apply": { "model": "cavesnotcliffs:mushroom_block_inside", "x": 90 } }
+  ]
+}

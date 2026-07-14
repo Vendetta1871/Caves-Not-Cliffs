@@ -9,6 +9,7 @@ import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockSlab;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.block.properties.IProperty;
@@ -20,22 +21,24 @@ import net.minecraft.item.ItemSlab;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.util.IStringSerializable;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
+import net.celestiald.cavesnotcliffs.content.DeepslateSoundEvents;
 import java.util.Random;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDarkStoneSlab extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:dark_stone_slab")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:tuff_slab")
     public static final Block block = null;
 
-    @GameRegistry.ObjectHolder("cavesnotcliffs:dark_stone_slab_double")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:tuff_slab_double")
     public static final Block block_slab_double = null;
 
     public BlockDarkStoneSlab(ElementsCavesNotCliffs instance) { super(instance, 59); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("dark_stone_slab"));
-        elements.blocks.add(() -> new BlockCustom.Double().setRegistryName("dark_stone_slab_double"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("tuff_slab"));
+        elements.blocks.add(() -> new BlockCustom.Double().setRegistryName("tuff_slab_double"));
         elements.items.add(() -> new ItemSlab(block, (BlockSlab) block, (BlockSlab) block_slab_double)
             .setRegistryName(block.getRegistryName()));
     }
@@ -44,20 +47,20 @@ public class BlockDarkStoneSlab extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void registerModels(ModelRegistryEvent event) {
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:dark_stone_slab", "inventory"));
+            new ModelResourceLocation("cavesnotcliffs:tuff_slab", "inventory"));
     }
 
     public static class BlockCustom extends BlockSlab {
         public static final PropertyEnum<Variant> VARIANT = PropertyEnum.create("variant", Variant.class);
 
         public BlockCustom() {
-            super(Material.ROCK);
-            setUnlocalizedName("dark_stone_slab");
+            super(Material.ROCK, MapColor.GRAY_STAINED_HARDENED_CLAY);
+            setUnlocalizedName("tuff_slab");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
-            setSoundType(SoundType.STONE);
-            setHarvestLevel("pickaxe", 1);
+            setSoundType(DeepslateSoundEvents.TUFF);
+            setHarvestLevel("pickaxe", 0);
             setHardness(1.5f);
-            setResistance(6.0f);
+            setResistance(CncBlockProperties.legacyResistance(6.0F));
             IBlockState state = this.blockState.getBaseState().withProperty(VARIANT, Variant.DEFAULT);
             if (!isDouble()) state = state.withProperty(HALF, EnumBlockHalf.BOTTOM);
             setDefaultState(state);

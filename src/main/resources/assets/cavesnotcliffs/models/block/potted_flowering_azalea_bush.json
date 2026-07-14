@@ -1,0 +1,7 @@
+{
+  "parent": "cavesnotcliffs:block/template_potted_azalea_bush",
+  "textures": {
+    "top": "cavesnotcliffs:block/potted_flowering_azalea_bush_top",
+    "side": "cavesnotcliffs:block/potted_flowering_azalea_bush_side"
+  }
+}

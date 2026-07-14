@@ -9,6 +9,7 @@ import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockWall;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.statemap.StateMap;
@@ -19,17 +20,19 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.util.NonNullList;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
+import net.celestiald.cavesnotcliffs.content.DeepslateSoundEvents;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDarkStoneWalls extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:dark_stone_walls")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:tuff_wall")
     public static final Block block = null;
 
     public BlockDarkStoneWalls(ElementsCavesNotCliffs instance) { super(instance, 61); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("dark_stone_walls"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("tuff_wall"));
         elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
     }
 
@@ -37,20 +40,20 @@ public class BlockDarkStoneWalls extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void registerModels(ModelRegistryEvent event) {
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:dark_stone_walls", "inventory"));
+            new ModelResourceLocation("cavesnotcliffs:tuff_wall", "inventory"));
         ModelLoader.setCustomStateMapper(block,
             new StateMap.Builder().ignore(BlockWall.VARIANT).build());
     }
 
     private static class BlockCustom extends BlockWall {
         public BlockCustom() {
-            super(new Block(Material.ROCK));
-            setUnlocalizedName("dark_stone_walls");
+            super(new Block(Material.ROCK, MapColor.GRAY_STAINED_HARDENED_CLAY));
+            setUnlocalizedName("tuff_wall");
             setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
-            setSoundType(SoundType.STONE);
-            setHarvestLevel("pickaxe", 1);
+            setSoundType(DeepslateSoundEvents.TUFF);
+            setHarvestLevel("pickaxe", 0);
             setHardness(1.5f);
-            setResistance(6.0f);
+            setResistance(CncBlockProperties.legacyResistance(6.0F));
         }
 
         @Override

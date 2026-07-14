@@ -4,6 +4,7 @@ libs
 libs_disabled
 /models
 run
+/logs/
 .gradle
 .mcreator
 CLAUDE.md

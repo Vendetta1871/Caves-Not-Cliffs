@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "facing=north,type=single": { "model": "cavesnotcliffs:dungeon_chest" },
+    "facing=south,type=single": { "model": "cavesnotcliffs:dungeon_chest" },
+    "facing=west,type=single": { "model": "cavesnotcliffs:dungeon_chest" },
+    "facing=east,type=single": { "model": "cavesnotcliffs:dungeon_chest" },
+    "facing=north,type=left": { "model": "cavesnotcliffs:dungeon_chest" },
+    "facing=south,type=left": { "model": "cavesnotcliffs:dungeon_chest" },
+    "facing=west,type=left": { "model": "cavesnotcliffs:dungeon_chest" },
+    "facing=east,type=left": { "model": "cavesnotcliffs:dungeon_chest" },
+    "facing=north,type=right": { "model": "cavesnotcliffs:dungeon_chest" },
+    "facing=south,type=right": { "model": "cavesnotcliffs:dungeon_chest" },
+    "facing=west,type=right": { "model": "cavesnotcliffs:dungeon_chest" },
+    "facing=east,type=right": { "model": "cavesnotcliffs:dungeon_chest" }
+  }
+}

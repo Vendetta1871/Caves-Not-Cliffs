@@ -1,0 +1,58 @@
+package net.minecraft.world.level.levelgen;
+
+import java.io.PrintWriter;
+import java.lang.reflect.Method;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.Registry;
+import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.block.Blocks;
+
+/** Emits seeded SurfaceSystem depth/noise/band values from the official mapped 1.18.2 server. */
+public final class Cnc118SurfacePrimitiveOracle {
+    private static final long[] SEEDS = {
+        0L, 1L, -1L, 123456789L, Long.MIN_VALUE, Long.MAX_VALUE
+    };
+    private static final int[][] COLUMNS = {
+        {-33, -17}, {-16, -16}, {-15, -1}, {-1, -1}, {0, 0}, {15, 15}, {16, 16},
+        {31, -32}, {33554431, -33554432}, {-33554433, 33554432}
+    };
+
+    public static void main(String[] args) throws Exception {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        BuiltinRegistries.bootstrap();
+        Method depth = SurfaceSystem.class.getDeclaredMethod("getSurfaceDepth", int.class,
+            int.class);
+        Method secondary = SurfaceSystem.class.getDeclaredMethod("getSurfaceSecondary", int.class,
+            int.class);
+        Method band = SurfaceSystem.class.getDeclaredMethod("getBand", int.class, int.class,
+            int.class);
+        depth.setAccessible(true);
+        secondary.setAccessible(true);
+        band.setAccessible(true);
+        PrintWriter out = new PrintWriter(args[0], "UTF-8");
+        out.println("# official Minecraft Java 1.18.2 SurfaceSystem primitives");
+        for (long seed : SEEDS) {
+            SurfaceSystem system = new SurfaceSystem(BuiltinRegistries.NOISE,
+                Blocks.STONE.defaultBlockState(), 63, seed, WorldgenRandom.Algorithm.XOROSHIRO);
+            for (int[] column : COLUMNS) {
+                int x = column[0];
+                int z = column[1];
+                out.println("depth\t" + seed + "\t" + x + "\t" + z + "\t"
+                    + depth.invoke(system, x, z) + "\t"
+                    + Long.toUnsignedString(Double.doubleToRawLongBits(
+                        (Double) secondary.invoke(system, x, z))));
+                for (int y : new int[] {
+                        -64, -1, 0, 1, 7, 8, 62, 63, 64, 96, 97, 255, 256, 319}) {
+                    net.minecraft.world.level.block.state.BlockState state =
+                        (net.minecraft.world.level.block.state.BlockState)
+                            band.invoke(system, x, y, z);
+                    out.println("band\t" + seed + "\t" + x + "\t" + y + "\t" + z
+                        + "\t" + Registry.BLOCK.getKey(state.getBlock()));
+                }
+            }
+        }
+        out.close();
+    }
+}

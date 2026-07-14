@@ -1,0 +1,6 @@
+{
+  "parent": "block/cube_all",
+  "textures": {
+    "all": "cavesnotcliffs:blocks/mushroom_stem"
+  }
+}

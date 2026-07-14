@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "variant=default": { "model": "cavesnotcliffs:tuff_slab_double" }
+  }
+}

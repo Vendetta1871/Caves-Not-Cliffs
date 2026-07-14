@@ -1,75 +1,239 @@
 buildscript {
     repositories {
-        jcenter()
-        maven { url = "http://files.minecraftforge.net/maven" }
-        maven { url = "https://repo.spongepowered.org/maven" }
-        flatDir { dirs 'libs' }
+        maven { url = 'https://maven.minecraftforge.net/' }
+        mavenCentral()
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
-        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
     }
 }
 
 apply plugin: 'net.minecraftforge.gradle.forge'
-apply plugin: 'org.spongepowered.mixin'
 
-version = "1.5.0"
-group = "net.celestiald"
-archivesBaseName = "cavesnotcliffs"
+version = '2.0.0'
+group = 'net.celestiald'
+archivesBaseName = 'cavesnotcliffs'
 
 sourceCompatibility = targetCompatibility = '1.8'
 compileJava {
     sourceCompatibility = targetCompatibility = '1.8'
+    options.encoding = 'UTF-8'
 }
 
 minecraft {
-    version = '1.12.2-14.23.5.2768'
+    // ForgeGradle 2.3 requires the legacy `userdev` artifact. Forge 2854+ only publishes the
+    // incompatible `userdev3` format, so 2847 is the newest usable compile toolchain. The shipped
+    // mod still requires Forge 2860+ at runtime (declared in @Mod and mcmod.info).
+    version = '1.12.2-14.23.5.2847'
     runDir = 'run'
     mappings = 'snapshot_20171003'
-    coreMod = 'net.celestiald.cavesnotcliffs.core.CNCLoadingPlugin'
 }
 
 repositories {
-    maven { url "https://repo.spongepowered.org/maven" }
+    maven { url = 'https://jitpack.io' }
+    mavenCentral()
 }
 
 dependencies {
-    // Compiled against, and present in the dev runtime, but deliberately NOT bundled into the jar.
-    // At runtime in a real instance, Mixin is provided by the MixinBootstrap mod
-    // (https://modrinth.com/mod/mixinbootstrap), which is a required dependency. Bundling Mixin here
-    // too would mean two copies of the library fighting over the same packages.
-    compile('org.spongepowered:mixin:0.7.11-SNAPSHOT') { transitive = false }
-}
+    compileOnly('com.github.frostdev-ops:CaveBiomesAPI:c118a55') {
+        transitive = false
+    }
+    testCompile('com.github.frostdev-ops:CaveBiomesAPI:c118a55') {
+        transitive = false
+    }
 
-mixin {
-    add sourceSets.main, 'mixins.cavesnotcliffs.refmap.json'
+    testCompile 'junit:junit:4.13.2'
 }
 
 jar {
-    // The `coreMod` property only sets FMLCorePlugin. Without these, a shipped JAR loads purely as a
-    // coremod: the @Mod (CavesNotCliffs) and the mod's resource pack (incl. the overridden
-    // minecraft:cauldron blockstate) would not load. Dev runs hide this.
     manifest {
         attributes(
-            'FMLCorePlugin': 'net.celestiald.cavesnotcliffs.core.CNCLoadingPlugin',
-            'FMLCorePluginContainsFMLMod': 'true',
-            'ForceLoadAsMod': 'true'
+            'Implementation-Title': 'Caves Not Cliffs',
+            'Implementation-Version': project.version,
+            'FMLCorePlugin': 'net.celestiald.cavesnotcliffs.core.CavesNotCliffsCorePlugin',
+            'FMLCorePluginContainsFMLMod': 'true'
         )
     }
 }
 
+// ForgeGradle's reobf task converts development/MCP member names to the SRG names expected by a
+// production Forge runtime. Make that task an explicit part of every release verification.
+reobf {
+    jar {
+        mappingType = 'SEARGE'
+    }
+}
+
 processResources {
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
+    inputs.property 'version', project.version
+    inputs.property 'mcversion', '1.12.2'
     from(sourceSets.main.resources.srcDirs) {
         include 'mcmod.info'
-        expand 'version': project.version, 'mcversion': project.minecraft.version
+        expand 'version': project.version, 'mcversion': '1.12.2'
     }
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info'
     }
 }
+
+// These are Minecraft fields used by the current source tree which have MCP/development names.
+// Finding one on a net.minecraft owner in the distributable proves that reobfuscation was skipped
+// or incomplete (Material.ROCK was the original release-blocking example).
+def forbiddenMcpFields = [
+    'ADOBE', 'AIR', 'ARMOR_CLEANED', 'BANNER_CLEANED', 'BEDROCK',
+    'BUCKET', 'BUILDING_BLOCKS', 'CAULDRON', 'CAULDRON_FILLED', 'CAULDRON_USED',
+    'CLAY', 'FERN', 'GLASS', 'GLASS_BOTTLE', 'GRASS', 'IRON',
+    'FLOWING_WATER', 'ITEM_BOTTLE_EMPTY', 'ITEM_BOTTLE_FILL',
+    'ITEM_BUCKET_EMPTY', 'ITEM_BUCKET_EMPTY_LAVA', 'ITEM_BUCKET_FILL',
+    'ITEM_BUCKET_FILL_LAVA',
+    'LAVA', 'LAVA_BUCKET', 'MAX_HEALTH', 'METAL', 'MOVEMENT_SPEED',
+    'PLANT', 'POTIONITEM', 'PURPLE_SHULKER_BOX', 'ROCK', 'STONE', 'VINE', 'WATER',
+    'WATER_BUCKET'
+] as Set
+
+task verifyReleaseJar(dependsOn: reobfJar) {
+    group = 'verification'
+    description = 'Checks that the production jar is reobfuscated and contains valid release metadata.'
+    inputs.file { jar.archivePath }
+
+    doLast {
+        File releaseJar = jar.archivePath
+        if (!releaseJar.isFile()) {
+            throw new GradleException("Production jar was not created: ${releaseJar}")
+        }
+
+        def zip = new java.util.zip.ZipFile(releaseJar)
+        try {
+            def readText = { String entryName ->
+                def entry = zip.getEntry(entryName)
+                if (entry == null) {
+                    throw new GradleException("Production jar is missing ${entryName}")
+                }
+                def stream = zip.getInputStream(entry)
+                try {
+                    return stream.getText('UTF-8')
+                } finally {
+                    stream.close()
+                }
+            }
+
+            def manifestText = readText('META-INF/MANIFEST.MF')
+            if (!manifestText.contains('Implementation-Version: ' + project.version)) {
+                throw new GradleException('Production manifest does not contain the release version')
+            }
+            def manifestStream = zip.getInputStream(zip.getEntry('META-INF/MANIFEST.MF'))
+            def manifest
+            try {
+                manifest = new java.util.jar.Manifest(manifestStream)
+            } finally {
+                manifestStream.close()
+            }
+            if (manifest.mainAttributes.getValue('FMLCorePlugin') !=
+                    'net.celestiald.cavesnotcliffs.core.CavesNotCliffsCorePlugin') {
+                throw new GradleException('Production manifest does not declare the piston core plugin')
+            }
+            if (manifest.mainAttributes.getValue('FMLCorePluginContainsFMLMod') != 'true') {
+                throw new GradleException('Production manifest does not retain the regular Forge mod container')
+            }
+            if (zip.getEntry('net/celestiald/cavesnotcliffs/core/HoneyPistonTransformer.class') == null) {
+                throw new GradleException('Production jar is missing the honey piston transformer')
+            }
+            if (zip.getEntry('net/celestiald/cavesnotcliffs/core/DeadBushSupportTransformer.class') == null) {
+                throw new GradleException('Production jar is missing the dead bush support transformer')
+            }
+            if (zip.getEntry('net/celestiald/cavesnotcliffs/core/SugarCaneSupportTransformer.class') == null) {
+                throw new GradleException('Production jar is missing the sugar cane support transformer')
+            }
+            if (zip.getEntry('net/celestiald/cavesnotcliffs/core/LilyPadSupportTransformer.class') == null) {
+                throw new GradleException('Production jar is missing the lily pad support transformer')
+            }
+            if (zip.getEntry('net/celestiald/cavesnotcliffs/core/MushroomSupportTransformer.class') == null) {
+                throw new GradleException('Production jar is missing the mushroom support transformer')
+            }
+            if (zip.getEntry('net/celestiald/cavesnotcliffs/core/DoublePlantSupportTransformer.class') == null) {
+                throw new GradleException('Production jar is missing the double plant support transformer')
+            }
+            if (zip.getEntry('net/celestiald/cavesnotcliffs/core/TallGrassSupportTransformer.class') == null) {
+                throw new GradleException('Production jar is missing the tall grass support transformer')
+            }
+            if (zip.getEntry('net/celestiald/cavesnotcliffs/core/SchemaOnePopulationTransformer.class') == null) {
+                throw new GradleException('Production jar is missing the schema-one population transformer')
+            }
+
+            def metadata = new groovy.json.JsonSlurper().parseText(readText('mcmod.info'))
+            if (!(metadata instanceof List) || metadata.isEmpty() || metadata[0].version != project.version.toString()) {
+                throw new GradleException("mcmod.info does not contain release version ${project.version}")
+            }
+            if (!metadata[0].dependencies.any { it.startsWith('required-after:cavebiomesapi@') }) {
+                throw new GradleException('mcmod.info does not declare CaveBiomesAPI as a required runtime mod')
+            }
+
+            if (zip.getEntry('org/spongepowered/asm/launch/MixinBootstrap.class') != null) {
+                throw new GradleException('A Mixin runtime was accidentally bundled into the mod jar')
+            }
+            if (zip.getEntry('net/celestiald/cavebiomes/api/WorldHeightAPI.class') != null) {
+                throw new GradleException('The CaveBiomesAPI classes were bundled into the mod jar')
+            }
+
+            def badReferences = []
+            def entries = zip.entries()
+            while (entries.hasMoreElements()) {
+                def entry = entries.nextElement()
+                if (!entry.name.endsWith('.class')) {
+                    continue
+                }
+                def stream = zip.getInputStream(entry)
+                try {
+                    byte[] classBytes = stream.bytes
+                    if (new String(classBytes, 'ISO-8859-1')
+                            .contains('io/github/opencubicchunks/')) {
+                        badReferences << "${entry.name}: static CubicChunks linkage"
+                    }
+                    new org.objectweb.asm.ClassReader(classBytes).accept(
+                        new org.objectweb.asm.ClassVisitor(org.objectweb.asm.Opcodes.ASM5) {
+                            @Override
+                            org.objectweb.asm.MethodVisitor visitMethod(int access, String name,
+                                    String descriptor, String signature, String[] exceptions) {
+                                return new org.objectweb.asm.MethodVisitor(org.objectweb.asm.Opcodes.ASM5) {
+                                    @Override
+                                    void visitFieldInsn(int opcode, String owner, String fieldName,
+                                            String fieldDescriptor) {
+                                        if (owner.startsWith('net/minecraft/') && forbiddenMcpFields.contains(fieldName)) {
+                                            badReferences << "${entry.name}: ${owner}.${fieldName}"
+                                        }
+                                    }
+
+                                    @Override
+                                    void visitMethodInsn(int opcode, String owner, String methodName,
+                                            String methodDescriptor, boolean isInterface) {
+                                        // SoundEvent#getSoundName is client-only in 1.12.2. The
+                                        // development merged jar contains it, but dedicated servers
+                                        // strip it and fail with NoSuchMethodError at mod loading.
+                                        if (owner == 'net/minecraft/util/SoundEvent' &&
+                                                (methodName == 'getSoundName' || methodName == 'func_187503_a')) {
+                                            badReferences << "${entry.name}: ${owner}.${methodName}${methodDescriptor}"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        org.objectweb.asm.ClassReader.SKIP_DEBUG | org.objectweb.asm.ClassReader.SKIP_FRAMES
+                    )
+                } finally {
+                    stream.close()
+                }
+            }
+            if (!badReferences.isEmpty()) {
+                throw new GradleException('Production jar contains unsafe Minecraft member references:\n' +
+                    badReferences.unique().sort().join('\n'))
+            }
+        } finally {
+            zip.close()
+        }
+    }
+}
+
+check.dependsOn verifyReleaseJar
 
 runClient {
     args '--username', 'Dev', '--uuid', '00000000-0000-0000-0000-000000000000', '--accessToken', '0'
@@ -77,5 +241,3 @@ runClient {
 
 runClient.outputs.upToDateWhen { false }
 runServer.outputs.upToDateWhen { false }
-
-

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "##",
+    "##"
+  ],
+  "key": {
+    "#": {
+      "item": "cavesnotcliffs:oxidized_copper"
+    }
+  },
+  "result": {
+    "item": "cavesnotcliffs:oxidized_cut_copper",
+    "count": 4
+  }
+}

@@ -1,0 +1,536 @@
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.mojang.serialization.JsonOps;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.BiomeSource;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
+import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
+import net.minecraft.world.level.levelgen.WorldgenRandom;
+import net.minecraft.world.level.levelgen.XoroshiroRandomSource;
+import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
+import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+
+/** Exact official Java 1.18.2 dead-bush placed-feature catalog and RNG traces. */
+public final class Cnc118DeadBushDecorationOracle {
+    private static final long[] SEEDS = {
+        0L, 1L, -1L, 123456789L, Long.MIN_VALUE, Long.MAX_VALUE
+    };
+    private static final int CHUNK_X = -3;
+    private static final int CHUNK_Z = 5;
+    private static final int STEP = 9;
+    private static final int SURFACE_Y = 64;
+    private static final FeatureCase[] FEATURES = {
+        new FeatureCase("patch_dead_bush", 51, 1, "minecraft:swamp",
+            "minecraft:old_growth_pine_taiga",
+            "minecraft:old_growth_spruce_taiga", "minecraft:swamp"),
+        new FeatureCase("patch_dead_bush_2", 58, 2, "minecraft:desert",
+            "minecraft:desert"),
+        new FeatureCase("patch_dead_bush_badlands", 59, 20, "minecraft:badlands",
+            "minecraft:badlands", "minecraft:eroded_badlands",
+            "minecraft:wooded_badlands")
+    };
+
+    public static void main(String[] args) throws Exception {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        BuiltinRegistries.bootstrap();
+
+        MultiNoiseBiomeSource source = MultiNoiseBiomeSource.Preset.OVERWORLD.biomeSource(
+            BuiltinRegistries.BIOME);
+        List<BiomeSource.StepFeatureData> steps = source.featuresPerStep();
+        RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE,
+            BuiltinRegistries.ACCESS);
+
+        PrintWriter out = args.length == 0
+            ? new PrintWriter(System.out, true)
+            : new PrintWriter(args[0], StandardCharsets.UTF_8.name());
+        out.println("# official mapped Minecraft Java 1.18.2 dead-bush family oracle");
+        out.println("# trace worlds: member biome, flat sand through y=63, air above; heightmap reflects writes");
+        out.println("# trace columns: feature,seed,cx,cz,decorationSeed,featureSeed,origins,candidates,writes,eventOrder,featureNextCalls,result,trailingLong,trailingHex");
+        for (FeatureCase feature : FEATURES) {
+            PlacedFeature placed = BuiltinRegistries.PLACED_FEATURE.get(
+                new ResourceLocation(feature.id));
+            if (placed == null) throw new IllegalStateException("missing " + feature.id);
+            int[] location = findLocation(steps, placed);
+            if (location[0] != STEP || location[1] != feature.index) {
+                throw new IllegalStateException("unexpected " + feature.id + " slot "
+                    + location[0] + "/" + location[1]);
+            }
+            List<String> members = members(placed);
+            if (!members.equals(feature.members)) {
+                throw new IllegalStateException("unexpected " + feature.id
+                    + " membership " + members);
+            }
+            String placedJson = PlacedFeature.DIRECT_CODEC.encodeStart(ops, placed)
+                .result().orElseThrow(() -> new IllegalStateException("placed codec failed"))
+                .toString();
+            ConfiguredFeature<?, ?> configured = placed.feature().value();
+            String configuredJson = ConfiguredFeature.DIRECT_CODEC
+                .encodeStart(ops, configured).result()
+                .orElseThrow(() -> new IllegalStateException("configured codec failed"))
+                .toString();
+            out.println("slot\t" + feature.id + "\t" + location[0]
+                + "\t" + location[1]);
+            out.println("membership\t" + feature.id + "\t"
+                + String.join(",", members));
+            out.println("placed_json\t" + feature.id + "\t" + placedJson);
+            out.println("configured_json\t" + feature.id + "\t" + configuredJson);
+        }
+        out.println("support_explicit\t" + explicitSupports());
+        out.println("support_tag\tminecraft:dirt\t" + dirtTagValues());
+
+        for (FeatureCase feature : FEATURES) {
+            for (long seed : SEEDS) {
+                writeTrace(out, source, feature, seed, false);
+            }
+        }
+        writeTrace(out, source, FEATURES[2], 123456789L, true);
+        out.flush();
+        if (args.length != 0) out.close();
+    }
+
+    private static void writeTrace(PrintWriter out, MultiNoiseBiomeSource source,
+            FeatureCase feature, long seed, boolean alternatingBiomes) {
+        PlacedFeature placed = BuiltinRegistries.PLACED_FEATURE.get(
+            new ResourceLocation(feature.id));
+        Trace trace = new Trace(CHUNK_X, CHUNK_Z, feature.outerAttempts);
+        FlatBiomeWorld world = new FlatBiomeWorld(seed, trace,
+            feature.traceBiome, alternatingBiomes);
+        NoiseBasedChunkGenerator generator = new NoiseBasedChunkGenerator(
+            BuiltinRegistries.STRUCTURE_SETS, BuiltinRegistries.NOISE,
+            source, seed, BuiltinRegistries.NOISE_GENERATOR_SETTINGS.getHolderOrThrow(
+                NoiseGeneratorSettings.OVERWORLD));
+        TracingRandom random = new TracingRandom(trace);
+        long decorationSeed = random.setDecorationSeed(seed,
+            CHUNK_X << 4, CHUNK_Z << 4);
+        long featureSeed = decorationSeed + feature.index + 10000L * STEP;
+        random.setFeatureSeed(decorationSeed, feature.index, STEP);
+        int before = random.getCount();
+        random.tracing = true;
+        boolean result = placed.placeWithBiomeCheck(world.level, generator, random,
+            new BlockPos(CHUNK_X << 4, -64, CHUNK_Z << 4));
+        random.tracing = false;
+        int featureNextCalls = random.getCount() - before;
+        trace.verifyComplete();
+        int acceptedOrigins = alternatingBiomes
+            ? (feature.outerAttempts + 1) / 2 : feature.outerAttempts;
+        int expectedNextCalls = feature.outerAttempts * 2 + acceptedOrigins * 24;
+        if (featureNextCalls != expectedNextCalls) {
+            throw new IllegalStateException("unexpected " + feature.id + " next calls "
+                + featureNextCalls + " expected " + expectedNextCalls);
+        }
+        long trailing = random.nextLong();
+        out.println((alternatingBiomes ? "mixed_trace" : "trace") + "\t"
+            + feature.id + "\t" + seed + "\t" + CHUNK_X + "\t" + CHUNK_Z
+            + "\t" + decorationSeed + "\t" + featureSeed
+            + "\t" + trace.originsString()
+            + "\t" + trace.candidatesString()
+            + "\t" + trace.writesString()
+            + "\t" + trace.eventsString()
+            + "\t" + featureNextCalls
+            + "\t" + result
+            + "\t" + trailing
+            + "\t" + String.format(Locale.ROOT, "%016x", trailing));
+    }
+
+    private static int[] findLocation(List<BiomeSource.StepFeatureData> steps,
+            PlacedFeature placed) {
+        int foundStep = -1;
+        int foundIndex = -1;
+        for (int step = 0; step < steps.size(); ++step) {
+            int index = steps.get(step).features().indexOf(placed);
+            if (index < 0) continue;
+            if (foundStep >= 0) throw new IllegalStateException("feature appears twice");
+            foundStep = step;
+            foundIndex = index;
+        }
+        return new int[] {foundStep, foundIndex};
+    }
+
+    private static List<String> members(PlacedFeature placed) {
+        List<String> result = new ArrayList<>();
+        for (Map.Entry<ResourceKey<Biome>, Biome> entry
+                : BuiltinRegistries.BIOME.entrySet()) {
+            if (entry.getValue().getGenerationSettings().hasFeature(placed)) {
+                result.add(entry.getKey().location().toString());
+            }
+        }
+        Collections.sort(result);
+        return result;
+    }
+
+    private static String dirtTagValues() throws Exception {
+        InputStream input = Cnc118DeadBushDecorationOracle.class.getClassLoader()
+            .getResourceAsStream("data/minecraft/tags/blocks/dirt.json");
+        if (input == null) throw new IllegalStateException("missing dirt tag resource");
+        try (InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
+            JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
+            JsonArray values = root.getAsJsonArray("values");
+            List<String> ids = new ArrayList<>();
+            for (JsonElement value : values) ids.add(value.getAsString());
+            return String.join(",", ids);
+        }
+    }
+
+    private static String explicitSupports() {
+        return "minecraft:sand,minecraft:red_sand,minecraft:terracotta,"
+            + "minecraft:white_terracotta,minecraft:orange_terracotta,"
+            + "minecraft:magenta_terracotta,minecraft:light_blue_terracotta,"
+            + "minecraft:yellow_terracotta,minecraft:lime_terracotta,"
+            + "minecraft:pink_terracotta,minecraft:gray_terracotta,"
+            + "minecraft:light_gray_terracotta,minecraft:cyan_terracotta,"
+            + "minecraft:purple_terracotta,minecraft:blue_terracotta,"
+            + "minecraft:brown_terracotta,minecraft:green_terracotta,"
+            + "minecraft:red_terracotta,minecraft:black_terracotta";
+    }
+
+    private static final class TracingRandom extends WorldgenRandom {
+        final Trace trace;
+        boolean tracing;
+
+        TracingRandom(Trace trace) {
+            super(new XoroshiroRandomSource(0L));
+            this.trace = trace;
+        }
+
+        @Override
+        public int nextInt(int bound) {
+            int value = super.nextInt(bound);
+            if (tracing) trace.nextInt(bound, value);
+            return value;
+        }
+    }
+
+    private static final class FlatBiomeWorld implements InvocationHandler {
+        final long seed;
+        final Trace trace;
+        final Map<Long, BlockState> writes = new LinkedHashMap<>();
+        final Holder<Biome> memberBiome;
+        final Holder<Biome> rejectedBiome = BuiltinRegistries.BIOME.getHolderOrThrow(
+            ResourceKey.create(Registry.BIOME_REGISTRY,
+                new ResourceLocation("minecraft:plains")));
+        final boolean alternatingBiomes;
+        final WorldGenLevel level;
+
+        FlatBiomeWorld(long seed, Trace trace, String memberBiome,
+                boolean alternatingBiomes) {
+            this.seed = seed;
+            this.trace = trace;
+            this.memberBiome = BuiltinRegistries.BIOME.getHolderOrThrow(
+                ResourceKey.create(Registry.BIOME_REGISTRY,
+                    new ResourceLocation(memberBiome)));
+            this.alternatingBiomes = alternatingBiomes;
+            level = (WorldGenLevel) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[] {WorldGenLevel.class}, this);
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) {
+            String name = method.getName();
+            int count = method.getParameterCount();
+            if (name.equals("getMinBuildHeight")) return -64;
+            if (name.equals("getMaxBuildHeight")) return 320;
+            if (name.equals("getHeight") && count == 0) return 384;
+            if (name.equals("getHeight") && count == 3) {
+                int x = (Integer) args[1];
+                int z = (Integer) args[2];
+                int height = writes.containsKey(new BlockPos(x, SURFACE_Y, z).asLong())
+                    ? SURFACE_Y + 1 : SURFACE_Y;
+                trace.heightmap(x, height, z);
+                return height;
+            }
+            if (name.equals("getBiome")) {
+                BlockPos pos = ((BlockPos) args[0]).immutable();
+                boolean accepted = !alternatingBiomes
+                    || (trace.origins.size() - 1) % 2 == 0;
+                trace.biome(pos, accepted);
+                return accepted ? memberBiome : rejectedBiome;
+            }
+            if (name.equals("getSeed")) return seed;
+            if (name.equals("ensureCanWrite")) return true;
+            if (name.equals("getBlockState")) {
+                BlockPos pos = ((BlockPos) args[0]).immutable();
+                trace.blockState(pos);
+                BlockState written = writes.get(pos.asLong());
+                if (written != null) return written;
+                return pos.getY() <= SURFACE_Y - 1
+                    ? Blocks.SAND.defaultBlockState() : Blocks.AIR.defaultBlockState();
+            }
+            if (name.equals("getFluidState")) {
+                BlockPos pos = ((BlockPos) args[0]).immutable();
+                BlockState written = writes.get(pos.asLong());
+                BlockState state = written != null ? written
+                    : pos.getY() <= SURFACE_Y - 1
+                        ? Blocks.SAND.defaultBlockState() : Blocks.AIR.defaultBlockState();
+                return state.getFluidState();
+            }
+            if (name.equals("setBlock")) {
+                BlockPos pos = ((BlockPos) args[0]).immutable();
+                BlockState state = (BlockState) args[1];
+                writes.put(pos.asLong(), state);
+                trace.write(pos, state);
+                return true;
+            }
+            Class<?> type = method.getReturnType();
+            if (type == boolean.class) return false;
+            if (type == int.class) return 0;
+            if (type == long.class) return 0L;
+            if (type == float.class) return 0.0F;
+            if (type == double.class) return 0.0D;
+            return null;
+        }
+    }
+
+    private static final class Trace {
+        enum Mode { OUTER, BIOME, CANDIDATE, DONE }
+
+        final int chunkX;
+        final int chunkZ;
+        final int expectedOrigins;
+        final List<Origin> origins = new ArrayList<>();
+        final List<Candidate> candidates = new ArrayList<>();
+        final List<BlockPos> writes = new ArrayList<>();
+        final List<Integer> draws = new ArrayList<>();
+        final List<String> events = new ArrayList<>();
+        Mode mode = Mode.OUTER;
+        int attempt;
+
+        Trace(int chunkX, int chunkZ, int expectedOrigins) {
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
+            this.expectedOrigins = expectedOrigins;
+        }
+
+        void nextInt(int bound, int value) {
+            if (mode == Mode.DONE) {
+                throw new IllegalStateException("unexpected nextInt after candidates");
+            }
+            int expected;
+            if (mode == Mode.OUTER) {
+                expected = 16;
+                if (draws.size() >= 2) throw new IllegalStateException("too many outer draws");
+            } else {
+                int[] bounds = {8, 8, 4, 4, 8, 8};
+                if (draws.size() >= bounds.length) {
+                    throw new IllegalStateException("candidate was not observed");
+                }
+                expected = bounds[draws.size()];
+            }
+            if (bound != expected) {
+                throw new IllegalStateException("expected nextInt(" + expected + ") but got "
+                    + bound);
+            }
+            draws.add(value);
+        }
+
+        void heightmap(int x, int y, int z) {
+            if (mode != Mode.OUTER || draws.size() != 2) {
+                throw new IllegalStateException("heightmap outside outer placement");
+            }
+            int expectedX = (chunkX << 4) + draws.get(0);
+            int expectedZ = (chunkZ << 4) + draws.get(1);
+            if (x != expectedX || z != expectedZ) {
+                throw new IllegalStateException("outer coordinate mismatch");
+            }
+            Origin origin = new Origin(origins.size(), draws.get(0), draws.get(1),
+                new BlockPos(x, y, z));
+            origins.add(origin);
+            draws.clear();
+            mode = Mode.BIOME;
+        }
+
+        void biome(BlockPos pos, boolean accepted) {
+            if (mode != Mode.BIOME || origins.isEmpty()) {
+                throw new IllegalStateException("biome outside outer placement");
+            }
+            Origin origin = origins.get(origins.size() - 1);
+            if (!origin.pos.equals(pos)) {
+                throw new IllegalStateException("biome coordinate mismatch");
+            }
+            origin.accepted = accepted;
+            events.add(origin.token());
+            attempt = 0;
+            mode = accepted ? Mode.CANDIDATE
+                : origins.size() == expectedOrigins ? Mode.DONE : Mode.OUTER;
+        }
+
+        void blockState(BlockPos pos) {
+            if (mode != Mode.CANDIDATE || draws.size() != 6) return;
+            Origin origin = origins.get(origins.size() - 1);
+            int dx = draws.get(0) - draws.get(1);
+            int dy = draws.get(2) - draws.get(3);
+            int dz = draws.get(4) - draws.get(5);
+            BlockPos expected = origin.pos.offset(dx, dy, dz);
+            if (!expected.equals(pos)) {
+                throw new IllegalStateException("candidate coordinate mismatch: expected "
+                    + expected + " got " + pos);
+            }
+            Candidate candidate = new Candidate(origin.index, attempt, new ArrayList<>(draws),
+                dx, dy, dz, pos);
+            candidates.add(candidate);
+            events.add(candidate.token());
+            draws.clear();
+            ++attempt;
+            if (attempt == 4) {
+                mode = origins.size() == expectedOrigins ? Mode.DONE : Mode.OUTER;
+            }
+        }
+
+        void write(BlockPos pos, BlockState state) {
+            if (!state.is(Blocks.DEAD_BUSH)) {
+                throw new IllegalStateException("unexpected write " + state);
+            }
+            if (candidates.isEmpty() || !candidates.get(candidates.size() - 1).pos.equals(pos)) {
+                throw new IllegalStateException("write does not match latest candidate");
+            }
+            candidates.get(candidates.size() - 1).wrote = true;
+            writes.add(pos.immutable());
+            events.add("w@" + pos.getX() + "," + pos.getY() + "," + pos.getZ());
+        }
+
+        void verifyComplete() {
+            int accepted = 0;
+            for (Origin origin : origins) if (origin.accepted) accepted++;
+            if (mode != Mode.DONE || origins.size() != expectedOrigins
+                    || candidates.size() != accepted * 4
+                    || !draws.isEmpty()) {
+                throw new IllegalStateException("incomplete lazy trace: origins=" + origins.size()
+                    + " candidates=" + candidates.size() + " mode=" + mode);
+            }
+        }
+
+        String originsString() {
+            List<String> values = new ArrayList<>();
+            for (Origin origin : origins) values.add(origin.token());
+            return String.join(";", values);
+        }
+
+        String candidatesString() {
+            List<String> values = new ArrayList<>();
+            for (Candidate candidate : candidates) values.add(candidate.detail());
+            return String.join(";", values);
+        }
+
+        String writesString() {
+            if (writes.isEmpty()) return "-";
+            List<String> values = new ArrayList<>();
+            for (BlockPos pos : writes) {
+                values.add(pos.getX() + "," + pos.getY() + "," + pos.getZ());
+            }
+            return String.join(";", values);
+        }
+
+        String eventsString() {
+            return String.join(">", events);
+        }
+    }
+
+    private static final class Origin {
+        final int index;
+        final int xDraw;
+        final int zDraw;
+        final BlockPos pos;
+        boolean accepted;
+
+        Origin(int index, int xDraw, int zDraw, BlockPos pos) {
+            this.index = index;
+            this.xDraw = xDraw;
+            this.zDraw = zDraw;
+            this.pos = pos.immutable();
+        }
+
+        String token() {
+            return "o" + index + (accepted ? "+" : "-")
+                + "[" + xDraw + "," + zDraw + "]@"
+                + pos.getX() + "," + pos.getY() + "," + pos.getZ();
+        }
+    }
+
+    private static final class FeatureCase {
+        final String id;
+        final int index;
+        final int outerAttempts;
+        final String traceBiome;
+        final List<String> members;
+
+        FeatureCase(String id, int index, int outerAttempts,
+                String traceBiome, String... members) {
+            this.id = id;
+            this.index = index;
+            this.outerAttempts = outerAttempts;
+            this.traceBiome = traceBiome;
+            this.members = Collections.unmodifiableList(
+                new ArrayList<>(Arrays.asList(members)));
+        }
+    }
+
+    private static final class Candidate {
+        final int origin;
+        final int attempt;
+        final List<Integer> draws;
+        final int dx;
+        final int dy;
+        final int dz;
+        final BlockPos pos;
+        boolean wrote;
+
+        Candidate(int origin, int attempt, List<Integer> draws,
+                int dx, int dy, int dz, BlockPos pos) {
+            this.origin = origin;
+            this.attempt = attempt;
+            this.draws = draws;
+            this.dx = dx;
+            this.dy = dy;
+            this.dz = dz;
+            this.pos = pos.immutable();
+        }
+
+        String token() {
+            return "o" + origin + "a" + attempt + "@" + pos.getX() + ","
+                + pos.getY() + "," + pos.getZ();
+        }
+
+        String detail() {
+            return "o" + origin + "a" + attempt + "["
+                + draws.get(0) + "-" + draws.get(1) + ","
+                + draws.get(2) + "-" + draws.get(3) + ","
+                + draws.get(4) + "-" + draws.get(5) + "]=("
+                + signed(dx) + "," + signed(dy) + "," + signed(dz) + ")@"
+                + pos.getX() + "," + pos.getY() + "," + pos.getZ()
+                + (wrote ? ":W" : ":-");
+        }
+
+        private static String signed(int value) {
+            return value >= 0 ? "+" + value : Integer.toString(value);
+        }
+    }
+}

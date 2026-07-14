@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "group": "copper_ingot",
+  "ingredients": [
+    {
+      "item": "cavesnotcliffs:waxed_copper_block"
+    }
+  ],
+  "result": {
+    "item": "cavesnotcliffs:copper_ingot",
+    "count": 9
+  }
+}

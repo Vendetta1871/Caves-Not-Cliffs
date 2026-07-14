@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "lit=false": { "model": "cavesnotcliffs:deepslate_redstone_ore" },
+    "lit=true":  { "model": "cavesnotcliffs:deepslate_redstone_ore" }
+  }
+}

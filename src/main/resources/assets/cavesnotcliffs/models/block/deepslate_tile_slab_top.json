@@ -1,0 +1,1 @@
+{ "parent": "block/upper_slab", "textures": { "bottom": "cavesnotcliffs:blocks/deepslate_tiles", "top": "cavesnotcliffs:blocks/deepslate_tiles", "side": "cavesnotcliffs:blocks/deepslate_tiles" } }

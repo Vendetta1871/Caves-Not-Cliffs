@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "facing=up":    {"model": "cavesnotcliffs:small_amethyst_bud"},
+    "facing=down":  {"model": "cavesnotcliffs:small_amethyst_bud", "x": 180},
+    "facing=north": {"model": "cavesnotcliffs:small_amethyst_bud", "x": 90},
+    "facing=south": {"model": "cavesnotcliffs:small_amethyst_bud", "x": 90, "y": 180},
+    "facing=east":  {"model": "cavesnotcliffs:small_amethyst_bud", "x": 90, "y": 90},
+    "facing=west":  {"model": "cavesnotcliffs:small_amethyst_bud", "x": 90, "y": 270}
+  }
+}

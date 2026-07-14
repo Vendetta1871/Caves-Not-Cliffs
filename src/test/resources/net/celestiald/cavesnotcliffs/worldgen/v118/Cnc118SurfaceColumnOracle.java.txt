@@ -1,0 +1,185 @@
+package net.minecraft.world.level.levelgen;
+
+import java.io.PrintWriter;
+import java.security.MessageDigest;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.NoiseColumn;
+import net.minecraft.world.level.biome.BiomeManager;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ProtoChunk;
+import net.minecraft.world.level.chunk.UpgradeData;
+import net.minecraft.world.level.levelgen.blending.Blender;
+
+/** Full raw-column -> SurfaceSystem oracle against the mapped official 1.18.2 server. */
+public final class Cnc118SurfaceColumnOracle {
+    private static final long[] SEEDS = {
+        0L, 1L, -1L, 123456789L, Long.MIN_VALUE, Long.MAX_VALUE
+    };
+    private static final int[][] CHUNKS = {
+        {-2, -2}, {-1, 0}, {0, -1}, {0, 0}, {1, -2}, {-2, 1}
+    };
+    private static final int[][] SAMPLES = {
+        {0, 0}, {1, 15}, {15, 1}, {15, 15}, {4, 4}, {8, 8}, {12, 7}, {7, 12}
+    };
+
+    public static void main(String[] args) throws Exception {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        BuiltinRegistries.bootstrap();
+        PrintWriter out = new PrintWriter(args[0], "UTF-8");
+        out.println("# official Minecraft Java 1.18.2 raw columns and SurfaceSystem output");
+        for (String profile : new String[] {"normal", "large", "amplified"}) {
+            Holder<NoiseGeneratorSettings> holder = BuiltinRegistries.NOISE_GENERATOR_SETTINGS
+                .getHolderOrThrow(profileKey(profile));
+            for (int seedIndex = 0; seedIndex < SEEDS.length; ++seedIndex) {
+                long seed = SEEDS[seedIndex];
+                int chunkX = CHUNKS[seedIndex][0];
+                int chunkZ = CHUNKS[seedIndex][1];
+                emit(out, profile, holder, seed, chunkX, chunkZ);
+            }
+        }
+        out.close();
+    }
+
+    private static void emit(PrintWriter out, String profile,
+            Holder<NoiseGeneratorSettings> holder, long seed, int chunkX, int chunkZ)
+            throws Exception {
+        NoiseGeneratorSettings settings = holder.value();
+        MultiNoiseBiomeSource biomes = MultiNoiseBiomeSource.Preset.OVERWORLD
+            .biomeSource(BuiltinRegistries.BIOME);
+        NoiseBasedChunkGenerator generator = new NoiseBasedChunkGenerator(
+            BuiltinRegistries.STRUCTURE_SETS, BuiltinRegistries.NOISE, biomes, seed, holder);
+        LevelHeightAccessor height = LevelHeightAccessor.create(-64, 384);
+        ProtoChunk chunk = new ProtoChunk(new ChunkPos(chunkX, chunkZ), UpgradeData.EMPTY,
+            height, BuiltinRegistries.BIOME, null);
+        int minX = chunkX << 4;
+        int minZ = chunkZ << 4;
+        for (int localX = 0; localX < 16; ++localX) {
+            for (int localZ = 0; localZ < 16; ++localZ) {
+                int x = minX + localX;
+                int z = minZ + localZ;
+                NoiseColumn column = generator.getBaseColumn(x, z, height);
+                for (int y = -64; y < 320; ++y) {
+                    BlockState state = column.getBlock(y);
+                    if (!state.isAir()) {
+                        chunk.setBlockState(new net.minecraft.core.BlockPos(x, y, z), state, false);
+                    }
+                }
+            }
+        }
+
+        BlockState[][] rawSamples = new BlockState[SAMPLES.length][384];
+        for (int sample = 0; sample < SAMPLES.length; ++sample) {
+            int x = minX + SAMPLES[sample][0];
+            int z = minZ + SAMPLES[sample][1];
+            for (int y = -64; y < 320; ++y) {
+                rawSamples[sample][y + 64] = chunk.getBlockState(
+                    new net.minecraft.core.BlockPos(x, y, z));
+            }
+        }
+        String rawHash = hashChunk(chunk, minX, minZ);
+        Map<String, Integer> rawCounts = countChunk(chunk, minX, minZ);
+
+        int sea = settings.seaLevel();
+        Aquifer.FluidStatus lava = new Aquifer.FluidStatus(-54,
+            Blocks.LAVA.defaultBlockState());
+        Aquifer.FluidStatus fluid = new Aquifer.FluidStatus(sea, settings.defaultFluid());
+        Aquifer.FluidPicker picker = (x, y, z) -> y < Math.min(-54, sea) ? lava : fluid;
+        NoiseChunk noiseChunk = NoiseChunk.forChunk(chunk, generator.router(),
+            () -> DensityFunctions.BeardifierMarker.INSTANCE, settings, picker, Blender.empty());
+        SurfaceSystem surfaces = new SurfaceSystem(BuiltinRegistries.NOISE,
+            settings.defaultBlock(), sea, seed, settings.getRandomSource());
+        BiomeManager biomeManager = new BiomeManager(generator, BiomeManager.obfuscateSeed(seed));
+        surfaces.buildSurface(biomeManager, BuiltinRegistries.BIOME,
+            settings.useLegacyRandomSource(), new WorldGenerationContext(generator, height), chunk,
+            noiseChunk, settings.surfaceRule());
+
+        String finalHash = hashChunk(chunk, minX, minZ);
+        Map<String, Integer> finalCounts = countChunk(chunk, minX, minZ);
+        out.println("case\t" + profile + "\t" + seed + "\t" + chunkX + "\t" + chunkZ
+            + "\t" + rawHash + "\t" + finalHash + "\t" + encodeCounts(rawCounts)
+            + "\t" + encodeCounts(finalCounts));
+        for (int sample = 0; sample < SAMPLES.length; ++sample) {
+            int x = minX + SAMPLES[sample][0];
+            int z = minZ + SAMPLES[sample][1];
+            int runStart = -64;
+            String runRaw = name(rawSamples[sample][0]);
+            String runResult = name(chunk.getBlockState(new net.minecraft.core.BlockPos(x, -64, z)));
+            for (int y = -63; y <= 320; ++y) {
+                String raw = y == 320 ? null : name(rawSamples[sample][y + 64]);
+                String result = y == 320 ? null : name(chunk.getBlockState(
+                    new net.minecraft.core.BlockPos(x, y, z)));
+                if (y < 320 && runRaw.equals(raw) && runResult.equals(result)) continue;
+                out.println("run\t" + profile + "\t" + seed + "\t" + x + "\t" + z
+                    + "\t" + runStart + "\t" + (y - 1) + "\t" + runRaw + "\t" + runResult);
+                runStart = y;
+                runRaw = raw;
+                runResult = result;
+            }
+        }
+        out.flush();
+        System.err.println("finished " + profile + " seed=" + seed + " chunk=" + chunkX + "," + chunkZ);
+    }
+
+    private static net.minecraft.resources.ResourceKey<NoiseGeneratorSettings> profileKey(String profile) {
+        if ("large".equals(profile)) return NoiseGeneratorSettings.LARGE_BIOMES;
+        if ("amplified".equals(profile)) return NoiseGeneratorSettings.AMPLIFIED;
+        return NoiseGeneratorSettings.OVERWORLD;
+    }
+
+    private static String hashChunk(ProtoChunk chunk, int minX, int minZ) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        for (int localX = 0; localX < 16; ++localX) {
+            for (int localZ = 0; localZ < 16; ++localZ) {
+                for (int y = -64; y < 320; ++y) {
+                    int id = Registry.BLOCK.getId(chunk.getBlockState(new net.minecraft.core.BlockPos(
+                        minX + localX, y, minZ + localZ)).getBlock());
+                    digest.update((byte) (id >>> 24));
+                    digest.update((byte) (id >>> 16));
+                    digest.update((byte) (id >>> 8));
+                    digest.update((byte) id);
+                }
+            }
+        }
+        StringBuilder result = new StringBuilder();
+        for (byte value : digest.digest()) result.append(String.format("%02x", value & 255));
+        return result.toString();
+    }
+
+    private static Map<String, Integer> countChunk(ProtoChunk chunk, int minX, int minZ) {
+        Map<String, Integer> counts = new LinkedHashMap<String, Integer>();
+        for (int localX = 0; localX < 16; ++localX) {
+            for (int localZ = 0; localZ < 16; ++localZ) {
+                for (int y = -64; y < 320; ++y) {
+                    String name = name(chunk.getBlockState(new net.minecraft.core.BlockPos(
+                        minX + localX, y, minZ + localZ)));
+                    counts.put(name, counts.getOrDefault(name, 0) + 1);
+                }
+            }
+        }
+        return counts;
+    }
+
+    private static String encodeCounts(Map<String, Integer> counts) {
+        StringBuilder result = new StringBuilder();
+        counts.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
+            if (result.length() > 0) result.append(',');
+            result.append(entry.getKey()).append('=').append(entry.getValue());
+        });
+        return result.toString();
+    }
+
+    private static String name(BlockState state) {
+        return Registry.BLOCK.getKey(state.getBlock()).toString();
+    }
+}

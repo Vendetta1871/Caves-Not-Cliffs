@@ -19,16 +19,15 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockMossLayer extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:moss_layer")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:moss_carpet")
     public static final Block block = null;
 
     public BlockMossLayer(ElementsCavesNotCliffs instance) { super(instance, 36); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("moss_layer"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("moss_carpet"));
         elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
     }
 
@@ -44,7 +43,7 @@ public class BlockMossLayer extends ElementsCavesNotCliffs.ModElement {
 
         public BlockCustom() {
             super(Material.GRASS);
-            setUnlocalizedName("moss_layer");
+            setUnlocalizedName("moss_carpet");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.PLANT);
             setHardness(0.0f);

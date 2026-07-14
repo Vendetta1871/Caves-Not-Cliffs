@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "is_lava=false,level=0": { "model": "minecraft:cauldron_empty" },
+    "is_lava=false,level=1": { "model": "minecraft:cauldron_level1" },
+    "is_lava=false,level=2": { "model": "minecraft:cauldron_level2" },
+    "is_lava=false,level=3": { "model": "minecraft:cauldron_level3" },
+    "is_lava=true,level=0":  { "model": "minecraft:cauldron_empty" },
+    "is_lava=true,level=1":  { "model": "cavesnotcliffs:lavacauldron_level6" },
+    "is_lava=true,level=2":  { "model": "cavesnotcliffs:lavacauldron_level6" },
+    "is_lava=true,level=3":  { "model": "cavesnotcliffs:lavacauldron_level6" }
+  }
+}

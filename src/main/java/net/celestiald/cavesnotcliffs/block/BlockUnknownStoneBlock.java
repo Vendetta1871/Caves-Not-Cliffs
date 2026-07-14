@@ -9,6 +9,7 @@ import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.Item;
@@ -16,19 +17,21 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.util.ResourceLocation;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
+import net.celestiald.cavesnotcliffs.content.DeepslateSoundEvents;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockUnknownStoneBlock extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:unknown_stone")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:calcite")
     public static final Block block = null;
 
     public BlockUnknownStoneBlock(ElementsCavesNotCliffs instance) { super(instance, 34); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("cavesnotcliffs", "unknown_stone"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("cavesnotcliffs", "calcite"));
         elements.items.add(() -> {
-            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "unknown_stone"));
+            Block b = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("cavesnotcliffs", "calcite"));
             return new ItemBlock(b).setRegistryName(b.getRegistryName());
         });
     }
@@ -36,20 +39,21 @@ public class BlockUnknownStoneBlock extends ElementsCavesNotCliffs.ModElement {
     @SideOnly(Side.CLIENT)
     @Override
     public void registerModels(ModelRegistryEvent event) {
-        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("cavesnotcliffs", "unknown_stone"));
+        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation("cavesnotcliffs", "calcite"));
         if (item != null)
             ModelLoader.setCustomModelResourceLocation(item, 0,
-                new ModelResourceLocation("cavesnotcliffs:unknown_stone", "inventory"));
+                new ModelResourceLocation("cavesnotcliffs:calcite", "inventory"));
     }
 
     private static class BlockCustom extends Block {
         public BlockCustom() {
-            super(Material.ROCK);
-            setUnlocalizedName("unknown_stone");
+            super(Material.ROCK, MapColor.WHITE_STAINED_HARDENED_CLAY);
+            setUnlocalizedName("calcite");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
-            setSoundType(SoundType.STONE);
-            setHardness(1.5f);
-            setResistance(6.0f);
+            setSoundType(DeepslateSoundEvents.CALCITE);
+            setHardness(0.75F);
+            setResistance(CncBlockProperties.legacyResistance(0.75F));
+            setHarvestLevel("pickaxe", 0);
         }
     }
 }

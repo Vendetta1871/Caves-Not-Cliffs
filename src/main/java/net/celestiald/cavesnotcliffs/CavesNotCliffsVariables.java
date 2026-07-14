@@ -9,7 +9,6 @@ import net.minecraftforge.fml.common.network.ByteBufUtils;
 import net.minecraft.world.storage.WorldSavedData;
 import net.minecraft.world.World;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.client.Minecraft;
 
 public class CavesNotCliffsVariables {
 	public static class MapVariables extends WorldSavedData {
@@ -95,7 +94,7 @@ public class CavesNotCliffsVariables {
 				context.getServerHandler().player.getServerWorld()
 						.addScheduledTask(() -> syncData(message, context, context.getServerHandler().player.world));
 			else
-				Minecraft.getMinecraft().addScheduledTask(() -> syncData(message, context, Minecraft.getMinecraft().player.world));
+				CavesNotCliffs.proxy.scheduleClientWorldTask(world -> syncData(message, context, world));
 			return null;
 		}
 

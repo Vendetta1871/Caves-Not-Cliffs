@@ -1,0 +1,185 @@
+package net.minecraft.world.level.levelgen;
+
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.data.worldgen.SurfaceRuleData;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.BiomeManager;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ProtoChunk;
+import net.minecraft.world.level.chunk.UpgradeData;
+import net.minecraft.world.level.levelgen.blending.Blender;
+
+/** Exhaustive synthetic-biome material oracle against the mapped official 1.18.2 server. */
+public final class Cnc118SurfaceMaterialOracle {
+    private static final long[] SEEDS = {
+        0L, 1L, -1L, 123456789L, Long.MIN_VALUE, Long.MAX_VALUE, 42L, -987654321L
+    };
+    private static final int[][] CHUNKS = {
+        {0, 0}, {17, -19}, {-31, 27}, {64, 64}, {-80, 113}, {151, -93}, {-211, -57}, {307, 199}
+    };
+
+    public static void main(String[] args) throws Exception {
+        SharedConstants.tryDetectVersion(); Bootstrap.bootStrap(); BuiltinRegistries.bootstrap();
+        List<Map.Entry<net.minecraft.resources.ResourceKey<Biome>, Biome>> biomes =
+            new ArrayList<Map.Entry<net.minecraft.resources.ResourceKey<Biome>, Biome>>(
+                BuiltinRegistries.BIOME.entrySet());
+        biomes.sort(Comparator.comparing(entry -> entry.getKey().location().toString()));
+        PrintWriter out = new PrintWriter(args[0], "UTF-8");
+        out.println("# official Minecraft Java 1.18.2 exhaustive synthetic surface materials");
+        Holder<NoiseGeneratorSettings> settingsHolder = BuiltinRegistries.NOISE_GENERATOR_SETTINGS
+            .getHolderOrThrow(NoiseGeneratorSettings.OVERWORLD);
+        NoiseGeneratorSettings settings = settingsHolder.value();
+        LevelHeightAccessor height = LevelHeightAccessor.create(-64, 384);
+        for (int caseIndex = 0; caseIndex < SEEDS.length; ++caseIndex) {
+            long seed = SEEDS[caseIndex];
+            int chunkX = CHUNKS[caseIndex][0];
+            int chunkZ = CHUNKS[caseIndex][1];
+            MultiNoiseBiomeSource source = MultiNoiseBiomeSource.Preset.OVERWORLD
+                .biomeSource(BuiltinRegistries.BIOME);
+            NoiseBasedChunkGenerator generator = new NoiseBasedChunkGenerator(
+                BuiltinRegistries.STRUCTURE_SETS, BuiltinRegistries.NOISE, source, seed,
+                settingsHolder);
+            Aquifer.FluidStatus lava = new Aquifer.FluidStatus(-54,
+                Blocks.LAVA.defaultBlockState());
+            Aquifer.FluidStatus water = new Aquifer.FluidStatus(63,
+                Blocks.WATER.defaultBlockState());
+            Aquifer.FluidPicker picker = (x, y, z) -> y < -54 ? lava : water;
+            for (Map.Entry<net.minecraft.resources.ResourceKey<Biome>, Biome> biome : biomes) {
+                String id = biome.getKey().location().toString();
+                if (!isOverworldBiome(id)) continue;
+                ProtoChunk chunk = syntheticChunk(chunkX, chunkZ, height);
+                NoiseChunk noiseChunk = NoiseChunk.forChunk(chunk, generator.router(),
+                    () -> DensityFunctions.BeardifierMarker.INSTANCE, settings, picker,
+                    Blender.empty());
+                Holder<Biome> holder = BuiltinRegistries.BIOME
+                    .getHolderOrThrow(biome.getKey());
+                BiomeManager biomeManager = new BiomeManager((qx, qy, qz) -> holder,
+                    BiomeManager.obfuscateSeed(seed));
+                SurfaceSystem system = new SurfaceSystem(BuiltinRegistries.NOISE,
+                    Blocks.STONE.defaultBlockState(), 63, seed,
+                    WorldgenRandom.Algorithm.XOROSHIRO);
+                system.buildSurface(biomeManager, BuiltinRegistries.BIOME, false,
+                    new WorldGenerationContext(generator, height), chunk, noiseChunk,
+                    SurfaceRuleData.overworldLike(false, false, true));
+                out.println("case\t" + seed + "\t" + chunkX + "\t" + chunkZ + "\t" + id
+                    + "\t" + hash(chunk, chunkX << 4, chunkZ << 4)
+                    + "\t" + counts(chunk, chunkX << 4, chunkZ << 4));
+            }
+        }
+        out.close();
+    }
+
+    private static ProtoChunk syntheticChunk(int chunkX, int chunkZ,
+            LevelHeightAccessor height) {
+        ProtoChunk chunk = new ProtoChunk(new ChunkPos(chunkX, chunkZ), UpgradeData.EMPTY,
+            height, BuiltinRegistries.BIOME, null);
+        int minX = chunkX << 4;
+        int minZ = chunkZ << 4;
+        for (int localX = 0; localX < 16; ++localX) {
+            for (int localZ = 0; localZ < 16; ++localZ) {
+                int selector = (localX * 5 + localZ * 3) & 7;
+                int top = new int[] {50, 62, 63, 74, 96, 100, 150, 270}[selector];
+                int x = minX + localX;
+                int z = minZ + localZ;
+                for (int y = -64; y <= top; ++y) {
+                    chunk.setBlockState(new net.minecraft.core.BlockPos(x, y, z),
+                        Blocks.STONE.defaultBlockState(), false);
+                }
+                for (int y = top + 1; y < 63; ++y) {
+                    chunk.setBlockState(new net.minecraft.core.BlockPos(x, y, z),
+                        Blocks.WATER.defaultBlockState(), false);
+                }
+                if (((localX + localZ) & 3) == 0) {
+                    for (int y = 20; y <= 25; ++y) {
+                        chunk.setBlockState(new net.minecraft.core.BlockPos(x, y, z),
+                            Blocks.AIR.defaultBlockState(), false);
+                    }
+                }
+                if (((localX * 3 + localZ) & 7) == 1) {
+                    for (int y = 35; y <= 38; ++y) {
+                        chunk.setBlockState(new net.minecraft.core.BlockPos(x, y, z),
+                            Blocks.WATER.defaultBlockState(), false);
+                    }
+                }
+                if (((localX * 7 + localZ * 11) & 15) == 2) {
+                    chunk.setBlockState(new net.minecraft.core.BlockPos(x, 29, z),
+                        Blocks.AIR.defaultBlockState(), false);
+                    chunk.setBlockState(new net.minecraft.core.BlockPos(x, 31, z),
+                        Blocks.AIR.defaultBlockState(), false);
+                }
+            }
+        }
+        return chunk;
+    }
+
+    private static String hash(ProtoChunk chunk, int minX, int minZ) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        for (int x = 0; x < 16; ++x) for (int z = 0; z < 16; ++z)
+            for (int y = -64; y < 320; ++y) {
+                digest.update(name(chunk.getBlockState(new net.minecraft.core.BlockPos(
+                    minX + x, y, minZ + z))).getBytes(StandardCharsets.UTF_8));
+                digest.update((byte) 0);
+            }
+        StringBuilder result = new StringBuilder();
+        for (byte value : digest.digest()) result.append(String.format("%02x", value & 255));
+        return result.toString();
+    }
+
+    private static String counts(ProtoChunk chunk, int minX, int minZ) {
+        Map<String, Integer> counts = new LinkedHashMap<String, Integer>();
+        for (int x = 0; x < 16; ++x) for (int z = 0; z < 16; ++z)
+            for (int y = -64; y < 320; ++y) {
+                String id = name(chunk.getBlockState(new net.minecraft.core.BlockPos(
+                    minX + x, y, minZ + z)));
+                counts.put(id, counts.getOrDefault(id, 0) + 1);
+            }
+        StringBuilder result = new StringBuilder();
+        counts.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
+            if (result.length() > 0) result.append(',');
+            result.append(entry.getKey()).append('=').append(entry.getValue());
+        });
+        return result.toString();
+    }
+
+    private static String name(BlockState state) {
+        return Registry.BLOCK.getKey(state.getBlock()).toString();
+    }
+
+    private static boolean isOverworldBiome(String id) {
+        switch (id.substring("minecraft:".length())) {
+            case "badlands": case "bamboo_jungle": case "beach": case "birch_forest":
+            case "cold_ocean": case "dark_forest": case "deep_cold_ocean":
+            case "deep_frozen_ocean": case "deep_lukewarm_ocean": case "deep_ocean":
+            case "desert": case "dripstone_caves": case "eroded_badlands":
+            case "flower_forest": case "forest": case "frozen_ocean":
+            case "frozen_peaks": case "frozen_river": case "grove": case "ice_spikes":
+            case "jagged_peaks": case "jungle": case "lukewarm_ocean": case "lush_caves":
+            case "meadow": case "mushroom_fields": case "ocean":
+            case "old_growth_birch_forest": case "old_growth_pine_taiga":
+            case "old_growth_spruce_taiga": case "plains": case "river": case "savanna":
+            case "savanna_plateau": case "snowy_beach": case "snowy_plains":
+            case "snowy_slopes": case "snowy_taiga": case "sparse_jungle":
+            case "stony_peaks": case "stony_shore": case "sunflower_plains": case "swamp":
+            case "taiga": case "warm_ocean": case "windswept_forest":
+            case "windswept_gravelly_hills": case "windswept_hills":
+            case "windswept_savanna": case "wooded_badlands": return true;
+            default: return false;
+        }
+    }
+}

@@ -19,16 +19,15 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockBloomingBabyAzaleaTree extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:blooming_baby_azalea_tree")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:flowering_azalea")
     public static final Block block = null;
 
     public BlockBloomingBabyAzaleaTree(ElementsCavesNotCliffs instance) { super(instance, 41); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("blooming_baby_azalea_tree"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("flowering_azalea"));
         elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
     }
 
@@ -44,7 +43,7 @@ public class BlockBloomingBabyAzaleaTree extends ElementsCavesNotCliffs.ModEleme
 
         public BlockCustom() {
             super(Material.AIR);
-            setUnlocalizedName("blooming_baby_azalea_tree");
+            setUnlocalizedName("flowering_azalea");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.PLANT);
             setHardness(0.0f);

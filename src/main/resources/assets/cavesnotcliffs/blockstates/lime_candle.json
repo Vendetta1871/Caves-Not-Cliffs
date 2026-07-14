@@ -1,0 +1,13 @@
+{
+  "multipart": [
+    {"when":{"candles":"1","lit":"false"},"apply":{"model":"cavesnotcliffs:lime_candle_one_candle"}},
+    {"when":{"candles":"1","lit":"true"},"apply":{"model":"cavesnotcliffs:lime_candle_one_candle_lit"}},
+    {"when":{"candles":"2","lit":"false"},"apply":{"model":"cavesnotcliffs:lime_candle_two_candles"}},
+    {"when":{"candles":"2","lit":"true"},"apply":{"model":"cavesnotcliffs:lime_candle_two_candles_lit"}},
+    {"when":{"candles":"3","lit":"false"},"apply":{"model":"cavesnotcliffs:lime_candle_three_candles"}},
+    {"when":{"candles":"3","lit":"true"},"apply":{"model":"cavesnotcliffs:lime_candle_three_candles_lit"}},
+    {"when":{"candles":"4","lit":"false"},"apply":{"model":"cavesnotcliffs:lime_candle_four_candles"}},
+    {"when":{"candles":"4","lit":"true"},"apply":{"model":"cavesnotcliffs:lime_candle_four_candles_lit"}},
+    {"when":{"waterlogged":"true"},"apply":{"model":"cavesnotcliffs:amethyst_water_overlay"}}
+  ]
+}

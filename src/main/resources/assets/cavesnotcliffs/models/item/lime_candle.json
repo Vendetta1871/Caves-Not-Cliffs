@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "cavesnotcliffs:items/lime_candle"
+  }
+}

@@ -1,0 +1,54 @@
+# official Minecraft Java 1.18.2 soft disk catalog
+catalog	disk_sand	6	28	sand	2	6	2	3	dirt,grass_block
+catalog	disk_clay	6	29	clay	2	3	1	1	dirt,clay
+catalog	disk_gravel	6	30	gravel	2	5	2	1	dirt,grass_block
+biome	minecraft:badlands	disk_sand,disk_clay,disk_gravel
+biome	minecraft:bamboo_jungle	disk_sand,disk_clay,disk_gravel
+biome	minecraft:beach	disk_sand,disk_clay,disk_gravel
+biome	minecraft:birch_forest	disk_sand,disk_clay,disk_gravel
+biome	minecraft:cold_ocean	disk_sand,disk_clay,disk_gravel
+biome	minecraft:dark_forest	disk_sand,disk_clay,disk_gravel
+biome	minecraft:deep_cold_ocean	disk_sand,disk_clay,disk_gravel
+biome	minecraft:deep_frozen_ocean	disk_sand,disk_clay,disk_gravel
+biome	minecraft:deep_lukewarm_ocean	disk_sand,disk_clay,disk_gravel
+biome	minecraft:deep_ocean	disk_sand,disk_clay,disk_gravel
+biome	minecraft:desert	disk_sand,disk_clay,disk_gravel
+biome	minecraft:dripstone_caves	disk_sand,disk_clay,disk_gravel
+biome	minecraft:eroded_badlands	disk_sand,disk_clay,disk_gravel
+biome	minecraft:flower_forest	disk_sand,disk_clay,disk_gravel
+biome	minecraft:forest	disk_sand,disk_clay,disk_gravel
+biome	minecraft:frozen_ocean	disk_sand,disk_clay,disk_gravel
+biome	minecraft:frozen_peaks	disk_sand,disk_clay,disk_gravel
+biome	minecraft:frozen_river	disk_sand,disk_clay,disk_gravel
+biome	minecraft:grove	disk_sand,disk_clay,disk_gravel
+biome	minecraft:ice_spikes	disk_sand,disk_clay,disk_gravel
+biome	minecraft:jagged_peaks	disk_sand,disk_clay,disk_gravel
+biome	minecraft:jungle	disk_sand,disk_clay,disk_gravel
+biome	minecraft:lukewarm_ocean	disk_sand,disk_clay,disk_gravel
+biome	minecraft:lush_caves	disk_sand,disk_clay,disk_gravel
+biome	minecraft:meadow	disk_sand,disk_clay,disk_gravel
+biome	minecraft:mushroom_fields	disk_sand,disk_clay,disk_gravel
+biome	minecraft:ocean	disk_sand,disk_clay,disk_gravel
+biome	minecraft:old_growth_birch_forest	disk_sand,disk_clay,disk_gravel
+biome	minecraft:old_growth_pine_taiga	disk_sand,disk_clay,disk_gravel
+biome	minecraft:old_growth_spruce_taiga	disk_sand,disk_clay,disk_gravel
+biome	minecraft:plains	disk_sand,disk_clay,disk_gravel
+biome	minecraft:river	disk_sand,disk_clay,disk_gravel
+biome	minecraft:savanna	disk_sand,disk_clay,disk_gravel
+biome	minecraft:savanna_plateau	disk_sand,disk_clay,disk_gravel
+biome	minecraft:snowy_beach	disk_sand,disk_clay,disk_gravel
+biome	minecraft:snowy_plains	disk_sand,disk_clay,disk_gravel
+biome	minecraft:snowy_slopes	disk_sand,disk_clay,disk_gravel
+biome	minecraft:snowy_taiga	disk_sand,disk_clay,disk_gravel
+biome	minecraft:sparse_jungle	disk_sand,disk_clay,disk_gravel
+biome	minecraft:stony_peaks	disk_sand,disk_clay,disk_gravel
+biome	minecraft:stony_shore	disk_sand,disk_clay,disk_gravel
+biome	minecraft:sunflower_plains	disk_sand,disk_clay,disk_gravel
+biome	minecraft:swamp	disk_clay
+biome	minecraft:taiga	disk_sand,disk_clay,disk_gravel
+biome	minecraft:warm_ocean	disk_sand,disk_clay,disk_gravel
+biome	minecraft:windswept_forest	disk_sand,disk_clay,disk_gravel
+biome	minecraft:windswept_gravelly_hills	disk_sand,disk_clay,disk_gravel
+biome	minecraft:windswept_hills	disk_sand,disk_clay,disk_gravel
+biome	minecraft:windswept_savanna	disk_sand,disk_clay,disk_gravel
+biome	minecraft:wooded_badlands	disk_sand,disk_clay,disk_gravel

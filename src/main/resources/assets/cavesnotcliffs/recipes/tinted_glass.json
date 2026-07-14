@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [" S ", "SGS", " S "],
+  "key": {
+    "G": {"item": "minecraft:glass"},
+    "S": {"item": "cavesnotcliffs:amethyst_shard"}
+  },
+  "result": {"item": "cavesnotcliffs:tinted_glass", "count": 2}
+}

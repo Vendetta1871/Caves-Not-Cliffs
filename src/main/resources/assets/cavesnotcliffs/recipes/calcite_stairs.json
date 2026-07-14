@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "#  ",
+    "## ",
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "cavesnotcliffs:calcite"
+    }
+  },
+  "result": {
+    "item": "cavesnotcliffs:calcite_stairs",
+    "count": 4
+  }
+}

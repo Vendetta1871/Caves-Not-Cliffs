@@ -1,9 +1,5 @@
 {
   "variants": {
-    "normal":       { "model": "cavesnotcliffs:dripleaf_plant" },
-    "facing=north": { "model": "cavesnotcliffs:dripleaf_plant" },
-    "facing=east":  { "model": "cavesnotcliffs:dripleaf_plant", "y": 90 },
-    "facing=south": { "model": "cavesnotcliffs:dripleaf_plant", "y": 180 },
-    "facing=west":  { "model": "cavesnotcliffs:dripleaf_plant", "y": 270 }
+    "normal": { "model": "cavesnotcliffs:big_dripleaf" }
   }
 }

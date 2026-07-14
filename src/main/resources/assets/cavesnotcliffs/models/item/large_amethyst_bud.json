@@ -1,0 +1,5 @@
+{
+  "parent": "cavesnotcliffs:item/amethyst_bud",
+  "textures": {"layer0": "cavesnotcliffs:blocks/large_amethyst_bud"},
+  "display": {"fixed": {"translation": [0, 4, 0]}}
+}

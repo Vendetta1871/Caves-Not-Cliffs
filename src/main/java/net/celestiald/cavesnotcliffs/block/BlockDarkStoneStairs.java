@@ -9,23 +9,26 @@ import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockStairs;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
+import net.celestiald.cavesnotcliffs.content.DeepslateSoundEvents;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDarkStoneStairs extends ElementsCavesNotCliffs.ModElement {
-    @GameRegistry.ObjectHolder("cavesnotcliffs:dark_stone_stairs")
+    @GameRegistry.ObjectHolder("cavesnotcliffs:tuff_stairs")
     public static final Block block = null;
 
     public BlockDarkStoneStairs(ElementsCavesNotCliffs instance) { super(instance, 60); }
 
     @Override
     public void initElements() {
-        elements.blocks.add(() -> new BlockCustom().setRegistryName("dark_stone_stairs"));
+        elements.blocks.add(() -> new BlockCustom().setRegistryName("tuff_stairs"));
         elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
     }
 
@@ -33,18 +36,19 @@ public class BlockDarkStoneStairs extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void registerModels(ModelRegistryEvent event) {
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:dark_stone_stairs", "inventory"));
+            new ModelResourceLocation("cavesnotcliffs:tuff_stairs", "inventory"));
     }
 
     private static class BlockCustom extends BlockStairs {
         public BlockCustom() {
-            super(new Block(Material.ROCK).getDefaultState());
-            setUnlocalizedName("dark_stone_stairs");
+            super(new Block(Material.ROCK, MapColor.GRAY_STAINED_HARDENED_CLAY)
+                    .getDefaultState());
+            setUnlocalizedName("tuff_stairs");
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
-            setSoundType(SoundType.STONE);
-            setHarvestLevel("pickaxe", 1);
+            setSoundType(DeepslateSoundEvents.TUFF);
+            setHarvestLevel("pickaxe", 0);
             setHardness(1.5f);
-            setResistance(6.0f);
+            setResistance(CncBlockProperties.legacyResistance(6.0F));
         }
     }
 }

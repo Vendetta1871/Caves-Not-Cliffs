@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "half=bottom,variant=default": { "model": "cavesnotcliffs:cut_copper_slab" },
+    "half=top,variant=default":    { "model": "cavesnotcliffs:cut_copper_slab_top" }
+  }
+}

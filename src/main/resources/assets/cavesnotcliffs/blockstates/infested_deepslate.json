@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "axis=y": { "model": "cavesnotcliffs:infested_deepslate" },
+    "axis=z": { "model": "cavesnotcliffs:infested_deepslate", "x": 90 },
+    "axis=x": { "model": "cavesnotcliffs:infested_deepslate", "x": 90, "y": 90 }
+  }
+}

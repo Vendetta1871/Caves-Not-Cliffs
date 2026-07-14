@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=east": { "model": "cavesnotcliffs:bee_nest_honey", "y": 90 },
+    "facing=north": { "model": "cavesnotcliffs:bee_nest_honey" },
+    "facing=south": { "model": "cavesnotcliffs:bee_nest_honey", "y": 180 },
+    "facing=west": { "model": "cavesnotcliffs:bee_nest_honey", "y": 270 }
+  }
+}

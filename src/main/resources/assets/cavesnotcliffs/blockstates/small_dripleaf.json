@@ -1,0 +1,13 @@
+{
+  "multipart": [
+    {"when":{"facing":"east","half":"lower"},"apply":{"model":"cavesnotcliffs:small_dripleaf_bottom","y":90}},
+    {"when":{"facing":"east","half":"upper"},"apply":{"model":"cavesnotcliffs:small_dripleaf_top","y":90}},
+    {"when":{"facing":"north","half":"lower"},"apply":{"model":"cavesnotcliffs:small_dripleaf_bottom"}},
+    {"when":{"facing":"north","half":"upper"},"apply":{"model":"cavesnotcliffs:small_dripleaf_top"}},
+    {"when":{"facing":"south","half":"lower"},"apply":{"model":"cavesnotcliffs:small_dripleaf_bottom","y":180}},
+    {"when":{"facing":"south","half":"upper"},"apply":{"model":"cavesnotcliffs:small_dripleaf_top","y":180}},
+    {"when":{"facing":"west","half":"lower"},"apply":{"model":"cavesnotcliffs:small_dripleaf_bottom","y":270}},
+    {"when":{"facing":"west","half":"upper"},"apply":{"model":"cavesnotcliffs:small_dripleaf_top","y":270}},
+    {"when":{"waterlogged":"true"},"apply":{"model":"cavesnotcliffs:amethyst_water_overlay"}}
+  ]
+}

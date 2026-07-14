@@ -1,0 +1,64 @@
+# Java 1.18.2 server-named.jar runtime oracle: MultiNoiseBiomeSource featuresPerStep
+feature	spring_lava_frozen	8	2
+feature	trees_grove	9	40
+feature	patch_dead_bush	9	51
+feature	patch_dead_bush_2	9	58
+feature	patch_dead_bush_badlands	9	59
+feature	patch_sugar_cane_desert	9	62
+feature	patch_sugar_cane_badlands	9	63
+feature	patch_sugar_cane_swamp	9	64
+feature	patch_sugar_cane	9	68
+feature	patch_pumpkin	9	69
+feature	freeze_top_layer	10	0
+# BuiltinRegistries biome-generation membership
+biome	meadow	freeze_top_layer
+biome	grove	spring_lava_frozen,trees_grove,patch_sugar_cane,patch_pumpkin,freeze_top_layer
+biome	snowy_slopes	spring_lava_frozen,patch_sugar_cane,patch_pumpkin,freeze_top_layer
+biome	frozen_peaks	spring_lava_frozen,freeze_top_layer
+biome	jagged_peaks	spring_lava_frozen,freeze_top_layer
+biome	stony_peaks	freeze_top_layer
+# Representative non-mountain origins; the official runtime reports freeze_top_layer
+# for all 50 Overworld biome peers represented by V118Biome.
+biome	plains	patch_sugar_cane,patch_pumpkin,freeze_top_layer
+biome	desert	patch_dead_bush_2,patch_sugar_cane_desert,patch_pumpkin,freeze_top_layer
+biome	old_growth_pine_taiga	patch_dead_bush,patch_sugar_cane,patch_pumpkin,freeze_top_layer
+biome	old_growth_spruce_taiga	patch_dead_bush,patch_sugar_cane,patch_pumpkin,freeze_top_layer
+biome	swamp	patch_dead_bush,patch_sugar_cane_swamp,patch_pumpkin,freeze_top_layer
+biome	badlands	patch_dead_bush_badlands,patch_sugar_cane_badlands,patch_pumpkin,freeze_top_layer
+biome	eroded_badlands	patch_dead_bush_badlands,patch_sugar_cane_badlands,patch_pumpkin,freeze_top_layer
+biome	wooded_badlands	patch_dead_bush_badlands,patch_sugar_cane_badlands,patch_pumpkin,freeze_top_layer
+biome	snowy_taiga	patch_sugar_cane,patch_pumpkin,freeze_top_layer
+biome	lush_caves	freeze_top_layer
+# Exact BuiltinRegistries membership across all 50 represented Overworld biomes.
+membership	patch_dead_bush	old_growth_pine_taiga,old_growth_spruce_taiga,swamp
+membership	patch_dead_bush_2	desert
+membership	patch_dead_bush_badlands	badlands,eroded_badlands,wooded_badlands
+membership	patch_sugar_cane_desert	desert
+membership	patch_sugar_cane_badlands	badlands,eroded_badlands,wooded_badlands
+membership	patch_sugar_cane_swamp	swamp
+membership	patch_sugar_cane	bamboo_jungle,beach,birch_forest,cold_ocean,dark_forest,deep_cold_ocean,deep_frozen_ocean,deep_lukewarm_ocean,deep_ocean,dripstone_caves,flower_forest,forest,frozen_ocean,frozen_river,grove,ice_spikes,jungle,lukewarm_ocean,mushroom_fields,ocean,old_growth_birch_forest,old_growth_pine_taiga,old_growth_spruce_taiga,plains,river,savanna,savanna_plateau,snowy_beach,snowy_plains,snowy_slopes,snowy_taiga,sparse_jungle,stony_shore,sunflower_plains,taiga,warm_ocean,windswept_forest,windswept_gravelly_hills,windswept_hills,windswept_savanna
+membership	patch_pumpkin	badlands,bamboo_jungle,beach,birch_forest,cold_ocean,dark_forest,deep_cold_ocean,deep_frozen_ocean,deep_lukewarm_ocean,deep_ocean,desert,dripstone_caves,eroded_badlands,flower_forest,forest,frozen_ocean,frozen_river,grove,ice_spikes,jungle,lukewarm_ocean,mushroom_fields,ocean,old_growth_birch_forest,old_growth_pine_taiga,old_growth_spruce_taiga,plains,river,savanna,savanna_plateau,snowy_beach,snowy_plains,snowy_slopes,snowy_taiga,sparse_jungle,stony_shore,sunflower_plains,swamp,taiga,warm_ocean,windswept_forest,windswept_gravelly_hills,windswept_hills,windswept_savanna,wooded_badlands
+# Xoroshiro WorldgenRandom; seed=123456789 chunk=(-3,5)
+spring	0	-34	119	80
+spring	1	-47	-3	88
+spring	2	-33	-29	89
+spring	3	-39	-53	82
+spring	4	-43	-56	94
+# First non-negative seed whose top-level rarity filter passes in chunk (0,0)
+rarity	patch_sugar_cane	11	0.026406467
+rarity	patch_pumpkin	466	0.00058966875
+# TreeFeature.doPlace with official PINE/SPRUCE configs; origin=(-19,64,37)
+# Log rows filter the shared trunk/dirt callback to SPRUCE_LOG states.
+# kind seed placed logs log_hash leaves leaf_hash trailing_next_long
+tree	pine	0	true	6	-8645709525183779874	30	-7891177393334446218	-6688467811848818630
+tree	pine	1	true	6	-8645709525183779874	30	-7891177393334446218	3831662765844904176
+tree	pine	-1	true	9	4019472632822206479	30	6750287466746178474	-6233441030884181172
+tree	pine	123456789	true	6	-8645709525183779874	30	-7891177393334446218	7203573180470058788
+tree	pine	-9223372036854775808	true	6	-8645709525183779874	30	-7891177393334446218	-6688467811848818630
+tree	pine	9223372036854775807	true	9	4019472632822206479	30	6750287466746178474	-6233441030884181172
+tree	spruce	0	true	6	-8645709525183779874	99	1437531642181569390	-8292973307042192125
+tree	spruce	1	true	5	7786493018137663983	55	-3192915447753738433	6137546356583794141
+tree	spruce	-1	true	7	1784103348989887304	123	2487464034171886565	7681931065131779340
+tree	spruce	123456789	true	7	1784103348989887304	53	7493525047800083342	-1967508324443428465
+tree	spruce	-9223372036854775808	true	6	-8645709525183779874	99	1437531642181569390	-8292973307042192125
+tree	spruce	9223372036854775807	true	7	1784103348989887304	123	2487464034171886565	7681931065131779340

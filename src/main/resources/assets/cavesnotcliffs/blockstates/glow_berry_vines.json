@@ -1,7 +1,7 @@
 {
   "variants": {
     "normal": {
-      "model": "cavesnotcliffs:glow_berry_vines"
+      "model": "cavesnotcliffs:cave_vines_lit"
     }
   }
 }

@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/carpet",
+  "textures": {
+    "wool": "cavesnotcliffs:block/moss_block"
+  }
+}

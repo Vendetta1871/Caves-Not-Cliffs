@@ -21,7 +21,6 @@ import net.minecraft.world.World;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import java.util.Random;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockDripleafplant1 extends ElementsCavesNotCliffs.ModElement {
     @GameRegistry.ObjectHolder("cavesnotcliffs:dripleafplant_1")
     public static final Block block = null;
@@ -31,24 +30,15 @@ public class BlockDripleafplant1 extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void initElements() {
         elements.blocks.add(() -> new BlockCustom().setRegistryName("dripleafplant_1"));
-        elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
-    }
-
-    @SideOnly(Side.CLIENT)
-    @Override
-    public void registerModels(ModelRegistryEvent event) {
-        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:dripleafplant_1", "inventory"));
     }
 
     private static class BlockCustom extends Block {
         public BlockCustom() {
-            super(Material.AIR);
+            super(Material.PLANTS);
             setUnlocalizedName("dripleafplant_1");
             setSoundType(SoundType.PLANT);
             setHardness(0.0f);
             setResistance(0.0f);
-            setTickRandomly(true);
         }
 
         @Override public boolean isOpaqueCube(IBlockState state) { return false; }
@@ -59,15 +49,24 @@ public class BlockDripleafplant1 extends ElementsCavesNotCliffs.ModElement {
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
 
         @Override
-        public void onEntityWalk(World worldIn, BlockPos pos, Entity entityIn) {
-            if (!worldIn.isRemote && BlockDripleafPlant2.block != null)
-                worldIn.setBlockState(pos, BlockDripleafPlant2.block.getDefaultState(), 3);
+        public Item getItemDropped(IBlockState state, Random random, int fortune) {
+            return Item.getItemFromBlock(BlockDripleafPlant.block);
         }
 
         @Override
-        public void randomTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
-            if (!worldIn.isRemote && BlockDripleafPlant.block != null)
-                worldIn.setBlockState(pos, BlockDripleafPlant.block.getDefaultState(), 3);
+        public void onEntityWalk(World worldIn, BlockPos pos, Entity entityIn) {
+            if (!worldIn.isRemote && BlockDripleafPlant2.block != null) {
+                worldIn.setBlockState(pos, BlockDripleafPlant2.block.getDefaultState(), 3);
+                worldIn.scheduleUpdate(pos, BlockDripleafPlant2.block, 100);
+            }
+        }
+
+        @Override
+        public void updateTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {
+            if (!worldIn.isRemote && BlockDripleafPlant2.block != null) {
+                worldIn.setBlockState(pos, BlockDripleafPlant2.block.getDefaultState(), 3);
+                worldIn.scheduleUpdate(pos, BlockDripleafPlant2.block, 100);
+            }
         }
     }
 }

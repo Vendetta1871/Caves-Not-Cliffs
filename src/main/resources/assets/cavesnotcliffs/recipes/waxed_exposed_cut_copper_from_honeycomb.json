@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "group": "waxed_exposed_cut_copper",
+  "ingredients": [
+    {"item": "cavesnotcliffs:exposed_cut_copper"},
+    {"item": "cavesnotcliffs:honeycomb"}
+  ],
+  "result": {"item": "cavesnotcliffs:waxed_exposed_cut_copper"}
+}

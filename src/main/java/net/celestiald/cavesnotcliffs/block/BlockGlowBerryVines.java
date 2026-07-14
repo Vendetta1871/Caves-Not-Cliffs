@@ -20,8 +20,8 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import java.util.Random;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.item.ItemGlowBerries;
 
-@ElementsCavesNotCliffs.ModElement.Tag
 public class BlockGlowBerryVines extends ElementsCavesNotCliffs.ModElement {
     @GameRegistry.ObjectHolder("cavesnotcliffs:glow_berry_vines")
     public static final Block block = null;
@@ -31,21 +31,12 @@ public class BlockGlowBerryVines extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void initElements() {
         elements.blocks.add(() -> new BlockCustom().setRegistryName("glow_berry_vines"));
-        elements.items.add(() -> new ItemBlock(block).setRegistryName(block.getRegistryName()));
-    }
-
-    @SideOnly(Side.CLIENT)
-    @Override
-    public void registerModels(ModelRegistryEvent event) {
-        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0,
-            new ModelResourceLocation("cavesnotcliffs:glow_berry_vines", "inventory"));
     }
 
     public static class BlockCustom extends Block {
         public BlockCustom() {
             super(Material.VINE);
             setUnlocalizedName("glow_berry_vines");
-            setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.PLANT);
             setHardness(0.2f);
             setLightLevel(0.5f);
@@ -56,6 +47,11 @@ public class BlockGlowBerryVines extends ElementsCavesNotCliffs.ModElement {
         @Override public boolean isFullCube(IBlockState state) { return false; }
         @Override public AxisAlignedBB getCollisionBoundingBox(IBlockState s, IBlockAccess w, BlockPos p) { return NULL_AABB; }
         @SideOnly(Side.CLIENT) @Override public BlockRenderLayer getBlockLayer() { return BlockRenderLayer.CUTOUT; }
+
+        @Override
+        public Item getItemDropped(IBlockState state, Random random, int fortune) {
+            return ItemGlowBerries.item == null ? net.minecraft.init.Items.AIR : ItemGlowBerries.item;
+        }
 
         @Override
         public void updateTick(World worldIn, BlockPos pos, IBlockState state, Random rand) {

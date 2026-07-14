@@ -1,0 +1,39 @@
+import java.io.PrintWriter;
+import net.minecraft.world.level.levelgen.WorldgenRandom;
+import net.minecraft.world.level.levelgen.XoroshiroRandomSource;
+
+/** Emits decoration/feature random streams from official mapped Java 1.18.2 classes. */
+public final class Cnc118DecorationRandomOracle {
+    private static final long[] SEEDS = {
+        0L, 1L, -1L, 123456789L, Long.MIN_VALUE, Long.MAX_VALUE
+    };
+    private static final int[][] CHUNKS = {
+        {0, 0}, {-1, 0}, {0, -1}, {-1, -1}, {1, -2}, {-33, 17}
+    };
+    private static final int[][] FEATURES = {
+        {0, 6}, {8, 6}, {9, 6}, {14, 6}, {23, 6}, {24, 6}, {27, 6}, {31, 6}, {2, 7}
+    };
+
+    public static void main(String[] args) throws Exception {
+        PrintWriter out = new PrintWriter(args[0], "UTF-8");
+        out.println("# official Java 1.18.2 xoroshiro WorldgenRandom decoration streams");
+        for (int index = 0; index < SEEDS.length; ++index) {
+            long seed = SEEDS[index];
+            int x = CHUNKS[index][0] << 4;
+            int z = CHUNKS[index][1] << 4;
+            WorldgenRandom random = new WorldgenRandom(new XoroshiroRandomSource(0L));
+            long decoration = random.setDecorationSeed(seed, x, z);
+            out.println("decoration\t" + seed + "\t" + x + "\t" + z + "\t" + decoration);
+            for (int[] feature : FEATURES) {
+                random.setFeatureSeed(decoration, feature[0], feature[1]);
+                out.println("feature\t" + seed + "\t" + x + "\t" + z + "\t"
+                    + feature[0] + "\t" + feature[1] + "\t" + random.nextInt(16)
+                    + "\t" + random.nextInt(385) + "\t"
+                    + Integer.toUnsignedString(Float.floatToRawIntBits(random.nextFloat()))
+                    + "\t" + Long.toUnsignedString(Double.doubleToRawLongBits(random.nextDouble()))
+                    + "\t" + Long.toUnsignedString(random.nextLong()));
+            }
+        }
+        out.close();
+    }
+}

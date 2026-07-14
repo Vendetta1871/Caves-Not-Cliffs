@@ -1,0 +1,1 @@
+{ "parent": "block/wall_post", "textures": { "wall": "cavesnotcliffs:blocks/cobbled_deepslate", "particle": "cavesnotcliffs:blocks/cobbled_deepslate" } }

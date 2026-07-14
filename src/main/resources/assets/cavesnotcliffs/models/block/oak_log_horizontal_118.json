@@ -1,0 +1,7 @@
+{
+  "parent": "cavesnotcliffs:block/cube_column_horizontal_118",
+  "textures": {
+    "end": "minecraft:blocks/log_oak_top",
+    "side": "minecraft:blocks/log_oak"
+  }
+}

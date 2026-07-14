@@ -32,6 +32,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.entity.Entity;
 
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.world.CavesNotCliffsWorldType;
 
 import java.util.Random;
 import javax.annotation.Generated;
@@ -127,6 +128,11 @@ public class StructureLushCaves extends ElementsCavesNotCliffs.ModElement {
 
 	@Override
 	public void generateWorld(Random random, int i2, int k2, World world, int dimID, IChunkGenerator cg, IChunkProvider cp) {
+		// Caves Not Cliffs worlds use the schema-aware native feature pipeline. This legacy
+		// per-chunk coin flip remains available only to unrelated/default world types.
+		if (CavesNotCliffsWorldType.isCavesNotCliffs(world)) {
+			return;
+		}
 		if (dimID != 0) {
 			return;
 		}

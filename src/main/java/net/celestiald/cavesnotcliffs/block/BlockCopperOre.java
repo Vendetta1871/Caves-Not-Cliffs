@@ -14,6 +14,10 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
+import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
+import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
+import net.celestiald.cavesnotcliffs.content.OreDropLogic;
+import java.util.Random;
 
 @ElementsCavesNotCliffs.ModElement.Tag
 public class BlockCopperOre extends ElementsCavesNotCliffs.ModElement {
@@ -42,7 +46,38 @@ public class BlockCopperOre extends ElementsCavesNotCliffs.ModElement {
             setCreativeTab(net.minecraft.creativetab.CreativeTabs.BUILDING_BLOCKS);
             setSoundType(SoundType.STONE);
             setHardness(3.0f);
-            setResistance(3.0f);
+            setResistance(CncBlockProperties.legacyResistance(3.0F));
+            setHarvestLevel("pickaxe", 1);
+        }
+
+        @Override
+        public Item getItemDropped(IBlockState state, Random random, int fortune) {
+            return CncMaterialContent.item("raw_copper");
+        }
+
+        @Override
+        public int quantityDropped(Random random) {
+            return 2 + random.nextInt(4);
+        }
+
+        @Override
+        public int quantityDroppedWithBonus(int fortune, Random random) {
+            return OreDropLogic.applyOreBonus(quantityDropped(random), fortune, random);
+        }
+
+        @Override
+        public void dropBlockAsItemWithChance(net.minecraft.world.World world,
+                net.minecraft.util.math.BlockPos pos, IBlockState state,
+                float chance, int fortune) {
+            if (!OreDropLogic.dropWithExplosionDecay(this, world, pos, state,
+                    chance, fortune, harvesters.get())) {
+                super.dropBlockAsItemWithChance(world, pos, state, chance, fortune);
+            }
+        }
+
+        @Override
+        protected boolean canSilkHarvest() {
+            return true;
         }
     }
 }

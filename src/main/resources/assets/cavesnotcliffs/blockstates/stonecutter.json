@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=east": { "model": "cavesnotcliffs:stonecutter", "y": 90 },
+    "facing=north": { "model": "cavesnotcliffs:stonecutter" },
+    "facing=south": { "model": "cavesnotcliffs:stonecutter", "y": 180 },
+    "facing=west": { "model": "cavesnotcliffs:stonecutter", "y": 270 }
+  }
+}
