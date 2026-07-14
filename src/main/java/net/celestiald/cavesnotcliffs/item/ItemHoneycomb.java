@@ -17,6 +17,12 @@ public final class ItemHoneycomb extends Item {
     @Override
     public EnumActionResult onItemUse(EntityPlayer player, World world, BlockPos pos,
             EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
+        return useOnCopper(player, world, pos, hand, facing);
+    }
+
+    /** Shared by optional honeycomb items supplied by other backports. */
+    public static EnumActionResult useOnCopper(EntityPlayer player, World world, BlockPos pos,
+            EnumHand hand, EnumFacing facing) {
         ItemStack stack = player.getHeldItem(hand);
         IBlockState waxed = CopperContent.waxed(world.getBlockState(pos));
         if (waxed == null) {
