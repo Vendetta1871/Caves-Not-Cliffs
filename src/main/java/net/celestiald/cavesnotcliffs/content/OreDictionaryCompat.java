@@ -7,10 +7,15 @@ import net.minecraftforge.oredict.OreDictionary;
 
 /** Canonical 1.12 ore names for machine recipes and material unifiers. */
 public final class OreDictionaryCompat {
+    private static boolean registered;
+
     private OreDictionaryCompat() {
     }
 
-    public static void register() {
+    public static synchronized void register() {
+        if (registered) {
+            return;
+        }
         register("oreCoal", "deepslate_coal_ore");
         register("oreIron", "deepslate_iron_ore");
         register("oreCopper", "copper_ore");
@@ -35,6 +40,7 @@ public final class OreDictionaryCompat {
         register("blockCalcite", "calcite");
         register("blockDeepslate", "deepslate");
         register("blockTuff", "tuff");
+        registered = true;
     }
 
     private static void register(String oreName, String blockName) {

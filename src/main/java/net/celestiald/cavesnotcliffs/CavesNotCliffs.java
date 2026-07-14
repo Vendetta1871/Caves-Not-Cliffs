@@ -23,6 +23,7 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.common.registry.EntityEntry;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -104,7 +105,6 @@ public class CavesNotCliffs {
 	public void init(FMLInitializationEvent event) {
 		elements.getElements().forEach(element -> element.init(event));
 		CncMaterialContent.registerSmelting();
-		OreDictionaryCompat.register();
 		proxy.init(event);
 	}
 
@@ -152,6 +152,11 @@ public class CavesNotCliffs {
 	@SubscribeEvent
 	public void registerItems(RegistryEvent.Register<Item> event) {
 		event.getRegistry().registerAll(elements.getItems().stream().map(Supplier::get).toArray(Item[]::new));
+	}
+
+	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public void registerOreDictionary(RegistryEvent.Register<Item> event) {
+		OreDictionaryCompat.register();
 	}
 
 	@SubscribeEvent
