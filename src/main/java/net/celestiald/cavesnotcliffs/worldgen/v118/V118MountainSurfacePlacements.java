@@ -7,6 +7,7 @@ import net.minecraft.util.math.BlockPos;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
@@ -381,24 +382,41 @@ public final class V118MountainSurfacePlacements {
 
     public static DecorationResult decorateVegetation(WorldAccess world, long worldSeed,
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return decorateVegetation(world, worldSeed, chunkX, chunkZ, regionBiomes,
+                VegetationGate.ALLOW_ALL);
+    }
+
+    public static DecorationResult decorateVegetation(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes,
+            VegetationGate vegetationGate) {
         requireArguments(world, regionBiomes);
+        if (vegetationGate == null) {
+            throw new NullPointerException("vegetationGate");
+        }
+        EnumMap<VegetationCategory, Boolean> gateDecisions =
+                new EnumMap<VegetationCategory, Boolean>(VegetationCategory.class);
         DecorationResult result = new DecorationResult();
-        if (appearsIn(TAIGA_TREE_BIOMES, regionBiomes)) {
+        if (appearsIn(TAIGA_TREE_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.TREE)) {
             placeTaigaTrees(world, worldSeed, chunkX, chunkZ, result);
         }
-        if (regionBiomes.contains(V118Biome.GROVE)) {
+        if (regionBiomes.contains(V118Biome.GROVE)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.TREE)) {
             placeGroveTrees(world, worldSeed, chunkX, chunkZ, result);
         }
         if (world.supportsBroadleafTreePlacement()
-                && appearsIn(WINDSWEPT_HILLS_TREE_BIOMES, regionBiomes)) {
+                && appearsIn(WINDSWEPT_HILLS_TREE_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.TREE)) {
             placeWindsweptTrees(world, worldSeed, chunkX, chunkZ,
                 TREES_WINDSWEPT_HILLS_INDEX, 0,
                 WINDSWEPT_HILLS_TREE_BIOMES, result);
         }
-        if (appearsIn(SNOWY_TREE_BIOMES, regionBiomes)) {
+        if (appearsIn(SNOWY_TREE_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.TREE)) {
             placeSnowyTrees(world, worldSeed, chunkX, chunkZ, result);
         }
-        if (regionBiomes.contains(V118Biome.SWAMP)) {
+        if (regionBiomes.contains(V118Biome.SWAMP)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.TREE)) {
             V118SwampTreeFeature.Result trees = V118SwampTreeFeature.place(
                 world, worldSeed, chunkX, chunkZ);
             result.treesPlaced += trees.trees();
@@ -407,44 +425,52 @@ public final class V118MountainSurfacePlacements {
             result.leavesPlaced += trees.leaves();
         }
         boolean flowers = world.supportsFlowerPlacement();
-        if (flowers && regionBiomes.contains(V118Biome.SWAMP)) {
+        if (flowers && regionBiomes.contains(V118Biome.SWAMP)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.FLOWERS)) {
             placeFlowerPatch(world, worldSeed, chunkX, chunkZ,
                 FLOWER_SWAMP_INDEX, 32, 6, 2, true,
                 FLOWER_SWAMP_BIOMES, result);
         }
         if (world.supportsBroadleafTreePlacement()
-                && appearsIn(WATER_TREE_BIOMES, regionBiomes)) {
+                && appearsIn(WATER_TREE_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.TREE)) {
             placeOakTrees(world, worldSeed, chunkX, chunkZ,
                 TREES_WATER_INDEX, 0, true,
                 WATER_TREE_BIOMES, result);
         }
-        if (flowers && appearsIn(FLOWER_DEFAULT_BIOMES, regionBiomes)) {
+        if (flowers && appearsIn(FLOWER_DEFAULT_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.FLOWERS)) {
             placeFlowerPatch(world, worldSeed, chunkX, chunkZ,
                 FLOWER_DEFAULT_INDEX, 32, 7, 3, false,
                 FLOWER_DEFAULT_BIOMES, result);
         }
         boolean shortGrass = world.supportsShortGrassPlacement();
-        if (shortGrass && appearsIn(GRASS_TAIGA_BIOMES, regionBiomes)) {
+        if (shortGrass && appearsIn(GRASS_TAIGA_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.GRASS)) {
             placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_GRASS_TAIGA_INDEX, 7, 1, 4, false,
                 GRASS_TAIGA_BIOMES, result);
         }
-        if (shortGrass && appearsIn(GRASS_FOREST_BIOMES, regionBiomes)) {
+        if (shortGrass && appearsIn(GRASS_FOREST_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.GRASS)) {
             placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_GRASS_FOREST_INDEX, 2, 1, 0, false,
                 GRASS_FOREST_BIOMES, result);
         }
-        if (shortGrass && appearsIn(GRASS_TAIGA_2_BIOMES, regionBiomes)) {
+        if (shortGrass && appearsIn(GRASS_TAIGA_2_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.GRASS)) {
             placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_GRASS_TAIGA_2_INDEX, 1, 1, 4, false,
                 GRASS_TAIGA_2_BIOMES, result);
         }
-        if (shortGrass && appearsIn(GRASS_NORMAL_BIOMES, regionBiomes)) {
+        if (shortGrass && appearsIn(GRASS_NORMAL_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.GRASS)) {
             placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_GRASS_NORMAL_INDEX, 5, 1, 0, false,
                 GRASS_NORMAL_BIOMES, result);
         }
-        if (appearsIn(DEAD_BUSH_BIOMES, regionBiomes)) {
+        if (appearsIn(DEAD_BUSH_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.DEAD_BUSH)) {
             placeDeadBushPatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_DEAD_BUSH_INDEX, 1, DEAD_BUSH_BIOMES, result);
         }
@@ -452,7 +478,8 @@ public final class V118MountainSurfacePlacements {
         // Preserve the dense registered sequence: grass 47-50, shared dead bush 51,
         // old-growth mushrooms 52/53, waterlily 54, swamp mushrooms 55/56,
         // default grass 57, then desert/badlands bushes 58/59.
-        if (mushrooms && appearsIn(MUSHROOM_OLD_GROWTH_BIOMES, regionBiomes)) {
+        if (mushrooms && appearsIn(MUSHROOM_OLD_GROWTH_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.MUSHROOM)) {
             placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
                 BROWN_MUSHROOM_OLD_GROWTH_INDEX, 3, 4, false,
                 MUSHROOM_OLD_GROWTH_BIOMES, result);
@@ -461,10 +488,12 @@ public final class V118MountainSurfacePlacements {
                 MUSHROOM_OLD_GROWTH_BIOMES, result);
         }
         if (world.supportsWaterlilyPlacement()
-                && regionBiomes.contains(V118Biome.SWAMP)) {
+                && regionBiomes.contains(V118Biome.SWAMP)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.WATERLILY)) {
             placeWaterlilyPatch(world, worldSeed, chunkX, chunkZ, result);
         }
-        if (mushrooms && regionBiomes.contains(V118Biome.SWAMP)) {
+        if (mushrooms && regionBiomes.contains(V118Biome.SWAMP)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.MUSHROOM)) {
             placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
                 BROWN_MUSHROOM_SWAMP_INDEX, 2, 0, false,
                 MUSHROOM_SWAMP_BIOMES, result);
@@ -472,21 +501,25 @@ public final class V118MountainSurfacePlacements {
                 RED_MUSHROOM_SWAMP_INDEX, 1, 64, true,
                 MUSHROOM_SWAMP_BIOMES, result);
         }
-        if (shortGrass && appearsIn(GRASS_BADLANDS_BIOMES, regionBiomes)) {
+        if (shortGrass && appearsIn(GRASS_BADLANDS_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.GRASS)) {
             placeShortGrassPatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_GRASS_BADLANDS_INDEX, 1, 1, 0, false,
                 GRASS_BADLANDS_BIOMES, result);
         }
-        if (regionBiomes.contains(V118Biome.DESERT)) {
+        if (regionBiomes.contains(V118Biome.DESERT)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.DEAD_BUSH)) {
             placeDeadBushPatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_DEAD_BUSH_2_INDEX, 2, DEAD_BUSH_2_BIOMES, result);
         }
-        if (appearsIn(DEAD_BUSH_BADLANDS_BIOMES, regionBiomes)) {
+        if (appearsIn(DEAD_BUSH_BADLANDS_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.DEAD_BUSH)) {
             placeDeadBushPatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_DEAD_BUSH_BADLANDS_INDEX, 20,
                 DEAD_BUSH_BADLANDS_BIOMES, result);
         }
-        if (mushrooms && appearsIn(MUSHROOM_NORMAL_BIOMES, regionBiomes)) {
+        if (mushrooms && appearsIn(MUSHROOM_NORMAL_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.MUSHROOM)) {
             placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
                 BROWN_MUSHROOM_NORMAL_INDEX, 1, 256, false,
                 MUSHROOM_NORMAL_BIOMES, result);
@@ -494,26 +527,31 @@ public final class V118MountainSurfacePlacements {
                 RED_MUSHROOM_NORMAL_INDEX, 1, 512, true,
                 MUSHROOM_NORMAL_BIOMES, result);
         }
-        if (regionBiomes.contains(V118Biome.DESERT)) {
+        if (regionBiomes.contains(V118Biome.DESERT)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.REED)) {
             placeSugarCanePatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_SUGAR_CANE_DESERT_INDEX, 0,
                 SUGAR_CANE_DESERT_BIOMES, result);
         }
-        if (appearsIn(SUGAR_CANE_BADLANDS_BIOMES, regionBiomes)) {
+        if (appearsIn(SUGAR_CANE_BADLANDS_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.REED)) {
             placeSugarCanePatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_SUGAR_CANE_BADLANDS_INDEX, 5,
                 SUGAR_CANE_BADLANDS_BIOMES, result);
         }
-        if (regionBiomes.contains(V118Biome.SWAMP)) {
+        if (regionBiomes.contains(V118Biome.SWAMP)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.REED)) {
             placeSugarCanePatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_SUGAR_CANE_SWAMP_INDEX, 3,
                 SUGAR_CANE_SWAMP_BIOMES, result);
         }
-        if (regionBiomes.contains(V118Biome.MUSHROOM_FIELDS)) {
+        if (regionBiomes.contains(V118Biome.MUSHROOM_FIELDS)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.BIG_MUSHROOM)) {
             V118MushroomIslandVegetationFeature.decorate(
                 world, worldSeed, chunkX, chunkZ, regionBiomes);
         }
-        if (mushrooms && appearsIn(MUSHROOM_TAIGA_BIOMES, regionBiomes)) {
+        if (mushrooms && appearsIn(MUSHROOM_TAIGA_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.MUSHROOM)) {
             placeMushroomPatch(world, worldSeed, chunkX, chunkZ,
                 BROWN_MUSHROOM_TAIGA_INDEX, 1, 4, false,
                 MUSHROOM_TAIGA_BIOMES, result);
@@ -521,17 +559,20 @@ public final class V118MountainSurfacePlacements {
                 RED_MUSHROOM_TAIGA_INDEX, 1, 256, true,
                 MUSHROOM_TAIGA_BIOMES, result);
         }
-        if (appearsIn(ORDINARY_SUGAR_CANE_BIOMES, regionBiomes)) {
+        if (appearsIn(ORDINARY_SUGAR_CANE_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.REED)) {
             placeSugarCanePatch(world, worldSeed, chunkX, chunkZ,
                 PATCH_SUGAR_CANE_INDEX, 6,
                 ORDINARY_SUGAR_CANE_BIOMES, result);
         }
-        if (appearsIn(PUMPKIN_BIOMES, regionBiomes)) {
+        if (appearsIn(PUMPKIN_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.PUMPKIN)) {
             placePumpkinPatch(world, worldSeed, chunkX, chunkZ, result);
         }
         // Preserve the registered tail of global step 9: pumpkin 69, cactus 71/72,
         // vines 73, sparse melon 74, then regular melon 75.
-        if (world.supportsCactusPlacement()) {
+        if (world.supportsCactusPlacement()
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.CACTUS)) {
             if (regionBiomes.contains(V118Biome.DESERT)) {
                 placeCactusPatch(world, worldSeed, chunkX, chunkZ,
                     PATCH_CACTUS_DESERT_INDEX, 6, CACTUS_DESERT_BIOMES, result);
@@ -543,10 +584,12 @@ public final class V118MountainSurfacePlacements {
             }
         }
         if (world.supportsVinePlacement()
-                && appearsIn(VINE_BIOMES, regionBiomes)) {
+                && appearsIn(VINE_BIOMES, regionBiomes)
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.CUSTOM)) {
             placeVines(world, worldSeed, chunkX, chunkZ, result);
         }
-        if (world.supportsMelonPlacement()) {
+        if (world.supportsMelonPlacement()
+                && allowed(vegetationGate, gateDecisions, VegetationCategory.CUSTOM)) {
             if (regionBiomes.contains(V118Biome.SPARSE_JUNGLE)) {
                 placeMelonPatch(world, worldSeed, chunkX, chunkZ,
                     PATCH_MELON_SPARSE_INDEX, 64, MELON_SPARSE_BIOMES, result);
@@ -1480,6 +1523,17 @@ public final class V118MountainSurfacePlacements {
         return false;
     }
 
+    private static boolean allowed(VegetationGate gate,
+            EnumMap<VegetationCategory, Boolean> decisions,
+            VegetationCategory category) {
+        Boolean allowed = decisions.get(category);
+        if (allowed == null) {
+            allowed = gate.allow(category);
+            decisions.put(category, allowed);
+        }
+        return allowed;
+    }
+
     private static Set<V118Biome> immutableSet(V118Biome first, V118Biome... rest) {
         EnumSet<V118Biome> values = EnumSet.of(first, rest);
         return Collections.unmodifiableSet(values);
@@ -1497,6 +1551,26 @@ public final class V118MountainSurfacePlacements {
         if (world == null || regionBiomes == null) {
             throw new NullPointerException("world and regionBiomes are required");
         }
+    }
+
+    public interface VegetationGate {
+        VegetationGate ALLOW_ALL = category -> true;
+
+        boolean allow(VegetationCategory category);
+    }
+
+    public enum VegetationCategory {
+        TREE,
+        FLOWERS,
+        GRASS,
+        DEAD_BUSH,
+        BIG_MUSHROOM,
+        MUSHROOM,
+        WATERLILY,
+        REED,
+        PUMPKIN,
+        CACTUS,
+        CUSTOM
     }
 
     public interface WorldAccess extends V118MountainTreeFeature.WorldAccess,

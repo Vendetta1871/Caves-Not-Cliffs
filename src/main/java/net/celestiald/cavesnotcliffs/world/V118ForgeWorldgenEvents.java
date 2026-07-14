@@ -27,6 +27,9 @@ final class V118ForgeWorldgenEvents {
     private final Random random;
     private final ChunkPos chunkPos;
     private final BlockPos blockPos;
+    private final Map<OreGenEvent.GenerateMinable.EventType, Boolean> oreDecisions =
+            new EnumMap<OreGenEvent.GenerateMinable.EventType, Boolean>(
+                    OreGenEvent.GenerateMinable.EventType.class);
 
     V118ForgeWorldgenEvents(V118ChunkGenerator generator, World world,
             int chunkX, int chunkZ) {
@@ -79,8 +82,14 @@ final class V118ForgeWorldgenEvents {
     }
 
     boolean allowOre(PlacedOre ore) {
-        return TerrainGen.generateOre(world, random, ORE_GENERATORS.get(ore), blockPos,
-                oreEventType(ore));
+        OreGenEvent.GenerateMinable.EventType type = oreEventType(ore);
+        Boolean allowed = oreDecisions.get(type);
+        if (allowed == null) {
+            allowed = TerrainGen.generateOre(world, random, ORE_GENERATORS.get(ore),
+                    blockPos, type);
+            oreDecisions.put(type, allowed);
+        }
+        return allowed;
     }
 
     private static Map<PlacedOre, WorldGenerator> oreGenerators() {

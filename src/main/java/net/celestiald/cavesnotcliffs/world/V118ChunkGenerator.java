@@ -6,6 +6,7 @@ import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118BiomeDecorationUnion;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118MountainSurfacePlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118NoiseRouterData;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118OrePlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118TerrainColumnGenerator;
@@ -221,7 +222,9 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         ordinaryOres.populate(chunkX, chunkZ, decorationBiomes,
                 allowDripstone ? dripstones
                         : V118OrePlacements.BetweenDecorationSteps.NONE,
-                forgeEvents::allowOre);
+                forgeEvents::allowOre,
+                feature -> forgeEvents.allowDecoration(
+                        decorationType(feature)));
         forgeEvents.orePost();
         // FLUID_SPRINGS step 8 indices 0, 1, then 2, after underground decoration.
         boolean allowWaterSprings = forgeEvents.allowDecoration(
@@ -273,11 +276,10 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         if (allowGrass) {
             mountainSurface.populateEarlyShortGrass(chunkX, chunkZ, decorationBiomes);
         }
-        if (forgeEvents.allowDecoration(
-                DecorateBiomeEvent.Decorate.EventType.CUSTOM)) {
-            mountainSurface.populateDarkForestVegetation(
-                chunkX, chunkZ, decorationBiomes);
-        }
+        boolean allowBigMushrooms = forgeEvents.allowDecoration(
+                DecorateBiomeEvent.Decorate.EventType.BIG_SHROOM);
+        mountainSurface.populateDarkForestVegetation(
+            chunkX, chunkZ, decorationBiomes, allowTrees, allowBigMushrooms);
         beeTrees.populateBeforeLush(chunkX, chunkZ, decorationBiomes,
                 allowTrees, allowFlowers);
         // Index 21 precedes the lush-cave vegetation beginning at index 22.
@@ -303,10 +305,21 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
             mountainSurface.populateOldGrowthTrees(chunkX, chunkZ, decorationBiomes);
         }
         // Indices 39-42, 44-64, 66-69, 71, 72, 74, and 75 follow.
-        if (forgeEvents.allowDecoration(
-                DecorateBiomeEvent.Decorate.EventType.CUSTOM)) {
-            mountainSurface.populateVegetation(chunkX, chunkZ, decorationBiomes);
-        }
+        mountainSurface.populateVegetation(chunkX, chunkZ, decorationBiomes,
+                category -> {
+                    switch (category) {
+                        case TREE:
+                            return allowTrees;
+                        case FLOWERS:
+                            return allowFlowers;
+                        case GRASS:
+                            return allowGrass;
+                        case BIG_MUSHROOM:
+                            return allowBigMushrooms;
+                        default:
+                            return forgeEvents.allowDecoration(decorationType(category));
+                    }
+                });
         // TOP_LAYER_MODIFICATION step 10 is the last represented decoration stage.
         if (forgeEvents.allowPopulation(villageGenerated,
                 PopulateChunkEvent.Populate.EventType.ICE)) {
@@ -320,6 +333,52 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
             scheduleFluidTicks(column, chunkX, sectionY, chunkZ);
         }
         forgeEvents.populationPost(villageGenerated);
+    }
+
+    private static DecorateBiomeEvent.Decorate.EventType decorationType(
+            V118OrePlacements.SpecialFeature feature) {
+        switch (feature) {
+            case DISK_SAND:
+                return DecorateBiomeEvent.Decorate.EventType.SAND;
+            case DISK_CLAY:
+                return DecorateBiomeEvent.Decorate.EventType.CLAY;
+            case DISK_GRAVEL:
+                return DecorateBiomeEvent.Decorate.EventType.SAND_PASS2;
+            case UNDERWATER_MAGMA:
+                return DecorateBiomeEvent.Decorate.EventType.CUSTOM;
+            default:
+                throw new AssertionError(feature);
+        }
+    }
+
+    private static DecorateBiomeEvent.Decorate.EventType decorationType(
+            V118MountainSurfacePlacements.VegetationCategory category) {
+        switch (category) {
+            case TREE:
+                return DecorateBiomeEvent.Decorate.EventType.TREE;
+            case FLOWERS:
+                return DecorateBiomeEvent.Decorate.EventType.FLOWERS;
+            case GRASS:
+                return DecorateBiomeEvent.Decorate.EventType.GRASS;
+            case DEAD_BUSH:
+                return DecorateBiomeEvent.Decorate.EventType.DEAD_BUSH;
+            case BIG_MUSHROOM:
+                return DecorateBiomeEvent.Decorate.EventType.BIG_SHROOM;
+            case MUSHROOM:
+                return DecorateBiomeEvent.Decorate.EventType.SHROOM;
+            case WATERLILY:
+                return DecorateBiomeEvent.Decorate.EventType.LILYPAD;
+            case REED:
+                return DecorateBiomeEvent.Decorate.EventType.REED;
+            case PUMPKIN:
+                return DecorateBiomeEvent.Decorate.EventType.PUMPKIN;
+            case CACTUS:
+                return DecorateBiomeEvent.Decorate.EventType.CACTUS;
+            case CUSTOM:
+                return DecorateBiomeEvent.Decorate.EventType.CUSTOM;
+            default:
+                throw new AssertionError(category);
+        }
     }
 
     void replayImportedFluidTicks(int chunkX, int chunkZ, int populatedMask) {

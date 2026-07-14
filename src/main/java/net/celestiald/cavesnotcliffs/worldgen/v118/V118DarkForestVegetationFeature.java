@@ -20,6 +20,12 @@ public final class V118DarkForestVegetationFeature {
 
     public static Result decorate(WorldAccess world, long worldSeed,
             int chunkX, int chunkZ) {
+        return decorate(world, worldSeed, chunkX, chunkZ, true, true);
+    }
+
+    public static Result decorate(WorldAccess world, long worldSeed,
+            int chunkX, int chunkZ, boolean allowTrees,
+            boolean allowHugeMushrooms) {
         if (world == null) {
             throw new NullPointerException("Dark forest world is required");
         }
@@ -40,25 +46,31 @@ public final class V118DarkForestVegetationFeature {
             if (world.biomeAt(origin) != V118Biome.DARK_FOREST) {
                 continue;
             }
-            placeSelected(world, random, origin, result);
+            placeSelected(world, random, origin, result, allowTrees,
+                    allowHugeMushrooms);
         }
         return result;
     }
 
     private static void placeSelected(WorldAccess world, Random random,
-            BlockPos origin, Result result) {
+            BlockPos origin, Result result, boolean allowTrees,
+            boolean allowHugeMushrooms) {
         if (random.nextFloat() < 0.025F) {
-            recordMushroom(V118MushroomIslandVegetationFeature.place(
-                    world, random, origin, MushroomKind.BROWN), result);
+            if (allowHugeMushrooms) {
+                recordMushroom(V118MushroomIslandVegetationFeature.place(
+                        world, random, origin, MushroomKind.BROWN), result);
+            }
             return;
         }
         if (random.nextFloat() < 0.05F) {
-            recordMushroom(V118MushroomIslandVegetationFeature.place(
-                    world, random, origin, MushroomKind.RED), result);
+            if (allowHugeMushrooms) {
+                recordMushroom(V118MushroomIslandVegetationFeature.place(
+                        world, random, origin, MushroomKind.RED), result);
+            }
             return;
         }
         if (random.nextFloat() < 0.6666667F) {
-            if (world.canDarkOakSaplingSurvive(origin)) {
+            if (allowTrees && world.canDarkOakSaplingSurvive(origin)) {
                 recordDarkOak(placeDarkOak(world, random, origin), result);
             }
             return;
@@ -71,7 +83,7 @@ public final class V118DarkForestVegetationFeature {
         } else {
             kind = TreeKind.OAK;
         }
-        if (!world.canBroadleafSaplingSurvive(origin)) {
+        if (!allowTrees || !world.canBroadleafSaplingSurvive(origin)) {
             return;
         }
         V118BeeTreeFeature.Result tree = V118BeeTreeFeature.place(
