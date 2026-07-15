@@ -39,6 +39,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.World;
 import net.minecraft.potion.Potion;
 import net.minecraft.item.Item;
 import net.minecraft.block.Block;
@@ -75,8 +76,17 @@ public class CavesNotCliffs {
 	public ElementsCavesNotCliffs elements = new ElementsCavesNotCliffs();
 	private final WorldHeightBootstrap worldHeightBootstrap = new WorldHeightBootstrap();
 	private final IWorldVerticalBiomeProvider verticalBiomeProvider =
-			(world, x, y, z, base) -> VirtualBiomeResolverRegistry.resolve(
-					world, x, y, z, base);
+			new IWorldVerticalBiomeProvider() {
+				@Override
+				public boolean appliesTo(World world) {
+					return VirtualBiomeResolverRegistry.hasResolver(world);
+				}
+
+				@Override
+				public Biome getBiome(World world, int x, int y, int z, Biome base) {
+					return VirtualBiomeResolverRegistry.resolve(world, x, y, z, base);
+				}
+			};
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
 		DungeonChestContent.registerTileEntity();
