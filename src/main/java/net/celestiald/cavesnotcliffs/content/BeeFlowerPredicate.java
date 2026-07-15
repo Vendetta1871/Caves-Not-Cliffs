@@ -6,6 +6,7 @@ import net.minecraft.block.BlockFlower;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 
@@ -35,7 +36,8 @@ public final class BeeFlowerPredicate {
         if (block instanceof BlockDoublePlant) {
             return resolveFloweringDoublePlant(world, pos, state);
         }
-        return isFloweringAzalea(block) ? FlowerState.SMALL : null;
+        return isFloweringAzalea(block) || isFutureMcFlower(block)
+                ? FlowerState.SMALL : null;
     }
 
     public static boolean isFlowerItem(ItemStack stack) {
@@ -51,7 +53,7 @@ public final class BeeFlowerPredicate {
                     BlockDoublePlant.EnumPlantType.byMetadata(stack.getMetadata());
             return isTaggedDoublePlant(variant);
         }
-        return isFloweringAzalea(block);
+        return isFloweringAzalea(block) || isFutureMcFlower(block);
     }
 
     private static FlowerState resolveFloweringDoublePlant(IBlockAccess world, BlockPos pos,
@@ -84,6 +86,16 @@ public final class BeeFlowerPredicate {
         return block.getRegistryName() != null
                 && block.getRegistryName().getResourcePath()
                     .contains("flowering_azalea");
+    }
+
+    private static boolean isFutureMcFlower(Block block) {
+        ResourceLocation id = block.getRegistryName();
+        if (id == null || !"futuremc".equals(id.getResourceDomain())) {
+            return false;
+        }
+        String path = id.getResourcePath();
+        return "cornflower".equals(path) || "lily_of_the_valley".equals(path)
+                || "wither_rose".equals(path);
     }
 
     private static final class FlowerState {

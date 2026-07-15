@@ -5,7 +5,10 @@ import net.celestiald.cavebiomes.api.IExtendedPopulationGenerator;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118BiomeDecorationUnion;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118DefaultSpringPlacements;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118MountainSurfacePlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118NoiseRouterData;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118OrePlacements;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118TerrainColumnGenerator;
 import net.celestiald.cavesnotcliffs.entity.EntityAxolotl;
 import net.minecraft.block.Block;
@@ -17,6 +20,8 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkPrimer;
 import net.minecraft.world.gen.IChunkGenerator;
+import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
+import net.minecraftforge.event.terraingen.PopulateChunkEvent;
 
 import java.util.List;
 import java.util.Collections;
@@ -158,74 +163,221 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
                 slicer.slice(terrain, sectionY, chunk, skylight);
             }
         }
-        slicer.projectSurfaceBiomes(terrain, chunk.getBiomeArray());
+        slicer.projectSurfaceBiomes(terrain, chunk);
         chunk.generateSkylightMap();
         return chunk;
     }
 
     @Override
     public void populate(int chunkX, int chunkZ) {
+        V118ForgeWorldgenEvents forgeEvents =
+                new V118ForgeWorldgenEvents(this, world, chunkX, chunkZ);
+        forgeEvents.populationPre();
         Set<V118Biome> decorationBiomes = decorationBiomeUnion(chunkX, chunkZ);
-        structures.populate(chunkX, chunkZ);
+        boolean villageGenerated = structures.populate(chunkX, chunkZ);
+        forgeEvents.decorationPre();
         // LAKES step 1 contains the shared underground and surface lava lakes.
-        mountainSurface.populateLavaLakes(chunkX, chunkZ);
-        geodes.populate(chunkX, chunkZ);
-        dripstones.populateLarge(chunkX, chunkZ, decorationBiomes);
+        if (forgeEvents.allowPopulation(villageGenerated,
+                PopulateChunkEvent.Populate.EventType.LAVA)) {
+            mountainSurface.populateLavaLakes(chunkX, chunkZ);
+        }
+        if (forgeEvents.allowDecoration(
+                DecorateBiomeEvent.Decorate.EventType.CUSTOM)) {
+            geodes.populate(chunkX, chunkZ);
+        }
+        boolean allowDripstone = forgeEvents.allowDecoration(
+                DecorateBiomeEvent.Decorate.EventType.CUSTOM);
+        if (allowDripstone) {
+            dripstones.populateLarge(chunkX, chunkZ, decorationBiomes);
+        }
         // LOCAL_MODIFICATIONS index 4 follows geodes at 2 and large dripstone at 3.
-        mountainSurface.populateForestRock(chunkX, chunkZ, decorationBiomes);
+        if (forgeEvents.allowDecoration(DecorateBiomeEvent.Decorate.EventType.ROCK)) {
+            mountainSurface.populateForestRock(chunkX, chunkZ, decorationBiomes);
+        }
         // UNDERGROUND_STRUCTURES step 3 indices 0 and 1 are the upper/lower fossils.
-        fossils.populate(chunkX, chunkZ);
+        if (forgeEvents.allowDecoration(DecorateBiomeEvent.Decorate.EventType.FOSSIL)) {
+            fossils.populate(chunkX, chunkZ);
+        }
         // Monster rooms follow at indices 2 and 3.
-        monsterRooms.populate(chunkX, chunkZ);
+        if (forgeEvents.allowPopulation(villageGenerated,
+                PopulateChunkEvent.Populate.EventType.DUNGEON)) {
+            monsterRooms.populate(chunkX, chunkZ);
+        }
         // SURFACE_STRUCTURES step 4 begins with ice_spike index 0 and ice_patch index 1.
-        mountainSurface.populateIceSurface(chunkX, chunkZ, decorationBiomes);
+        boolean allowIce = forgeEvents.allowDecoration(
+                DecorateBiomeEvent.Decorate.EventType.ICE);
+        if (allowIce) {
+            mountainSurface.populateIceSurface(chunkX, chunkZ, decorationBiomes);
+        }
         // Desert wells are the next represented surface structure at global index 2.
-        mountainSurface.populateDesertWell(chunkX, chunkZ, decorationBiomes);
+        if (forgeEvents.allowDecoration(
+                DecorateBiomeEvent.Decorate.EventType.DESERT_WELL)) {
+            mountainSurface.populateDesertWell(chunkX, chunkZ, decorationBiomes);
+        }
         // Blue ice follows at surface-structures index 3 in frozen-ocean biomes.
-        mountainSurface.populateBlueIce(chunkX, chunkZ, decorationBiomes);
-        ordinaryOres.populate(chunkX, chunkZ, decorationBiomes, dripstones);
+        if (allowIce) {
+            mountainSurface.populateBlueIce(chunkX, chunkZ, decorationBiomes);
+        }
+        forgeEvents.orePre();
+        ordinaryOres.populate(chunkX, chunkZ, decorationBiomes,
+                allowDripstone ? dripstones
+                        : V118OrePlacements.BetweenDecorationSteps.NONE,
+                forgeEvents::allowOre,
+                feature -> forgeEvents.allowDecoration(
+                        decorationType(feature)));
+        forgeEvents.orePost();
         // FLUID_SPRINGS step 8 indices 0, 1, then 2, after underground decoration.
-        mountainSurface.populateDefaultSprings(chunkX, chunkZ, decorationBiomes);
-        mountainSurface.populateFrozenSprings(chunkX, chunkZ, decorationBiomes);
+        boolean allowWaterSprings = forgeEvents.allowDecoration(
+                DecorateBiomeEvent.Decorate.EventType.LAKE_WATER);
+        boolean allowLavaSprings = forgeEvents.allowDecoration(
+                DecorateBiomeEvent.Decorate.EventType.LAKE_LAVA);
+        mountainSurface.populateDefaultSprings(chunkX, chunkZ, decorationBiomes,
+                fluid -> fluid == V118DefaultSpringPlacements.SpringFluid.WATER
+                        ? allowWaterSprings : allowLavaSprings);
+        if (allowLavaSprings) {
+            mountainSurface.populateFrozenSprings(chunkX, chunkZ, decorationBiomes);
+        }
+        boolean allowTrees = forgeEvents.allowDecoration(
+                DecorateBiomeEvent.Decorate.EventType.TREE);
         // VEGETAL_DECORATION index 1 is the windswept-savanna acacia/oak selector.
-        mountainSurface.populateWindsweptSavannaTrees(
-            chunkX, chunkZ, decorationBiomes);
+        if (allowTrees) {
+            mountainSurface.populateWindsweptSavannaTrees(
+                chunkX, chunkZ, decorationBiomes);
+        }
         // Sparse-jungle trees occupy global index 4.
-        mountainSurface.populateSparseJungleTrees(chunkX, chunkZ, decorationBiomes);
+        if (allowTrees) {
+            mountainSurface.populateSparseJungleTrees(chunkX, chunkZ, decorationBiomes);
+        }
         // Wooded-badlands oak trees follow at global index 5.
-        mountainSurface.populateEarlyTrees(chunkX, chunkZ, decorationBiomes);
+        if (allowTrees) {
+            mountainSurface.populateEarlyTrees(chunkX, chunkZ, decorationBiomes);
+        }
         // Jungle trees follow at global index 7.
-        mountainSurface.populateJungleTrees(chunkX, chunkZ, decorationBiomes);
+        if (allowTrees) {
+            mountainSurface.populateJungleTrees(chunkX, chunkZ, decorationBiomes);
+        }
+        boolean allowGrass = forgeEvents.allowDecoration(
+                DecorateBiomeEvent.Decorate.EventType.GRASS);
         // VEGETAL_DECORATION index 8 precedes tree index 9 and warm flowers at 10.
-        mountainSurface.populateEarlyDoublePlants(chunkX, chunkZ, decorationBiomes);
+        if (allowGrass) {
+            mountainSurface.populateEarlyDoublePlants(chunkX, chunkZ, decorationBiomes);
+        }
         // The savanna acacia/oak selector occupies index 9 before warm flowers at 10.
-        mountainSurface.populateSavannaTrees(chunkX, chunkZ, decorationBiomes);
+        if (allowTrees) {
+            mountainSurface.populateSavannaTrees(chunkX, chunkZ, decorationBiomes);
+        }
+        boolean allowFlowers = forgeEvents.allowDecoration(
+                DecorateBiomeEvent.Decorate.EventType.FLOWERS);
         // Warm flowers follow at index 10.
-        mountainSurface.populateEarlyFlowers(chunkX, chunkZ, decorationBiomes);
+        if (allowFlowers) {
+            mountainSurface.populateEarlyFlowers(chunkX, chunkZ, decorationBiomes);
+        }
         // Grass indices 11/12 precede dark-forest vegetation at index 13.
-        mountainSurface.populateEarlyShortGrass(chunkX, chunkZ, decorationBiomes);
+        if (allowGrass) {
+            mountainSurface.populateEarlyShortGrass(chunkX, chunkZ, decorationBiomes);
+        }
+        boolean allowBigMushrooms = forgeEvents.allowDecoration(
+                DecorateBiomeEvent.Decorate.EventType.BIG_SHROOM);
         mountainSurface.populateDarkForestVegetation(
-            chunkX, chunkZ, decorationBiomes);
-        beeTrees.populateBeforeLush(chunkX, chunkZ, decorationBiomes);
+            chunkX, chunkZ, decorationBiomes, allowTrees, allowBigMushrooms);
+        beeTrees.populateBeforeLush(chunkX, chunkZ, decorationBiomes,
+                allowTrees, allowFlowers);
         // Index 21 precedes the lush-cave vegetation beginning at index 22.
-        mountainSurface.populatePreLushDoublePlants(chunkX, chunkZ, decorationBiomes);
-        lushCaves.populate(chunkX, chunkZ, decorationBiomes);
-        beeTrees.populateAfterLush(chunkX, chunkZ, decorationBiomes);
+        if (allowGrass) {
+            mountainSurface.populatePreLushDoublePlants(chunkX, chunkZ, decorationBiomes);
+        }
+        if (forgeEvents.allowDecoration(
+                DecorateBiomeEvent.Decorate.EventType.CUSTOM)) {
+            lushCaves.populate(chunkX, chunkZ, decorationBiomes);
+        }
+        beeTrees.populateAfterLush(chunkX, chunkZ, decorationBiomes,
+                allowTrees, allowFlowers, allowGrass);
         // Windswept-forest trees at index 35 follow the meadow tree at 34.
-        mountainSurface.populatePreLateTrees(chunkX, chunkZ, decorationBiomes);
+        if (allowTrees) {
+            mountainSurface.populatePreLateTrees(chunkX, chunkZ, decorationBiomes);
+        }
         // Large fern index 36 follows windswept-forest trees at 35.
-        mountainSurface.populateLateDoublePlants(chunkX, chunkZ, decorationBiomes);
+        if (allowGrass) {
+            mountainSurface.populateLateDoublePlants(chunkX, chunkZ, decorationBiomes);
+        }
         // Old-growth pine and spruce tree selectors occupy indices 37 and 38.
-        mountainSurface.populateOldGrowthTrees(chunkX, chunkZ, decorationBiomes);
+        if (allowTrees) {
+            mountainSurface.populateOldGrowthTrees(chunkX, chunkZ, decorationBiomes);
+        }
         // Indices 39-42, 44-64, 66-69, 71, 72, 74, and 75 follow.
-        mountainSurface.populateVegetation(chunkX, chunkZ, decorationBiomes);
+        mountainSurface.populateVegetation(chunkX, chunkZ, decorationBiomes,
+                category -> {
+                    switch (category) {
+                        case TREE:
+                            return allowTrees;
+                        case FLOWERS:
+                            return allowFlowers;
+                        case GRASS:
+                            return allowGrass;
+                        case BIG_MUSHROOM:
+                            return allowBigMushrooms;
+                        default:
+                            return forgeEvents.allowDecoration(decorationType(category));
+                    }
+                });
         // TOP_LAYER_MODIFICATION step 10 is the last represented decoration stage.
-        mountainSurface.populateTopLayer(chunkX, chunkZ, decorationBiomes);
+        if (forgeEvents.allowPopulation(villageGenerated,
+                PopulateChunkEvent.Populate.EventType.ICE)) {
+            mountainSurface.populateTopLayer(chunkX, chunkZ, decorationBiomes);
+        }
+        forgeEvents.decorationPost();
         TerrainColumn column = columns.column(chunkX, chunkZ);
 
         for (int sectionY = TerrainColumn.MIN_CUBE_Y;
                 sectionY <= TerrainColumn.MAX_CUBE_Y; ++sectionY) {
             scheduleFluidTicks(column, chunkX, sectionY, chunkZ);
+        }
+        forgeEvents.populationPost(villageGenerated);
+    }
+
+    private static DecorateBiomeEvent.Decorate.EventType decorationType(
+            V118OrePlacements.SpecialFeature feature) {
+        switch (feature) {
+            case DISK_SAND:
+                return DecorateBiomeEvent.Decorate.EventType.SAND;
+            case DISK_CLAY:
+                return DecorateBiomeEvent.Decorate.EventType.CLAY;
+            case DISK_GRAVEL:
+                return DecorateBiomeEvent.Decorate.EventType.SAND_PASS2;
+            case UNDERWATER_MAGMA:
+                return DecorateBiomeEvent.Decorate.EventType.CUSTOM;
+            default:
+                throw new AssertionError(feature);
+        }
+    }
+
+    private static DecorateBiomeEvent.Decorate.EventType decorationType(
+            V118MountainSurfacePlacements.VegetationCategory category) {
+        switch (category) {
+            case TREE:
+                return DecorateBiomeEvent.Decorate.EventType.TREE;
+            case FLOWERS:
+                return DecorateBiomeEvent.Decorate.EventType.FLOWERS;
+            case GRASS:
+                return DecorateBiomeEvent.Decorate.EventType.GRASS;
+            case DEAD_BUSH:
+                return DecorateBiomeEvent.Decorate.EventType.DEAD_BUSH;
+            case BIG_MUSHROOM:
+                return DecorateBiomeEvent.Decorate.EventType.BIG_SHROOM;
+            case MUSHROOM:
+                return DecorateBiomeEvent.Decorate.EventType.SHROOM;
+            case WATERLILY:
+                return DecorateBiomeEvent.Decorate.EventType.LILYPAD;
+            case REED:
+                return DecorateBiomeEvent.Decorate.EventType.REED;
+            case PUMPKIN:
+                return DecorateBiomeEvent.Decorate.EventType.PUMPKIN;
+            case CACTUS:
+                return DecorateBiomeEvent.Decorate.EventType.CACTUS;
+            case CUSTOM:
+                return DecorateBiomeEvent.Decorate.EventType.CUSTOM;
+            default:
+                throw new AssertionError(category);
         }
     }
 

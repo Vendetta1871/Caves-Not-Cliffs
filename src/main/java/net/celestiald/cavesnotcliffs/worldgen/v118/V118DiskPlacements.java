@@ -15,11 +15,18 @@ public final class V118DiskPlacements {
 
     static DecorationResult decorate(WorldAccess world, long decorationSeed, int chunkX,
             int chunkZ, Set<V118Biome> regionBiomes, V118WorldgenRandom random) {
+        return decorate(world, decorationSeed, chunkX, chunkZ, regionBiomes, random,
+                FeatureGate.ALLOW_ALL);
+    }
+
+    static DecorationResult decorate(WorldAccess world, long decorationSeed, int chunkX,
+            int chunkZ, Set<V118Biome> regionBiomes, V118WorldgenRandom random,
+            FeatureGate featureGate) {
         EnumMap<PlacedDisk, Boolean> results = new EnumMap<PlacedDisk, Boolean>(PlacedDisk.class);
         int originX = chunkX << 4;
         int originZ = chunkZ << 4;
         for (PlacedDisk feature : PlacedDisk.values()) {
-            if (!feature.belongsToAny(regionBiomes)) {
+            if (!feature.belongsToAny(regionBiomes) || !featureGate.allow(feature)) {
                 continue;
             }
             random.setFeatureSeed(decorationSeed, feature.globalFeatureIndex,
@@ -27,6 +34,12 @@ public final class V118DiskPlacements {
             results.put(feature, feature.place(world, random, originX, originZ));
         }
         return new DecorationResult(results);
+    }
+
+    interface FeatureGate {
+        FeatureGate ALLOW_ALL = feature -> true;
+
+        boolean allow(PlacedDisk feature);
     }
 
     public enum PlacedDisk {

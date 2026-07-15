@@ -2,12 +2,14 @@ package net.celestiald.cavesnotcliffs.content;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.oredict.OreDictionary;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Java 1.18.2 compost chances for every item represented by the 1.12 runtime or this backport.
@@ -22,6 +24,7 @@ public final class ComposterCompostables {
 
     private static final List<Definition> DEFINITIONS = buildDefinitions();
     private static final Map<String, Float> CHANCES = buildChanceMap(DEFINITIONS);
+    private static final Map<String, Float> CUSTOM_CHANCES = new ConcurrentHashMap<>();
 
     private ComposterCompostables() {
     }
@@ -30,12 +33,21 @@ public final class ComposterCompostables {
         if (stack == null || stack.isEmpty() || stack.getItem().getRegistryName() == null) {
             return NOT_COMPOSTABLE;
         }
-        return chance(stack.getItem().getRegistryName(), stack.getMetadata());
+        float direct = chance(stack.getItem().getRegistryName(), stack.getMetadata());
+        return direct >= 0.0F ? direct : oreDictionaryChance(stack);
     }
 
     public static float chance(ResourceLocation itemId, int metadata) {
         if (itemId == null) {
             return NOT_COMPOSTABLE;
+        }
+        Float customExact = CUSTOM_CHANCES.get(key(itemId.toString(), metadata));
+        if (customExact != null) {
+            return customExact;
+        }
+        Float customWildcard = CUSTOM_CHANCES.get(key(itemId.toString(), WILDCARD));
+        if (customWildcard != null) {
+            return customWildcard;
         }
         Float exact = CHANCES.get(key(itemId.toString(), metadata));
         if (exact != null) {
@@ -51,6 +63,36 @@ public final class ComposterCompostables {
 
     public static List<Definition> definitions() {
         return DEFINITIONS;
+    }
+
+    /** Optional registration seam for other 1.12 mods that add later compostables. */
+    public static void register(ResourceLocation itemId, int metadata, float chance) {
+        if (itemId == null || metadata < WILDCARD || chance < 0.0F || chance > 1.0F) {
+            throw new IllegalArgumentException("Compostable id and chance 0..1 are required");
+        }
+        CUSTOM_CHANCES.put(key(itemId.toString(), metadata), chance);
+    }
+
+    public static void register(ItemStack stack, float chance) {
+        if (stack == null || stack.isEmpty() || stack.getItem().getRegistryName() == null) {
+            throw new IllegalArgumentException("A registered item stack is required");
+        }
+        register(stack.getItem().getRegistryName(), stack.getMetadata(), chance);
+    }
+
+    private static float oreDictionaryChance(ItemStack stack) {
+        float result = NOT_COMPOSTABLE;
+        for (int oreId : OreDictionary.getOreIDs(stack)) {
+            String name = OreDictionary.getOreName(oreId);
+            if ("treeLeaves".equals(name) || "treeSapling".equals(name)
+                    || name.startsWith("seed")) {
+                result = Math.max(result, 0.30F);
+            } else if (name.startsWith("crop") || "listAllfruit".equals(name)
+                    || "listAllveggie".equals(name) || "listAllmushroom".equals(name)) {
+                result = Math.max(result, 0.65F);
+            }
+        }
+        return result;
     }
 
     private static List<Definition> buildDefinitions() {

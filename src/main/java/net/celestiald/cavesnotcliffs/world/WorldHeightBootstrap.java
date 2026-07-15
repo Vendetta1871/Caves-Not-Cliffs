@@ -7,16 +7,35 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.WorldServerMulti;
 import net.minecraft.world.WorldType;
+import net.minecraft.world.gen.ChunkProviderServer;
+import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraft.world.storage.ISaveHandler;
 import net.minecraft.world.storage.WorldInfo;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.WeakHashMap;
+
 /**
  * Chooses the immutable world-format contract before the Overworld creates its chunk generator.
  */
 public final class WorldHeightBootstrap {
+    private static final Map<WorldInfo, Boolean> NEW_WORLD_DECISIONS =
+            Collections.synchronizedMap(new WeakHashMap<WorldInfo, Boolean>());
+
+    /** Core-hook entry point on the explicit new-world branch. */
+    public static void prepareNewWorld(WorldInfo worldInfo) {
+        if (worldInfo == null) {
+            throw new NullPointerException("worldInfo is required");
+        }
+        CavesNotCliffsWorldTypes.registerWrappers();
+        applyWorldFormatDecision(worldInfo, false,
+                CavesNotCliffsConfig.WORLD.enableForNewOverworlds);
+    }
+
     /** Core-hook entry point used before {@link WorldServer} constructs its chunk provider. */
     public static void prepareBeforeWorldConstruction(
             WorldInfo worldInfo, ISaveHandler saveHandler) {
@@ -24,10 +43,13 @@ public final class WorldHeightBootstrap {
             throw new NullPointerException("worldInfo and saveHandler are required");
         }
         CavesNotCliffsWorldTypes.registerWrappers();
+        CavesNotCliffsWorldDataStore.restore(worldInfo, saveHandler);
         boolean existingWorld = saveHandler.loadWorldInfo() != null;
+        NEW_WORLD_DECISIONS.put(worldInfo, !existingWorld);
         boolean enabledForCreation = !existingWorld
                 && CavesNotCliffsConfig.WORLD.enableForNewOverworlds;
         applyWorldFormatDecision(worldInfo, existingWorld, enabledForCreation);
+        CavesNotCliffsWorldDataStore.persist(worldInfo, saveHandler);
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -40,17 +62,75 @@ public final class WorldHeightBootstrap {
             return;
         }
 
-        boolean existingWorld = world.getSaveHandler().loadWorldInfo() != null;
-        // Deliberately do not even read the live config for an existing save. Its persisted schema
-        // is the sole authority after first creation.
-        boolean enabledForCreation = !existingWorld
-                && CavesNotCliffsConfig.WORLD.enableForNewOverworlds;
-        applyWorldFormatDecision(world.getWorldInfo(), existingWorld, enabledForCreation);
-        if (!CavesNotCliffsWorldType.isCavesNotCliffs(world)) {
+        // This event fires after WorldServer has already constructed its chunk generator. World
+        // selection belongs in the preconstruction core hook; mutating it here would stamp a save
+        // with a generator contract that was not used for the current session.
+        CavesNotCliffsWorldData saved = CavesNotCliffsWorldData.read(world.getWorldInfo());
+        boolean selected = CavesNotCliffsWorldType.isCavesNotCliffs(world);
+        boolean newlyCreated = Boolean.TRUE.equals(
+                NEW_WORLD_DECISIONS.remove(world.getWorldInfo()));
+        if (saved == null && !selected) {
+            if (newlyCreated
+                    && CavesNotCliffsConfig.WORLD.enableForNewOverworlds
+                    && !CavesNotCliffsWorldTypes.isExternalCubicWorldType(
+                            world.getWorldInfo().getTerrainType())) {
+                throw new IllegalStateException("A configured new Caves Not Cliffs Overworld "
+                        + "reached construction without its terrain wrapper");
+            }
             return;
         }
+        if (saved == null) {
+            throw new IllegalStateException("Caves Not Cliffs world type reached world attachment "
+                    + "without a preconstructed terrain schema");
+        }
+        if (!selected) {
+            throw new IllegalStateException("Saved Caves Not Cliffs terrain schema "
+                    + saved.getTerrainSchema() + " reached world attachment without its world type");
+        }
+
+        CavesNotCliffsFiniteWorldType selectedType =
+                (CavesNotCliffsFiniteWorldType) world.getWorldType();
+        if (selectedType.getTerrainSchema() != saved.getTerrainSchema()) {
+            throw new IllegalStateException("Constructed Caves Not Cliffs world type uses terrain "
+                    + "schema " + selectedType.getTerrainSchema() + " but level.dat requires "
+                    + saved.getTerrainSchema());
+        }
+        if (!(world.getChunkProvider() instanceof ChunkProviderServer)) {
+            throw new IllegalStateException("Caves Not Cliffs Overworld has no server chunk provider");
+        }
+        validateConstructedGenerator(saved,
+                ((ChunkProviderServer) world.getChunkProvider()).chunkGenerator);
         ExtendedChunkAPI.requireRange("Caves Not Cliffs",
                 CavesNotCliffsWorldType.MIN_HEIGHT, CavesNotCliffsWorldType.MAX_HEIGHT);
+    }
+
+    private static void validateConstructedGenerator(CavesNotCliffsWorldData saved,
+            IChunkGenerator generator) {
+        if (saved.getTerrainSchema() == CavesNotCliffsWorldData.LEGACY_SCHEMA) {
+            if (!(generator instanceof LegacyFiniteChunkGenerator)) {
+                throw generatorMismatch(saved, generator, LegacyFiniteChunkGenerator.class);
+            }
+            return;
+        }
+        if (saved.getTerrainSchema() != CavesNotCliffsWorldData.CURRENT_SCHEMA) {
+            throw new IllegalStateException("Unsupported Caves Not Cliffs terrain schema "
+                    + saved.getTerrainSchema());
+        }
+        if (V118ChunkGenerator.isNativeProfile(saved.getTerrainProfile())) {
+            if (!(generator instanceof V118ChunkGenerator)) {
+                throw generatorMismatch(saved, generator, V118ChunkGenerator.class);
+            }
+        } else if (!(generator instanceof DelegatingFiniteChunkGenerator)) {
+            throw generatorMismatch(saved, generator, DelegatingFiniteChunkGenerator.class);
+        }
+    }
+
+    private static IllegalStateException generatorMismatch(CavesNotCliffsWorldData saved,
+            IChunkGenerator actual, Class<?> expected) {
+        return new IllegalStateException("Caves Not Cliffs terrain schema "
+                + saved.getTerrainSchema() + " (" + saved.getTerrainProfile().getSerializedName()
+                + ") constructed " + (actual == null ? "null" : actual.getClass().getName())
+                + " instead of " + expected.getName());
     }
 
     static void applyWorldFormatDecision(

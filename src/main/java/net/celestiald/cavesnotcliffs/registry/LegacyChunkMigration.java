@@ -415,13 +415,17 @@ public final class LegacyChunkMigration {
         return LEGACY_POINTED_PATHS.contains(path);
     }
 
+    static boolean isLegacyContentPath(String path) {
+        return LEGACY_GEODE_PATH.equals(path) || isLegacyPointedDripstone(path)
+                || isLegacyLushState(path);
+    }
+
     public static boolean containsLegacyContent(Bounds bounds, Volume volume) {
         for (int x = bounds.minX; x < bounds.minX + bounds.sizeX; x++) {
             for (int y = bounds.minY; y < bounds.minY + bounds.sizeY; y++) {
                 for (int z = bounds.minZ; z < bounds.minZ + bounds.sizeZ; z++) {
                     String path = volume.blockPathAt(x, y, z);
-                    if (LEGACY_GEODE_PATH.equals(path) || isLegacyPointedDripstone(path)
-                            || isLegacyLushState(path)) {
+                    if (isLegacyContentPath(path)) {
                         return true;
                     }
                 }

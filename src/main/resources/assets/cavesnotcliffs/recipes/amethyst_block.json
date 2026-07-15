@@ -1,6 +1,6 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": ["SS", "SS"],
-  "key": {"S": {"item": "cavesnotcliffs:amethyst_shard"}},
+  "key": {"S": {"type": "forge:ore_dict", "ore": "gemAmethyst"}},
   "result": {"item": "cavesnotcliffs:amethyst_block"}
 }

@@ -10,6 +10,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraftforge.event.world.ChunkDataEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -18,6 +19,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -41,9 +43,19 @@ public final class LegacyChunkMigrationHandler {
         }
 
         Chunk chunk = event.getChunk();
+        ChunkVolume volume = new ChunkVolume(world, chunk);
+        ChunkMigrationStorage storage = new ChunkMigrationStorage(chunk);
+        int version = ContentMigrationVersion.read(event.getData());
+        if (version < CncDataVersions.CURRENT_CONTENT_VERSION
+                && !volume.containsLegacyCandidate()) {
+            ContentMigrationVersion.write(event.getData(),
+                    CncDataVersions.CURRENT_CONTENT_VERSION);
+            storage.markDirty();
+            rememberCompleted(storage.identity());
+            return;
+        }
         LegacyChunkMigration.Bounds bounds = chunkBounds(chunk);
-        migrateLoaded(event.getData(), world.getSeed(), bounds,
-                new ChunkVolume(world, chunk), new ChunkMigrationStorage(chunk));
+        migrateLoaded(event.getData(), world.getSeed(), bounds, volume, storage);
     }
 
     @SubscribeEvent
@@ -177,6 +189,25 @@ public final class LegacyChunkMigrationHandler {
         }
     }
 
+    private static Set<Block> legacyBlocks() {
+        Set<Block> blocks = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (Block block : ForgeRegistries.BLOCKS.getValuesCollection()) {
+            ResourceLocation name = block.getRegistryName();
+            if (name != null && CavesNotCliffs.MODID.equals(name.getResourceDomain())
+                    && LegacyChunkMigration.isLegacyContentPath(name.getResourcePath())) {
+                blocks.add(block);
+            }
+        }
+        return blocks;
+    }
+
+    private static final class LegacyBlocks {
+        private static final Set<Block> VALUES = legacyBlocks();
+
+        private LegacyBlocks() {
+        }
+    }
+
     private abstract static class RegistryVolume implements LegacyChunkMigration.Volume {
         @Override
         public boolean hasTarget(String registryPath) {
@@ -233,6 +264,30 @@ public final class LegacyChunkMigrationHandler {
         private ChunkVolume(World world, Chunk chunk) {
             this.world = world;
             this.chunk = chunk;
+        }
+
+        private boolean containsLegacyCandidate() {
+            Set<Block> legacyBlocks = LegacyBlocks.VALUES;
+            if (legacyBlocks.isEmpty()) {
+                return false;
+            }
+            for (ExtendedBlockStorage section : chunk.getBlockStorageArray()) {
+                if (section == null || section == Chunk.NULL_BLOCK_STORAGE
+                        || section.isEmpty()) {
+                    continue;
+                }
+                for (int localY = 0; localY < 16; ++localY) {
+                    for (int localZ = 0; localZ < 16; ++localZ) {
+                        for (int localX = 0; localX < 16; ++localX) {
+                            if (legacyBlocks.contains(
+                                    section.get(localX, localY, localZ).getBlock())) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
         }
 
         @Override

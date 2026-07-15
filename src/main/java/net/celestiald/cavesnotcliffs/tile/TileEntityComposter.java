@@ -13,11 +13,20 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.items.CapabilityItemHandler;
+import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.wrapper.InvWrapper;
+import net.minecraftforge.items.wrapper.SidedInvWrapper;
+
+import javax.annotation.Nullable;
 
 /** Stateless inventory facade that exposes the 1.18 composter contract to 1.12 hoppers. */
 public final class TileEntityComposter extends TileEntity implements ISidedInventory {
     private static final int[] SLOT = {0};
     private static final int[] NO_SLOTS = new int[0];
+    private final IItemHandler[] itemHandlers = new IItemHandler[EnumFacing.values().length];
+    private final IItemHandler unsidedItemHandler = new InvWrapper(this);
 
     @Override
     public int getSizeInventory() {
@@ -147,6 +156,27 @@ public final class TileEntityComposter extends TileEntity implements ISidedInven
     @Override
     public ITextComponent getDisplayName() {
         return new TextComponentTranslation(getName());
+    }
+
+    @Override
+    public boolean hasCapability(Capability<?> capability, @Nullable EnumFacing facing) {
+        return capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY
+            || super.hasCapability(capability, facing);
+    }
+
+    @Override
+    public <T> T getCapability(Capability<T> capability, @Nullable EnumFacing facing) {
+        if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
+            if (facing == null) {
+                return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(unsidedItemHandler);
+            }
+            int index = facing.ordinal();
+            if (itemHandlers[index] == null) {
+                itemHandlers[index] = new SidedInvWrapper(this, facing);
+            }
+            return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(itemHandlers[index]);
+        }
+        return super.getCapability(capability, facing);
     }
 
     private ItemStack takeReadyBoneMeal() {

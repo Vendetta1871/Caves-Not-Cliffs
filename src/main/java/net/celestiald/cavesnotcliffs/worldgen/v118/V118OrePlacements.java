@@ -57,11 +57,26 @@ public final class V118OrePlacements {
     public static DecorationResult decorate(WorldAccess world, long worldSeed, int chunkX,
             int chunkZ, Set<V118Biome> regionBiomes,
             BetweenDecorationSteps betweenSteps) {
+        return decorate(world, worldSeed, chunkX, chunkZ, regionBiomes, betweenSteps,
+                FeatureGate.ALLOW_ALL);
+    }
+
+    public static DecorationResult decorate(WorldAccess world, long worldSeed, int chunkX,
+            int chunkZ, Set<V118Biome> regionBiomes,
+            BetweenDecorationSteps betweenSteps, FeatureGate featureGate) {
+        return decorate(world, worldSeed, chunkX, chunkZ, regionBiomes, betweenSteps,
+                featureGate, SpecialFeatureGate.ALLOW_ALL);
+    }
+
+    public static DecorationResult decorate(WorldAccess world, long worldSeed, int chunkX,
+            int chunkZ, Set<V118Biome> regionBiomes,
+            BetweenDecorationSteps betweenSteps, FeatureGate featureGate,
+            SpecialFeatureGate specialFeatureGate) {
         if (world == null || regionBiomes == null) {
             throw new NullPointerException("world and regionBiomes are required");
         }
-        if (betweenSteps == null) {
-            throw new NullPointerException("betweenSteps");
+        if (betweenSteps == null || featureGate == null || specialFeatureGate == null) {
+            throw new NullPointerException("decoration callbacks are required");
         }
         V118WorldgenRandom random = new V118WorldgenRandom(0L);
         int originX = chunkX << 4;
@@ -79,17 +94,20 @@ public final class V118OrePlacements {
             }
             if (!underwaterMagmaDecorated && feature.decorationStep == UNDERGROUND_ORES_STEP
                     && feature.globalFeatureIndex > 25) {
-                V118UnderwaterMagmaPlacements.decorate(world, decorationSeed, chunkX,
-                        chunkZ, random);
+                if (specialFeatureGate.allow(SpecialFeature.UNDERWATER_MAGMA)) {
+                    V118UnderwaterMagmaPlacements.decorate(world, decorationSeed, chunkX,
+                            chunkZ, random);
+                }
                 underwaterMagmaDecorated = true;
             }
             if (!softDisksDecorated && feature.decorationStep == UNDERGROUND_ORES_STEP
                     && feature.globalFeatureIndex > 30) {
                 V118DiskPlacements.decorate(world, decorationSeed, chunkX, chunkZ,
-                        regionBiomes, random);
+                        regionBiomes, random,
+                        disk -> specialFeatureGate.allow(SpecialFeature.forDisk(disk)));
                 softDisksDecorated = true;
             }
-            if (!feature.belongsToAny(regionBiomes)) {
+            if (!feature.belongsToAny(regionBiomes) || !featureGate.allow(feature)) {
                 continue;
             }
             random.setFeatureSeed(decorationSeed, feature.globalFeatureIndex,
@@ -98,6 +116,38 @@ public final class V118OrePlacements {
                 originZ));
         }
         return new DecorationResult(decorationSeed, results);
+    }
+
+    public interface FeatureGate {
+        FeatureGate ALLOW_ALL = feature -> true;
+
+        boolean allow(PlacedOre feature);
+    }
+
+    public interface SpecialFeatureGate {
+        SpecialFeatureGate ALLOW_ALL = feature -> true;
+
+        boolean allow(SpecialFeature feature);
+    }
+
+    public enum SpecialFeature {
+        UNDERWATER_MAGMA,
+        DISK_SAND,
+        DISK_CLAY,
+        DISK_GRAVEL;
+
+        private static SpecialFeature forDisk(V118DiskPlacements.PlacedDisk disk) {
+            switch (disk) {
+                case DISK_SAND:
+                    return DISK_SAND;
+                case DISK_CLAY:
+                    return DISK_CLAY;
+                case DISK_GRAVEL:
+                    return DISK_GRAVEL;
+                default:
+                    throw new AssertionError(disk);
+            }
+        }
     }
 
     public interface BetweenDecorationSteps {

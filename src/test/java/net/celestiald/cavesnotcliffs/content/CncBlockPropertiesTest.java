@@ -35,11 +35,11 @@ public class CncBlockPropertiesTest {
     }
 
     @Test
-    public void rawCopperBlockUsesCanonicalStoneProperties() {
+    public void rawCopperBlockUsesCanonicalMetalProperties() {
         Bootstrap.register();
         Block block = CncMaterialContent.createRawCopperBlock();
-        assertSame(Material.ROCK, block.getDefaultState().getMaterial());
-        assertSame(SoundType.STONE, block.getSoundType());
+        assertSame(Material.IRON, block.getDefaultState().getMaterial());
+        assertSame(SoundType.METAL, block.getSoundType());
         assertSame(MapColor.ADOBE,
                 block.getMapColor(block.getDefaultState(), null, BlockPos.ORIGIN));
         assertEquals(5.0F,

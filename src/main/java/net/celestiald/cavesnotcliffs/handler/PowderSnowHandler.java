@@ -47,8 +47,12 @@ public final class PowderSnowHandler {
     private PowderSnowHandler() {
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onPowderSnowPickup(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getUseItem()
+                == net.minecraftforge.fml.common.eventhandler.Event.Result.DENY) {
+            return;
+        }
         World world = event.getWorld();
         BlockPos pos = event.getPos();
         EntityPlayer player = event.getEntityPlayer();
@@ -56,7 +60,9 @@ public final class PowderSnowHandler {
         if (BlockPowderSnow.block == null || BlockPowderSnow.bucket == null
                 || world.getBlockState(pos).getBlock() != BlockPowderSnow.block
                 || held.isEmpty() || held.getItem() != Items.BUCKET
-                || !world.isBlockModifiable(player, pos)) {
+                || event.getFace() == null
+                || !world.isBlockModifiable(player, pos)
+                || !player.canPlayerEdit(pos, event.getFace(), held)) {
             return;
         }
 

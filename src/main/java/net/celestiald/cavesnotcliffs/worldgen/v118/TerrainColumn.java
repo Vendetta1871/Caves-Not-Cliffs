@@ -49,7 +49,7 @@ public final class TerrainColumn {
     private TerrainColumn(Builder builder) {
         columnX = builder.columnX;
         columnZ = builder.columnZ;
-        materials = MaterialStorage.compact(builder.materialIds);
+        materials = MaterialStorage.compact(builder.materialIds, builder.maxMaterialId);
         surfaceBiomeIds = builder.surfaceBiomeIds.clone();
         virtualBiomeIds = builder.virtualBiomeIds.clone();
         scheduledFluidUpdates = builder.scheduledFluidUpdates.clone();
@@ -110,6 +110,33 @@ public final class TerrainColumn {
     public boolean shouldScheduleFluidUpdate(int localX, int worldY, int localZ) {
         int index = blockIndex(localX, worldY, localZ);
         return (scheduledFluidUpdates[index >>> 6] & (1L << (index & 63))) != 0L;
+    }
+
+    /** Returns the next scheduled fluid-update index within a section, or {@code -1}. */
+    public int nextScheduledFluidUpdateIndex(int cubeY, int fromIndex) {
+        checkCubeY(cubeY);
+        if (fromIndex < 0 || fromIndex > BLOCKS_PER_CUBE) {
+            throw new IndexOutOfBoundsException("fromIndex out of range [0, "
+                + BLOCKS_PER_CUBE + "]: " + fromIndex);
+        }
+        if (fromIndex == BLOCKS_PER_CUBE) {
+            return -1;
+        }
+
+        int sourceIndex = (cubeY * 16 - MIN_Y) * WIDTH * WIDTH;
+        int absoluteIndex = sourceIndex + fromIndex;
+        int finalWord = (sourceIndex + BLOCKS_PER_CUBE - 1) >>> 6;
+        int wordIndex = absoluteIndex >>> 6;
+        long word = scheduledFluidUpdates[wordIndex] & (-1L << (absoluteIndex & 63));
+        while (true) {
+            if (word != 0L) {
+                return (wordIndex << 6) + Long.numberOfTrailingZeros(word) - sourceIndex;
+            }
+            if (++wordIndex > finalWord) {
+                return -1;
+            }
+            word = scheduledFluidUpdates[wordIndex];
+        }
     }
 
     public void copyCubeFluidUpdateFlags(int cubeY, boolean[] destination,
@@ -229,6 +256,7 @@ public final class TerrainColumn {
         private final char[] surfaceBiomeIds = new char[SURFACE_BIOME_COUNT];
         private final char[] virtualBiomeIds = new char[VIRTUAL_BIOME_COUNT];
         private final long[] scheduledFluidUpdates = new long[(BLOCK_COUNT + 63) >>> 6];
+        private int maxMaterialId;
 
         private Builder(int columnX, int columnZ) {
             this.columnX = columnX;
@@ -238,6 +266,7 @@ public final class TerrainColumn {
         public Builder setMaterialId(int localX, int worldY, int localZ, int materialId) {
             checkId(materialId, "materialId");
             materialIds[blockIndex(localX, worldY, localZ)] = (char) materialId;
+            maxMaterialId = Math.max(maxMaterialId, materialId);
             return this;
         }
 
@@ -248,6 +277,7 @@ public final class TerrainColumn {
         public Builder fillMaterialIds(int materialId) {
             checkId(materialId, "materialId");
             Arrays.fill(materialIds, (char) materialId);
+            maxMaterialId = materialId;
             return this;
         }
 
@@ -301,10 +331,11 @@ public final class TerrainColumn {
     }
 
     private abstract static class MaterialStorage {
-        static MaterialStorage compact(char[] source) {
-            int[] reversePalette = new int[MAX_STORAGE_ID + 1];
+        static MaterialStorage compact(char[] source, int maxValue) {
+            int paletteCapacity = maxValue + 1;
+            int[] reversePalette = new int[paletteCapacity];
             Arrays.fill(reversePalette, -1);
-            char[] paletteScratch = new char[MAX_STORAGE_ID + 1];
+            char[] paletteScratch = new char[Math.min(source.length, paletteCapacity)];
             int paletteSize = 0;
             for (char value : source) {
                 if (reversePalette[value] < 0) {

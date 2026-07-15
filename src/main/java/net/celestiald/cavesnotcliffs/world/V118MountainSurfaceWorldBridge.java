@@ -84,8 +84,15 @@ final class V118MountainSurfaceWorldBridge
 
     V118DefaultSpringPlacements.DecorationResult populateDefaultSprings(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return populateDefaultSprings(chunkX, chunkZ, regionBiomes,
+                V118DefaultSpringPlacements.SpringGate.ALLOW_ALL);
+    }
+
+    V118DefaultSpringPlacements.DecorationResult populateDefaultSprings(
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes,
+            V118DefaultSpringPlacements.SpringGate springGate) {
         return V118DefaultSpringPlacements.decorate(this, world.getSeed(),
-            chunkX, chunkZ, regionBiomes);
+            chunkX, chunkZ, regionBiomes, springGate);
     }
 
     int populateLavaLakes(int chunkX, int chunkZ) {
@@ -151,9 +158,16 @@ final class V118MountainSurfaceWorldBridge
 
     void populateDarkForestVegetation(int chunkX, int chunkZ,
             Set<V118Biome> regionBiomes) {
+        populateDarkForestVegetation(chunkX, chunkZ, regionBiomes, true, true);
+    }
+
+    void populateDarkForestVegetation(int chunkX, int chunkZ,
+            Set<V118Biome> regionBiomes, boolean allowTrees,
+            boolean allowHugeMushrooms) {
         if (regionBiomes.contains(V118Biome.DARK_FOREST)) {
             V118DarkForestVegetationFeature.decorate(
-                this, world.getSeed(), chunkX, chunkZ);
+                this, world.getSeed(), chunkX, chunkZ, allowTrees,
+                allowHugeMushrooms);
         }
     }
 
@@ -219,8 +233,15 @@ final class V118MountainSurfaceWorldBridge
 
     V118MountainSurfacePlacements.DecorationResult populateVegetation(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        return populateVegetation(chunkX, chunkZ, regionBiomes,
+                V118MountainSurfacePlacements.VegetationGate.ALLOW_ALL);
+    }
+
+    V118MountainSurfacePlacements.DecorationResult populateVegetation(
+            int chunkX, int chunkZ, Set<V118Biome> regionBiomes,
+            V118MountainSurfacePlacements.VegetationGate vegetationGate) {
         return V118MountainSurfacePlacements.decorateVegetation(this, world.getSeed(),
-            chunkX, chunkZ, regionBiomes);
+            chunkX, chunkZ, regionBiomes, vegetationGate);
     }
 
     V118MountainSurfacePlacements.DecorationResult populateTopLayer(

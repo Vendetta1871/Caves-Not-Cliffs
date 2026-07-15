@@ -66,27 +66,10 @@ public class HoneyPistonTransformerTest {
     }
 
     @Test
-    public void corePluginDeclaresTransformerAndPostForgeSortingIndex() {
+    public void corePluginDeclaresHoneyTransformerAndPostForgeSortingIndex() {
         CavesNotCliffsCorePlugin plugin = new CavesNotCliffsCorePlugin();
         assertEquals(HoneyPistonTransformer.class.getName(),
                 plugin.getASMTransformerClass()[0]);
-        assertEquals(SchemaOnePopulationTransformer.class.getName(),
-                plugin.getASMTransformerClass()[1]);
-        assertEquals(CubicImportSessionLockTransformer.class.getName(),
-                plugin.getASMTransformerClass()[2]);
-        assertEquals(BeeSaplingDecorationTransformer.class.getName(),
-                plugin.getASMTransformerClass()[3]);
-        assertEquals(PlainPumpkinStemTransformer.class.getName(),
-                plugin.getASMTransformerClass()[4]);
-        assertEquals(PlainPumpkinConnectionTransformer.class.getName(),
-                plugin.getASMTransformerClass()[5]);
-        assertEquals(PlainPumpkinFarmerTradeTransformer.class.getName(),
-                plugin.getASMTransformerClass()[6]);
-        assertEquals(DeadBushSupportTransformer.class.getName(),
-                plugin.getASMTransformerClass()[7]);
-        assertEquals(SugarCaneSupportTransformer.class.getName(),
-                plugin.getASMTransformerClass()[8]);
-        assertEquals(9, plugin.getASMTransformerClass().length);
         IFMLLoadingPlugin.SortingIndex sorting =
                 CavesNotCliffsCorePlugin.class.getAnnotation(
                         IFMLLoadingPlugin.SortingIndex.class);

@@ -34,6 +34,15 @@ public final class VirtualBiomeResolverRegistry {
         }
     }
 
+    public static boolean hasResolver(World world) {
+        if (V118ChunkGenerator.forWorld(world) != null) {
+            return true;
+        }
+        synchronized (RESOLVERS) {
+            return RESOLVERS.containsKey(world);
+        }
+    }
+
     public static Biome resolve(World world, int x, int y, int z, Biome base) {
         V118ChunkGenerator server = V118ChunkGenerator.forWorld(world);
         if (server != null && V118ChunkGenerator.hasVirtualBiomeY(y)) {

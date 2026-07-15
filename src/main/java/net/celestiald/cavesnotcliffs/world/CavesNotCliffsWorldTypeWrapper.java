@@ -52,12 +52,15 @@ public final class CavesNotCliffsWorldTypeWrapper extends WorldType
             throw new IllegalStateException("Schema-2 Caves Not Cliffs world has no persisted generator data");
         }
         data.validateGeneratorContract(getTerrainSchema(), baseType, terrainProfile);
-        ExtendedChunkAPI.requireRange("Caves Not Cliffs",
-                CavesNotCliffsWorldType.MIN_HEIGHT, CavesNotCliffsWorldType.MAX_HEIGHT);
-        TerrainProfile persistedProfile = data.getTerrainProfile();
         String options = data.getGeneratorOptions();
         IChunkGenerator baseGenerator = delegate(world,
                 () -> baseType.getChunkGenerator(world, options == null ? "" : options));
+        if (world.provider.getDimension() != 0) {
+            return baseGenerator;
+        }
+        ExtendedChunkAPI.requireRange("Caves Not Cliffs",
+                CavesNotCliffsWorldType.MIN_HEIGHT, CavesNotCliffsWorldType.MAX_HEIGHT);
+        TerrainProfile persistedProfile = data.getTerrainProfile();
         if (V118ChunkGenerator.isNativeProfile(persistedProfile)) {
             return new V118ChunkGenerator(world, persistedProfile, baseGenerator);
         }
@@ -115,12 +118,14 @@ public final class CavesNotCliffsWorldTypeWrapper extends WorldType
     }
 
     private <T> T delegate(World world, Supplier<T> operation) {
-        WorldType selected = world.getWorldInfo().getTerrainType();
-        world.getWorldInfo().setTerrainType(baseType);
-        try {
-            return operation.get();
-        } finally {
-            world.getWorldInfo().setTerrainType(selected);
+        synchronized (world.getWorldInfo()) {
+            WorldType selected = world.getWorldInfo().getTerrainType();
+            world.getWorldInfo().setTerrainType(baseType);
+            try {
+                return operation.get();
+            } finally {
+                world.getWorldInfo().setTerrainType(selected);
+            }
         }
     }
 }

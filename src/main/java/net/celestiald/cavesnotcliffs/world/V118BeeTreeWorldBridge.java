@@ -41,29 +41,59 @@ final class V118BeeTreeWorldBridge implements V118BeeTreeFeature.WorldAccess,
     }
 
     void populateBeforeLush(int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
-        populateVegetation(chunkX, chunkZ, regionBiomes,
-                V118BeeTreeVegetation.PlacedFeature.FLOWER_FOREST_FLOWERS);
-        populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.TREES_FLOWER_FOREST);
-        populateVegetation(chunkX, chunkZ, regionBiomes,
-                V118BeeTreeVegetation.PlacedFeature.FLOWER_FLOWER_FOREST);
-        populateVegetation(chunkX, chunkZ, regionBiomes,
-                V118BeeTreeVegetation.PlacedFeature.FOREST_FLOWERS);
-        populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.BIRCH_TALL);
-        populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.TREES_BIRCH);
-        populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.TREES_BIRCH_AND_OAK);
+        populateBeforeLush(chunkX, chunkZ, regionBiomes, true, true);
+    }
+
+    void populateBeforeLush(int chunkX, int chunkZ, Set<V118Biome> regionBiomes,
+            boolean allowTrees, boolean allowFlowers) {
+        if (allowFlowers) {
+            populateVegetation(chunkX, chunkZ, regionBiomes,
+                    V118BeeTreeVegetation.PlacedFeature.FLOWER_FOREST_FLOWERS);
+        }
+        if (allowTrees) {
+            populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.TREES_FLOWER_FOREST);
+        }
+        if (allowFlowers) {
+            populateVegetation(chunkX, chunkZ, regionBiomes,
+                    V118BeeTreeVegetation.PlacedFeature.FLOWER_FLOWER_FOREST);
+            populateVegetation(chunkX, chunkZ, regionBiomes,
+                    V118BeeTreeVegetation.PlacedFeature.FOREST_FLOWERS);
+        }
+        if (allowTrees) {
+            populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.BIRCH_TALL);
+            populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.TREES_BIRCH);
+            populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.TREES_BIRCH_AND_OAK);
+        }
     }
 
     void populateAfterLush(int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
-        populateVegetation(chunkX, chunkZ, regionBiomes,
-                V118BeeTreeVegetation.PlacedFeature.PATCH_SUNFLOWER);
-        populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.TREES_PLAINS);
-        populateVegetation(chunkX, chunkZ, regionBiomes,
-                V118BeeTreeVegetation.PlacedFeature.FLOWER_PLAINS);
-        populateVegetation(chunkX, chunkZ, regionBiomes,
-                V118BeeTreeVegetation.PlacedFeature.PATCH_GRASS_PLAIN);
-        populateVegetation(chunkX, chunkZ, regionBiomes,
-                V118BeeTreeVegetation.PlacedFeature.FLOWER_MEADOW);
-        populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.TREES_MEADOW);
+        populateAfterLush(chunkX, chunkZ, regionBiomes, true, true, true);
+    }
+
+    void populateAfterLush(int chunkX, int chunkZ, Set<V118Biome> regionBiomes,
+            boolean allowTrees, boolean allowFlowers, boolean allowGrass) {
+        if (allowFlowers) {
+            populateVegetation(chunkX, chunkZ, regionBiomes,
+                    V118BeeTreeVegetation.PlacedFeature.PATCH_SUNFLOWER);
+        }
+        if (allowTrees) {
+            populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.TREES_PLAINS);
+        }
+        if (allowFlowers) {
+            populateVegetation(chunkX, chunkZ, regionBiomes,
+                    V118BeeTreeVegetation.PlacedFeature.FLOWER_PLAINS);
+        }
+        if (allowGrass) {
+            populateVegetation(chunkX, chunkZ, regionBiomes,
+                    V118BeeTreeVegetation.PlacedFeature.PATCH_GRASS_PLAIN);
+        }
+        if (allowFlowers) {
+            populateVegetation(chunkX, chunkZ, regionBiomes,
+                    V118BeeTreeVegetation.PlacedFeature.FLOWER_MEADOW);
+        }
+        if (allowTrees) {
+            populateTree(chunkX, chunkZ, regionBiomes, PlacedFeature.TREES_MEADOW);
+        }
     }
 
     private void populateTree(int chunkX, int chunkZ, Set<V118Biome> regionBiomes,

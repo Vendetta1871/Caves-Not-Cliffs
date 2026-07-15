@@ -8,6 +8,9 @@ package net.celestiald.cavesnotcliffs.worldgen.v118;
  * exposed as an immutable function of block coordinates.</p>
  */
 public final class V118DensityInterpolator {
+    private static final int CACHE_2D_SIZE = 64;
+    private static final int CACHE_2D_MASK = CACHE_2D_SIZE - 1;
+
     private V118DensityInterpolator() {
     }
 
@@ -53,6 +56,7 @@ public final class V118DensityInterpolator {
                 case FLAT_CACHE:
                     return new FlatCache(marker.wrapped());
                 case CACHE_2D:
+                    return new Cache2D(marker.wrapped());
                 case CACHE_ONCE:
                     return marker.wrapped();
                 case CACHE_ALL_IN_CELL:
@@ -63,9 +67,55 @@ public final class V118DensityInterpolator {
         }
     }
 
+    /** Bounded primitive cache for functions declared independent of Y. */
+    private static final class Cache2D implements DensityFunction.SimpleFunction {
+        private final DensityFunction wrapped;
+        private final long[] keys = new long[CACHE_2D_SIZE];
+        private final double[] values = new double[CACHE_2D_SIZE];
+        private final boolean[] occupied = new boolean[CACHE_2D_SIZE];
+
+        private Cache2D(DensityFunction wrapped) {
+            this.wrapped = wrapped;
+        }
+
+        @Override
+        public double compute(DensityFunction.FunctionContext context) {
+            int blockX = context.blockX();
+            int blockZ = context.blockZ();
+            long key = ((long) blockX << 32) ^ (blockZ & 0xFFFFFFFFL);
+            int index = cacheIndex(key);
+            if (occupied[index] && keys[index] == key) {
+                return values[index];
+            }
+            double value = wrapped.compute(context);
+            occupied[index] = true;
+            keys[index] = key;
+            values[index] = value;
+            return value;
+        }
+
+        @Override
+        public double minValue() {
+            return wrapped.minValue();
+        }
+
+        @Override
+        public double maxValue() {
+            return wrapped.maxValue();
+        }
+
+        private static int cacheIndex(long key) {
+            key ^= key >>> 33;
+            key *= 0xff51afd7ed558ccdL;
+            key ^= key >>> 33;
+            return (int) key & CACHE_2D_MASK;
+        }
+    }
+
     /** Marks descendant interpolators as executing during NoiseChunk's cell-cache fill. */
     private static final class CellCache implements DensityFunction.SimpleFunction {
         private final DensityFunction wrapped;
+        private final CellContext cellContext = new CellContext();
 
         private CellCache(DensityFunction wrapped) {
             this.wrapped = wrapped;
@@ -73,7 +123,7 @@ public final class V118DensityInterpolator {
 
         @Override
         public double compute(DensityFunction.FunctionContext context) {
-            return wrapped.compute(new CellContext(context, context.blockX(), context.blockY(),
+            return wrapped.compute(cellContext.set(context, context.blockX(), context.blockY(),
                 context.blockZ()));
         }
 
@@ -89,17 +139,18 @@ public final class V118DensityInterpolator {
     }
 
     private static final class CellContext implements DensityFunction.FunctionContext {
-        private final DensityFunction.FunctionContext delegate;
-        private final int blockX;
-        private final int blockY;
-        private final int blockZ;
+        private DensityFunction.FunctionContext delegate;
+        private int blockX;
+        private int blockY;
+        private int blockZ;
 
-        private CellContext(DensityFunction.FunctionContext delegate, int blockX, int blockY,
+        private CellContext set(DensityFunction.FunctionContext delegate, int blockX, int blockY,
                 int blockZ) {
             this.delegate = delegate;
             this.blockX = blockX;
             this.blockY = blockY;
             this.blockZ = blockZ;
+            return this;
         }
 
         @Override
@@ -165,6 +216,7 @@ public final class V118DensityInterpolator {
         private int lastCellZ = Integer.MIN_VALUE;
         private boolean lastCellCacheContext;
         private final double[] corners = new double[8];
+        private final CellContext sampleContext = new CellContext();
 
         private Interpolated(DensityFunction wrapped, int cellWidth, int cellHeight) {
             this.wrapped = wrapped;
@@ -224,7 +276,7 @@ public final class V118DensityInterpolator {
 
         private double sample(DensityFunction.FunctionContext context, int x, int y, int z) {
             if (context instanceof CellContext) {
-                return wrapped.compute(new CellContext(context, x, y, z));
+                return wrapped.compute(sampleContext.set(context, x, y, z));
             }
             return wrapped.compute(x, y, z);
         }

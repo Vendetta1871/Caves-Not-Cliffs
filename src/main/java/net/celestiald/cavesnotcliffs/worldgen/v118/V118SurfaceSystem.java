@@ -32,6 +32,7 @@ public final class V118SurfaceSystem {
     private final NormalNoise icebergSurfaceNoise;
     private final NormalNoise surfaceNoise;
     private final NormalNoise surfaceSecondaryNoise;
+    private final V118SurfaceRules.RuleSource overworldRule;
     private final Map<String, NormalNoise> noises = new HashMap<String, NormalNoise>();
     private final Map<String, PositionalRandomFactory> positionalRandoms =
         new HashMap<String, PositionalRandomFactory>();
@@ -57,11 +58,12 @@ public final class V118SurfaceSystem {
         icebergPillarNoise = instantiate("iceberg_pillar");
         icebergPillarRoofNoise = instantiate("iceberg_pillar_roof");
         icebergSurfaceNoise = instantiate("iceberg_surface");
+        overworldRule = V118SurfaceRuleData.overworld();
     }
 
     /** Applies the canonical 1.18.2 Overworld rules to one aligned 16-by-16 chunk. */
     public void buildSurface(SurfaceAccess access, int chunkX, int chunkZ) {
-        buildSurface(access, chunkX, chunkZ, V118SurfaceRuleData.overworld());
+        buildSurface(access, chunkX, chunkZ, overworldRule);
     }
 
     /** Applies a supplied rule tree; primarily useful for independent oracle testing. */
@@ -154,7 +156,7 @@ public final class V118SurfaceSystem {
         context.updateXZ(blockX, blockZ);
         context.updateY(1, 1, hasFluidAbove ? blockY + 1 : Integer.MIN_VALUE,
             blockX, blockY, blockZ);
-        return V118SurfaceRuleData.overworld().tryApply(context);
+        return overworldRule.tryApply(context);
     }
 
     int getSurfaceDepth(int blockX, int blockZ) {

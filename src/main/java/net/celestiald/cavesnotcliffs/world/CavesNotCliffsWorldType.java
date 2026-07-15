@@ -22,18 +22,22 @@ public final class CavesNotCliffsWorldType extends WorldType
             throw new IllegalStateException("Schema-1 Caves Not Cliffs world has no persisted generator data");
         }
         data.validateGeneratorContract(getTerrainSchema(), WorldType.DEFAULT, TerrainProfile.DEFAULT);
-        ExtendedChunkAPI.requireRange("Caves Not Cliffs", MIN_HEIGHT, MAX_HEIGHT);
-
         String options = data.getGeneratorOptions();
-        WorldType selected = world.getWorldInfo().getTerrainType();
-        world.getWorldInfo().setTerrainType(WorldType.DEFAULT);
         IChunkGenerator baseGenerator;
-        try {
-            baseGenerator = WorldType.DEFAULT.getChunkGenerator(
-                    world, options == null ? "" : options);
-        } finally {
-            world.getWorldInfo().setTerrainType(selected);
+        synchronized (world.getWorldInfo()) {
+            WorldType selected = world.getWorldInfo().getTerrainType();
+            world.getWorldInfo().setTerrainType(WorldType.DEFAULT);
+            try {
+                baseGenerator = WorldType.DEFAULT.getChunkGenerator(
+                        world, options == null ? "" : options);
+            } finally {
+                world.getWorldInfo().setTerrainType(selected);
+            }
         }
+        if (world.provider.getDimension() != 0) {
+            return baseGenerator;
+        }
+        ExtendedChunkAPI.requireRange("Caves Not Cliffs", MIN_HEIGHT, MAX_HEIGHT);
         return new LegacyFiniteChunkGenerator(world, baseGenerator, data.getTerrainProfile());
     }
 
@@ -53,6 +57,8 @@ public final class CavesNotCliffsWorldType extends WorldType
     }
 
     public static boolean isCavesNotCliffs(World world) {
-        return world != null && world.getWorldType() instanceof CavesNotCliffsFiniteWorldType;
+        return world != null && world.provider != null
+                && world.provider.getDimension() == 0
+                && world.getWorldType() instanceof CavesNotCliffsFiniteWorldType;
     }
 }

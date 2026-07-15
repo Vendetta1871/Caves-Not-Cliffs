@@ -117,17 +117,56 @@ final class V118ChunkSlicer {
                 || legacyBiomeArray.length != TerrainColumn.SURFACE_BIOME_COUNT) {
             throw new IllegalArgumentException("Expected a complete 16x16 chunk biome array");
         }
+        int[] biomeIds = projectedSurfaceBiomeIds(column);
+        for (int index = 0; index < biomeIds.length; ++index) {
+            int biomeId = biomeIds[index];
+            if (biomeId < 0 || biomeId > 255) {
+                throw new IllegalStateException("Projected biome id does not fit the legacy "
+                    + "chunk biome array: " + biomeId);
+            }
+            legacyBiomeArray[index] = (byte) biomeId;
+        }
+    }
+
+    void projectSurfaceBiomes(TerrainColumn column, Chunk chunk) {
+        if (chunk == null) {
+            throw new NullPointerException("chunk");
+        }
+        int[] biomeIds = projectedSurfaceBiomeIds(column);
+        if (ExtendedBiomeStorageCompat.replaceSurfaceBiomes(chunk, biomeIds)) {
+            return;
+        }
+        byte[] legacyBiomeArray = chunk.getBiomeArray();
+        if (legacyBiomeArray == null
+                || legacyBiomeArray.length != TerrainColumn.SURFACE_BIOME_COUNT) {
+            throw new IllegalStateException("Expected a complete 16x16 chunk biome array");
+        }
+        for (int index = 0; index < biomeIds.length; ++index) {
+            int biomeId = biomeIds[index];
+            if (biomeId < 0 || biomeId > 255) {
+                throw new IllegalStateException("Projected biome id does not fit the legacy "
+                    + "chunk biome array: " + biomeId);
+            }
+            legacyBiomeArray[index] = (byte) biomeId;
+        }
+    }
+
+    private int[] projectedSurfaceBiomeIds(TerrainColumn column) {
+        if (column == null) {
+            throw new NullPointerException("column");
+        }
+        int[] biomeIds = new int[TerrainColumn.SURFACE_BIOME_COUNT];
         for (int localZ = 0; localZ < TerrainColumn.WIDTH; ++localZ) {
             for (int localX = 0; localX < TerrainColumn.WIDTH; ++localX) {
                 Biome biome = projectedSurfaceBiome(column, localX, localZ);
                 int biomeId = Biome.getIdForBiome(biome);
-                if (biomeId < 0 || biomeId > 255) {
-                    throw new IllegalStateException("Projected biome id does not fit the legacy "
-                        + "chunk biome array: " + biomeId);
+                if (biomeId < 0) {
+                    throw new IllegalStateException("Projected biome is not registered: " + biome);
                 }
-                legacyBiomeArray[localZ * TerrainColumn.WIDTH + localX] = (byte) biomeId;
+                biomeIds[localZ * TerrainColumn.WIDTH + localX] = biomeId;
             }
         }
+        return biomeIds;
     }
 
     /** Registry projection used by the legacy chunk plane before byte-ID serialization. */
@@ -142,16 +181,15 @@ final class V118ChunkSlicer {
         if (consumer == null) {
             throw new NullPointerException("consumer");
         }
-        column.copyCubeMaterialIds(cubeY, materialIds, 0);
         int minY = cubeY * CUBE_SIZE;
-        for (int index = 0; index < materialIds.length; ++index) {
+        for (int index = column.nextScheduledFluidUpdateIndex(cubeY, 0);
+                index >= 0;
+                index = column.nextScheduledFluidUpdateIndex(cubeY, index + 1)) {
             int localY = index >>> 8;
             int localZ = (index >>> 4) & 15;
             int localX = index & 15;
-            if (!column.shouldScheduleFluidUpdate(localX, minY + localY, localZ)) {
-                continue;
-            }
-            V118Material material = V118Material.fromStorageId(materialIds[index]);
+            V118Material material = V118Material.fromStorageId(
+                column.materialId(localX, minY + localY, localZ));
             if (material == V118Material.WATER || material == V118Material.LAVA) {
                 consumer.accept(localX, localY, localZ, material);
             }

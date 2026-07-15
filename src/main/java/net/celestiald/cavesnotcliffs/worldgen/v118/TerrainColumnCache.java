@@ -25,6 +25,9 @@ public final class TerrainColumnCache {
 
     private long currentWeightBytes;
     private boolean loading;
+    private int lastColumnX;
+    private int lastColumnZ;
+    private TerrainColumn lastColumn;
 
     public TerrainColumnCache(Loader loader) {
         this(loader, DEFAULT_MAX_COLUMNS, DEFAULT_MAX_WEIGHT_BYTES);
@@ -52,10 +55,14 @@ public final class TerrainColumnCache {
         if (loading) {
             throw new IllegalStateException("Reentrant terrain-column generation is not allowed");
         }
+        if (lastColumn != null && columnX == lastColumnX && columnZ == lastColumnZ) {
+            return lastColumn;
+        }
 
         ColumnKey key = new ColumnKey(columnX, columnZ);
         TerrainColumn cached = columns.get(key);
         if (cached != null) {
+            remember(columnX, columnZ, cached);
             return cached;
         }
 
@@ -91,6 +98,7 @@ public final class TerrainColumnCache {
         }
         columns.put(key, loaded);
         currentWeightBytes += weight;
+        remember(columnX, columnZ, loaded);
         return loaded;
     }
 
@@ -102,6 +110,9 @@ public final class TerrainColumnCache {
 
     public void invalidate(int columnX, int columnZ) {
         checkOwnerThread();
+        if (lastColumn != null && columnX == lastColumnX && columnZ == lastColumnZ) {
+            lastColumn = null;
+        }
         TerrainColumn removed = columns.remove(new ColumnKey(columnX, columnZ));
         if (removed != null) {
             currentWeightBytes -= removed.estimatedRetainedBytes();
@@ -112,6 +123,7 @@ public final class TerrainColumnCache {
         checkOwnerThread();
         columns.clear();
         currentWeightBytes = 0L;
+        lastColumn = null;
     }
 
     public int size() {
@@ -139,6 +151,12 @@ public final class TerrainColumnCache {
         Map.Entry<ColumnKey, TerrainColumn> eldest = iterator.next();
         currentWeightBytes -= eldest.getValue().estimatedRetainedBytes();
         iterator.remove();
+    }
+
+    private void remember(int columnX, int columnZ, TerrainColumn column) {
+        lastColumnX = columnX;
+        lastColumnZ = columnZ;
+        lastColumn = column;
     }
 
     private void checkOwnerThread() {

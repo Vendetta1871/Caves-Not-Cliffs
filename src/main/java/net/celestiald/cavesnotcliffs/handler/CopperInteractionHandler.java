@@ -26,15 +26,21 @@ public final class CopperInteractionHandler {
     private CopperInteractionHandler() {
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getUseItem()
+                == net.minecraftforge.fml.common.eventhandler.Event.Result.DENY) {
+            return;
+        }
         ItemStack held = event.getItemStack();
         if (held.isEmpty() || !(held.getItem() instanceof ItemAxe)) {
             return;
         }
 
         EntityPlayer player = event.getEntityPlayer();
-        if (!player.canPlayerEdit(event.getPos(), event.getFace(), held)) {
+        if (event.getFace() == null
+                || !event.getWorld().isBlockModifiable(player, event.getPos())
+                || !player.canPlayerEdit(event.getPos(), event.getFace(), held)) {
             return;
         }
 

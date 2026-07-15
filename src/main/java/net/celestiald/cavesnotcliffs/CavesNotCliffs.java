@@ -21,9 +21,9 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.common.registry.EntityEntry;
-import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerAboutToStartEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -39,12 +39,15 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.World;
 import net.minecraft.potion.Potion;
 import net.minecraft.item.Item;
 import net.minecraft.block.Block;
 import net.celestiald.cavesnotcliffs.command.CommandCaveBiome;
+import net.celestiald.cavesnotcliffs.compat.FutureMcCompat;
 import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
 import net.celestiald.cavesnotcliffs.content.DungeonChestContent;
+import net.celestiald.cavesnotcliffs.content.OreDictionaryCompat;
 import net.celestiald.cavesnotcliffs.handler.LavaCauldronHandler;
 import net.celestiald.cavesnotcliffs.migration.ImportedHeightMapRebuildHandler;
 import net.celestiald.cavesnotcliffs.stonecutter.CncGuiHandler;
@@ -65,7 +68,6 @@ import java.util.function.Supplier;
 public class CavesNotCliffs {
 	public static final String MODID = "cavesnotcliffs";
 	public static final String VERSION = "2.0.0";
-	public static final SimpleNetworkWrapper PACKET_HANDLER = NetworkRegistry.INSTANCE.newSimpleChannel("cavesnotcliffs:a");
 	public static CavesNotCliffsWorldType WORLD_TYPE;
 	@SidedProxy(clientSide = "net.celestiald.cavesnotcliffs.ClientProxyCavesNotCliffs", serverSide = "net.celestiald.cavesnotcliffs.ServerProxyCavesNotCliffs")
 	public static IProxyCavesNotCliffs proxy;
@@ -74,8 +76,17 @@ public class CavesNotCliffs {
 	public ElementsCavesNotCliffs elements = new ElementsCavesNotCliffs();
 	private final WorldHeightBootstrap worldHeightBootstrap = new WorldHeightBootstrap();
 	private final IWorldVerticalBiomeProvider verticalBiomeProvider =
-			(world, x, y, z, base) -> VirtualBiomeResolverRegistry.resolve(
-					world, x, y, z, base);
+			new IWorldVerticalBiomeProvider() {
+				@Override
+				public boolean appliesTo(World world) {
+					return VirtualBiomeResolverRegistry.hasResolver(world);
+				}
+
+				@Override
+				public Biome getBiome(World world, int x, int y, int z, Biome base) {
+					return VirtualBiomeResolverRegistry.resolve(world, x, y, z, base);
+				}
+			};
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
 		DungeonChestContent.registerTileEntity();
@@ -117,6 +128,7 @@ public class CavesNotCliffs {
 		// This initial pass makes the fixed wrapper names available to dedicated-server properties.
 		// Later lifecycle passes pick up world types registered by later load-complete handlers.
 		CavesNotCliffsWorldTypes.registerWrappers();
+		FutureMcCompat.initialize();
 	}
 
 	@Mod.EventHandler
@@ -150,6 +162,11 @@ public class CavesNotCliffs {
 	@SubscribeEvent
 	public void registerItems(RegistryEvent.Register<Item> event) {
 		event.getRegistry().registerAll(elements.getItems().stream().map(Supplier::get).toArray(Item[]::new));
+	}
+
+	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public void registerOreDictionary(RegistryEvent.Register<Item> event) {
+		OreDictionaryCompat.register();
 	}
 
 	@SubscribeEvent

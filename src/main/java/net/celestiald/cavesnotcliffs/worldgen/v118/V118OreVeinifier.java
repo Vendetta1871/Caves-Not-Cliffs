@@ -28,8 +28,13 @@ public final class V118OreVeinifier {
 
     /** Returns {@code null} when the default stone should remain unchanged. */
     public V118Material compute(int blockX, int blockY, int blockZ) {
-        DensityFunction.SinglePointContext context =
-            new DensityFunction.SinglePointContext(blockX, blockY, blockZ);
+        return compute(new DensityFunction.SinglePointContext(blockX, blockY, blockZ));
+    }
+
+    V118Material compute(DensityFunction.FunctionContext context) {
+        int blockX = context.blockX();
+        int blockY = context.blockY();
+        int blockZ = context.blockZ();
         double toggle = veinToggle.compute(context);
         VeinType type = toggle > 0.0D ? VeinType.COPPER : VeinType.IRON;
         double veininess = Math.abs(toggle);

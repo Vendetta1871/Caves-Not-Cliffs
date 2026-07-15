@@ -13,6 +13,7 @@ public final class V118TerrainColumnGenerator {
     private final V118NoiseSettings settings;
     private final V118NoiseRouter router;
     private final DensityFunction finalDensity;
+    private final DensityFunction preliminarySurfaceDensity;
     private final V118ClimateSampler climateSampler;
     private final V118BiomeManager biomeManager;
     private final V118OreVeinifier oreVeinifier;
@@ -20,6 +21,7 @@ public final class V118TerrainColumnGenerator {
     private final boolean applySurfaceRules;
     private final boolean applyCarvers;
     private final TerrainColumnCache cache;
+    private final MutableDensityContext blockContext = new MutableDensityContext();
 
     public V118TerrainColumnGenerator(long seed, V118NoiseRouterData.Profile profile) {
         this(seed, profile, true, true);
@@ -42,6 +44,8 @@ public final class V118TerrainColumnGenerator {
         router = V118NoiseRouterData.create(seed, profile);
         finalDensity = V118DensityInterpolator.realizeFinalDensity(router.finalDensity(),
             settings);
+        preliminarySurfaceDensity = V118DensityInterpolator.realize(
+            router.initialDensityWithoutJaggedness(), settings);
         OverworldBiomeBuilder biomeTable = new OverworldBiomeBuilder();
         climateSampler = new V118ClimateSampler(router, settings, biomeTable);
         biomeManager = new V118BiomeManager(climateSampler::resolveQuart, seed);
@@ -71,8 +75,8 @@ public final class V118TerrainColumnGenerator {
         TerrainColumn.Builder builder = TerrainColumn.builder(columnX, columnZ);
         fillVirtualBiomes(builder, columnX, columnZ);
 
-        V118PreliminarySurface preliminarySurface = new V118PreliminarySurface(settings,
-            router.initialDensityWithoutJaggedness());
+        V118PreliminarySurface preliminarySurface = V118PreliminarySurface.fromRealizedDensity(
+            settings, preliminarySurfaceDensity);
         NoiseBasedAquifer aquifer = new NoiseBasedAquifer(columnX, columnZ,
             settings.minY(), settings.height(), router.barrierNoise(),
             router.fluidLevelFloodednessNoise(), router.fluidLevelSpreadNoise(),
@@ -138,12 +142,13 @@ public final class V118TerrainColumnGenerator {
 
     private void placeMaterial(TerrainColumn.Builder builder, NoiseBasedAquifer aquifer,
             int[] highestNonAir, int localX, int worldY, int localZ, int blockX, int blockZ) {
-        double density = finalDensity.compute(blockX, worldY, blockZ);
+        DensityFunction.FunctionContext context = blockContext.set(blockX, worldY, blockZ);
+        double density = finalDensity.compute(context);
         NoiseBasedAquifer.Result aquiferResult =
-            aquifer.compute(blockX, worldY, blockZ, density);
+            aquifer.compute(context, density);
         V118Material material;
         if (aquiferResult.isSolid()) {
-            V118Material vein = oreVeinifier.compute(blockX, worldY, blockZ);
+            V118Material vein = oreVeinifier.compute(context);
             material = vein == null ? V118Material.STONE : vein;
         } else {
             material = material(aquiferResult.material());
@@ -293,7 +298,8 @@ public final class V118TerrainColumnGenerator {
 
         @Override
         public V118Material computeAquiferMaterial(int blockX, int blockY, int blockZ) {
-            NoiseBasedAquifer.Result result = aquifer.compute(blockX, blockY, blockZ, 0.0D);
+            NoiseBasedAquifer.Result result = aquifer.compute(
+                blockContext.set(blockX, blockY, blockZ), 0.0D);
             lastAquiferShouldScheduleFluidUpdate = result.shouldScheduleFluidUpdate();
             return result.isSolid() ? null : material(result.material());
         }
