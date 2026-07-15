@@ -14,6 +14,7 @@ import java.util.Set;
  * the vanilla implementation.</p>
  */
 public final class V118SurfaceRules {
+    private static final int NOISE_CACHE_SIZE = 8;
     public static final ConditionSource ON_FLOOR = stoneDepthCheck(0, false, Surface.FLOOR);
     public static final ConditionSource UNDER_FLOOR = stoneDepthCheck(0, true, Surface.FLOOR);
     public static final ConditionSource DEEP_UNDER_FLOOR = stoneDepthCheck(0, true, 6,
@@ -180,8 +181,7 @@ public final class V118SurfaceRules {
         return new ConditionSource() {
             @Override
             public boolean test(Context context) {
-                double value = context.system.getOrCreateNoise(noiseName)
-                    .getValue(context.blockX, 0.0D, context.blockZ);
+                double value = context.noise(noiseName);
                 return value >= minimum && value <= maximum;
             }
         };
@@ -330,6 +330,9 @@ public final class V118SurfaceRules {
         private int minimumSurface;
         private boolean biomeValid;
         private V118Biome biome;
+        private final String[] noiseNames = new String[NOISE_CACHE_SIZE];
+        private final double[] noiseValues = new double[NOISE_CACHE_SIZE];
+        private int noiseCount;
 
         Context(V118SurfaceSystem system, V118SurfaceSystem.SurfaceAccess access,
                 int chunkMinX, int chunkMinZ) {
@@ -346,6 +349,7 @@ public final class V118SurfaceRules {
             secondaryValid = false;
             minimumSurfaceValid = false;
             biomeValid = false;
+            noiseCount = 0;
         }
 
         void updateY(int depthAbove, int depthBelow, int fluidHeight,
@@ -420,6 +424,20 @@ public final class V118SurfaceRules {
                 secondaryValid = true;
             }
             return secondary;
+        }
+
+        private double noise(String name) {
+            for (int index = 0; index < noiseCount; ++index) {
+                if (name.equals(noiseNames[index])) {
+                    return noiseValues[index];
+                }
+            }
+            double value = system.getOrCreateNoise(name).getValue(blockX, 0.0D, blockZ);
+            if (noiseCount < noiseNames.length) {
+                noiseNames[noiseCount] = name;
+                noiseValues[noiseCount++] = value;
+            }
+            return value;
         }
 
         private int minBuildHeight() {
