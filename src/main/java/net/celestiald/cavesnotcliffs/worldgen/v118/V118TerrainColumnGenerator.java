@@ -20,6 +20,7 @@ public final class V118TerrainColumnGenerator {
     private final boolean applySurfaceRules;
     private final boolean applyCarvers;
     private final TerrainColumnCache cache;
+    private final MutableDensityContext blockContext = new MutableDensityContext();
 
     public V118TerrainColumnGenerator(long seed, V118NoiseRouterData.Profile profile) {
         this(seed, profile, true, true);
@@ -138,12 +139,13 @@ public final class V118TerrainColumnGenerator {
 
     private void placeMaterial(TerrainColumn.Builder builder, NoiseBasedAquifer aquifer,
             int[] highestNonAir, int localX, int worldY, int localZ, int blockX, int blockZ) {
-        double density = finalDensity.compute(blockX, worldY, blockZ);
+        DensityFunction.FunctionContext context = blockContext.set(blockX, worldY, blockZ);
+        double density = finalDensity.compute(context);
         NoiseBasedAquifer.Result aquiferResult =
-            aquifer.compute(blockX, worldY, blockZ, density);
+            aquifer.compute(context, density);
         V118Material material;
         if (aquiferResult.isSolid()) {
-            V118Material vein = oreVeinifier.compute(blockX, worldY, blockZ);
+            V118Material vein = oreVeinifier.compute(context);
             material = vein == null ? V118Material.STONE : vein;
         } else {
             material = material(aquiferResult.material());
@@ -293,7 +295,8 @@ public final class V118TerrainColumnGenerator {
 
         @Override
         public V118Material computeAquiferMaterial(int blockX, int blockY, int blockZ) {
-            NoiseBasedAquifer.Result result = aquifer.compute(blockX, blockY, blockZ, 0.0D);
+            NoiseBasedAquifer.Result result = aquifer.compute(
+                blockContext.set(blockX, blockY, blockZ), 0.0D);
             lastAquiferShouldScheduleFluidUpdate = result.shouldScheduleFluidUpdate();
             return result.isSolid() ? null : material(result.material());
         }
