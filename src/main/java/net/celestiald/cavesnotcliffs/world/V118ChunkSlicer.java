@@ -181,16 +181,15 @@ final class V118ChunkSlicer {
         if (consumer == null) {
             throw new NullPointerException("consumer");
         }
-        column.copyCubeMaterialIds(cubeY, materialIds, 0);
         int minY = cubeY * CUBE_SIZE;
-        for (int index = 0; index < materialIds.length; ++index) {
+        for (int index = column.nextScheduledFluidUpdateIndex(cubeY, 0);
+                index >= 0;
+                index = column.nextScheduledFluidUpdateIndex(cubeY, index + 1)) {
             int localY = index >>> 8;
             int localZ = (index >>> 4) & 15;
             int localX = index & 15;
-            if (!column.shouldScheduleFluidUpdate(localX, minY + localY, localZ)) {
-                continue;
-            }
-            V118Material material = V118Material.fromStorageId(materialIds[index]);
+            V118Material material = V118Material.fromStorageId(
+                column.materialId(localX, minY + localY, localZ));
             if (material == V118Material.WATER || material == V118Material.LAVA) {
                 consumer.accept(localX, localY, localZ, material);
             }

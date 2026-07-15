@@ -112,6 +112,33 @@ public final class TerrainColumn {
         return (scheduledFluidUpdates[index >>> 6] & (1L << (index & 63))) != 0L;
     }
 
+    /** Returns the next scheduled fluid-update index within a section, or {@code -1}. */
+    public int nextScheduledFluidUpdateIndex(int cubeY, int fromIndex) {
+        checkCubeY(cubeY);
+        if (fromIndex < 0 || fromIndex > BLOCKS_PER_CUBE) {
+            throw new IndexOutOfBoundsException("fromIndex out of range [0, "
+                + BLOCKS_PER_CUBE + "]: " + fromIndex);
+        }
+        if (fromIndex == BLOCKS_PER_CUBE) {
+            return -1;
+        }
+
+        int sourceIndex = (cubeY * 16 - MIN_Y) * WIDTH * WIDTH;
+        int absoluteIndex = sourceIndex + fromIndex;
+        int finalWord = (sourceIndex + BLOCKS_PER_CUBE - 1) >>> 6;
+        int wordIndex = absoluteIndex >>> 6;
+        long word = scheduledFluidUpdates[wordIndex] & (-1L << (absoluteIndex & 63));
+        while (true) {
+            if (word != 0L) {
+                return (wordIndex << 6) + Long.numberOfTrailingZeros(word) - sourceIndex;
+            }
+            if (++wordIndex > finalWord) {
+                return -1;
+            }
+            word = scheduledFluidUpdates[wordIndex];
+        }
+    }
+
     public void copyCubeFluidUpdateFlags(int cubeY, boolean[] destination,
             int destinationOffset) {
         checkCubeY(cubeY);
