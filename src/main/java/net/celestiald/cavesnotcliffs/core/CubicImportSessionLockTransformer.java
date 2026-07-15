@@ -121,19 +121,32 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
     private static MethodInsnNode uniqueConstructorDecision(MethodNode method,
             String declaringOwner) {
         TypeInsnNode demoWorld = null;
+        TypeInsnNode normalWorld = null;
         for (AbstractInsnNode instruction : method.instructions.toArray()) {
             if (instruction instanceof TypeInsnNode
-                    && instruction.getOpcode() == Opcodes.NEW
-                    && DEMO_WORLD_OWNER.equals(((TypeInsnNode) instruction).desc)) {
-                if (demoWorld != null) {
-                    throw failure("multiple demo Overworld constructor allocations in "
-                            + method.name + method.desc);
+                    && instruction.getOpcode() == Opcodes.NEW) {
+                TypeInsnNode allocation = (TypeInsnNode) instruction;
+                if (DEMO_WORLD_OWNER.equals(allocation.desc)) {
+                    if (demoWorld != null) {
+                        throw failure("multiple demo Overworld constructor allocations in "
+                                + method.name + method.desc);
+                    }
+                    demoWorld = allocation;
+                } else if (NORMAL_WORLD_OWNER.equals(allocation.desc)) {
+                    if (normalWorld != null) {
+                        throw failure("multiple normal Overworld constructor allocations in "
+                                + method.name + method.desc);
+                    }
+                    normalWorld = allocation;
                 }
-                demoWorld = (TypeInsnNode) instruction;
             }
         }
         if (demoWorld == null) {
             throw failure("demo Overworld constructor allocation in "
+                    + method.name + method.desc);
+        }
+        if (normalWorld == null) {
+            throw failure("normal Overworld constructor allocation in "
                     + method.name + method.desc);
         }
         for (AbstractInsnNode instruction = demoWorld.getPrevious(); instruction != null;
@@ -141,7 +154,7 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
             if (instruction instanceof MethodInsnNode) {
                 MethodInsnNode call = (MethodInsnNode) instruction;
                 if (declaringOwner.equals(call.owner) && "()Z".equals(call.desc)) {
-                    verifyConstructorBranch(call, demoWorld, method);
+                    verifyConstructorBranch(call, demoWorld, normalWorld, method);
                     return call;
                 }
             }
@@ -150,7 +163,7 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
     }
 
     private static void verifyConstructorBranch(MethodInsnNode decision,
-            TypeInsnNode demoWorld, MethodNode method) {
+            TypeInsnNode demoWorld, TypeInsnNode normalWorld, MethodNode method) {
         AbstractInsnNode branchNode = nextMeaningful(decision);
         if (!(branchNode instanceof JumpInsnNode)
                 || branchNode.getOpcode() != Opcodes.IFEQ) {
@@ -167,10 +180,15 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
         if (!demoInFallthrough) {
             throw failure("demo Overworld fallthrough in " + method.name + method.desc);
         }
-        AbstractInsnNode normalWorld = nextMeaningful(branch.label);
-        if (!(normalWorld instanceof TypeInsnNode)
-                || normalWorld.getOpcode() != Opcodes.NEW
-                || !NORMAL_WORLD_OWNER.equals(((TypeInsnNode) normalWorld).desc)) {
+        boolean normalInBranch = false;
+        for (AbstractInsnNode cursor = branch.label; cursor != null;
+                cursor = cursor.getNext()) {
+            if (cursor == normalWorld) {
+                normalInBranch = true;
+                break;
+            }
+        }
+        if (!normalInBranch) {
             throw failure("normal Overworld branch in " + method.name + method.desc);
         }
     }
