@@ -8,6 +8,9 @@ package net.celestiald.cavesnotcliffs.worldgen.v118;
  * exposed as an immutable function of block coordinates.</p>
  */
 public final class V118DensityInterpolator {
+    private static final int CACHE_2D_SIZE = 64;
+    private static final int CACHE_2D_MASK = CACHE_2D_SIZE - 1;
+
     private V118DensityInterpolator() {
     }
 
@@ -53,6 +56,7 @@ public final class V118DensityInterpolator {
                 case FLAT_CACHE:
                     return new FlatCache(marker.wrapped());
                 case CACHE_2D:
+                    return new Cache2D(marker.wrapped());
                 case CACHE_ONCE:
                     return marker.wrapped();
                 case CACHE_ALL_IN_CELL:
@@ -60,6 +64,51 @@ public final class V118DensityInterpolator {
                 default:
                     throw new AssertionError(marker.type());
             }
+        }
+    }
+
+    /** Bounded primitive cache for functions declared independent of Y. */
+    private static final class Cache2D implements DensityFunction.SimpleFunction {
+        private final DensityFunction wrapped;
+        private final long[] keys = new long[CACHE_2D_SIZE];
+        private final double[] values = new double[CACHE_2D_SIZE];
+        private final boolean[] occupied = new boolean[CACHE_2D_SIZE];
+
+        private Cache2D(DensityFunction wrapped) {
+            this.wrapped = wrapped;
+        }
+
+        @Override
+        public double compute(DensityFunction.FunctionContext context) {
+            int blockX = context.blockX();
+            int blockZ = context.blockZ();
+            long key = ((long) blockX << 32) ^ (blockZ & 0xFFFFFFFFL);
+            int index = cacheIndex(key);
+            if (occupied[index] && keys[index] == key) {
+                return values[index];
+            }
+            double value = wrapped.compute(context);
+            occupied[index] = true;
+            keys[index] = key;
+            values[index] = value;
+            return value;
+        }
+
+        @Override
+        public double minValue() {
+            return wrapped.minValue();
+        }
+
+        @Override
+        public double maxValue() {
+            return wrapped.maxValue();
+        }
+
+        private static int cacheIndex(long key) {
+            key ^= key >>> 33;
+            key *= 0xff51afd7ed558ccdL;
+            key ^= key >>> 33;
+            return (int) key & CACHE_2D_MASK;
         }
     }
 
