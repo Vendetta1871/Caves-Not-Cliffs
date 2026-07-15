@@ -15,10 +15,27 @@ import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.WeakHashMap;
+
 /**
  * Chooses the immutable world-format contract before the Overworld creates its chunk generator.
  */
 public final class WorldHeightBootstrap {
+    private static final Map<WorldInfo, Boolean> NEW_WORLD_DECISIONS =
+            Collections.synchronizedMap(new WeakHashMap<WorldInfo, Boolean>());
+
+    /** Core-hook entry point on the explicit new-world branch. */
+    public static void prepareNewWorld(WorldInfo worldInfo) {
+        if (worldInfo == null) {
+            throw new NullPointerException("worldInfo is required");
+        }
+        CavesNotCliffsWorldTypes.registerWrappers();
+        applyWorldFormatDecision(worldInfo, false,
+                CavesNotCliffsConfig.WORLD.enableForNewOverworlds);
+    }
+
     /** Core-hook entry point used before {@link WorldServer} constructs its chunk provider. */
     public static void prepareBeforeWorldConstruction(
             WorldInfo worldInfo, ISaveHandler saveHandler) {
@@ -26,10 +43,13 @@ public final class WorldHeightBootstrap {
             throw new NullPointerException("worldInfo and saveHandler are required");
         }
         CavesNotCliffsWorldTypes.registerWrappers();
+        CavesNotCliffsWorldDataStore.restore(worldInfo, saveHandler);
         boolean existingWorld = saveHandler.loadWorldInfo() != null;
+        NEW_WORLD_DECISIONS.put(worldInfo, !existingWorld);
         boolean enabledForCreation = !existingWorld
                 && CavesNotCliffsConfig.WORLD.enableForNewOverworlds;
         applyWorldFormatDecision(worldInfo, existingWorld, enabledForCreation);
+        CavesNotCliffsWorldDataStore.persist(worldInfo, saveHandler);
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -47,7 +67,16 @@ public final class WorldHeightBootstrap {
         // with a generator contract that was not used for the current session.
         CavesNotCliffsWorldData saved = CavesNotCliffsWorldData.read(world.getWorldInfo());
         boolean selected = CavesNotCliffsWorldType.isCavesNotCliffs(world);
+        boolean newlyCreated = Boolean.TRUE.equals(
+                NEW_WORLD_DECISIONS.remove(world.getWorldInfo()));
         if (saved == null && !selected) {
+            if (newlyCreated
+                    && CavesNotCliffsConfig.WORLD.enableForNewOverworlds
+                    && !CavesNotCliffsWorldTypes.isExternalCubicWorldType(
+                            world.getWorldInfo().getTerrainType())) {
+                throw new IllegalStateException("A configured new Caves Not Cliffs Overworld "
+                        + "reached construction without its terrain wrapper");
+            }
             return;
         }
         if (saved == null) {

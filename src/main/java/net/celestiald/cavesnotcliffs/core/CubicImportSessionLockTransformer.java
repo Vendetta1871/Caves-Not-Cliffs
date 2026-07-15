@@ -37,6 +37,9 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
     static final String FORMAT_HOOK_NAME = "prepareBeforeWorldConstruction";
     static final String FORMAT_HOOK_DESC = "(Lnet/minecraft/world/storage/WorldInfo;L"
             + SAVE_HANDLER_OWNER + ";)V";
+    static final String NEW_FORMAT_HOOK_NAME = "prepareNewWorld";
+    static final String NEW_FORMAT_HOOK_DESC =
+            "(Lnet/minecraft/world/storage/WorldInfo;)V";
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -51,18 +54,21 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
             int importHookCount = countCalls(loadWorlds, HOOK_OWNER, HOOK_NAME, HOOK_DESC);
             int formatHookCount = countCalls(loadWorlds, FORMAT_HOOK_OWNER,
                     FORMAT_HOOK_NAME, FORMAT_HOOK_DESC);
-            if (importHookCount == 1 && formatHookCount == 1) {
+            int newFormatHookCount = countCalls(loadWorlds, FORMAT_HOOK_OWNER,
+                    NEW_FORMAT_HOOK_NAME, NEW_FORMAT_HOOK_DESC);
+            if (importHookCount == 1 && formatHookCount == 1
+                    && newFormatHookCount == 1) {
                 verifyAppliedHooks(loadWorlds, saveLoader);
                 return basicClass;
             }
-            if (importHookCount != 0 || formatHookCount != 0) {
+            if (importHookCount != 0 || formatHookCount != 0 || newFormatHookCount != 0) {
                 throw failure("partial or duplicate world bootstrap hooks in "
                         + loadWorlds.name + loadWorlds.desc);
             }
             MethodInsnNode loadWorldInfo = uniqueWorldInfoCall(loadWorlds);
             int saveHandlerVariable = objectStoreAfter(saveLoader, "save handler");
             int worldInfoVariable = objectStoreAfter(loadWorldInfo, "WorldInfo");
-            AbstractInsnNode worldInfoMerge = uniqueWorldInfoMerge(
+            WorldInfoFlow worldInfoFlow = uniqueWorldInfoFlow(
                     loadWorlds, loadWorldInfo, worldInfoVariable);
 
             InsnList importHook = new InsnList();
@@ -71,12 +77,18 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
                     HOOK_NAME, HOOK_DESC, false));
             loadWorlds.instructions.insert(saveLoader, importHook);
 
+            InsnList newFormatHook = new InsnList();
+            newFormatHook.add(new VarInsnNode(Opcodes.ALOAD, worldInfoVariable));
+            newFormatHook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, FORMAT_HOOK_OWNER,
+                    NEW_FORMAT_HOOK_NAME, NEW_FORMAT_HOOK_DESC, false));
+            loadWorlds.instructions.insert(worldInfoFlow.newWorldInfoStore, newFormatHook);
+
             InsnList formatHook = new InsnList();
             formatHook.add(new VarInsnNode(Opcodes.ALOAD, worldInfoVariable));
             formatHook.add(new VarInsnNode(Opcodes.ALOAD, saveHandlerVariable));
             formatHook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, FORMAT_HOOK_OWNER,
                     FORMAT_HOOK_NAME, FORMAT_HOOK_DESC, false));
-            loadWorlds.instructions.insertBefore(worldInfoMerge, formatHook);
+            loadWorlds.instructions.insertBefore(worldInfoFlow.merge, formatHook);
 
             ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(writer);
@@ -154,9 +166,18 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
         int saveHandlerVariable = objectStoreAfter(importCall, "save handler");
         MethodInsnNode loadWorldInfo = uniqueWorldInfoCall(method);
         int worldInfoVariable = objectStoreAfter(loadWorldInfo, "WorldInfo");
-        AbstractInsnNode insertionPoint = uniqueWorldInfoMerge(
+        WorldInfoFlow worldInfoFlow = uniqueWorldInfoFlow(
                 method, loadWorldInfo, worldInfoVariable);
-        AbstractInsnNode worldInfoLoad = insertionPoint;
+        AbstractInsnNode newWorldInfoLoad = nextMeaningful(worldInfoFlow.newWorldInfoStore);
+        AbstractInsnNode newFormatCall = nextMeaningful(newWorldInfoLoad);
+        if (!(newWorldInfoLoad instanceof VarInsnNode)
+                || newWorldInfoLoad.getOpcode() != Opcodes.ALOAD
+                || ((VarInsnNode) newWorldInfoLoad).var != worldInfoVariable
+                || !isCall(newFormatCall, FORMAT_HOOK_OWNER,
+                        NEW_FORMAT_HOOK_NAME, NEW_FORMAT_HOOK_DESC)) {
+            throw failure("new-world format hook placement in " + method.name + method.desc);
+        }
+        AbstractInsnNode worldInfoLoad = worldInfoFlow.merge;
         AbstractInsnNode saveHandlerLoad = nextMeaningful(worldInfoLoad);
         AbstractInsnNode formatCall = nextMeaningful(saveHandlerLoad);
         if (!isCall(formatCall, FORMAT_HOOK_OWNER, FORMAT_HOOK_NAME, FORMAT_HOOK_DESC)
@@ -170,7 +191,7 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
         }
     }
 
-    private static AbstractInsnNode uniqueWorldInfoMerge(MethodNode method,
+    private static WorldInfoFlow uniqueWorldInfoFlow(MethodNode method,
             MethodInsnNode loadWorldInfo, int worldInfoVariable) {
         AbstractInsnNode store = nextMeaningful(loadWorldInfo);
         AbstractInsnNode load = nextMeaningful(store);
@@ -187,6 +208,7 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
         JumpInsnNode existingSaveBranch = (JumpInsnNode) branchNode;
         boolean createdWorldInfo = false;
         boolean storedWorldInfo = false;
+        VarInsnNode newWorldInfoStore = null;
         JumpInsnNode mergeJump = null;
         for (AbstractInsnNode cursor = existingSaveBranch.getNext(); cursor != null
                 && cursor != existingSaveBranch.label; cursor = cursor.getNext()) {
@@ -201,6 +223,7 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
                     && cursor.getOpcode() == Opcodes.ASTORE
                     && ((VarInsnNode) cursor).var == worldInfoVariable) {
                 storedWorldInfo = true;
+                newWorldInfoStore = (VarInsnNode) cursor;
             } else if (storedWorldInfo && cursor instanceof JumpInsnNode
                     && cursor.getOpcode() == Opcodes.GOTO) {
                 if (mergeJump != null) {
@@ -218,7 +241,17 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
         if (insertionPoint == null) {
             throw failure("WorldInfo merge insertion point in " + method.name + method.desc);
         }
-        return insertionPoint;
+        return new WorldInfoFlow(newWorldInfoStore, insertionPoint);
+    }
+
+    private static final class WorldInfoFlow {
+        private final VarInsnNode newWorldInfoStore;
+        private final AbstractInsnNode merge;
+
+        private WorldInfoFlow(VarInsnNode newWorldInfoStore, AbstractInsnNode merge) {
+            this.newWorldInfoStore = newWorldInfoStore;
+            this.merge = merge;
+        }
     }
 
     private static void verifyStraightLineFallthrough(AbstractInsnNode first,

@@ -1,5 +1,6 @@
 package net.celestiald.cavesnotcliffs.world;
 
+import net.celestiald.cavebiomes.api.IExtendedHeightWorldType;
 import net.minecraft.world.WorldType;
 
 import java.util.ArrayList;
@@ -91,6 +92,10 @@ public final class CavesNotCliffsWorldTypes {
     static boolean isExternalCubicWorldType(WorldType type) {
         if (type == null) {
             return false;
+        }
+        if (type instanceof IExtendedHeightWorldType
+                && !(type instanceof CavesNotCliffsFiniteWorldType)) {
+            return true;
         }
         try {
             Class<?> marker = Class.forName(EXTERNAL_CUBIC_WORLD_TYPE, false,
