@@ -328,6 +328,8 @@ public final class V118SurfaceRules {
         private double secondary;
         private boolean minimumSurfaceValid;
         private int minimumSurface;
+        private boolean biomeValid;
+        private V118Biome biome;
 
         Context(V118SurfaceSystem system, V118SurfaceSystem.SurfaceAccess access,
                 int chunkMinX, int chunkMinZ) {
@@ -343,6 +345,7 @@ public final class V118SurfaceRules {
             surfaceDepth = system.getSurfaceDepth(x, z);
             secondaryValid = false;
             minimumSurfaceValid = false;
+            biomeValid = false;
         }
 
         void updateY(int depthAbove, int depthBelow, int fluidHeight,
@@ -353,6 +356,7 @@ public final class V118SurfaceRules {
             waterHeight = fluidHeight;
             stoneDepthBelow = depthBelow;
             stoneDepthAbove = depthAbove;
+            biomeValid = false;
         }
 
         public int blockX() {
@@ -384,7 +388,11 @@ public final class V118SurfaceRules {
         }
 
         public V118Biome biome() {
-            return access.biomeAt(blockX, blockY, blockZ);
+            if (!biomeValid) {
+                biome = access.biomeAt(blockX, blockY, blockZ);
+                biomeValid = true;
+            }
+            return biome;
         }
 
         public int minimumSurfaceLevel() {
