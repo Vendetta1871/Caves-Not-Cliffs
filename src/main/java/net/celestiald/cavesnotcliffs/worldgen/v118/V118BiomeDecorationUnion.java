@@ -6,6 +6,8 @@ import java.util.Set;
 
 /** Exact 3x3 section-biome union used by Java 1.18.2 feature decoration. */
 public final class V118BiomeDecorationUnion {
+    private static final V118Biome[] BIOMES = V118Biome.values();
+
     private V118BiomeDecorationUnion() {
     }
 
@@ -27,10 +29,10 @@ public final class V118BiomeDecorationUnion {
                     for (int quartZ = 0; quartZ < TerrainColumn.QUART_WIDTH; ++quartZ) {
                         for (int quartX = 0; quartX < TerrainColumn.QUART_WIDTH; ++quartX) {
                             int id = column.virtualBiomeIdAtQuart(quartX, quartY, quartZ);
-                            if (id < 0 || id >= V118Biome.values().length) {
+                            if (id < 0 || id >= BIOMES.length) {
                                 throw new IllegalStateException("Unknown virtual biome id " + id);
                             }
-                            result.add(V118Biome.values()[id]);
+                            result.add(BIOMES[id]);
                         }
                     }
                 }
