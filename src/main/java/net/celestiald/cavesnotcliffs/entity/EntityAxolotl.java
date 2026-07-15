@@ -20,11 +20,11 @@ import net.minecraft.entity.IEntityLivingData;
 import net.minecraft.entity.MoverType;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.EntityAIAttackMelee;
+import net.minecraft.entity.ai.EntityAIBase;
 import net.minecraft.entity.ai.EntityAIFollowParent;
 import net.minecraft.entity.ai.EntityAILookIdle;
 import net.minecraft.entity.ai.EntityAIMate;
 import net.minecraft.entity.ai.EntityAISwimming;
-import net.minecraft.entity.ai.EntityAITempt;
 import net.minecraft.entity.ai.EntityAIWatchClosest;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.entity.passive.EntitySquid;
@@ -139,14 +139,67 @@ public final class EntityAxolotl extends ElementsCavesNotCliffs.ModElement {
         protected void initEntityAI() {
             tasks.addTask(0, new EntityAISwimming(this));
             tasks.addTask(1, new EntityAIMate(this, 0.2D));
-            tasks.addTask(2, new EntityAITempt(this, 0.5D,
-                    tropicalFishBucket, false));
+            tasks.addTask(2, new AxolotlTemptGoal(this));
             tasks.addTask(3, new EntityAIFollowParent(this, 0.6D));
             tasks.addTask(4, new AxolotlMeleeAttack(this));
             tasks.addTask(5, new EntityAIAxolotlSwim(this));
             tasks.addTask(6, new EntityAIWatchClosest(this, EntityPlayer.class, 6.0F));
             tasks.addTask(7, new EntityAILookIdle(this));
             targetTasks.addTask(1, new AxolotlTarget(this));
+        }
+
+        private static final class AxolotlTemptGoal extends EntityAIBase {
+            private final EntityCustom axolotl;
+            private EntityPlayer player;
+
+            AxolotlTemptGoal(EntityCustom axolotl) {
+                this.axolotl = axolotl;
+                setMutexBits(3);
+            }
+
+            @Override
+            public boolean shouldExecute() {
+                if (tropicalFishBucket == null) {
+                    return false;
+                }
+                player = axolotl.world.getClosestPlayer(axolotl.posX, axolotl.posY,
+                        axolotl.posZ, 10.0D, new Predicate<Entity>() {
+                            @Override
+                            public boolean apply(Entity entity) {
+                                if (!(entity instanceof EntityPlayer)) {
+                                    return false;
+                                }
+                                EntityPlayer candidate = (EntityPlayer) entity;
+                                return isTempting(candidate.getHeldItemMainhand())
+                                        || isTempting(candidate.getHeldItemOffhand());
+                            }
+                        });
+                return player != null;
+            }
+
+            @Override
+            public boolean shouldContinueExecuting() {
+                return player != null && player.isEntityAlive()
+                        && axolotl.getDistanceSq(player) <= 100.0D
+                        && (isTempting(player.getHeldItemMainhand())
+                                || isTempting(player.getHeldItemOffhand()));
+            }
+
+            @Override
+            public void updateTask() {
+                axolotl.getLookHelper().setLookPositionWithEntity(player, 30.0F, 30.0F);
+                axolotl.getNavigator().tryMoveToEntityLiving(player, 0.5D);
+            }
+
+            @Override
+            public void resetTask() {
+                player = null;
+                axolotl.getNavigator().clearPath();
+            }
+
+            private static boolean isTempting(ItemStack stack) {
+                return !stack.isEmpty() && stack.getItem() == tropicalFishBucket;
+            }
         }
 
         @Override
