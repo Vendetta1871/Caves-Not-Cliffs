@@ -23,6 +23,9 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
     static final String GET_SAVE_LOADER_DESC = "(Ljava/lang/String;Z)L"
             + SAVE_HANDLER_OWNER + ";";
     static final String LOAD_WORLD_INFO_DESC = "()Lnet/minecraft/world/storage/WorldInfo;";
+    static final String WORLD_INFO_OWNER = "net/minecraft/world/storage/WorldInfo";
+    static final String LOAD_WORLDS_DESC = "(Ljava/lang/String;Ljava/lang/String;J"
+            + "Lnet/minecraft/world/WorldType;Ljava/lang/String;)V";
     static final String DEMO_WORLD_OWNER = "net/minecraft/world/WorldServerDemo";
     static final String NORMAL_WORLD_OWNER = "net/minecraft/world/WorldServer";
     static final String HOOK_OWNER =
@@ -40,31 +43,50 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
         if (basicClass == null || !isTarget(name, transformedName)) {
             return basicClass;
         }
-        ClassNode node = new ClassNode(Opcodes.ASM5);
-        new ClassReader(basicClass).accept(node, 0);
-        MethodNode loadWorlds = uniqueLoadWorldsMethod(node);
-        MethodInsnNode saveLoader = uniqueSaveLoaderCall(loadWorlds);
-        MethodInsnNode loadWorldInfo = uniqueWorldInfoCall(loadWorlds);
-        int saveHandlerVariable = objectStoreAfter(saveLoader, "save handler");
-        int worldInfoVariable = objectStoreAfter(loadWorldInfo, "WorldInfo");
-        MethodInsnNode constructorDecision = uniqueConstructorDecision(loadWorlds, node.name);
+        try {
+            ClassNode node = new ClassNode(Opcodes.ASM5);
+            new ClassReader(basicClass).accept(node, 0);
+            MethodNode loadWorlds = uniqueLoadWorldsMethod(node);
+            MethodInsnNode saveLoader = uniqueSaveLoaderCall(loadWorlds);
+            int importHookCount = countCalls(loadWorlds, HOOK_OWNER, HOOK_NAME, HOOK_DESC);
+            int formatHookCount = countCalls(loadWorlds, FORMAT_HOOK_OWNER,
+                    FORMAT_HOOK_NAME, FORMAT_HOOK_DESC);
+            if (importHookCount == 1 && formatHookCount == 1) {
+                verifyAppliedHooks(loadWorlds, saveLoader);
+                return basicClass;
+            }
+            if (importHookCount != 0 || formatHookCount != 0) {
+                throw failure("partial or duplicate world bootstrap hooks in "
+                        + loadWorlds.name + loadWorlds.desc);
+            }
+            MethodInsnNode loadWorldInfo = uniqueWorldInfoCall(loadWorlds);
+            int saveHandlerVariable = objectStoreAfter(saveLoader, "save handler");
+            int worldInfoVariable = objectStoreAfter(loadWorldInfo, "WorldInfo");
+            AbstractInsnNode worldInfoMerge = uniqueWorldInfoMerge(
+                    loadWorlds, loadWorldInfo, worldInfoVariable);
 
-        InsnList importHook = new InsnList();
-        importHook.add(new VarInsnNode(Opcodes.ALOAD, 0));
-        importHook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, HOOK_OWNER,
-                HOOK_NAME, HOOK_DESC, false));
-        loadWorlds.instructions.insert(saveLoader, importHook);
+            InsnList importHook = new InsnList();
+            importHook.add(new VarInsnNode(Opcodes.ALOAD, 0));
+            importHook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, HOOK_OWNER,
+                    HOOK_NAME, HOOK_DESC, false));
+            loadWorlds.instructions.insert(saveLoader, importHook);
 
-        InsnList formatHook = new InsnList();
-        formatHook.add(new VarInsnNode(Opcodes.ALOAD, worldInfoVariable));
-        formatHook.add(new VarInsnNode(Opcodes.ALOAD, saveHandlerVariable));
-        formatHook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, FORMAT_HOOK_OWNER,
-                FORMAT_HOOK_NAME, FORMAT_HOOK_DESC, false));
-        loadWorlds.instructions.insertBefore(constructorDecision, formatHook);
+            InsnList formatHook = new InsnList();
+            formatHook.add(new VarInsnNode(Opcodes.ALOAD, worldInfoVariable));
+            formatHook.add(new VarInsnNode(Opcodes.ALOAD, saveHandlerVariable));
+            formatHook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, FORMAT_HOOK_OWNER,
+                    FORMAT_HOOK_NAME, FORMAT_HOOK_DESC, false));
+            loadWorlds.instructions.insertBefore(worldInfoMerge, formatHook);
 
-        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        node.accept(writer);
-        return writer.toByteArray();
+            ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+            node.accept(writer);
+            return writer.toByteArray();
+        } catch (RuntimeException exception) {
+            System.err.println("[Caves Not Cliffs] Failed to transform " + transformedName
+                    + ": " + exception.getMessage());
+            exception.printStackTrace(System.err);
+            throw exception;
+        }
     }
 
     private static boolean isTarget(String name, String transformedName) {
@@ -75,6 +97,9 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
     private static MethodNode uniqueLoadWorldsMethod(ClassNode node) {
         MethodNode result = null;
         for (MethodNode method : node.methods) {
+            if (!LOAD_WORLDS_DESC.equals(method.desc)) {
+                continue;
+            }
             MethodInsnNode saveLoader = findUniqueCall(method, SAVE_FORMAT_OWNER,
                     GET_SAVE_LOADER_DESC, "save-loader");
             if (saveLoader == null || !hasLaterCall(method, saveLoader,
@@ -118,79 +143,126 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
         return ((VarInsnNode) next).var;
     }
 
-    private static MethodInsnNode uniqueConstructorDecision(MethodNode method,
-            String declaringOwner) {
-        TypeInsnNode demoWorld = null;
-        TypeInsnNode normalWorld = null;
-        for (AbstractInsnNode instruction : method.instructions.toArray()) {
-            if (instruction instanceof TypeInsnNode
-                    && instruction.getOpcode() == Opcodes.NEW) {
-                TypeInsnNode allocation = (TypeInsnNode) instruction;
-                if (DEMO_WORLD_OWNER.equals(allocation.desc)) {
-                    if (demoWorld != null) {
-                        throw failure("multiple demo Overworld constructor allocations in "
-                                + method.name + method.desc);
-                    }
-                    demoWorld = allocation;
-                } else if (NORMAL_WORLD_OWNER.equals(allocation.desc)) {
-                    if (normalWorld != null) {
-                        throw failure("multiple normal Overworld constructor allocations in "
-                                + method.name + method.desc);
-                    }
-                    normalWorld = allocation;
-                }
-            }
+    private static void verifyAppliedHooks(MethodNode method, MethodInsnNode saveLoader) {
+        AbstractInsnNode importLoad = nextMeaningful(saveLoader);
+        AbstractInsnNode importCall = nextMeaningful(importLoad);
+        if (!(importLoad instanceof VarInsnNode) || importLoad.getOpcode() != Opcodes.ALOAD
+                || ((VarInsnNode) importLoad).var != 0
+                || !isCall(importCall, HOOK_OWNER, HOOK_NAME, HOOK_DESC)) {
+            throw failure("import hook placement in " + method.name + method.desc);
         }
-        if (demoWorld == null) {
-            throw failure("demo Overworld constructor allocation in "
-                    + method.name + method.desc);
+        int saveHandlerVariable = objectStoreAfter(importCall, "save handler");
+        MethodInsnNode loadWorldInfo = uniqueWorldInfoCall(method);
+        int worldInfoVariable = objectStoreAfter(loadWorldInfo, "WorldInfo");
+        AbstractInsnNode insertionPoint = uniqueWorldInfoMerge(
+                method, loadWorldInfo, worldInfoVariable);
+        AbstractInsnNode worldInfoLoad = insertionPoint;
+        AbstractInsnNode saveHandlerLoad = nextMeaningful(worldInfoLoad);
+        AbstractInsnNode formatCall = nextMeaningful(saveHandlerLoad);
+        if (!isCall(formatCall, FORMAT_HOOK_OWNER, FORMAT_HOOK_NAME, FORMAT_HOOK_DESC)
+                || !(saveHandlerLoad instanceof VarInsnNode)
+                || saveHandlerLoad.getOpcode() != Opcodes.ALOAD
+                || ((VarInsnNode) saveHandlerLoad).var != saveHandlerVariable
+                || !(worldInfoLoad instanceof VarInsnNode)
+                || worldInfoLoad.getOpcode() != Opcodes.ALOAD
+                || ((VarInsnNode) worldInfoLoad).var != worldInfoVariable) {
+            throw failure("world-format hook placement in " + method.name + method.desc);
         }
-        if (normalWorld == null) {
-            throw failure("normal Overworld constructor allocation in "
-                    + method.name + method.desc);
-        }
-        for (AbstractInsnNode instruction = demoWorld.getPrevious(); instruction != null;
-                instruction = instruction.getPrevious()) {
-            if (instruction instanceof MethodInsnNode) {
-                MethodInsnNode call = (MethodInsnNode) instruction;
-                if (declaringOwner.equals(call.owner) && "()Z".equals(call.desc)) {
-                    verifyConstructorBranch(call, demoWorld, normalWorld, method);
-                    return call;
-                }
-            }
-        }
-        throw failure("Overworld constructor selection in " + method.name + method.desc);
     }
 
-    private static void verifyConstructorBranch(MethodInsnNode decision,
-            TypeInsnNode demoWorld, TypeInsnNode normalWorld, MethodNode method) {
-        AbstractInsnNode branchNode = nextMeaningful(decision);
+    private static AbstractInsnNode uniqueWorldInfoMerge(MethodNode method,
+            MethodInsnNode loadWorldInfo, int worldInfoVariable) {
+        AbstractInsnNode store = nextMeaningful(loadWorldInfo);
+        AbstractInsnNode load = nextMeaningful(store);
+        if (!(load instanceof VarInsnNode) || load.getOpcode() != Opcodes.ALOAD
+                || ((VarInsnNode) load).var != worldInfoVariable) {
+            throw failure("WorldInfo null check in " + method.name + method.desc);
+        }
+        AbstractInsnNode branchNode = nextMeaningful(load);
         if (!(branchNode instanceof JumpInsnNode)
-                || branchNode.getOpcode() != Opcodes.IFEQ) {
-            throw failure("immediate demo Overworld branch in " + method.name + method.desc);
+                || branchNode.getOpcode() != Opcodes.IFNONNULL) {
+            throw failure("WorldInfo existing-save branch in " + method.name + method.desc);
         }
-        JumpInsnNode branch = (JumpInsnNode) branchNode;
-        boolean demoInFallthrough = false;
-        for (AbstractInsnNode cursor = branch.getNext(); cursor != null && cursor != branch.label;
-                cursor = cursor.getNext()) {
-            if (cursor == demoWorld) {
-                demoInFallthrough = true;
+
+        JumpInsnNode existingSaveBranch = (JumpInsnNode) branchNode;
+        boolean createdWorldInfo = false;
+        boolean storedWorldInfo = false;
+        JumpInsnNode mergeJump = null;
+        for (AbstractInsnNode cursor = existingSaveBranch.getNext(); cursor != null
+                && cursor != existingSaveBranch.label; cursor = cursor.getNext()) {
+            if (cursor.getOpcode() == Opcodes.NEW && cursor instanceof TypeInsnNode
+                    && WORLD_INFO_OWNER.equals(((TypeInsnNode) cursor).desc)) {
+                if (createdWorldInfo) {
+                    throw failure("multiple new WorldInfo allocations in "
+                            + method.name + method.desc);
+                }
+                createdWorldInfo = true;
+            } else if (createdWorldInfo && cursor instanceof VarInsnNode
+                    && cursor.getOpcode() == Opcodes.ASTORE
+                    && ((VarInsnNode) cursor).var == worldInfoVariable) {
+                storedWorldInfo = true;
+            } else if (storedWorldInfo && cursor instanceof JumpInsnNode
+                    && cursor.getOpcode() == Opcodes.GOTO) {
+                if (mergeJump != null) {
+                    throw failure("multiple new/existing WorldInfo merges in "
+                            + method.name + method.desc);
+                }
+                mergeJump = (JumpInsnNode) cursor;
             }
         }
-        if (!demoInFallthrough) {
-            throw failure("demo Overworld fallthrough in " + method.name + method.desc);
+        if (!createdWorldInfo || !storedWorldInfo || mergeJump == null) {
+            throw failure("new/existing WorldInfo merge in " + method.name + method.desc);
         }
-        boolean normalInBranch = false;
-        for (AbstractInsnNode cursor = branch.label; cursor != null;
-                cursor = cursor.getNext()) {
-            if (cursor == normalWorld) {
-                normalInBranch = true;
-                break;
+        verifyStraightLineFallthrough(existingSaveBranch.label, mergeJump.label, method);
+        AbstractInsnNode insertionPoint = nextMeaningful(mergeJump.label);
+        if (insertionPoint == null) {
+            throw failure("WorldInfo merge insertion point in " + method.name + method.desc);
+        }
+        return insertionPoint;
+    }
+
+    private static void verifyStraightLineFallthrough(AbstractInsnNode first,
+            AbstractInsnNode second, MethodNode method) {
+        for (AbstractInsnNode cursor = first; cursor != null; cursor = cursor.getNext()) {
+            if (cursor == second) {
+                return;
+            }
+            int opcode = cursor.getOpcode();
+            if (cursor != first && (cursor instanceof JumpInsnNode
+                    || opcode == Opcodes.TABLESWITCH || opcode == Opcodes.LOOKUPSWITCH
+                    || opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN
+                    || opcode == Opcodes.ATHROW)) {
+                throw failure("existing-save WorldInfo path to merge in "
+                        + method.name + method.desc);
             }
         }
-        if (!normalInBranch) {
-            throw failure("normal Overworld branch in " + method.name + method.desc);
+        throw failure("ordered existing-save WorldInfo merge in "
+                + method.name + method.desc);
+    }
+
+    private static boolean isCall(AbstractInsnNode instruction, String owner,
+            String name, String descriptor) {
+        if (!(instruction instanceof MethodInsnNode)) {
+            return false;
         }
+        MethodInsnNode call = (MethodInsnNode) instruction;
+        return owner.equals(call.owner) && name.equals(call.name)
+                && descriptor.equals(call.desc);
+    }
+
+    private static int countCalls(MethodNode method, String owner, String name,
+            String descriptor) {
+        int count = 0;
+        for (AbstractInsnNode instruction : method.instructions.toArray()) {
+            if (instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (owner.equals(call.owner) && name.equals(call.name)
+                        && descriptor.equals(call.desc)) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 
     private static AbstractInsnNode nextMeaningful(AbstractInsnNode instruction) {
