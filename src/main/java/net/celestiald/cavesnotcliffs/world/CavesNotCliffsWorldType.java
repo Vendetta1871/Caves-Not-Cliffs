@@ -57,6 +57,8 @@ public final class CavesNotCliffsWorldType extends WorldType
     }
 
     public static boolean isCavesNotCliffs(World world) {
-        return world != null && world.getWorldType() instanceof CavesNotCliffsFiniteWorldType;
+        return world != null && world.provider != null
+                && world.provider.getDimension() == 0
+                && world.getWorldType() instanceof CavesNotCliffsFiniteWorldType;
     }
 }

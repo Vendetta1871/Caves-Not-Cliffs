@@ -7,6 +7,8 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.WorldServerMulti;
 import net.minecraft.world.WorldType;
+import net.minecraft.world.gen.ChunkProviderServer;
+import net.minecraft.world.gen.IChunkGenerator;
 import net.minecraft.world.storage.ISaveHandler;
 import net.minecraft.world.storage.WorldInfo;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
@@ -43,15 +45,63 @@ public final class WorldHeightBootstrap {
         // This event fires after WorldServer has already constructed its chunk generator. World
         // selection belongs in the preconstruction core hook; mutating it here would stamp a save
         // with a generator contract that was not used for the current session.
-        if (!CavesNotCliffsWorldType.isCavesNotCliffs(world)) {
+        CavesNotCliffsWorldData saved = CavesNotCliffsWorldData.read(world.getWorldInfo());
+        boolean selected = CavesNotCliffsWorldType.isCavesNotCliffs(world);
+        if (saved == null && !selected) {
             return;
         }
-        if (CavesNotCliffsWorldData.read(world.getWorldInfo()) == null) {
+        if (saved == null) {
             throw new IllegalStateException("Caves Not Cliffs world type reached world attachment "
                     + "without a preconstructed terrain schema");
         }
+        if (!selected) {
+            throw new IllegalStateException("Saved Caves Not Cliffs terrain schema "
+                    + saved.getTerrainSchema() + " reached world attachment without its world type");
+        }
+
+        CavesNotCliffsFiniteWorldType selectedType =
+                (CavesNotCliffsFiniteWorldType) world.getWorldType();
+        if (selectedType.getTerrainSchema() != saved.getTerrainSchema()) {
+            throw new IllegalStateException("Constructed Caves Not Cliffs world type uses terrain "
+                    + "schema " + selectedType.getTerrainSchema() + " but level.dat requires "
+                    + saved.getTerrainSchema());
+        }
+        if (!(world.getChunkProvider() instanceof ChunkProviderServer)) {
+            throw new IllegalStateException("Caves Not Cliffs Overworld has no server chunk provider");
+        }
+        validateConstructedGenerator(saved,
+                ((ChunkProviderServer) world.getChunkProvider()).chunkGenerator);
         ExtendedChunkAPI.requireRange("Caves Not Cliffs",
                 CavesNotCliffsWorldType.MIN_HEIGHT, CavesNotCliffsWorldType.MAX_HEIGHT);
+    }
+
+    private static void validateConstructedGenerator(CavesNotCliffsWorldData saved,
+            IChunkGenerator generator) {
+        if (saved.getTerrainSchema() == CavesNotCliffsWorldData.LEGACY_SCHEMA) {
+            if (!(generator instanceof LegacyFiniteChunkGenerator)) {
+                throw generatorMismatch(saved, generator, LegacyFiniteChunkGenerator.class);
+            }
+            return;
+        }
+        if (saved.getTerrainSchema() != CavesNotCliffsWorldData.CURRENT_SCHEMA) {
+            throw new IllegalStateException("Unsupported Caves Not Cliffs terrain schema "
+                    + saved.getTerrainSchema());
+        }
+        if (V118ChunkGenerator.isNativeProfile(saved.getTerrainProfile())) {
+            if (!(generator instanceof V118ChunkGenerator)) {
+                throw generatorMismatch(saved, generator, V118ChunkGenerator.class);
+            }
+        } else if (!(generator instanceof DelegatingFiniteChunkGenerator)) {
+            throw generatorMismatch(saved, generator, DelegatingFiniteChunkGenerator.class);
+        }
+    }
+
+    private static IllegalStateException generatorMismatch(CavesNotCliffsWorldData saved,
+            IChunkGenerator actual, Class<?> expected) {
+        return new IllegalStateException("Caves Not Cliffs terrain schema "
+                + saved.getTerrainSchema() + " (" + saved.getTerrainProfile().getSerializedName()
+                + ") constructed " + (actual == null ? "null" : actual.getClass().getName())
+                + " instead of " + expected.getName());
     }
 
     static void applyWorldFormatDecision(
