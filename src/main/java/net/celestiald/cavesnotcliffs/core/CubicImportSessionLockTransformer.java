@@ -16,7 +16,8 @@ import org.objectweb.asm.tree.VarInsnNode;
 /** Runs save import and world-format selection before vanilla constructs the Overworld. */
 public final class CubicImportSessionLockTransformer implements IClassTransformer {
     public static final String TARGET = "net.minecraft.server.MinecraftServer";
-    static final String TARGET_INTERNAL = TARGET.replace('.', '/');
+    public static final String INTEGRATED_TARGET =
+            "net.minecraft.server.integrated.IntegratedServer";
     static final String SAVE_FORMAT_OWNER = "net/minecraft/world/storage/ISaveFormat";
     static final String SAVE_HANDLER_OWNER = "net/minecraft/world/storage/ISaveHandler";
     static final String GET_SAVE_LOADER_DESC = "(Ljava/lang/String;Z)L"
@@ -36,7 +37,7 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
-        if (basicClass == null || !(TARGET.equals(transformedName) || TARGET.equals(name))) {
+        if (basicClass == null || !isTarget(name, transformedName)) {
             return basicClass;
         }
         ClassNode node = new ClassNode(Opcodes.ASM5);
@@ -46,7 +47,7 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
         MethodInsnNode loadWorldInfo = uniqueWorldInfoCall(loadWorlds);
         int saveHandlerVariable = objectStoreAfter(saveLoader, "save handler");
         int worldInfoVariable = objectStoreAfter(loadWorldInfo, "WorldInfo");
-        MethodInsnNode constructorDecision = uniqueConstructorDecision(loadWorlds);
+        MethodInsnNode constructorDecision = uniqueConstructorDecision(loadWorlds, node.name);
 
         InsnList importHook = new InsnList();
         importHook.add(new VarInsnNode(Opcodes.ALOAD, 0));
@@ -64,6 +65,11 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         node.accept(writer);
         return writer.toByteArray();
+    }
+
+    private static boolean isTarget(String name, String transformedName) {
+        return TARGET.equals(name) || TARGET.equals(transformedName)
+                || INTEGRATED_TARGET.equals(name) || INTEGRATED_TARGET.equals(transformedName);
     }
 
     private static MethodNode uniqueLoadWorldsMethod(ClassNode node) {
@@ -112,7 +118,8 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
         return ((VarInsnNode) next).var;
     }
 
-    private static MethodInsnNode uniqueConstructorDecision(MethodNode method) {
+    private static MethodInsnNode uniqueConstructorDecision(MethodNode method,
+            String declaringOwner) {
         TypeInsnNode demoWorld = null;
         for (AbstractInsnNode instruction : method.instructions.toArray()) {
             if (instruction instanceof TypeInsnNode
@@ -133,7 +140,7 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
                 instruction = instruction.getPrevious()) {
             if (instruction instanceof MethodInsnNode) {
                 MethodInsnNode call = (MethodInsnNode) instruction;
-                if (TARGET_INTERNAL.equals(call.owner) && "()Z".equals(call.desc)) {
+                if (declaringOwner.equals(call.owner) && "()Z".equals(call.desc)) {
                     verifyConstructorBranch(call, demoWorld, method);
                     return call;
                 }

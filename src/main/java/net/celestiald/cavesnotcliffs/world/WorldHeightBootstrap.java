@@ -40,14 +40,15 @@ public final class WorldHeightBootstrap {
             return;
         }
 
-        boolean existingWorld = world.getSaveHandler().loadWorldInfo() != null;
-        // Deliberately do not even read the live config for an existing save. Its persisted schema
-        // is the sole authority after first creation.
-        boolean enabledForCreation = !existingWorld
-                && CavesNotCliffsConfig.WORLD.enableForNewOverworlds;
-        applyWorldFormatDecision(world.getWorldInfo(), existingWorld, enabledForCreation);
+        // This event fires after WorldServer has already constructed its chunk generator. World
+        // selection belongs in the preconstruction core hook; mutating it here would stamp a save
+        // with a generator contract that was not used for the current session.
         if (!CavesNotCliffsWorldType.isCavesNotCliffs(world)) {
             return;
+        }
+        if (CavesNotCliffsWorldData.read(world.getWorldInfo()) == null) {
+            throw new IllegalStateException("Caves Not Cliffs world type reached world attachment "
+                    + "without a preconstructed terrain schema");
         }
         ExtendedChunkAPI.requireRange("Caves Not Cliffs",
                 CavesNotCliffsWorldType.MIN_HEIGHT, CavesNotCliffsWorldType.MAX_HEIGHT);
