@@ -49,7 +49,7 @@ public final class TerrainColumn {
     private TerrainColumn(Builder builder) {
         columnX = builder.columnX;
         columnZ = builder.columnZ;
-        materials = MaterialStorage.compact(builder.materialIds);
+        materials = MaterialStorage.compact(builder.materialIds, builder.maxMaterialId);
         surfaceBiomeIds = builder.surfaceBiomeIds.clone();
         virtualBiomeIds = builder.virtualBiomeIds.clone();
         scheduledFluidUpdates = builder.scheduledFluidUpdates.clone();
@@ -256,6 +256,7 @@ public final class TerrainColumn {
         private final char[] surfaceBiomeIds = new char[SURFACE_BIOME_COUNT];
         private final char[] virtualBiomeIds = new char[VIRTUAL_BIOME_COUNT];
         private final long[] scheduledFluidUpdates = new long[(BLOCK_COUNT + 63) >>> 6];
+        private int maxMaterialId;
 
         private Builder(int columnX, int columnZ) {
             this.columnX = columnX;
@@ -265,6 +266,7 @@ public final class TerrainColumn {
         public Builder setMaterialId(int localX, int worldY, int localZ, int materialId) {
             checkId(materialId, "materialId");
             materialIds[blockIndex(localX, worldY, localZ)] = (char) materialId;
+            maxMaterialId = Math.max(maxMaterialId, materialId);
             return this;
         }
 
@@ -275,6 +277,7 @@ public final class TerrainColumn {
         public Builder fillMaterialIds(int materialId) {
             checkId(materialId, "materialId");
             Arrays.fill(materialIds, (char) materialId);
+            maxMaterialId = materialId;
             return this;
         }
 
@@ -328,10 +331,11 @@ public final class TerrainColumn {
     }
 
     private abstract static class MaterialStorage {
-        static MaterialStorage compact(char[] source) {
-            int[] reversePalette = new int[MAX_STORAGE_ID + 1];
+        static MaterialStorage compact(char[] source, int maxValue) {
+            int paletteCapacity = maxValue + 1;
+            int[] reversePalette = new int[paletteCapacity];
             Arrays.fill(reversePalette, -1);
-            char[] paletteScratch = new char[MAX_STORAGE_ID + 1];
+            char[] paletteScratch = new char[Math.min(source.length, paletteCapacity)];
             int paletteSize = 0;
             for (char value : source) {
                 if (reversePalette[value] < 0) {
