@@ -18,6 +18,7 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
     public static final String TARGET = "net.minecraft.server.MinecraftServer";
     public static final String INTEGRATED_TARGET =
             "net.minecraft.server.integrated.IntegratedServer";
+    public static final String CLIENT_TARGET = "net.minecraft.client.Minecraft";
     static final String SAVE_FORMAT_OWNER = "net/minecraft/world/storage/ISaveFormat";
     static final String SAVE_HANDLER_OWNER = "net/minecraft/world/storage/ISaveHandler";
     static final String GET_SAVE_LOADER_DESC = "(Ljava/lang/String;Z)L"
@@ -40,13 +41,25 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
     static final String NEW_FORMAT_HOOK_NAME = "prepareNewWorld";
     static final String NEW_FORMAT_HOOK_DESC =
             "(Lnet/minecraft/world/storage/WorldInfo;)V";
+    static final String WORLD_INFO_INIT_DESC =
+            "(Lnet/minecraft/world/WorldSettings;Ljava/lang/String;)V";
+    static final String CLIENT_LOAD_WORLD_DESC =
+            "(Ljava/lang/String;Ljava/lang/String;Lnet/minecraft/world/WorldSettings;)V";
+    static final String SAVE_WORLD_INFO_DESC =
+            "(Lnet/minecraft/world/storage/WorldInfo;)V";
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
-        if (basicClass == null || !isTarget(name, transformedName)) {
+        if (basicClass == null) {
             return basicClass;
         }
         try {
+            if (isClientTarget(name, transformedName)) {
+                return transformClientWorldCreation(basicClass);
+            }
+            if (!isTarget(name, transformedName)) {
+                return basicClass;
+            }
             ClassNode node = new ClassNode(Opcodes.ASM5);
             new ClassReader(basicClass).accept(node, 0);
             MethodNode loadWorlds = uniqueLoadWorldsMethod(node);
@@ -101,9 +114,83 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
         }
     }
 
+    /** Activates a new single-player save before the client writes its initial level.dat. */
+    private static byte[] transformClientWorldCreation(byte[] basicClass) {
+        ClassNode node = new ClassNode(Opcodes.ASM5);
+        new ClassReader(basicClass).accept(node, 0);
+        MethodNode launchIntegratedServer = null;
+        for (MethodNode method : node.methods) {
+            if (CLIENT_LOAD_WORLD_DESC.equals(method.desc)
+                    && hasClientNewWorldFlow(method)) {
+                if (launchIntegratedServer != null) {
+                    throw failure("multiple client integrated-server launch methods");
+                }
+                launchIntegratedServer = method;
+            }
+        }
+        if (launchIntegratedServer == null) {
+            throw failure("client integrated-server launch method");
+        }
+
+        MethodInsnNode loadWorldInfo = findUniqueCall(launchIntegratedServer,
+                SAVE_HANDLER_OWNER, LOAD_WORLD_INFO_DESC, "client WorldInfo load");
+        MethodInsnNode constructor = findUniqueCall(launchIntegratedServer,
+                WORLD_INFO_OWNER, WORLD_INFO_INIT_DESC, "client new WorldInfo constructor");
+        MethodInsnNode saveWorldInfo = findUniqueCall(launchIntegratedServer,
+                SAVE_HANDLER_OWNER, SAVE_WORLD_INFO_DESC, "client initial WorldInfo save");
+        if (loadWorldInfo == null || constructor == null || saveWorldInfo == null
+                || !appearsBefore(loadWorldInfo, constructor)
+                || !appearsBefore(constructor, saveWorldInfo)) {
+            throw failure("ordered client new-save WorldInfo branch");
+        }
+        int worldInfoVariable = objectStoreAfter(constructor, "client new WorldInfo");
+        int hookCount = countCalls(launchIntegratedServer, FORMAT_HOOK_OWNER,
+                NEW_FORMAT_HOOK_NAME, NEW_FORMAT_HOOK_DESC);
+        if (hookCount == 1) {
+            verifyClientHook(constructor, worldInfoVariable);
+            return basicClass;
+        }
+        if (hookCount != 0) {
+            throw failure("duplicate client new-world format hooks");
+        }
+
+        InsnList hook = new InsnList();
+        hook.add(new VarInsnNode(Opcodes.ALOAD, worldInfoVariable));
+        hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, FORMAT_HOOK_OWNER,
+                NEW_FORMAT_HOOK_NAME, NEW_FORMAT_HOOK_DESC, false));
+        launchIntegratedServer.instructions.insert(
+                nextMeaningful(constructor), hook);
+
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        node.accept(writer);
+        return writer.toByteArray();
+    }
+
+    private static boolean hasClientNewWorldFlow(MethodNode method) {
+        return countCalls(method, SAVE_HANDLER_OWNER, LOAD_WORLD_INFO_DESC) == 1
+                && countCalls(method, WORLD_INFO_OWNER, WORLD_INFO_INIT_DESC) == 1
+                && countCalls(method, SAVE_HANDLER_OWNER, SAVE_WORLD_INFO_DESC) == 1;
+    }
+
+    private static void verifyClientHook(MethodInsnNode constructor, int worldInfoVariable) {
+        AbstractInsnNode store = nextMeaningful(constructor);
+        AbstractInsnNode load = nextMeaningful(store);
+        AbstractInsnNode hook = nextMeaningful(load);
+        if (!(load instanceof VarInsnNode) || load.getOpcode() != Opcodes.ALOAD
+                || ((VarInsnNode) load).var != worldInfoVariable
+                || !isCall(hook, FORMAT_HOOK_OWNER,
+                        NEW_FORMAT_HOOK_NAME, NEW_FORMAT_HOOK_DESC)) {
+            throw failure("client new-world format hook placement");
+        }
+    }
+
     private static boolean isTarget(String name, String transformedName) {
         return TARGET.equals(name) || TARGET.equals(transformedName)
                 || INTEGRATED_TARGET.equals(name) || INTEGRATED_TARGET.equals(transformedName);
+    }
+
+    private static boolean isClientTarget(String name, String transformedName) {
+        return CLIENT_TARGET.equals(name) || CLIENT_TARGET.equals(transformedName);
     }
 
     private static MethodNode uniqueLoadWorldsMethod(ClassNode node) {
@@ -298,6 +385,19 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
         return count;
     }
 
+    private static int countCalls(MethodNode method, String owner, String descriptor) {
+        int count = 0;
+        for (AbstractInsnNode instruction : method.instructions.toArray()) {
+            if (instruction instanceof MethodInsnNode) {
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (owner.equals(call.owner) && descriptor.equals(call.desc)) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
     private static AbstractInsnNode nextMeaningful(AbstractInsnNode instruction) {
         AbstractInsnNode cursor = instruction.getNext();
         while (cursor != null && cursor.getOpcode() < 0) {
@@ -335,6 +435,16 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
                 if (owner.equals(call.owner) && descriptor.equals(call.desc)) {
                     return true;
                 }
+            }
+        }
+        return false;
+    }
+
+    private static boolean appearsBefore(AbstractInsnNode first, AbstractInsnNode second) {
+        for (AbstractInsnNode instruction = first; instruction != null;
+                instruction = instruction.getNext()) {
+            if (instruction == second) {
+                return true;
             }
         }
         return false;
