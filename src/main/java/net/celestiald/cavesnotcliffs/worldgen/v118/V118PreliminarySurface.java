@@ -15,6 +15,16 @@ public final class V118PreliminarySurface implements NoiseBasedAquifer.Prelimina
 
     public V118PreliminarySurface(V118NoiseSettings settings,
             DensityFunction initialDensityWithoutJaggedness) {
+        this(settings, initialDensityWithoutJaggedness, false);
+    }
+
+    static V118PreliminarySurface fromRealizedDensity(V118NoiseSettings settings,
+            DensityFunction initialDensityWithoutJaggedness) {
+        return new V118PreliminarySurface(settings, initialDensityWithoutJaggedness, true);
+    }
+
+    private V118PreliminarySurface(V118NoiseSettings settings,
+            DensityFunction initialDensityWithoutJaggedness, boolean realized) {
         if (settings == null) {
             throw new NullPointerException("settings");
         }
@@ -22,8 +32,9 @@ public final class V118PreliminarySurface implements NoiseBasedAquifer.Prelimina
             throw new NullPointerException("initialDensityWithoutJaggedness");
         }
         this.settings = settings;
-        this.initialDensityWithoutJaggedness = V118DensityInterpolator.realize(
-            initialDensityWithoutJaggedness, settings);
+        this.initialDensityWithoutJaggedness = realized
+            ? initialDensityWithoutJaggedness
+            : V118DensityInterpolator.realize(initialDensityWithoutJaggedness, settings);
     }
 
     @Override

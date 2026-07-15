@@ -13,6 +13,7 @@ public final class V118TerrainColumnGenerator {
     private final V118NoiseSettings settings;
     private final V118NoiseRouter router;
     private final DensityFunction finalDensity;
+    private final DensityFunction preliminarySurfaceDensity;
     private final V118ClimateSampler climateSampler;
     private final V118BiomeManager biomeManager;
     private final V118OreVeinifier oreVeinifier;
@@ -43,6 +44,8 @@ public final class V118TerrainColumnGenerator {
         router = V118NoiseRouterData.create(seed, profile);
         finalDensity = V118DensityInterpolator.realizeFinalDensity(router.finalDensity(),
             settings);
+        preliminarySurfaceDensity = V118DensityInterpolator.realize(
+            router.initialDensityWithoutJaggedness(), settings);
         OverworldBiomeBuilder biomeTable = new OverworldBiomeBuilder();
         climateSampler = new V118ClimateSampler(router, settings, biomeTable);
         biomeManager = new V118BiomeManager(climateSampler::resolveQuart, seed);
@@ -72,8 +75,8 @@ public final class V118TerrainColumnGenerator {
         TerrainColumn.Builder builder = TerrainColumn.builder(columnX, columnZ);
         fillVirtualBiomes(builder, columnX, columnZ);
 
-        V118PreliminarySurface preliminarySurface = new V118PreliminarySurface(settings,
-            router.initialDensityWithoutJaggedness());
+        V118PreliminarySurface preliminarySurface = V118PreliminarySurface.fromRealizedDensity(
+            settings, preliminarySurfaceDensity);
         NoiseBasedAquifer aquifer = new NoiseBasedAquifer(columnX, columnZ,
             settings.minY(), settings.height(), router.barrierNoise(),
             router.fluidLevelFloodednessNoise(), router.fluidLevelSpreadNoise(),
