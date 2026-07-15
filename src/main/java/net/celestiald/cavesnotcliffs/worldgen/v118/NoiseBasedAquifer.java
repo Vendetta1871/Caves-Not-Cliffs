@@ -43,6 +43,7 @@ public final class NoiseBasedAquifer {
     private final int gridSizeX;
     private final int gridSizeY;
     private final int gridSizeZ;
+    private final BarrierSample barrierSample = new BarrierSample();
 
     /**
      * Creates the aquifer cache for one chunk.
@@ -174,7 +175,7 @@ public final class NoiseBasedAquifer {
             return Result.material(firstMaterial, true);
         }
 
-        BarrierSample barrierSample = new BarrierSample();
+        barrierSample.value = Double.NaN;
         FluidStatus secondStatus = getAquiferStatus(secondLocation);
         double firstPressure = firstSimilarity
                 * calculatePressure(context, barrierSample, firstStatus, secondStatus);
