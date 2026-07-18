@@ -8,6 +8,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -25,6 +26,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class CubicImportSessionLockTransformerTest {
+    /** Internal (slash) form of the transformer target used for bytecode fixtures. */
+    private static final String TARGET_INTERNAL =
+            CubicImportSessionLockTransformer.TARGET.replace('.', '/');
+
     @Test
     public void developmentBytecodeHooksAfterSaveHandlerAndBeforeWorldInfo() throws Exception {
         byte[] transformed = new CubicImportSessionLockTransformer().transform(
@@ -55,7 +60,8 @@ public class CubicImportSessionLockTransformerTest {
     }
 
     @Test
-    public void nearbyBooleanBranchFailsClearlyInsteadOfMovingTheFormatHook() throws Exception {
+    public void duplicateSaveLoaderCallFailsClearlyInsteadOfMovingTheFormatHook()
+            throws Exception {
         ClassNode node = readNode(targetBytes());
         TypeInsnNode demoWorld = null;
         MethodNode loadWorlds = null;
@@ -73,14 +79,15 @@ public class CubicImportSessionLockTransformerTest {
         assertNotNull(demoWorld);
         assertNotNull(loadWorlds);
 
-        LabelNode localTarget = new LabelNode();
         InsnList collision = new InsnList();
-        collision.add(new VarInsnNode(Opcodes.ALOAD, 0));
-        collision.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL,
-                CubicImportSessionLockTransformer.TARGET_INTERNAL,
-                "thirdPartyBoolean", "()Z", false));
-        collision.add(new JumpInsnNode(Opcodes.IFEQ, localTarget));
-        collision.add(localTarget);
+        collision.add(new InsnNode(Opcodes.ACONST_NULL));
+        collision.add(new InsnNode(Opcodes.ACONST_NULL));
+        collision.add(new InsnNode(Opcodes.ICONST_0));
+        collision.add(new MethodInsnNode(Opcodes.INVOKEINTERFACE,
+                CubicImportSessionLockTransformer.SAVE_FORMAT_OWNER,
+                "getSaveLoader",
+                CubicImportSessionLockTransformer.GET_SAVE_LOADER_DESC, true));
+        collision.add(new InsnNode(Opcodes.POP));
         loadWorlds.instructions.insertBefore(demoWorld, collision);
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         node.accept(writer);
@@ -91,7 +98,7 @@ public class CubicImportSessionLockTransformerTest {
                     CubicImportSessionLockTransformer.TARGET, writer.toByteArray());
             fail("A near-collision must abort instead of moving the format hook");
         } catch (IllegalStateException expected) {
-            assertTrue(expected.getMessage().contains("Overworld"));
+            assertTrue(expected.getMessage().contains("multiple save-loader calls"));
         }
     }
 
@@ -105,7 +112,7 @@ public class CubicImportSessionLockTransformerTest {
         ClassNode node = new ClassNode(Opcodes.ASM5);
         node.version = Opcodes.V1_8;
         node.access = Opcodes.ACC_PUBLIC;
-        node.name = CubicImportSessionLockTransformer.TARGET_INTERNAL;
+        node.name = TARGET_INTERNAL;
         node.superName = "java/lang/Object";
         ClassWriter writer = new ClassWriter(0);
         node.accept(writer);
@@ -235,7 +242,7 @@ public class CubicImportSessionLockTransformerTest {
     }
 
     private static byte[] targetBytes() throws IOException {
-        return classBytes(CubicImportSessionLockTransformer.TARGET_INTERNAL + ".class");
+        return classBytes(TARGET_INTERNAL + ".class");
     }
 
     private static byte[] classBytes(Class<?> type) throws IOException {

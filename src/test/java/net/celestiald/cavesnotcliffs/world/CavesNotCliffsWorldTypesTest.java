@@ -1,5 +1,6 @@
 package net.celestiald.cavesnotcliffs.world;
 
+import net.celestiald.cavebiomes.api.IExtendedHeightWorldType;
 import net.minecraft.world.WorldType;
 import org.junit.Test;
 
@@ -12,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -22,7 +24,10 @@ import static org.junit.Assert.assertTrue;
 public class CavesNotCliffsWorldTypesTest {
     @Test
     public void finiteWorldTypeLayerHasNoStaticCubicChunksApiLinks() throws IOException {
-        assertEquals(0, CavesNotCliffsFiniteWorldType.class.getInterfaces().length);
+        // The only static interface link is the required CaveBiomesAPI marker;
+        // CubicChunks classes must stay out of the constant pools below.
+        assertArrayEquals(new Class<?>[]{IExtendedHeightWorldType.class},
+                CavesNotCliffsFiniteWorldType.class.getInterfaces());
         assertTrue(CavesNotCliffsFiniteWorldType.class.isAssignableFrom(
                 CavesNotCliffsWorldType.class));
         assertTrue(CavesNotCliffsFiniteWorldType.class.isAssignableFrom(
