@@ -6,6 +6,7 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -47,6 +48,10 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
             "(Ljava/lang/String;Ljava/lang/String;Lnet/minecraft/world/WorldSettings;)V";
     static final String SAVE_WORLD_INFO_DESC =
             "(Lnet/minecraft/world/storage/WorldInfo;)V";
+    static final String OPTIFINE_REFLECTOR_OWNER = "net/optifine/reflect/Reflector";
+    static final String OPTIFINE_REFLECTOR_CLASS_OWNER =
+            "net/optifine/reflect/ReflectorClass";
+    static final String OPTIFINE_EXISTS_DESC = "()Z";
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -64,12 +69,15 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
             new ClassReader(basicClass).accept(node, 0);
             MethodNode loadWorlds = uniqueLoadWorldsMethod(node);
             MethodInsnNode saveLoader = uniqueSaveLoaderCall(loadWorlds);
+            MethodInsnNode loadWorldInfo = uniqueWorldInfoCall(loadWorlds);
+            JumpInsnNode optifineSplit = optifineDimensionManagerSplit(loadWorldInfo);
             int importHookCount = countCalls(loadWorlds, HOOK_OWNER, HOOK_NAME, HOOK_DESC);
             int formatHookCount = countCalls(loadWorlds, FORMAT_HOOK_OWNER,
                     FORMAT_HOOK_NAME, FORMAT_HOOK_DESC);
             int newFormatHookCount = countCalls(loadWorlds, FORMAT_HOOK_OWNER,
                     NEW_FORMAT_HOOK_NAME, NEW_FORMAT_HOOK_DESC);
-            if (importHookCount == 1 && formatHookCount == 1
+            int expectedFormatHooks = optifineSplit == null ? 1 : 2;
+            if (importHookCount == 1 && formatHookCount == expectedFormatHooks
                     && newFormatHookCount == 1) {
                 verifyAppliedHooks(loadWorlds, saveLoader);
                 return basicClass;
@@ -78,11 +86,10 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
                 throw failure("partial or duplicate world bootstrap hooks in "
                         + loadWorlds.name + loadWorlds.desc);
             }
-            MethodInsnNode loadWorldInfo = uniqueWorldInfoCall(loadWorlds);
             int saveHandlerVariable = objectStoreAfter(saveLoader, "save handler");
             int worldInfoVariable = objectStoreAfter(loadWorldInfo, "WorldInfo");
             WorldInfoFlow worldInfoFlow = uniqueWorldInfoFlow(
-                    loadWorlds, loadWorldInfo, worldInfoVariable);
+                    loadWorlds, loadWorldInfo, worldInfoVariable, optifineSplit);
 
             InsnList importHook = new InsnList();
             importHook.add(new VarInsnNode(Opcodes.ALOAD, 0));
@@ -95,6 +102,15 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
             newFormatHook.add(new MethodInsnNode(Opcodes.INVOKESTATIC, FORMAT_HOOK_OWNER,
                     NEW_FORMAT_HOOK_NAME, NEW_FORMAT_HOOK_DESC, false));
             loadWorlds.instructions.insert(worldInfoFlow.newWorldInfoStore, newFormatHook);
+
+            if (optifineSplit != null) {
+                InsnList branchFormatHook = new InsnList();
+                branchFormatHook.add(new VarInsnNode(Opcodes.ALOAD, worldInfoVariable));
+                branchFormatHook.add(new VarInsnNode(Opcodes.ALOAD, saveHandlerVariable));
+                branchFormatHook.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+                        FORMAT_HOOK_OWNER, FORMAT_HOOK_NAME, FORMAT_HOOK_DESC, false));
+                loadWorlds.instructions.insert(optifineSplit, branchFormatHook);
+            }
 
             InsnList formatHook = new InsnList();
             formatHook.add(new VarInsnNode(Opcodes.ALOAD, worldInfoVariable));
@@ -253,8 +269,9 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
         int saveHandlerVariable = objectStoreAfter(importCall, "save handler");
         MethodInsnNode loadWorldInfo = uniqueWorldInfoCall(method);
         int worldInfoVariable = objectStoreAfter(loadWorldInfo, "WorldInfo");
+        JumpInsnNode optifineSplit = optifineDimensionManagerSplit(loadWorldInfo);
         WorldInfoFlow worldInfoFlow = uniqueWorldInfoFlow(
-                method, loadWorldInfo, worldInfoVariable);
+                method, loadWorldInfo, worldInfoVariable, optifineSplit);
         AbstractInsnNode newWorldInfoLoad = nextMeaningful(worldInfoFlow.newWorldInfoStore);
         AbstractInsnNode newFormatCall = nextMeaningful(newWorldInfoLoad);
         if (!(newWorldInfoLoad instanceof VarInsnNode)
@@ -276,12 +293,56 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
                 || ((VarInsnNode) worldInfoLoad).var != worldInfoVariable) {
             throw failure("world-format hook placement in " + method.name + method.desc);
         }
+        if (optifineSplit != null) {
+            AbstractInsnNode branchWorldInfo = nextMeaningful(optifineSplit);
+            AbstractInsnNode branchSaveHandler = nextMeaningful(branchWorldInfo);
+            AbstractInsnNode branchFormatCall = nextMeaningful(branchSaveHandler);
+            if (!(branchWorldInfo instanceof VarInsnNode)
+                    || branchWorldInfo.getOpcode() != Opcodes.ALOAD
+                    || ((VarInsnNode) branchWorldInfo).var != worldInfoVariable
+                    || !(branchSaveHandler instanceof VarInsnNode)
+                    || branchSaveHandler.getOpcode() != Opcodes.ALOAD
+                    || ((VarInsnNode) branchSaveHandler).var != saveHandlerVariable
+                    || !isCall(branchFormatCall, FORMAT_HOOK_OWNER,
+                            FORMAT_HOOK_NAME, FORMAT_HOOK_DESC)) {
+                throw failure("OptiFine branch world-format hook placement in "
+                        + method.name + method.desc);
+            }
+        }
+    }
+
+    /** OptiFine gates its Forge-compatible flow behind a DimensionManager exists check. */
+    private static JumpInsnNode optifineDimensionManagerSplit(MethodInsnNode loadWorldInfo) {
+        AbstractInsnNode store = nextMeaningful(loadWorldInfo);
+        AbstractInsnNode field = nextMeaningful(store);
+        if (!(field instanceof FieldInsnNode)
+                || field.getOpcode() != Opcodes.GETSTATIC
+                || !OPTIFINE_REFLECTOR_OWNER.equals(((FieldInsnNode) field).owner)) {
+            return null;
+        }
+        AbstractInsnNode exists = nextMeaningful(field);
+        if (!isCall(exists, OPTIFINE_REFLECTOR_CLASS_OWNER, "exists",
+                OPTIFINE_EXISTS_DESC)) {
+            return null;
+        }
+        AbstractInsnNode jump = nextMeaningful(exists);
+        if (!(jump instanceof JumpInsnNode) || jump.getOpcode() != Opcodes.IFEQ) {
+            return null;
+        }
+        return (JumpInsnNode) jump;
     }
 
     private static WorldInfoFlow uniqueWorldInfoFlow(MethodNode method,
-            MethodInsnNode loadWorldInfo, int worldInfoVariable) {
-        AbstractInsnNode store = nextMeaningful(loadWorldInfo);
-        AbstractInsnNode load = nextMeaningful(store);
+            MethodInsnNode loadWorldInfo, int worldInfoVariable,
+            JumpInsnNode optifineSplit) {
+        AbstractInsnNode load;
+        if (optifineSplit == null) {
+            AbstractInsnNode store = nextMeaningful(loadWorldInfo);
+            load = nextMeaningful(store);
+        } else {
+            load = findWorldInfoNullCheck(method, optifineSplit.label,
+                    worldInfoVariable);
+        }
         if (!(load instanceof VarInsnNode) || load.getOpcode() != Opcodes.ALOAD
                 || ((VarInsnNode) load).var != worldInfoVariable) {
             throw failure("WorldInfo null check in " + method.name + method.desc);
@@ -329,6 +390,33 @@ public final class CubicImportSessionLockTransformer implements IClassTransforme
             throw failure("WorldInfo merge insertion point in " + method.name + method.desc);
         }
         return new WorldInfoFlow(newWorldInfoStore, insertionPoint);
+    }
+
+    /** Finds the WorldInfo null check inside OptiFine's vanilla fallback branch. */
+    private static AbstractInsnNode findWorldInfoNullCheck(MethodNode method,
+            AbstractInsnNode branchStart, int worldInfoVariable) {
+        AbstractInsnNode result = null;
+        for (AbstractInsnNode cursor = branchStart; cursor != null;
+                cursor = cursor.getNext()) {
+            if (!(cursor instanceof VarInsnNode) || cursor.getOpcode() != Opcodes.ALOAD
+                    || ((VarInsnNode) cursor).var != worldInfoVariable) {
+                continue;
+            }
+            AbstractInsnNode branch = nextMeaningful(cursor);
+            if (!(branch instanceof JumpInsnNode)
+                    || branch.getOpcode() != Opcodes.IFNONNULL) {
+                continue;
+            }
+            if (result != null) {
+                throw failure("multiple WorldInfo null checks in "
+                        + method.name + method.desc);
+            }
+            result = cursor;
+        }
+        if (result == null) {
+            throw failure("WorldInfo null check in " + method.name + method.desc);
+        }
+        return result;
     }
 
     private static final class WorldInfoFlow {

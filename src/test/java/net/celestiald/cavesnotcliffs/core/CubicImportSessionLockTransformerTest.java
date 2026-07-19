@@ -126,6 +126,142 @@ public class CubicImportSessionLockTransformerTest {
         }
     }
 
+    @Test
+    public void optifineSplitShapeHooksBothBranches() {
+        byte[] transformed = new CubicImportSessionLockTransformer().transform(
+                CubicImportSessionLockTransformer.TARGET,
+                CubicImportSessionLockTransformer.TARGET, optifineSplitBytes());
+        assertOptifineHookShape(transformed);
+
+        byte[] retransformed = new CubicImportSessionLockTransformer().transform(
+                CubicImportSessionLockTransformer.TARGET,
+                CubicImportSessionLockTransformer.TARGET, transformed);
+        assertTrue("already-transformed bytes must pass through unchanged",
+                java.util.Arrays.equals(transformed, retransformed));
+    }
+
+    /** Asserts two world-format hooks: OptiFine Forge branch and vanilla merge. */
+    private static void assertOptifineHookShape(byte[] bytes) {
+        int importHooks = 0;
+        int formatHooks = 0;
+        int newFormatHooks = 0;
+        boolean sawBranchHookAfterSplit = false;
+        boolean sawMergeHook = false;
+        for (MethodNode method : readNode(bytes).methods) {
+            if (!CubicImportSessionLockTransformer.LOAD_WORLDS_DESC.equals(method.desc)) {
+                continue;
+            }
+            AbstractInsnNode[] instructions = method.instructions.toArray();
+            for (int index = 0; index < instructions.length; index++) {
+                AbstractInsnNode instruction = instructions[index];
+                if (!(instruction instanceof MethodInsnNode)) {
+                    continue;
+                }
+                MethodInsnNode call = (MethodInsnNode) instruction;
+                if (CubicImportSessionLockTransformer.HOOK_OWNER.equals(call.owner)) {
+                    importHooks++;
+                } else if (CubicImportSessionLockTransformer.FORMAT_HOOK_OWNER.equals(
+                        call.owner)) {
+                    if (CubicImportSessionLockTransformer.NEW_FORMAT_HOOK_NAME.equals(
+                            call.name)) {
+                        newFormatHooks++;
+                        continue;
+                    }
+                    formatHooks++;
+                    AbstractInsnNode worldInfo = previousMeaningful(
+                            previousMeaningful(call));
+                    assertEquals(Opcodes.ALOAD, worldInfo.getOpcode());
+                    if (index >= 3 && instructions[index - 3] instanceof JumpInsnNode
+                            && instructions[index - 3].getOpcode() == Opcodes.IFEQ) {
+                        sawBranchHookAfterSplit = true;
+                    } else {
+                        sawMergeHook = true;
+                    }
+                }
+            }
+        }
+        assertEquals(1, importHooks);
+        assertEquals(2, formatHooks);
+        assertEquals(1, newFormatHooks);
+        assertTrue("format hook must open the OptiFine Forge branch",
+                sawBranchHookAfterSplit);
+        assertTrue("format hook must stay at the vanilla merge", sawMergeHook);
+    }
+
+    /** Mirrors OptiFine's IntegratedServer rewrite around the WorldInfo null check. */
+    private static byte[] optifineSplitBytes() {
+        ClassNode node = new ClassNode(Opcodes.ASM5);
+        node.version = Opcodes.V1_8;
+        node.access = Opcodes.ACC_PUBLIC;
+        node.name = TARGET_INTERNAL;
+        node.superName = "java/lang/Object";
+
+        MethodNode method = new MethodNode(Opcodes.ASM5, Opcodes.ACC_PUBLIC, "loadAllWorlds",
+                CubicImportSessionLockTransformer.LOAD_WORLDS_DESC, null, null);
+        LabelNode vanillaBranch = new LabelNode();
+        LabelNode existingSave = new LabelNode();
+        LabelNode merge = new LabelNode();
+        LabelNode end = new LabelNode();
+        InsnList code = method.instructions;
+        code.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        code.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, TARGET_INTERNAL,
+                "getActiveAnvilConverter",
+                "()L" + CubicImportSessionLockTransformer.SAVE_FORMAT_OWNER + ";", false));
+        code.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        code.add(new InsnNode(Opcodes.ICONST_1));
+        code.add(new MethodInsnNode(Opcodes.INVOKEINTERFACE,
+                CubicImportSessionLockTransformer.SAVE_FORMAT_OWNER, "getSaveLoader",
+                CubicImportSessionLockTransformer.GET_SAVE_LOADER_DESC, true));
+        code.add(new VarInsnNode(Opcodes.ASTORE, 7));
+        code.add(new VarInsnNode(Opcodes.ALOAD, 7));
+        code.add(new MethodInsnNode(Opcodes.INVOKEINTERFACE,
+                CubicImportSessionLockTransformer.SAVE_HANDLER_OWNER, "loadWorldInfo",
+                CubicImportSessionLockTransformer.LOAD_WORLD_INFO_DESC, true));
+        code.add(new VarInsnNode(Opcodes.ASTORE, 8));
+        code.add(new org.objectweb.asm.tree.FieldInsnNode(Opcodes.GETSTATIC,
+                CubicImportSessionLockTransformer.OPTIFINE_REFLECTOR_OWNER,
+                "DimensionManager",
+                "L" + CubicImportSessionLockTransformer.OPTIFINE_REFLECTOR_CLASS_OWNER
+                        + ";"));
+        code.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL,
+                CubicImportSessionLockTransformer.OPTIFINE_REFLECTOR_CLASS_OWNER,
+                "exists", CubicImportSessionLockTransformer.OPTIFINE_EXISTS_DESC, false));
+        code.add(new JumpInsnNode(Opcodes.IFEQ, vanillaBranch));
+        code.add(new VarInsnNode(Opcodes.ALOAD, 8));
+        code.add(new InsnNode(Opcodes.POP));
+        code.add(new JumpInsnNode(Opcodes.GOTO, end));
+        code.add(vanillaBranch);
+        code.add(new VarInsnNode(Opcodes.ALOAD, 8));
+        code.add(new JumpInsnNode(Opcodes.IFNONNULL, existingSave));
+        code.add(new TypeInsnNode(Opcodes.NEW,
+                CubicImportSessionLockTransformer.WORLD_INFO_OWNER));
+        code.add(new InsnNode(Opcodes.DUP));
+        code.add(new VarInsnNode(Opcodes.ALOAD, 0));
+        code.add(new org.objectweb.asm.tree.FieldInsnNode(Opcodes.GETFIELD, TARGET_INTERNAL,
+                "worldSettings", "Lnet/minecraft/world/WorldSettings;"));
+        code.add(new VarInsnNode(Opcodes.ALOAD, 2));
+        code.add(new MethodInsnNode(Opcodes.INVOKESPECIAL,
+                CubicImportSessionLockTransformer.WORLD_INFO_OWNER, "<init>",
+                CubicImportSessionLockTransformer.WORLD_INFO_INIT_DESC, false));
+        code.add(new VarInsnNode(Opcodes.ASTORE, 8));
+        code.add(new JumpInsnNode(Opcodes.GOTO, merge));
+        code.add(existingSave);
+        code.add(new VarInsnNode(Opcodes.ALOAD, 8));
+        code.add(new VarInsnNode(Opcodes.ALOAD, 2));
+        code.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL,
+                CubicImportSessionLockTransformer.WORLD_INFO_OWNER, "setWorldName",
+                "(Ljava/lang/String;)V", false));
+        code.add(merge);
+        code.add(new InsnNode(Opcodes.RETURN));
+        code.add(end);
+        code.add(new InsnNode(Opcodes.RETURN));
+        node.methods.add(method);
+
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        node.accept(writer);
+        return writer.toByteArray();
+    }
+
     private static void assertHookShape(byte[] bytes) {
         int saveLoaderCalls = 0;
         int worldInfoCalls = 0;
