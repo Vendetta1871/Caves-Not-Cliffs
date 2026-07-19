@@ -38,6 +38,7 @@ import net.minecraft.stats.StatList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.DamageSource;
+import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.EnumParticleTypes;
@@ -295,6 +296,11 @@ public final class CampfireContent extends ElementsCavesNotCliffs.ModElement {
 
         @Override public TileEntity createNewTileEntity(World world, int meta) {
             return new TileEntityCampfire();
+        }
+
+        @Override public EnumBlockRenderType getRenderType(IBlockState state) {
+            // BlockContainer defaults to INVISIBLE (TESR-oriented); campfires use models.
+            return EnumBlockRenderType.MODEL;
         }
 
         @Override public boolean onBlockActivated(World world, BlockPos pos,

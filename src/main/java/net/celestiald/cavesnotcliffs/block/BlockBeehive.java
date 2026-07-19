@@ -35,6 +35,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.stats.StatBase;
 import net.minecraft.stats.StatList;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.EnumParticleTypes;
@@ -191,6 +192,12 @@ public final class BlockBeehive extends ElementsCavesNotCliffs.ModElement {
         @Override
         public TileEntity createNewTileEntity(World world, int meta) {
             return new TileEntityBeehive();
+        }
+
+        @Override
+        public EnumBlockRenderType getRenderType(IBlockState state) {
+            // BlockContainer defaults to INVISIBLE (TESR-oriented); these blocks use models.
+            return EnumBlockRenderType.MODEL;
         }
 
         @Override
