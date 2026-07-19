@@ -81,25 +81,39 @@ public final class TerrainColumnCache {
                 + ", " + loaded.columnZ() + ") for request " + key);
         }
 
-        long weight = loaded.estimatedRetainedBytes();
-        if (weight <= 0L) {
-            throw new IllegalStateException("Terrain column has invalid cache weight: " + weight);
+        if (insert(key, loaded)) {
+            remember(columnX, columnZ, loaded);
         }
-        if (weight > maxWeightBytes) {
-            return loaded;
-        }
-
-        // Evict before addition and compare using subtraction, avoiding overflow even when the
-        // configured byte limit is Long.MAX_VALUE.
-        while (!columns.isEmpty()
-                && (columns.size() >= maxColumns
-                    || currentWeightBytes > maxWeightBytes - weight)) {
-            evictEldest();
-        }
-        columns.put(key, loaded);
-        currentWeightBytes += weight;
-        remember(columnX, columnZ, loaded);
         return loaded;
+    }
+
+    /**
+     * Inserts an externally generated column without invoking the loader. Used to hand off
+     * asynchronously prestarted columns: the entry must be a pure function of the same immutable
+     * state and coordinates the loader would have used. A column already cached at the
+     * coordinates is kept and the offer is ignored, so a stale prestart can never replace a
+     * fresher entry.
+     */
+    public void offer(int columnX, int columnZ, TerrainColumn column) {
+        checkOwnerThread();
+        if (loading) {
+            throw new IllegalStateException("Reentrant terrain-column generation is not allowed");
+        }
+        if (column == null) {
+            throw new NullPointerException("column");
+        }
+        if (column.columnX() != columnX || column.columnZ() != columnZ) {
+            throw new IllegalStateException("Offered terrain column (" + column.columnX() + ", "
+                + column.columnZ() + ") does not match request (" + columnX + ", " + columnZ
+                + ")");
+        }
+        ColumnKey key = new ColumnKey(columnX, columnZ);
+        if (columns.containsKey(key)) {
+            return;
+        }
+        if (insert(key, column)) {
+            remember(columnX, columnZ, column);
+        }
     }
 
     public boolean isCached(int columnX, int columnZ) {
@@ -144,6 +158,31 @@ public final class TerrainColumnCache {
     public long maxWeightBytes() {
         checkOwnerThread();
         return maxWeightBytes;
+    }
+
+    /**
+     * Validates the column weight and inserts it under the dual limits, evicting by access order.
+     * Returns false without caching when the column alone exceeds the byte limit.
+     */
+    private boolean insert(ColumnKey key, TerrainColumn column) {
+        long weight = column.estimatedRetainedBytes();
+        if (weight <= 0L) {
+            throw new IllegalStateException("Terrain column has invalid cache weight: " + weight);
+        }
+        if (weight > maxWeightBytes) {
+            return false;
+        }
+
+        // Evict before addition and compare using subtraction, avoiding overflow even when the
+        // configured byte limit is Long.MAX_VALUE.
+        while (!columns.isEmpty()
+                && (columns.size() >= maxColumns
+                    || currentWeightBytes > maxWeightBytes - weight)) {
+            evictEldest();
+        }
+        columns.put(key, column);
+        currentWeightBytes += weight;
+        return true;
     }
 
     private void evictEldest() {

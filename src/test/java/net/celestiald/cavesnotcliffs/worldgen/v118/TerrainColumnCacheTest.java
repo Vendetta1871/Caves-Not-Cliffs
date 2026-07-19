@@ -372,6 +372,47 @@ public class TerrainColumnCacheTest {
         void run() throws Exception;
     }
 
+    @Test
+    public void offerInsertsWithoutLoaderAndIgnoresDuplicates() {
+        CountingLoader loader = new CountingLoader(false);
+        TerrainColumnCache cache = new TerrainColumnCache(loader, 4, Long.MAX_VALUE);
+        TerrainColumn offered = deterministicColumn(1, 1);
+        cache.offer(1, 1, offered);
+        assertEquals(0, loader.loads(1, 1));
+        assertSame(offered, cache.get(1, 1));
+
+        cache.offer(1, 1, deterministicColumn(1, 1));
+        assertSame(offered, cache.get(1, 1));
+        assertEquals(0, loader.loads(1, 1));
+    }
+
+    @Test
+    public void offerValidatesNullAndCoordinateMismatches() {
+        TerrainColumnCache cache = new TerrainColumnCache(this::deterministicColumn);
+        expectThrows(NullPointerException.class, () -> cache.offer(0, 0, null));
+        TerrainColumn mismatched = deterministicColumn(2, 2);
+        expectThrows(IllegalStateException.class, () -> cache.offer(3, 3, mismatched));
+        assertEquals(0, cache.size());
+    }
+
+    @Test
+    public void offeredColumnsEvictAndAccountExactlyLikeLoadedOnes() {
+        CountingLoader loader = new CountingLoader(false);
+        TerrainColumnCache cache = new TerrainColumnCache(loader, 2, Long.MAX_VALUE);
+        TerrainColumn first = deterministicColumn(-1, 0);
+        cache.offer(-1, 0, first);
+        TerrainColumn second = cache.get(0, -1);
+        assertSame(first, cache.get(-1, 0));
+        assertEquals(2, cache.size());
+        assertEquals(first.estimatedRetainedBytes() + second.estimatedRetainedBytes(),
+            cache.currentWeightBytes());
+
+        cache.get(1, 1);
+        assertFalse(cache.isCached(0, -1));
+        assertTrue(cache.isCached(-1, 0));
+        assertEquals(1, loader.loads(0, -1));
+    }
+
     private final class CountingLoader implements TerrainColumnCache.Loader {
         private final Map<String, Integer> counts = new HashMap<String, Integer>();
         private final boolean denseAtOne;

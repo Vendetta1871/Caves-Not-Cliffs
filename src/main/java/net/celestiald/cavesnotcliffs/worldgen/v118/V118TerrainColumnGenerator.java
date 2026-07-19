@@ -10,7 +10,9 @@ public final class V118TerrainColumnGenerator {
     public static final int LAVA_LEVEL = -54;
     /** System property selecting how many worker threads fill one column's density cells. */
     public static final String THREADS_PROPERTY = "cavesnotcliffs.terrainThreads";
-    private static final int MAX_PARALLELISM = 4;
+    private static final int MAX_PARALLELISM = 8;
+    /** How many anticipated columns may be generating asynchronously at any moment. */
+    private static final int PRESTART_SLOTS = 2;
     private static final int CONFIGURED_PARALLELISM = Math.max(1, Math.min(MAX_PARALLELISM,
         Integer.getInteger(THREADS_PROPERTY,
             Math.max(1, Runtime.getRuntime().availableProcessors() / 2))));
@@ -25,16 +27,15 @@ public final class V118TerrainColumnGenerator {
     private final long seed;
     private final V118NoiseSettings settings;
     private final V118NoiseRouter router;
-    private final DensityFunction preliminarySurfaceDensity;
     private final V118ClimateSampler climateSampler;
     private final V118BiomeManager biomeManager;
     private final OverworldBiomeBuilder biomeTable;
-    private final V118SurfaceSystem surfaceSystem;
     private final boolean applySurfaceRules;
     private final boolean applyCarvers;
     private final TerrainColumnCache cache;
     private final int parallelism;
-    private final MutableDensityContext blockContext = new MutableDensityContext();
+    private final java.util.List<PrestartedColumn> prestarted =
+        new java.util.ArrayList<PrestartedColumn>(PRESTART_SLOTS);
 
     public V118TerrainColumnGenerator(long seed, V118NoiseRouterData.Profile profile) {
         this(seed, profile, true, true);
@@ -65,19 +66,60 @@ public final class V118TerrainColumnGenerator {
         this.parallelism = parallelism;
         settings = V118NoiseSettings.overworld(profile.amplified());
         router = V118NoiseRouterData.create(seed, profile);
-        preliminarySurfaceDensity = V118DensityInterpolator.realize(
-            router.initialDensityWithoutJaggedness(), settings);
         // Built once per generator: the builder's RTree index is expensive to construct and
         // read-only afterwards, so every parallel lane resolves against this shared instance.
         biomeTable = new OverworldBiomeBuilder();
         climateSampler = new V118ClimateSampler(router, settings, biomeTable);
         biomeManager = new V118BiomeManager(climateSampler::resolveQuart, seed);
-        surfaceSystem = new V118SurfaceSystem(seed);
         cache = new TerrainColumnCache(this::generateUncached);
     }
 
     public TerrainColumn column(int columnX, int columnZ) {
+        for (int index = 0; index < prestarted.size(); ++index) {
+            PrestartedColumn slot = prestarted.get(index);
+            if (slot.matches(columnX, columnZ)) {
+                prestarted.remove(index);
+                TerrainColumn column = slot.future.join();
+                offerColumn(column);
+                return column;
+            }
+        }
         return cache.get(columnX, columnZ);
+    }
+
+    /**
+     * Starts asynchronous generation of a column the caller expects to need next, so the pool
+     * works on it while the server thread spends its serial time on population and slicing.
+     * Generation is fully re-entrant: everything mutable lives in per-call state, and the
+     * finished column is handed to the cache through {@link #column}. No-op when the column is
+     * cached or already tracked, when serial execution is configured, or past the slot bound
+     * (the oldest prestart is dropped then; its result is simply never claimed).
+     */
+    public void prestart(int columnX, int columnZ) {
+        if (CELL_POOL == null || parallelism <= 1 || cache.isCached(columnX, columnZ)) {
+            return;
+        }
+        for (PrestartedColumn slot : prestarted) {
+            if (slot.matches(columnX, columnZ)) {
+                return;
+            }
+        }
+        if (prestarted.size() >= PRESTART_SLOTS) {
+            prestarted.remove(0);
+        }
+        prestarted.add(new PrestartedColumn(columnX, columnZ,
+            CELL_POOL.submit(() -> generateUncached(columnX, columnZ))));
+    }
+
+    /**
+     * Hands an asynchronously generated column to the inline cache. The column must come from
+     * this generator's own re-entrant pipeline, so it is interchangeable with a loader result.
+     */
+    public void offerColumn(TerrainColumn column) {
+        if (column == null) {
+            throw new NullPointerException("column");
+        }
+        cache.offer(column.columnX(), column.columnZ(), column);
     }
 
     public TerrainColumnCache cache() {
@@ -94,7 +136,8 @@ public final class V118TerrainColumnGenerator {
         CellFillGroup[] groups = createFillGroups(columnX, columnZ);
 
         V118PreliminarySurface preliminarySurface = V118PreliminarySurface.fromRealizedDensity(
-            settings, preliminarySurfaceDensity);
+            settings, V118DensityInterpolator.realize(router.initialDensityWithoutJaggedness(),
+                settings));
         NoiseBasedAquifer aquifer = new NoiseBasedAquifer(columnX, columnZ,
             settings.minY(), settings.height(), router.barrierNoise(),
             router.fluidLevelFloodednessNoise(), router.fluidLevelSpreadNoise(),
@@ -106,16 +149,16 @@ public final class V118TerrainColumnGenerator {
         int minBlockZ = columnZ * TerrainColumn.WIDTH;
 
         int horizontalCellCount = TerrainColumn.WIDTH / settings.getCellWidth();
-        int quartsPerGroup = TerrainColumn.QUART_WIDTH / groups.length;
+        int quartPairs = TerrainColumn.QUART_WIDTH * TerrainColumn.QUART_WIDTH;
+        int quartPairsPerGroup = quartPairs / groups.length;
         if (groups.length == 1) {
-            fillVirtualBiomes(groups[0], builder, columnX, columnZ, 0,
-                TerrainColumn.QUART_WIDTH);
+            fillVirtualBiomes(groups[0], builder, columnX, columnZ, 0, quartPairs);
             fillCells(groups[0], builder, highestNonAir, minBlockX, minBlockZ,
                 0, horizontalCellCount, 0, horizontalCellCount);
         } else {
             // The caller runs group 0 itself: blocking on join while every worker is busy
             // would leave one hardware thread idle for the whole column.
-            int groupAxisX = groups.length >= 4 ? 2 : groups.length;
+            int groupAxisX = groups.length >= 8 ? 4 : groups.length >= 4 ? 2 : groups.length;
             int groupAxisZ = groups.length / groupAxisX;
             int cellsPerGroupX = horizontalCellCount / groupAxisX;
             int cellsPerGroupZ = horizontalCellCount / groupAxisZ;
@@ -124,14 +167,14 @@ public final class V118TerrainColumnGenerator {
                     .parallel()
                     .forEach(index -> {
                         fillVirtualBiomes(groups[index], builder, columnX, columnZ,
-                            index * quartsPerGroup, (index + 1) * quartsPerGroup);
+                            index * quartPairsPerGroup, (index + 1) * quartPairsPerGroup);
                         fillCells(groups[index], builder, highestNonAir, minBlockX, minBlockZ,
                             (index % groupAxisX) * cellsPerGroupX,
                             (index % groupAxisX + 1) * cellsPerGroupX,
                             (index / groupAxisX) * cellsPerGroupZ,
                             (index / groupAxisX + 1) * cellsPerGroupZ);
                     }));
-            fillVirtualBiomes(groups[0], builder, columnX, columnZ, 0, quartsPerGroup);
+            fillVirtualBiomes(groups[0], builder, columnX, columnZ, 0, quartPairsPerGroup);
             fillCells(groups[0], builder, highestNonAir, minBlockX, minBlockZ,
                 0, cellsPerGroupX, 0, cellsPerGroupZ);
             task.join();
@@ -142,13 +185,24 @@ public final class V118TerrainColumnGenerator {
         // Parallel fillers race the max-material bookkeeping; recompute it from the array.
         builder.recomputeMaxMaterialId();
 
+        // Everything below runs per call: the surface system's rule state, the climate/biome
+        // caches, and the mutable density context are all single-threaded, so concurrent
+        // prestarted columns each get their own instances instead of sharing the fields.
+        V118ClimateSampler callClimateSampler = new V118ClimateSampler(router, settings,
+            biomeTable);
+        V118BiomeManager callBiomeManager = new V118BiomeManager(
+            callClimateSampler::resolveQuart, seed);
+        V118SurfaceSystem callSurfaceSystem = new V118SurfaceSystem(seed);
+        MutableDensityContext callBlockContext = new MutableDensityContext();
+
         MutableSurfaceAccess surfaceAccess = null;
         if (applySurfaceRules || applyCarvers) {
             surfaceAccess = new MutableSurfaceAccess(builder, preliminarySurface, aquifer,
-                highestNonAir, columnX, columnZ, minBlockX, minBlockZ);
+                highestNonAir, columnX, columnZ, minBlockX, minBlockZ, callSurfaceSystem,
+                callBiomeManager, callBlockContext);
         }
         if (applySurfaceRules) {
-            surfaceSystem.buildSurface(surfaceAccess, columnX, columnZ);
+            callSurfaceSystem.buildSurface(surfaceAccess, columnX, columnZ);
         }
         if (applyCarvers) {
             V118OverworldCarvers.carve(seed, columnX, columnZ, surfaceAccess);
@@ -160,7 +214,7 @@ public final class V118TerrainColumnGenerator {
                 int blockX = minBlockX + localX;
                 int surfaceY = highestNonAir[localZ * TerrainColumn.WIDTH + localX];
                 builder.setSurfaceBiomeId(localX, localZ,
-                    biomeManager.getBiome(blockX, surfaceY, blockZ).ordinal());
+                    callBiomeManager.getBiome(blockX, surfaceY, blockZ).ordinal());
             }
         }
         return builder.build();
@@ -168,7 +222,10 @@ public final class V118TerrainColumnGenerator {
 
     /** One cell-fill worker context per parallel lane, or the only context when serial. */
     private CellFillGroup[] createFillGroups(int columnX, int columnZ) {
-        int count = CELL_POOL == null ? 1 : Math.min(parallelism, MAX_PARALLELISM);
+        // Group counts stay divisors of the 4x4 cell grid so bands tile it exactly.
+        int requested = CELL_POOL == null ? 1 : Math.min(parallelism, MAX_PARALLELISM);
+        int count = requested >= 16 ? 16 : requested >= 8 ? 8 : requested >= 4 ? 4
+            : requested >= 2 ? 2 : 1;
         CellFillGroup[] groups = new CellFillGroup[count];
         for (int index = 0; index < count; ++index) {
             groups[index] = new CellFillGroup(columnX, columnZ);
@@ -243,19 +300,19 @@ public final class V118TerrainColumnGenerator {
     }
 
     private void fillVirtualBiomes(CellFillGroup group, TerrainColumn.Builder builder,
-            int columnX, int columnZ, int quartXFrom, int quartXTo) {
+            int columnX, int columnZ, int pairFrom, int pairTo) {
         int minQuartX = columnX * TerrainColumn.QUART_WIDTH;
         int minQuartZ = columnZ * TerrainColumn.QUART_WIDTH;
         // Keep each vertical pair in one 4x8x4 density cell before moving horizontally.
-        for (int localQuartX = quartXFrom; localQuartX < quartXTo; ++localQuartX) {
-            for (int localQuartZ = 0; localQuartZ < TerrainColumn.QUART_WIDTH; ++localQuartZ) {
-                for (int quartY = TerrainColumn.MIN_QUART_Y;
-                        quartY <= TerrainColumn.MAX_QUART_Y; ++quartY) {
-                    V118Biome biome = group.climateSampler.resolveQuart(minQuartX + localQuartX,
-                        quartY, minQuartZ + localQuartZ);
-                    builder.setVirtualBiomeIdAtQuart(localQuartX, quartY, localQuartZ,
-                        biome.ordinal());
-                }
+        for (int pair = pairFrom; pair < pairTo; ++pair) {
+            int localQuartX = pair / TerrainColumn.QUART_WIDTH;
+            int localQuartZ = pair % TerrainColumn.QUART_WIDTH;
+            for (int quartY = TerrainColumn.MIN_QUART_Y;
+                    quartY <= TerrainColumn.MAX_QUART_Y; ++quartY) {
+                V118Biome biome = group.climateSampler.resolveQuart(minQuartX + localQuartX,
+                    quartY, minQuartZ + localQuartZ);
+                builder.setVirtualBiomeIdAtQuart(localQuartX, quartY, localQuartZ,
+                    biome.ordinal());
             }
         }
     }
@@ -314,6 +371,24 @@ public final class V118TerrainColumnGenerator {
         }
     }
 
+    /** One asynchronous column generation submitted through {@link #prestart}. */
+    private static final class PrestartedColumn {
+        private final int columnX;
+        private final int columnZ;
+        private final java.util.concurrent.ForkJoinTask<TerrainColumn> future;
+
+        private PrestartedColumn(int columnX, int columnZ,
+                java.util.concurrent.ForkJoinTask<TerrainColumn> future) {
+            this.columnX = columnX;
+            this.columnZ = columnZ;
+            this.future = future;
+        }
+
+        private boolean matches(int otherX, int otherZ) {
+            return columnX == otherX && columnZ == otherZ;
+        }
+    }
+
     private static final class DaemonThreadFactory implements ForkJoinPool.ForkJoinWorkerThreadFactory {
         private static final AtomicInteger THREAD_COUNTER = new AtomicInteger();
 
@@ -337,11 +412,16 @@ public final class V118TerrainColumnGenerator {
         private final int columnZ;
         private final int minBlockX;
         private final int minBlockZ;
+        private final V118SurfaceSystem surfaceSystem;
+        private final V118BiomeManager biomeManager;
+        private final MutableDensityContext blockContext;
         private boolean lastAquiferShouldScheduleFluidUpdate;
 
         private MutableSurfaceAccess(TerrainColumn.Builder builder,
                 V118PreliminarySurface preliminarySurface, NoiseBasedAquifer aquifer,
-                int[] highestNonAir, int columnX, int columnZ, int minBlockX, int minBlockZ) {
+                int[] highestNonAir, int columnX, int columnZ, int minBlockX, int minBlockZ,
+                V118SurfaceSystem surfaceSystem, V118BiomeManager biomeManager,
+                MutableDensityContext blockContext) {
             this.builder = builder;
             this.preliminarySurface = preliminarySurface;
             this.aquifer = aquifer;
@@ -350,6 +430,9 @@ public final class V118TerrainColumnGenerator {
             this.columnZ = columnZ;
             this.minBlockX = minBlockX;
             this.minBlockZ = minBlockZ;
+            this.surfaceSystem = surfaceSystem;
+            this.biomeManager = biomeManager;
+            this.blockContext = blockContext;
         }
 
         @Override

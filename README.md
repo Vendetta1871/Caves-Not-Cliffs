@@ -103,9 +103,10 @@ Use `/cncbiome` in-game to identify the cave-biome region at your current positi
 
 Java 1.18.2-style terrain is inherently heavier than vanilla 1.12.2 generation. 2.0.0 fills each
 terrain column's density cells and virtual biome quarts on a small worker pool, controlled by
-`-Dcavesnotcliffs.terrainThreads=N` (default: half the available processors, capped at 4; `1`
-restores the fully serial path). Column output is bit-identical either way. First-time spawn
-preparation still takes a couple of minutes on older CPUs, and lowering the view distance helps
+`-Dcavesnotcliffs.terrainThreads=N` (default: half the available processors, capped at 16;
+`1` restores the fully serial path), and pre-starts the likely next column while the server
+thread populates the current one. Column output is bit-identical either way. First-time spawn
+preparation still takes a minute or two on older CPUs, and lowering the view distance helps
 during both spawn preparation and exploration.
 
 ## Known limitations

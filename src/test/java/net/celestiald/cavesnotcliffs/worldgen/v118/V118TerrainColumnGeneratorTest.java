@@ -66,14 +66,38 @@ public class V118TerrainColumnGeneratorTest {
                 EDGE_SEEDS[index], EDGE_PROFILES[index], true, false, 1);
             V118TerrainColumnGenerator parallel = new V118TerrainColumnGenerator(
                 EDGE_SEEDS[index], EDGE_PROFILES[index], true, false, 4);
+            V118TerrainColumnGenerator parallel8 = new V118TerrainColumnGenerator(
+                EDGE_SEEDS[index], EDGE_PROFILES[index], true, false, 8);
             for (int[] coordinate : coordinates) {
                 long expected = digest(serial.column(coordinate[0], coordinate[1]));
                 long actual = digest(parallel.column(coordinate[0], coordinate[1]));
                 assertEquals("seed=" + EDGE_SEEDS[index] + ", profile=" + EDGE_PROFILES[index]
                     + ", column=(" + coordinate[0] + ", " + coordinate[1] + ")",
                     expected, actual);
+                long actual8 = digest(parallel8.column(coordinate[0], coordinate[1]));
+                assertEquals("seed=" + EDGE_SEEDS[index] + ", profile=" + EDGE_PROFILES[index]
+                    + ", column=(" + coordinate[0] + ", " + coordinate[1] + ") (8 lanes)",
+                    expected, actual8);
             }
         }
+    }
+
+    @Test
+    public void prestartedColumnsMatchInlineGeneration() {
+        V118TerrainColumnGenerator generator = new V118TerrainColumnGenerator(123456789L,
+            V118NoiseRouterData.Profile.DEFAULT, true, false, 4);
+        V118TerrainColumnGenerator reference = new V118TerrainColumnGenerator(123456789L,
+            V118NoiseRouterData.Profile.DEFAULT, true, false, 1);
+        generator.column(0, 0);
+        generator.prestart(1, 0);
+        generator.prestart(0, 1);
+        assertEquals(digest(reference.column(1, 0)), digest(generator.column(1, 0)));
+        assertEquals(digest(reference.column(0, 1)), digest(generator.column(0, 1)));
+        // A prestart nobody claims is dropped once the slots fill, without affecting lookups.
+        generator.prestart(-5, -5);
+        generator.prestart(-6, -6);
+        generator.prestart(-7, -7);
+        assertEquals(digest(reference.column(2, 2)), digest(generator.column(2, 2)));
     }
 
     private static long digest(TerrainColumn column) {

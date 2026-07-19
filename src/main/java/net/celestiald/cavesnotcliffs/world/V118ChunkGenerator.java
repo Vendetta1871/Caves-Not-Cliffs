@@ -62,6 +62,9 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
     private ChunkPrimer cachedStructureColumn;
     private int cachedStructureX;
     private int cachedStructureZ;
+    private int lastGeneratedX;
+    private int lastGeneratedZ;
+    private boolean generatedOnce;
 
     V118ChunkGenerator(World world, TerrainProfile terrainProfile,
             IChunkGenerator structureGenerator) {
@@ -152,6 +155,18 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
     @Override
     public Chunk generateChunk(int chunkX, int chunkZ) {
         TerrainColumn terrain = columns.column(chunkX, chunkZ);
+        // Keep the pool busy on the likely next column while this thread runs the serial
+        // slicer and the population pipeline. One slot only: a second concurrent fill would
+        // starve the first of pool workers and both would arrive late. The prediction follows
+        // the recent generation direction, which matches vanilla's row-major chunk scans.
+        int stepX = Integer.signum(chunkX - lastGeneratedX);
+        int stepZ = Integer.signum(chunkZ - lastGeneratedZ);
+        lastGeneratedX = chunkX;
+        lastGeneratedZ = chunkZ;
+        if (generatedOnce && (stepX != 0 || stepZ != 0)) {
+            columns.prestart(chunkX + stepX, chunkZ + stepZ);
+        }
+        generatedOnce = true;
         Chunk chunk = new Chunk(world, chunkX, chunkZ);
         boolean skylight = world.provider.hasSkyLight();
         ChunkPrimer structureColumn = structureColumn(chunkX, chunkZ, terrain);
