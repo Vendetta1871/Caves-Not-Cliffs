@@ -56,4 +56,9 @@
   calcite slab, stair, and wall recipes.
 - Add exhaustive official-oracle, registry, mechanics, migration, asset-graph, dedicated-server
   linkage, reobfuscation, and release-jar verification.
-- Require Forge 14.23.5.2860+, CaveBiomesAPI 1.1.0+, and MixinBootstrap 1.1.0 at runtime.
+- Render placed beehives, bee nests, and campfires with their block models instead of
+  BlockContainer's default invisible render type.
+- Support OptiFine HD_U_E3: hook both branches of its split integrated-server world-loading
+  flow and keep extended-height chunk visibility and the render grid working beyond Y 0..255
+  (requires CaveBiomesAPI 1.1.1).
+- Require Forge 14.23.5.2860+, CaveBiomesAPI 1.1.1+, and MixinBootstrap 1.1.0 at runtime.

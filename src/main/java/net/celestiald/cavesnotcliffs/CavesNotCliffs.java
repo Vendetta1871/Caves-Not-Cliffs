@@ -64,7 +64,7 @@ import net.celestiald.cavebiomes.api.IWorldVerticalBiomeProvider;
 import java.util.function.Supplier;
 
 @Mod(modid = CavesNotCliffs.MODID, version = CavesNotCliffs.VERSION,
-		dependencies = "required-after:forge@[14.23.5.2860,);required-after:cavebiomesapi@[1.1.0,)")
+		dependencies = "required-after:forge@[14.23.5.2860,);required-after:cavebiomesapi@[1.1.1,)")
 public class CavesNotCliffs {
 	public static final String MODID = "cavesnotcliffs";
 	public static final String VERSION = "2.0.0";

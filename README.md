@@ -134,8 +134,11 @@ during both spawn preparation and exploration.
 Caves Not Cliffs 2.0.0 targets Minecraft 1.12.2 and requires:
 
 - [Minecraft Forge 14.23.5.2860 or newer](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.12.2.html)
-- [CaveBiomesAPI 1.1.0 or newer](https://github.com/Vendetta1871/CaveBiomesAPI)
+- [CaveBiomesAPI 1.1.1 or newer](https://github.com/Vendetta1871/CaveBiomesAPI)
 - [MixinBootstrap 1.1.0](https://github.com/LXGaming/MixinBootstrap/releases/tag/v1.1.0)
+
+OptiFine HD_U_E3 is supported, including extended-height rendering; other OptiFine builds are
+untested.
 
 ## Building 2.0.0
 
