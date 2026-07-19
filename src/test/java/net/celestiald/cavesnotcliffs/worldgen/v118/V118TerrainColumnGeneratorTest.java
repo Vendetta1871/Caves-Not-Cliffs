@@ -58,6 +58,24 @@ public class V118TerrainColumnGeneratorTest {
         }
     }
 
+    @Test
+    public void parallelCellFillMatchesSerialGenerationBitForBit() {
+        int[][] coordinates = {{0, 0}, {1, 0}, {-3, 2}, {7, -5}};
+        for (int index = 0; index < EDGE_SEEDS.length; ++index) {
+            V118TerrainColumnGenerator serial = new V118TerrainColumnGenerator(
+                EDGE_SEEDS[index], EDGE_PROFILES[index], true, false, 1);
+            V118TerrainColumnGenerator parallel = new V118TerrainColumnGenerator(
+                EDGE_SEEDS[index], EDGE_PROFILES[index], true, false, 4);
+            for (int[] coordinate : coordinates) {
+                long expected = digest(serial.column(coordinate[0], coordinate[1]));
+                long actual = digest(parallel.column(coordinate[0], coordinate[1]));
+                assertEquals("seed=" + EDGE_SEEDS[index] + ", profile=" + EDGE_PROFILES[index]
+                    + ", column=(" + coordinate[0] + ", " + coordinate[1] + ")",
+                    expected, actual);
+            }
+        }
+    }
+
     private static long digest(TerrainColumn column) {
         long value = 0xCBF29CE484222325L;
         char[] materials = new char[TerrainColumn.BLOCKS_PER_CUBE];

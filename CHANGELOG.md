@@ -2,6 +2,10 @@
 
 ## 2.0.0
 
+- Fill each terrain column's density cells and virtual biome quarts on a configurable worker
+  pool (`cavesnotcliffs.terrainThreads`, default half the available processors, capped at 4),
+  cutting spawn-area preparation by roughly a third on quad-core hosts; column output stays
+  bit-identical to the serial path.
 - Replace the selectable level type with default-on `world.enableForNewOverworlds=true`; evaluate
   it only when first creating an Overworld and preserve existing-world generator contracts.
 - Persist terrain schema, selected base type, generator options, and terrain profile; protect

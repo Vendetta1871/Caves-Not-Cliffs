@@ -99,6 +99,15 @@ and still obeys this config.
 Use `/cncbiome` in-game to identify the cave-biome region at your current position, or
 `/cncbiome <x> <y> <z>` to inspect another coordinate.
 
+## Performance
+
+Java 1.18.2-style terrain is inherently heavier than vanilla 1.12.2 generation. 2.0.0 fills each
+terrain column's density cells and virtual biome quarts on a small worker pool, controlled by
+`-Dcavesnotcliffs.terrainThreads=N` (default: half the available processors, capped at 4; `1`
+restores the fully serial path). Column output is bit-identical either way. First-time spawn
+preparation still takes a couple of minutes on older CPUs, and lowering the view distance helps
+during both spawn preparation and exploration.
+
 ## Known limitations
 
 - Native Java 1.18.2 terrain is supplied for Default, Large Biomes, and Amplified. Flat,

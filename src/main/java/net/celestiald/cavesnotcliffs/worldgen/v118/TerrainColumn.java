@@ -328,6 +328,28 @@ public final class TerrainColumn {
         public TerrainColumn build() {
             return new TerrainColumn(this);
         }
+
+        /** Recomputes the max material id after material writes raced by parallel fillers. */
+        void recomputeMaxMaterialId() {
+            int max = 0;
+            for (char id : materialIds) {
+                if (id > max) {
+                    max = id;
+                }
+            }
+            maxMaterialId = max;
+        }
+
+        /** Merges a per-worker fluid-update bitset produced by a parallel filler. */
+        void orScheduledFluidUpdates(long[] bits) {
+            if (bits.length != scheduledFluidUpdates.length) {
+                throw new IllegalArgumentException("Fluid-update bitset length " + bits.length
+                    + " != " + scheduledFluidUpdates.length);
+            }
+            for (int index = 0; index < bits.length; ++index) {
+                scheduledFluidUpdates[index] |= bits[index];
+            }
+        }
     }
 
     private abstract static class MaterialStorage {
