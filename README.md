@@ -4,8 +4,6 @@ Caves Not Cliffs 2.0.0 backports Java 1.18.2 Overworld terrain and its represent
 content to Minecraft 1.12.2. New Overworlds use a default-on, finite CaveBiomesAPI-backed schema
 from Y=-64 through Y=319, while existing worlds keep their saved generator contract.
 
-![Caves not Cliffs](https://github.com/user-attachments/assets/b3210380-8264-4887-99dc-03522af9a10f)
-
 ***
 
 ## Key features
@@ -23,9 +21,7 @@ from Y=-64 through Y=319, while existing worlds keep their saved generator contr
 
 ### Caves, mountains, and native features
 
-![Lush cave](https://github.com/user-attachments/assets/1c13ec5a-a13a-42a5-b899-7979f2e197d5)
-
-![Dripstone cave](https://github.com/user-attachments/assets/8cd7017a-ca13-473c-bebf-62a6c4bf0a85)
+![Biomes](https://github.com/user-attachments/assets/c15db242-fe78-4cb1-abbc-a748d9996448)
 
 - Lush and dripstone cave biomes with Java 1.18.2 feature ordering
 - Meadow, Grove, Snowy Slopes, Jagged Peaks, Frozen Peaks, and Stony Peaks
@@ -36,7 +32,7 @@ from Y=-64 through Y=319, while existing worlds keep their saved generator contr
 
 ### Faithful block and crafting families
 
-![Amethyst geode](https://github.com/user-attachments/assets/8cd2237e-d1c0-4ca0-be9d-f6f156b3baff)
+![Blocks](https://github.com/user-attachments/assets/d22c54a2-9b83-444c-be77-25d61a0afae7)
 
 - The complete deepslate family, all eight deepslate ores, raw copper/iron/gold and their blocks,
   smelting, crafting, and stonecutting
@@ -49,7 +45,7 @@ from Y=-64 through Y=319, while existing worlds keep their saved generator contr
 
 ### Living caves and dripstone mechanics
 
-![Filling cauldron by different liquids](https://github.com/user-attachments/assets/267a7270-f19b-4f32-b720-94ae56d7c91d)
+![Mechanics](https://github.com/user-attachments/assets/9d462641-c2f0-4bcc-8035-f28cf1483d46)
 
 - Glow berries as the edible cave-vine planting item, with no invented seed item
 - Azaleas and flowering azaleas, both leaf types, rooted dirt, hanging roots, moss spreading,
@@ -59,6 +55,8 @@ from Y=-64 through Y=319, while existing worlds keep their saved generator contr
   cauldron behavior
 
 ### Axolotls, bees, and honey
+
+![Axobee](https://github.com/user-attachments/assets/9f1d34f3-7fe8-4fa7-9ff6-1b8fc7611511)
 
 - Five axolotl variants, breeding and blue mutation odds, bucket/NBT round trips, aging,
   dehydration, play-dead behavior, combat support, and lush-cave spawning
