@@ -27,6 +27,10 @@ minecraft {
     version = '1.12.2-14.23.5.2847'
     runDir = 'run'
     mappings = 'snapshot_20171003'
+    // Keep @Mod(version) in sync with project.version: FML resolves mod
+    // dependencies against the annotation constant, not mcmod.info.
+    replaceIn 'net/celestiald/cavesnotcliffs/CavesNotCliffs.java'
+    replace '@VERSION@', project.version
 }
 
 repositories {
