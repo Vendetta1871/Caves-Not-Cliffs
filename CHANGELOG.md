@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.1
+
+- Accept Cleanroom's recompiled `BlockMushroom.canBlockStay` shape (three integer
+  returns, with the podzol branch folded into a ternary) alongside Mojang's
+  four-return bytecode in the mushroom support transformer, fixing an instant
+  crash on Cleanroom 0.6.x.
+
 ## 2.0.0
 
 - Fill each terrain column's density cells and virtual biome quarts on a configurable worker

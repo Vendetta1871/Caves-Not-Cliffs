@@ -63,14 +63,18 @@ public final class MushroomSupportTransformer implements IClassTransformer {
     }
 
     private static void verifyOriginalShape(MethodNode survival) {
+        // Mojang's javac emits four IRETURNs (mycelium, podzol, light check,
+        // out-of-range). Cleanroom rebuilds Minecraft from decompiled sources
+        // where the podzol branch and the light check share one ternary return,
+        // so its bytecode has three. Both shapes take the same prepended guard.
         int returns = 0;
         for (AbstractInsnNode instruction : survival.instructions.toArray()) {
             if (instruction.getOpcode() == Opcodes.IRETURN) {
                 returns++;
             }
         }
-        if (returns != 4) {
-            throw failure("four integer returns from " + survival.name
+        if (returns < 3 || returns > 4) {
+            throw failure("three or four integer returns from " + survival.name
                     + METHOD_DESC + " (found " + returns + ")");
         }
     }
