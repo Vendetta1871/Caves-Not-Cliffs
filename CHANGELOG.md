@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- Store lava and powder snow cauldron contents on the vanilla `minecraft:cauldron` block itself
+  via a new `CauldronMixin` (metadata 7 = lava, 8-10 = powder snow layers) instead of replacing
+  placed cauldrons with hidden blocks, so third-party identity checks — e.g. Immersive
+  Engineering's Arc Furnace multiblock — work again. Hidden `lava_cauldron` and
+  `powder_snow_cauldron` blocks from 2.0.x worlds are migrated back to equivalent vanilla states
+  on chunk load.
+- Require the MixinBootstrap mod at runtime (already pulled in by CaveBiomesAPI).
+- Fix stalactite cauldron fills burst-firing every stage at once under elevated
+  `randomTickSpeed`: pending cauldron fills are now deduplicated per position, matching
+  Java 1.18 scheduled-tick semantics, so water layers rise one drip at a time.
+- Show the drip that is travelling from a stalactite tip into a cauldron below: a
+  server-side drip particle detaches from the tip when the fill is scheduled and lands
+  roughly when the layer rises.
+
 ## 2.0.1
 
 - Accept Cleanroom's recompiled `BlockMushroom.canBlockStay` shape (three integer

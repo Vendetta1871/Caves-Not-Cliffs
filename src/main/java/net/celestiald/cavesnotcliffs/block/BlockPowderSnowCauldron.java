@@ -29,7 +29,14 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 
 import java.util.Random;
 
-/** Hidden 1-3 level state companion for powder snow stored in a vanilla cauldron item. */
+/**
+ * Legacy hidden 1-3 level state companion for powder snow stored in a vanilla cauldron item.
+ *
+ * @deprecated superseded by {@code CauldronMixin}, which stores powder snow layers on the
+ *     vanilla cauldron block. Remains registered so existing worlds load; every placed instance
+ *     is migrated back to an equivalent vanilla state on chunk load (see {@code
+ *     LavaCauldronHandler}).
+ */
 @ElementsCavesNotCliffs.ModElement.Tag
 public final class BlockPowderSnowCauldron extends ElementsCavesNotCliffs.ModElement {
     @GameRegistry.ObjectHolder("cavesnotcliffs:powder_snow_cauldron")

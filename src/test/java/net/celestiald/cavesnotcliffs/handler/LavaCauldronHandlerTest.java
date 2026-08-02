@@ -1,5 +1,7 @@
 package net.celestiald.cavesnotcliffs.handler;
 
+import net.celestiald.cavesnotcliffs.block.BlockLavaCauldron;
+import net.celestiald.cavesnotcliffs.block.BlockPowderSnowCauldron;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.minecraft.block.BlockCauldron;
 import net.minecraft.block.state.IBlockState;
@@ -41,21 +43,29 @@ public class LavaCauldronHandlerTest {
     }
 
     @Test
-    public void volumeScanVisitsEveryCellButOnlyConvertsExactVanillaCauldrons() {
+    public void versionOneWorldsAreRescannedForTheReverseMigration() {
+        NBTTagCompound data = new NBTTagCompound();
+        data.setInteger(LavaCauldronHandler.BRIDGE_VERSION_KEY, 1);
+        assertFalse("worlds bridged to hidden storage must be migrated back to vanilla",
+                LavaCauldronHandler.hasCurrentVersion(data));
+    }
+
+    @Test
+    public void volumeScanVisitsEveryCellButOnlyConvertsLegacyHiddenCauldrons() {
         final int minX = -17;
         final int minY = -64;
         final int minZ = 31;
         final Map<String, IBlockState> states = new HashMap<>();
-        states.put(key(minX, minY, minZ), Blocks.CAULDRON.getDefaultState()
-                .withProperty(BlockCauldron.LEVEL, 0));
+        states.put(key(minX, minY, minZ),
+                new BlockLavaCauldron.BlockCustom().getDefaultState());
         states.put(key(minX + 1, minY + 1, minZ + 1),
-                Blocks.CAULDRON.getDefaultState()
-                        .withProperty(BlockCauldron.LEVEL, 3));
-        states.put(key(minX + 1, minY, minZ), new BlockCauldron().getDefaultState());
+                new BlockPowderSnowCauldron.BlockCustom().getDefaultState());
+        states.put(key(minX + 1, minY, minZ), Blocks.CAULDRON.getDefaultState());
+        states.put(key(minX, minY + 1, minZ), new BlockCauldron().getDefaultState());
         final Set<String> reads = new HashSet<>();
         final Set<String> conversions = new HashSet<>();
 
-        int converted = LavaCauldronHandler.bridgeVolume(
+        int converted = LavaCauldronHandler.migrateVolume(
                 minX, minY, minZ, 2, 2, 2, new LavaCauldronHandler.Volume() {
                     @Override
                     public IBlockState stateAt(int x, int y, int z) {
@@ -65,7 +75,7 @@ public class LavaCauldronHandlerTest {
                     }
 
                     @Override
-                    public boolean bridgeAt(int x, int y, int z) {
+                    public boolean migrateAt(int x, int y, int z) {
                         conversions.add(key(x, y, z));
                         return true;
                     }
@@ -76,28 +86,54 @@ public class LavaCauldronHandlerTest {
         assertEquals(2, conversions.size());
         assertTrue(conversions.contains(key(minX, minY, minZ)));
         assertTrue(conversions.contains(key(minX + 1, minY + 1, minZ + 1)));
-        assertFalse("a third-party BlockCauldron subclass is not vanilla",
+        assertFalse("the vanilla cauldron is the migration target, not a source",
                 conversions.contains(key(minX + 1, minY, minZ)));
+        assertFalse("a third-party BlockCauldron subclass is never touched",
+                conversions.contains(key(minX, minY + 1, minZ)));
+    }
+
+    @Test
+    public void hiddenStorageStatesMapToTheEquivalentVanillaMetadata() {
+        BlockLavaCauldron.BlockCustom primary = new BlockLavaCauldron.BlockCustom();
+        assertEquals(0, LavaCauldronHandler.legacyHiddenMeta(primary.getDefaultState()));
+        for (int level = 1; level <= 3; level++) {
+            assertEquals(level, LavaCauldronHandler.legacyHiddenMeta(
+                    primary.getDefaultState().withProperty(BlockCauldron.LEVEL, level)));
+        }
+        assertEquals(7, LavaCauldronHandler.legacyHiddenMeta(primary.getDefaultState()
+                .withProperty(BlockLavaCauldron.BlockCustom.IS_LAVA, true)));
+
+        BlockPowderSnowCauldron.BlockCustom powder = new BlockPowderSnowCauldron.BlockCustom();
+        for (int level = 1; level <= 3; level++) {
+            assertEquals(8 + level - 1, LavaCauldronHandler.legacyHiddenMeta(
+                    powder.getDefaultState().withProperty(BlockCauldron.LEVEL, level)));
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void nonHiddenStatesHaveNoLegacyMetadata() {
+        LavaCauldronHandler.legacyHiddenMeta(Blocks.CAULDRON.getDefaultState());
     }
 
     @Test
     public void extendedColumnScanIncludesBottomAndTopBuildHeights() {
         final Set<Integer> reads = new HashSet<>();
         final Set<Integer> conversions = new HashSet<>();
+        final IBlockState hidden = new BlockLavaCauldron.BlockCustom().getDefaultState();
 
-        int converted = LavaCauldronHandler.bridgeVolume(
+        int converted = LavaCauldronHandler.migrateVolume(
                 0, TerrainColumn.MIN_Y, 0, 1, TerrainColumn.HEIGHT, 1,
                 new LavaCauldronHandler.Volume() {
                     @Override
                     public IBlockState stateAt(int x, int y, int z) {
                         reads.add(y);
                         return y == TerrainColumn.MIN_Y || y == TerrainColumn.MAX_Y
-                                ? Blocks.CAULDRON.getDefaultState()
+                                ? hidden
                                 : Blocks.AIR.getDefaultState();
                     }
 
                     @Override
-                    public boolean bridgeAt(int x, int y, int z) {
+                    public boolean migrateAt(int x, int y, int z) {
                         conversions.add(y);
                         return true;
                     }
@@ -114,15 +150,16 @@ public class LavaCauldronHandlerTest {
 
     @Test
     public void failedWorldMutationIsNotCountedAsAConversion() {
-        int converted = LavaCauldronHandler.bridgeVolume(0, 0, 0, 1, 1, 1,
+        final IBlockState hidden = new BlockLavaCauldron.BlockCustom().getDefaultState();
+        int converted = LavaCauldronHandler.migrateVolume(0, 0, 0, 1, 1, 1,
                 new LavaCauldronHandler.Volume() {
                     @Override
                     public IBlockState stateAt(int x, int y, int z) {
-                        return Blocks.CAULDRON.getDefaultState();
+                        return hidden;
                     }
 
                     @Override
-                    public boolean bridgeAt(int x, int y, int z) {
+                    public boolean migrateAt(int x, int y, int z) {
                         return false;
                     }
                 });
@@ -131,7 +168,7 @@ public class LavaCauldronHandlerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void rejectsNegativeScanDimensions() {
-        LavaCauldronHandler.bridgeVolume(0, 0, 0, 1, -1, 1,
+        LavaCauldronHandler.migrateVolume(0, 0, 0, 1, -1, 1,
                 new LavaCauldronHandler.Volume() {
                     @Override
                     public IBlockState stateAt(int x, int y, int z) {
@@ -139,7 +176,7 @@ public class LavaCauldronHandlerTest {
                     }
 
                     @Override
-                    public boolean bridgeAt(int x, int y, int z) {
+                    public boolean migrateAt(int x, int y, int z) {
                         return false;
                     }
                 });

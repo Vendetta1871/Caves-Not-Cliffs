@@ -45,8 +45,12 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 import java.util.Random;
 
 /**
- * Hidden 1.12 storage for Java 1.18.2 empty, layered-water, and full-lava cauldrons.
- * The vanilla cauldron remains the only obtainable item.
+ * Legacy hidden 1.12 storage for Java 1.18.2 empty, layered-water, and full-lava cauldrons.
+ *
+ * @deprecated superseded by {@code CauldronMixin}, which stores the same contents on the vanilla
+ *     cauldron block. Remains registered so existing worlds load; every placed instance is
+ *     migrated back to an equivalent vanilla state on chunk load (see {@code
+ *     LavaCauldronHandler}).
  */
 @ElementsCavesNotCliffs.ModElement.Tag
 public final class BlockLavaCauldron extends ElementsCavesNotCliffs.ModElement {

@@ -24,14 +24,25 @@ public class CauldronMutationContractTest {
     }
 
     @Test
-    public void pointedDripstoneLazyConversionUsesTheSameObserverPath() throws IOException {
+    public void pointedDripstoneAcceptsTheVanillaCauldronWithoutConversion() throws IOException {
         String pointed = source("block/BlockPointedDripstone.java");
         int start = pointed.indexOf("private static BlockPos findFillableCauldronBelowTip");
         int end = pointed.indexOf("private static boolean canDripThrough", start);
         assertTrue(start >= 0 && end > start);
-        String lazyConversion = pointed.substring(start, end);
-        assertTrue(lazyConversion.contains("CauldronStateBridge.bridgeVanillaAt"));
-        assertFalse(lazyConversion.contains("setBlockState"));
+        String lookup = pointed.substring(start, end);
+        assertTrue(lookup.contains("Blocks.CAULDRON"));
+        assertTrue(lookup.contains("VanillaCauldronMeta"));
+        assertFalse("the vanilla cauldron identity must never be replaced",
+                lookup.contains("CauldronStateBridge"));
+        assertFalse(lookup.contains("setBlockState"));
+    }
+
+    @Test
+    public void vanillaCauldronMixinMutatesWithFlagThreeAndComparatorRefresh()
+            throws IOException {
+        String mixin = source("mixin/CauldronMixin.java");
+        assertTrue(mixin.contains("world.setBlockState(pos, cncBlockState(contents), 3)"));
+        assertTrue(mixin.contains("world.updateComparatorOutputLevel(pos,"));
     }
 
     @Test

@@ -1,24 +1,21 @@
 package net.celestiald.cavesnotcliffs.handler;
 
 import net.celestiald.cavesnotcliffs.block.BlockLavaCauldron;
+import net.celestiald.cavesnotcliffs.block.BlockPowderSnowCauldron;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics;
 import net.celestiald.cavesnotcliffs.dripstone.CauldronStateBridge;
+import net.celestiald.cavesnotcliffs.dripstone.VanillaCauldronMeta;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockCauldron;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.event.terraingen.PopulateChunkEvent;
-import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.ChunkDataEvent;
 import net.minecraftforge.event.world.ChunkEvent;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 import java.util.Collections;
@@ -26,14 +23,18 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 /**
- * One-time and lazy bridge from the exact vanilla 1.12 cauldron identity to the hidden 1.18.2
- * content identities. Vanilla levels are preserved; third-party cauldron blocks are untouched.
+ * One-time migration of the legacy hidden v2 cauldron storage blocks back to the vanilla
+ * cauldron. Since the 1.18.2 contents now live on {@code minecraft:cauldron} itself (see
+ * {@code CauldronMixin}), every hidden {@code lava_cauldron}/{@code powder_snow_cauldron} block
+ * found in an existing world is converted to the equivalent vanilla state; vanilla cauldrons
+ * and third-party blocks are never touched.
  */
 public final class LavaCauldronHandler {
     public static final LavaCauldronHandler INSTANCE = new LavaCauldronHandler();
 
     static final String BRIDGE_VERSION_KEY = "CavesNotCliffsCauldronBridge";
-    static final int BRIDGE_VERSION = 1;
+    /** Version 2: hidden storage blocks are migrated back to vanilla (was: bridged to hidden). */
+    static final int BRIDGE_VERSION = 2;
 
     private static final Set<Chunk> SKIP_SCAN =
             Collections.newSetFromMap(new WeakHashMap<Chunk, Boolean>());
@@ -46,61 +47,7 @@ public final class LavaCauldronHandler {
     interface Volume {
         IBlockState stateAt(int x, int y, int z);
 
-        boolean bridgeAt(int x, int y, int z);
-    }
-
-    @SubscribeEvent
-    public void onCauldronPlaced(BlockEvent.PlaceEvent event) {
-        World world = event.getWorld();
-        if (world.isRemote || event.getPlacedBlock().getBlock() != Blocks.CAULDRON
-                || BlockLavaCauldron.block == null) {
-            return;
-        }
-        CauldronStateBridge.bridgeVanillaAt(world, event.getPos());
-    }
-
-    /**
-     * Lazy fallback for cauldrons introduced after a one-time chunk scan. Running at LOWEST lets
-     * protection handlers deny the interaction before this bridge mutates the stored identity.
-     */
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void onRightClickCauldron(PlayerInteractEvent.RightClickBlock event) {
-        if (event.getUseBlock()
-                == net.minecraftforge.fml.common.eventhandler.Event.Result.DENY) {
-            return;
-        }
-        World world = event.getWorld();
-        BlockPos pos = event.getPos();
-        IBlockState vanilla = world.getBlockState(pos);
-        EntityPlayer player = event.getEntityPlayer();
-        if (!CauldronStateBridge.isVanillaCauldron(vanilla)
-                || BlockLavaCauldron.block == null
-                || !world.isRemote && !world.isBlockModifiable(player, pos)) {
-            return;
-        }
-
-        IBlockState bridged = CauldronStateBridge.bridgeVanillaState(
-                vanilla, BlockLavaCauldron.block);
-        if (!world.isRemote) {
-            CauldronStateBridge.setState(world, pos, bridged);
-            bridged = world.getBlockState(pos);
-        }
-        if (!(bridged.getBlock() instanceof BlockLavaCauldron.BlockCustom)) {
-            return;
-        }
-
-        Vec3d hit = event.getHitVec();
-        float hitX = hit == null ? 0.5F : (float) (hit.x - pos.getX());
-        float hitY = hit == null ? 0.5F : (float) (hit.y - pos.getY());
-        float hitZ = hit == null ? 0.5F : (float) (hit.z - pos.getZ());
-        EnumFacing face = event.getFace() == null ? EnumFacing.UP : event.getFace();
-        boolean handled = ((BlockLavaCauldron.BlockCustom) bridged.getBlock())
-                .onBlockActivated(world, pos, bridged, player, event.getHand(), face,
-                        hitX, hitY, hitZ);
-        if (handled) {
-            event.setCancellationResult(EnumActionResult.SUCCESS);
-            event.setCanceled(true);
-        }
+        boolean migrateAt(int x, int y, int z);
     }
 
     @SubscribeEvent
@@ -120,7 +67,7 @@ public final class LavaCauldronHandler {
             rememberCompleted(event.getChunk());
             return;
         }
-        bridgeChunk(world, event.getChunk());
+        migrateChunk(world, event.getChunk());
     }
 
     @SubscribeEvent
@@ -130,20 +77,7 @@ public final class LavaCauldronHandler {
         }
     }
 
-    /** Catches vanilla structure cauldrons added after a newly generated chunk's load event. */
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void onChunkPopulated(PopulateChunkEvent.Post event) {
-        World world = event.getWorld();
-        if (!world.isRemote) {
-            bridgeChunk(world,
-                    world.getChunkFromChunkCoords(event.getChunkX(), event.getChunkZ()));
-        }
-    }
-
-    private static void bridgeChunk(final World world, final Chunk chunk) {
-        if (BlockLavaCauldron.block == null) {
-            return;
-        }
+    private static void migrateChunk(final World world, final Chunk chunk) {
         int minX = chunk.x << 4;
         int minZ = chunk.z << 4;
         ExtendedBlockStorage[] sections = chunk.getBlockStorageArray();
@@ -152,16 +86,15 @@ public final class LavaCauldronHandler {
                 continue;
             }
             final int minY = section.getYLocation();
-            bridgeVolume(minX, minY, minZ, 16, 16, 16, new Volume() {
+            migrateVolume(minX, minY, minZ, 16, 16, 16, new Volume() {
                 @Override
                 public IBlockState stateAt(int x, int y, int z) {
                     return section.get(x & 15, y & 15, z & 15);
                 }
 
                 @Override
-                public boolean bridgeAt(int x, int y, int z) {
-                    return CauldronStateBridge.bridgeVanillaAt(
-                            world, new BlockPos(x, y, z));
+                public boolean migrateAt(int x, int y, int z) {
+                    return migrateVanillaAt(world, new BlockPos(x, y, z));
                 }
             });
         }
@@ -169,23 +102,57 @@ public final class LavaCauldronHandler {
         chunk.markDirty();
     }
 
-    static int bridgeVolume(int minX, int minY, int minZ,
+    static int migrateVolume(int minX, int minY, int minZ,
             int sizeX, int sizeY, int sizeZ, Volume volume) {
         if (sizeX < 0 || sizeY < 0 || sizeZ < 0 || volume == null) {
-            throw new IllegalArgumentException("Cauldron bridge volume is invalid");
+            throw new IllegalArgumentException("Cauldron migration volume is invalid");
         }
         int converted = 0;
         for (int y = minY; y < minY + sizeY; ++y) {
             for (int z = minZ; z < minZ + sizeZ; ++z) {
                 for (int x = minX; x < minX + sizeX; ++x) {
-                    if (CauldronStateBridge.isVanillaCauldron(volume.stateAt(x, y, z))
-                            && volume.bridgeAt(x, y, z)) {
+                    if (isLegacyHiddenCauldron(volume.stateAt(x, y, z))
+                            && volume.migrateAt(x, y, z)) {
                         converted++;
                     }
                 }
             }
         }
         return converted;
+    }
+
+    /** The hidden v2 storage identities; vanilla and modded cauldrons stay untouched. */
+    static boolean isLegacyHiddenCauldron(IBlockState state) {
+        if (state == null) {
+            return false;
+        }
+        Block block = state.getBlock();
+        return block instanceof BlockLavaCauldron.BlockCustom
+                || block instanceof BlockPowderSnowCauldron.BlockCustom;
+    }
+
+    /** Vanilla metadata holding the same contents as the given hidden storage state. */
+    static int legacyHiddenMeta(IBlockState state) {
+        Block block = state.getBlock();
+        if (block instanceof BlockLavaCauldron.BlockCustom) {
+            return VanillaCauldronMeta.toMeta(
+                    ((BlockLavaCauldron.BlockCustom) block).mechanicsState(state));
+        }
+        if (block instanceof BlockPowderSnowCauldron.BlockCustom) {
+            int level = Math.max(1, Math.min(CauldronMechanics.MAX_LEVEL,
+                    state.getValue(BlockCauldron.LEVEL)));
+            return VanillaCauldronMeta.toMeta(CauldronMechanics.powderSnow(level));
+        }
+        throw new IllegalArgumentException("Not a legacy hidden cauldron: " + state);
+    }
+
+    static boolean migrateVanillaAt(World world, BlockPos pos) {
+        IBlockState current = world.getBlockState(pos);
+        if (!isLegacyHiddenCauldron(current)) {
+            return false;
+        }
+        return CauldronStateBridge.setState(world, pos,
+                Blocks.CAULDRON.getStateFromMeta(legacyHiddenMeta(current)));
     }
 
     static boolean hasCurrentVersion(NBTTagCompound data) {

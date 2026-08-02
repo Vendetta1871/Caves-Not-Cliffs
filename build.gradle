@@ -1,14 +1,17 @@
 buildscript {
     repositories {
         maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://repo.spongepowered.org/maven' }
         mavenCentral()
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
     }
 }
 
 apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'org.spongepowered.mixin'
 
 version = '2.0.1'
 group = 'net.celestiald'
@@ -27,6 +30,9 @@ minecraft {
     version = '1.12.2-14.23.5.2847'
     runDir = 'run'
     mappings = 'snapshot_20171003'
+    // Dev runs must load the coremod (ASM transformers + Mixin bootstrap) the same way the
+    // shipped jar does via its FMLCorePlugin manifest attribute.
+    coreMod = 'net.celestiald.cavesnotcliffs.core.CavesNotCliffsCorePlugin'
     // Keep @Mod(version) in sync with project.version: FML resolves mod
     // dependencies against the annotation constant, not mcmod.info.
     replaceIn 'net/celestiald/cavesnotcliffs/CavesNotCliffs.java'
@@ -35,6 +41,7 @@ minecraft {
 
 repositories {
     maven { url = 'https://jitpack.io' }
+    maven { url = 'https://repo.spongepowered.org/maven' }
     mavenCentral()
 }
 
@@ -46,7 +53,17 @@ dependencies {
         transitive = false
     }
 
+    // Compiled against, and present in the dev runtime, but deliberately NOT bundled into the jar.
+    // At runtime in a real instance, Mixin is provided by the MixinBootstrap mod (already required
+    // transitively via CaveBiomesAPI). Bundling Mixin here too would mean two copies of the library
+    // fighting over the same packages.
+    compile('org.spongepowered:mixin:0.7.11-SNAPSHOT') { transitive = false }
+
     testCompile 'junit:junit:4.13.2'
+}
+
+mixin {
+    add sourceSets.main, 'mixins.cavesnotcliffs.refmap.json'
 }
 
 jar {
@@ -55,7 +72,10 @@ jar {
             'Implementation-Title': 'Caves Not Cliffs',
             'Implementation-Version': project.version,
             'FMLCorePlugin': 'net.celestiald.cavesnotcliffs.core.CavesNotCliffsCorePlugin',
-            'FMLCorePluginContainsFMLMod': 'true'
+            'FMLCorePluginContainsFMLMod': 'true',
+            // Without this a shipped JAR loads purely as a coremod: the @Mod and the mod's
+            // resource pack (incl. the overridden minecraft:cauldron blockstate) would not load.
+            'ForceLoadAsMod': 'true'
         )
     }
 }
@@ -162,6 +182,21 @@ task verifyReleaseJar(dependsOn: reobfJar) {
             }
             if (zip.getEntry('net/celestiald/cavesnotcliffs/core/SchemaOnePopulationTransformer.class') == null) {
                 throw new GradleException('Production jar is missing the schema-one population transformer')
+            }
+            if (zip.getEntry('mixins.cavesnotcliffs.json') == null) {
+                throw new GradleException('Production jar is missing the mixin configuration')
+            }
+            if (zip.getEntry('mixins.cavesnotcliffs.refmap.json') == null) {
+                throw new GradleException('Production jar is missing the mixin refmap (reobf did not remap the mixin)')
+            }
+            if (zip.getEntry('net/celestiald/cavesnotcliffs/mixin/CauldronMixin.class') == null) {
+                throw new GradleException('Production jar is missing the cauldron mixin')
+            }
+            if (zip.getEntry('assets/minecraft/blockstates/cauldron.json') == null) {
+                throw new GradleException('Production jar is missing the vanilla cauldron blockstate override')
+            }
+            if (manifest.mainAttributes.getValue('ForceLoadAsMod') != 'true') {
+                throw new GradleException('Production manifest does not force the coremod jar to also load as a mod')
             }
 
             def metadata = new groovy.json.JsonSlurper().parseText(readText('mcmod.info'))

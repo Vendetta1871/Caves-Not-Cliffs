@@ -89,6 +89,14 @@ public class CavesNotCliffs {
 			};
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
+		// The cauldron content states are implemented as a Mixin on the vanilla BlockCauldron,
+		// provided at runtime by the MixinBootstrap mod. If the coremod couldn't boot Mixin,
+		// stop here with a clear message rather than letting the game run with a half-applied,
+		// broken cauldron.
+		if (Boolean.getBoolean("cavesnotcliffs.mixinMissing")) {
+			throw new RuntimeException("Caves Not Cliffs requires the MixinBootstrap mod. "
+					+ "Download it from https://modrinth.com/mod/mixinbootstrap and put it in your mods folder.");
+		}
 		DungeonChestContent.registerTileEntity();
 		// Creating the hidden alias registers it before level.dat or server.properties is parsed.
 		if (WORLD_TYPE == null) {

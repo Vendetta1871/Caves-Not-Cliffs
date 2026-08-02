@@ -9,6 +9,7 @@ import java.security.MessageDigest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class DripstoneAssetsTest {
     private static final String ROOT = "assets/cavesnotcliffs/";
@@ -73,6 +74,31 @@ public class DripstoneAssetsTest {
         assertEquals("minecraft:blocks/lava_still",
                 model.getAsJsonObject("textures").get("water").getAsString());
         assertEquals(1, model.getAsJsonObject("textures").size());
+    }
+
+    @Test
+    public void vanillaCauldronOverrideCoversEveryContentStateWithExistingModels()
+            throws Exception {
+        JsonObject variants = json("assets/minecraft/blockstates/cauldron.json")
+                .getAsJsonObject("variants");
+        assertEquals("LEVEL 0-3 x is_lava x is_powder_snow", 16, variants.size());
+        for (String isLava : new String[]{"false", "true"}) {
+            for (String isPowder : new String[]{"false", "true"}) {
+                for (int level = 0; level <= 3; level++) {
+                    String key = "is_lava=" + isLava + ",is_powder_snow=" + isPowder
+                            + ",level=" + level;
+                    assertNotNull("missing variant " + key, variants.get(key));
+                    String model = variants.getAsJsonObject(key).get("model").getAsString();
+                    if (model.startsWith("cavesnotcliffs:")) {
+                        assertNotNull(model, resource(ROOT + "models/block/"
+                                + model.substring("cavesnotcliffs:".length()) + ".json"));
+                    } else {
+                        assertTrue(model, model.matches(
+                                "minecraft:cauldron_(empty|level1|level2|level3)"));
+                    }
+                }
+            }
+        }
     }
 
     private static JsonObject json(String path) throws Exception {

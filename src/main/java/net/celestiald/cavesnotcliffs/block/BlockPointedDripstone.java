@@ -3,8 +3,9 @@ package net.celestiald.cavesnotcliffs.block;
 import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
 import net.celestiald.cavesnotcliffs.content.DripstoneSoundEvents;
 import net.celestiald.cavesnotcliffs.client.ParticleDripstone;
+import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics;
 import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.DripFluid;
-import net.celestiald.cavesnotcliffs.dripstone.CauldronStateBridge;
+import net.celestiald.cavesnotcliffs.dripstone.VanillaCauldronMeta;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Neighbor;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics.Thickness;
@@ -29,6 +30,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -37,6 +39,7 @@ import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraft.world.Explosion;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -295,6 +298,10 @@ public final class BlockPointedDripstone extends Block {
 
     @Override
     public Vec3d getOffset(IBlockState state, IBlockAccess world, BlockPos pos) {
+        return xzOffset(pos);
+    }
+
+    private static Vec3d xzOffset(BlockPos pos) {
         long seed = MathHelper.getCoordinateRandom(pos.getX(), 0, pos.getZ());
         double x = MathHelper.clamp(((double) ((float) (seed & 15L) / 15.0F) - 0.5D)
                 * 0.5D, -0.125D, 0.125D);
@@ -512,8 +519,28 @@ public final class BlockPointedDripstone extends Block {
             return;
         }
         IBlockState cauldronState = world.getBlockState(cauldron);
+        // 1.18 dedups pending block ticks per position; 1.12 does not, so repeated schedules
+        // would burst-fire every fill stage at once once the first delay elapses.
+        if (world.isUpdateScheduled(cauldron, cauldronState.getBlock())) {
+            return;
+        }
+        // Show the drip that is on its way: it detaches from the tip now and lands roughly
+        // when the scheduled fill applies cauldronDelay ticks later.
+        spawnFallingDrip(world, tip, fluid);
         world.scheduleUpdate(cauldron, cauldronState.getBlock(),
                 PointedDripstoneMechanics.cauldronDelay(tip.getY(), cauldron.getY()));
+    }
+
+    private static void spawnFallingDrip(World world, BlockPos tip, DripFluid fluid) {
+        if (!(world instanceof WorldServer)) {
+            return;
+        }
+        Vec3d offset = xzOffset(tip);
+        ((WorldServer) world).spawnParticle(
+                fluid == DripFluid.LAVA
+                        ? EnumParticleTypes.DRIP_LAVA : EnumParticleTypes.DRIP_WATER,
+                tip.getX() + 0.5D + offset.x, tip.getY() + 0.25D,
+                tip.getZ() + 0.5D + offset.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     }
 
     @Nullable
@@ -567,20 +594,15 @@ public final class BlockPointedDripstone extends Block {
                 distance < PointedDripstoneMechanics.MAX_CAULDRON_SEARCH; ++distance) {
             cursor = cursor.down();
             IBlockState state = world.getBlockState(cursor);
-            if (state.getBlock() instanceof BlockLavaCauldron.BlockCustom) {
-                BlockLavaCauldron.BlockCustom cauldron =
-                        (BlockLavaCauldron.BlockCustom) state.getBlock();
-                return cauldron.canReceiveStalactiteDrip(state, fluid) ? cursor : null;
-            }
-            if (state.getBlock() == Blocks.CAULDRON && BlockLavaCauldron.block != null) {
-                int level = state.getValue(net.minecraft.block.BlockCauldron.LEVEL);
-                boolean accepts = fluid == DripFluid.WATER && level < 3
-                        || fluid == DripFluid.LAVA && level == 0;
-                if (!accepts) {
+            if (state.getBlock() instanceof net.minecraft.block.BlockCauldron) {
+                // The vanilla cauldron stores every 1.18.2 content directly (CauldronMixin);
+                // legacy hidden storage blocks are migrated back to vanilla on chunk load and
+                // simply stop the drip here in the meantime.
+                if (state.getBlock() != Blocks.CAULDRON) {
                     return null;
                 }
-                return CauldronStateBridge.bridgeVanillaAt(world, cursor)
-                        ? cursor : null;
+                return CauldronMechanics.canReceiveDrip(VanillaCauldronMeta.fromMeta(
+                        state.getBlock().getMetaFromState(state)), fluid) ? cursor : null;
             }
             if (!canDripThrough(world, cursor, state)) {
                 return null;

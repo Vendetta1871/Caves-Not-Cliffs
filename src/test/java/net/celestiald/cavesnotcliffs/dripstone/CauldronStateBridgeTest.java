@@ -6,7 +6,6 @@ import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.State;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockCauldron;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
 import net.minecraft.init.Bootstrap;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -23,34 +22,6 @@ public class CauldronStateBridgeTest {
     @BeforeClass
     public static void bootstrapVanillaRegistries() {
         Bootstrap.register();
-    }
-
-    @Test
-    public void vanillaLevelsZeroThroughThreeBridgeWithoutLosingWater() {
-        BlockLavaCauldron.BlockCustom storage = new BlockLavaCauldron.BlockCustom();
-        for (int level = 0; level <= 3; ++level) {
-            IBlockState vanilla = Blocks.CAULDRON.getDefaultState()
-                    .withProperty(BlockCauldron.LEVEL, level);
-            IBlockState bridged = CauldronStateBridge.bridgeVanillaState(vanilla, storage);
-            assertSame(storage, bridged.getBlock());
-            assertEquals(level == 0 ? CauldronMechanics.empty()
-                            : CauldronMechanics.water(level),
-                    storage.mechanicsState(bridged));
-        }
-    }
-
-    @Test
-    public void bridgeOnlyRecognizesTheExactVanillaIdentity() {
-        BlockLavaCauldron.BlockCustom storage = new BlockLavaCauldron.BlockCustom();
-        IBlockState unrelated = Blocks.CHEST.getDefaultState();
-        IBlockState moddedCauldron = new BlockCauldron().getDefaultState();
-
-        assertFalse(CauldronStateBridge.isVanillaCauldron(unrelated));
-        assertFalse(CauldronStateBridge.isVanillaCauldron(moddedCauldron));
-        assertSame(unrelated,
-                CauldronStateBridge.bridgeVanillaState(unrelated, storage));
-        assertSame(moddedCauldron,
-                CauldronStateBridge.bridgeVanillaState(moddedCauldron, storage));
     }
 
     @Test

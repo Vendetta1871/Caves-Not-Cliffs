@@ -7,13 +7,14 @@ import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.State;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockCauldron;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 /**
- * Converts 1.12's stateful vanilla cauldron into the hidden 1.18 content identities and performs
- * every cauldron mutation with {@code setBlockAndUpdate} equivalent notifications.
+ * Performs every legacy hidden-storage cauldron mutation with {@code setBlockAndUpdate}
+ * equivalent notifications. New contents are stored on the vanilla cauldron itself (see
+ * {@code CauldronMixin}); this bridge remains for the legacy storage blocks and the migration
+ * of existing worlds back to vanilla states.
  */
 public final class CauldronStateBridge {
     /** 1.12's flags 1 (neighbors/observers) + 2 (client synchronization). */
@@ -29,21 +30,7 @@ public final class CauldronStateBridge {
         void updateComparator(Block block);
     }
 
-    public static boolean isVanillaCauldron(IBlockState state) {
-        return state != null && state.getBlock() == Blocks.CAULDRON;
-    }
-
-    /** Maps all four vanilla 1.12 levels without changing unrelated or modded cauldrons. */
-    public static IBlockState bridgeVanillaState(IBlockState state, Block storage) {
-        if (!isVanillaCauldron(state)) {
-            return state;
-        }
-        BlockLavaCauldron.BlockCustom cauldron = requirePrimaryStorage(storage);
-        int level = state.getValue(BlockCauldron.LEVEL);
-        return cauldron.blockState(level == 0
-                ? CauldronMechanics.empty() : CauldronMechanics.water(level));
-    }
-
+    /** Resolves the hidden legacy storage state holding the given 1.18.2 contents. */
     public static IBlockState stateFor(State contents, Block primaryStorage,
             Block powderSnowStorage) {
         if (contents == null) {
@@ -61,14 +48,6 @@ public final class CauldronStateBridge {
 
     public static IBlockState stateFor(State contents) {
         return stateFor(contents, BlockLavaCauldron.block, BlockPowderSnowCauldron.block);
-    }
-
-    public static boolean bridgeVanillaAt(World world, BlockPos pos) {
-        IBlockState current = world.getBlockState(pos);
-        if (!isVanillaCauldron(current)) {
-            return false;
-        }
-        return setState(world, pos, bridgeVanillaState(current, BlockLavaCauldron.block));
     }
 
     public static boolean setContents(World world, BlockPos pos, State contents) {
