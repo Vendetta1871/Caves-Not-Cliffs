@@ -15,6 +15,10 @@
 - Show the drip that is travelling from a stalactite tip into a cauldron below: a
   server-side drip particle detaches from the tip when the fill is scheduled and lands
   roughly when the layer rises.
+- Fix the axolotl's head (and gills, tail, legs) visually detaching from the body
+  during swimming/hovering/playing-dead animations: the model parts now form the same
+  parent-child hierarchy as Java 1.18 (head, tail and legs parented to the body,
+  gills parented to the head), so body bobbing and tilting carries every part with it.
 
 ## 2.0.1
 

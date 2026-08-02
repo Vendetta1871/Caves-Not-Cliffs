@@ -26,6 +26,10 @@ public final class ModelAxolotl extends ModelBase {
         textureWidth = 64;
         textureHeight = 64;
 
+        // Hierarchy mirrors Java 1.18.2: head, tail and legs are children of
+        // body, gills are children of head. Child rotation points are relative
+        // to their parent, so body bobbing/tilting carries everything with it
+        // instead of letting parts drift apart mid-animation.
         body = new ModelRenderer(this, 0, 11);
         body.addBox(-4.0F, -2.0F, -9.0F, 8, 4, 10);
         body.setTextureOffset(2, 17).addBox(0.0F, -3.0F, -8.0F, 0, 5, 9);
@@ -33,32 +37,38 @@ public final class ModelAxolotl extends ModelBase {
 
         head = new ModelRenderer(this, 0, 1);
         head.addBox(-4.0F, -3.0F, -5.0F, 8, 5, 5, 0.001F);
-        head.setRotationPoint(0.0F, 20.0F, -4.0F);
+        head.setRotationPoint(0.0F, 0.0F, -9.0F);
+        body.addChild(head);
 
         topGills = new ModelRenderer(this, 3, 37);
         topGills.addBox(-4.0F, -3.0F, 0.0F, 8, 3, 0, 0.001F);
-        topGills.setRotationPoint(0.0F, 17.0F, -5.0F);
+        topGills.setRotationPoint(0.0F, -3.0F, -1.0F);
+        head.addChild(topGills);
         leftGills = new ModelRenderer(this, 0, 40);
         leftGills.addBox(-3.0F, -5.0F, 0.0F, 3, 7, 0, 0.001F);
-        leftGills.setRotationPoint(-4.0F, 20.0F, -5.0F);
+        leftGills.setRotationPoint(-4.0F, 0.0F, -1.0F);
+        head.addChild(leftGills);
         rightGills = new ModelRenderer(this, 11, 40);
         rightGills.addBox(0.0F, -5.0F, 0.0F, 3, 7, 0, 0.001F);
-        rightGills.setRotationPoint(4.0F, 20.0F, -5.0F);
+        rightGills.setRotationPoint(4.0F, 0.0F, -1.0F);
+        head.addChild(rightGills);
 
-        leftHindLeg = leg(3.5F, 21.0F, 4.0F, false);
-        rightHindLeg = leg(-3.5F, 21.0F, 4.0F, true);
-        leftFrontLeg = leg(3.5F, 21.0F, -3.0F, false);
-        rightFrontLeg = leg(-3.5F, 21.0F, -3.0F, true);
+        leftHindLeg = leg(3.5F, 1.0F, -1.0F, false);
+        rightHindLeg = leg(-3.5F, 1.0F, -1.0F, true);
+        leftFrontLeg = leg(3.5F, 1.0F, -8.0F, false);
+        rightFrontLeg = leg(-3.5F, 1.0F, -8.0F, true);
 
         tail = new ModelRenderer(this, 2, 19);
         tail.addBox(0.0F, -3.0F, 0.0F, 0, 5, 12);
-        tail.setRotationPoint(0.0F, 20.0F, 6.0F);
+        tail.setRotationPoint(0.0F, 0.0F, 1.0F);
+        body.addChild(tail);
     }
 
     private ModelRenderer leg(float x, float y, float z, boolean right) {
         ModelRenderer leg = new ModelRenderer(this, 2, 13);
         leg.addBox(right ? -2.0F : -1.0F, 0.0F, 0.0F, 3, 5, 0, 0.001F);
         leg.setRotationPoint(x, y, z);
+        body.addChild(leg);
         return leg;
     }
 
@@ -67,16 +77,8 @@ public final class ModelAxolotl extends ModelBase {
             float netHeadYaw, float headPitch, float scale) {
         setRotationAngles(limbSwing, limbSwingAmount, ageInTicks,
                 netHeadYaw, headPitch, scale, entity);
+        // Children render recursively with the root body part.
         body.render(scale);
-        head.render(scale);
-        tail.render(scale);
-        topGills.render(scale);
-        leftGills.render(scale);
-        rightGills.render(scale);
-        leftFrontLeg.render(scale);
-        rightFrontLeg.render(scale);
-        leftHindLeg.render(scale);
-        rightHindLeg.render(scale);
     }
 
     @Override
