@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.0.2
 
 - Store lava and powder snow cauldron contents on the vanilla `minecraft:cauldron` block itself
   via a new `CauldronMixin` (metadata 7 = lava, 8-10 = powder snow layers) instead of replacing

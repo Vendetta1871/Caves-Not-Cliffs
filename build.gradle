@@ -13,7 +13,7 @@ buildscript {
 apply plugin: 'net.minecraftforge.gradle.forge'
 apply plugin: 'org.spongepowered.mixin'
 
-version = '2.0.1'
+version = '2.0.2'
 group = 'net.celestiald'
 archivesBaseName = 'cavesnotcliffs'
 
@@ -46,10 +46,13 @@ repositories {
 }
 
 dependencies {
-    compileOnly('com.github.Vendetta1871:CaveBiomesAPI:1.1.1') {
+    // JitPack has the 1.1.2 tag build cached as a failure (a transient sponge repo outage
+    // broke its first attempt); the commit below is exactly tag 1.1.2 and builds cleanly.
+    // Flip back to the plain '1.1.2' version once JitPack rebuilds the tag.
+    compileOnly('com.github.Vendetta1871:CaveBiomesAPI:09260f0633') {
         transitive = false
     }
-    testCompile('com.github.Vendetta1871:CaveBiomesAPI:1.1.1') {
+    testCompile('com.github.Vendetta1871:CaveBiomesAPI:09260f0633') {
         transitive = false
     }
 
