@@ -19,6 +19,12 @@
   during swimming/hovering/playing-dead animations: the model parts now form the same
   parent-child hierarchy as Java 1.18 (head, tail and legs parented to the body,
   gills parented to the head), so body bobbing and tilting carries every part with it.
+- Fix villages (and other biome-gated vanilla structures) spawning in biomes the world
+  does not actually have — e.g. a village floating on the ocean. Structure viability
+  checks used the untouched vanilla 1.12 GenLayer biome layout while native-profile
+  worlds lay terrain down with the Java 1.18 multi-noise climate map; the world type
+  now installs a `V118BiomeProvider` backed by that same 1.18 map (sea-level sampling,
+  Voronoi zoom included), so biome checks agree with the terrain being generated.
 
 ## 2.0.1
 

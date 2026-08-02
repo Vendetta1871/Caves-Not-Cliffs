@@ -79,6 +79,16 @@ public final class CavesNotCliffsWorldTypeWrapper extends WorldType
 
     @Override
     public BiomeProvider getBiomeProvider(World world) {
+        // Native-profile worlds lay biomes down with the 1.18 multi-noise climate map, so
+        // anything biome-driven outside chunk generation — structure viability checks above
+        // all — must consult that same map instead of the untouched vanilla GenLayer chain.
+        if (world.provider.getDimension() == 0) {
+            CavesNotCliffsWorldData data = CavesNotCliffsWorldData.read(world.getWorldInfo());
+            if (data != null && V118ChunkGenerator.isNativeProfile(data.getTerrainProfile())) {
+                return new V118BiomeProvider(world.getSeed(),
+                    V118ChunkGenerator.nativeProfileFor(data.getTerrainProfile()));
+            }
+        }
         return delegate(world, () -> baseType.getBiomeProvider(world));
     }
 
