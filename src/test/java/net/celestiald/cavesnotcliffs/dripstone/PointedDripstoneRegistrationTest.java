@@ -2,7 +2,6 @@ package net.celestiald.cavesnotcliffs.dripstone;
 
 import net.celestiald.cavesnotcliffs.ElementsCavesNotCliffs;
 import net.celestiald.cavesnotcliffs.block.BlockPointedDripstone;
-import net.celestiald.cavesnotcliffs.block.BlockPointedDripstoneWaterlogged;
 import net.celestiald.cavesnotcliffs.block.BlockLegacyStalactiteAlias;
 import net.celestiald.cavesnotcliffs.block.BlockStalactite;
 import net.celestiald.cavesnotcliffs.registry.CncRegistryIds;
@@ -14,7 +13,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class PointedDripstoneRegistrationTest {
@@ -24,22 +22,16 @@ public class PointedDripstoneRegistrationTest {
     }
 
     @Test
-    public void exposesOneCanonicalItemAndOneBlockOnlyWaterloggedCompanion() {
+    public void exposesOneCanonicalPointedDripstoneBlockAndItem() {
         ElementsCavesNotCliffs elements = new ElementsCavesNotCliffs();
         new BlockStalactite(elements).initElements();
-        new BlockPointedDripstoneWaterlogged(elements).initElements();
 
-        assertEquals(2, elements.blocks.size());
+        assertEquals(1, elements.blocks.size());
         assertEquals(1, elements.items.size());
-        Block dry = elements.blocks.get(0).get();
-        Block wet = elements.blocks.get(1).get();
+        Block pointed = elements.blocks.get(0).get();
         Item publicItem = elements.items.get(0).get();
-        assertEquals(CncRegistryIds.POINTED_DRIPSTONE, dry.getRegistryName());
-        assertEquals(CncRegistryIds.POINTED_DRIPSTONE_WATERLOGGED, wet.getRegistryName());
-        assertTrue(dry instanceof BlockPointedDripstone);
-        assertTrue(wet instanceof BlockPointedDripstone);
-        assertFalse(((BlockPointedDripstone) dry).isWaterloggedStorage());
-        assertTrue(((BlockPointedDripstone) wet).isWaterloggedStorage());
+        assertEquals(CncRegistryIds.POINTED_DRIPSTONE, pointed.getRegistryName());
+        assertTrue(pointed instanceof BlockPointedDripstone);
         assertTrue(publicItem instanceof ItemBlock);
         assertEquals(CncRegistryIds.POINTED_DRIPSTONE, publicItem.getRegistryName());
     }

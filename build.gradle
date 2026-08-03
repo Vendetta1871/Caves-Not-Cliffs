@@ -40,12 +40,16 @@ minecraft {
 }
 
 repositories {
+    maven { url = 'https://cursemaven.com' }
     maven { url = 'https://jitpack.io' }
     maven { url = 'https://repo.spongepowered.org/maven' }
     mavenCentral()
 }
 
 dependencies {
+    // ForgeGradle 2.3's equivalent of `implementation fg.deobf(...)`.
+    deobfCompile "curse.maven:fluidlogged-api-485654:8445863"
+
     // JitPack has the 1.1.2 tag build cached as a failure (a transient sponge repo outage
     // broke its first attempt); the commit below is exactly tag 1.1.2 and builds cleanly.
     // Flip back to the plain '1.1.2' version once JitPack rebuilds the tag.

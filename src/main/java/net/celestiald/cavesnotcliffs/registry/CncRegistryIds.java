@@ -54,9 +54,6 @@ public final class CncRegistryIds {
             id("potted_flowering_azalea_bush");
     public static final ResourceLocation DRIPSTONE_BLOCK = id("dripstone_block");
     public static final ResourceLocation POINTED_DRIPSTONE = id("pointed_dripstone");
-    /** Hidden storage identity for source-water pointed-dripstone states. */
-    public static final ResourceLocation POINTED_DRIPSTONE_WATERLOGGED =
-            id("pointed_dripstone_waterlogged");
     /** Hidden storage for empty, layered-water, and full-lava cauldron states. */
     public static final ResourceLocation LAVA_CAULDRON = id("lava_cauldron");
     public static final ResourceLocation POWDER_SNOW = id("powder_snow");
