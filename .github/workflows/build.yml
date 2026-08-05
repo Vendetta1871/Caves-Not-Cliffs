@@ -24,6 +24,8 @@ jobs:
       - name: Upload production jar
         uses: actions/upload-artifact@v4
         with:
-          name: cavesnotcliffs-2.0.0
-          path: build/libs/cavesnotcliffs-2.0.0.jar
+          name: cavesnotcliffs
+          path: |
+            build/libs/cavesnotcliffs-*.jar
+            !build/libs/*-sources.jar
           if-no-files-found: error
