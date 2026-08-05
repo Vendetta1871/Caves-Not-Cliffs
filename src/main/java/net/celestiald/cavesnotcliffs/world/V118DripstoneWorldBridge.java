@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.world;
 
 import net.celestiald.cavesnotcliffs.block.BlockPointedDripstone;
+import net.celestiald.cavesnotcliffs.compat.FluidloggedCompat;
 import net.celestiald.cavesnotcliffs.dripstone.PointedDripstoneMechanics;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
@@ -32,8 +33,7 @@ final class V118DripstoneWorldBridge implements V118DripstoneFeature.WorldAccess
     private final V118ChunkGenerator generator;
     private final V118OreBlockMapper oreBlocks;
     private final Block dripstoneBlock;
-    private final BlockPointedDripstone dryPointed;
-    private final BlockPointedDripstone waterloggedPointed;
+    private final BlockPointedDripstone pointed;
     private final Map<Long, Integer> surfaceHeights = new HashMap<Long, Integer>();
     private int centerChunkX;
     private int centerChunkZ;
@@ -41,22 +41,21 @@ final class V118DripstoneWorldBridge implements V118DripstoneFeature.WorldAccess
     V118DripstoneWorldBridge(World world, V118ChunkGenerator generator,
             V118OreBlockMapper oreBlocks) {
         this(world, generator, oreBlocks, registered("dripstone_block"),
-            pointed("pointed_dripstone"), pointed("pointed_dripstone_waterlogged"));
+            pointed("pointed_dripstone"));
     }
 
     V118DripstoneWorldBridge(World world, V118ChunkGenerator generator,
             V118OreBlockMapper oreBlocks, Block dripstoneBlock,
-            BlockPointedDripstone dryPointed, BlockPointedDripstone waterloggedPointed) {
+            BlockPointedDripstone pointed) {
         if (world == null || generator == null || oreBlocks == null || dripstoneBlock == null
-                || dryPointed == null || waterloggedPointed == null) {
+                || pointed == null) {
             throw new NullPointerException("world, generator, and dripstone blocks are required");
         }
         this.world = world;
         this.generator = generator;
         this.oreBlocks = oreBlocks;
         this.dripstoneBlock = dripstoneBlock;
-        this.dryPointed = dryPointed;
-        this.waterloggedPointed = waterloggedPointed;
+        this.pointed = pointed;
     }
 
     V118DripstonePlacements.PlacementResult populateLarge(int chunkX, int chunkZ,
@@ -86,7 +85,7 @@ final class V118DripstoneWorldBridge implements V118DripstoneFeature.WorldAccess
             return V118DripstoneFeature.State.AIR;
         }
         return classify(stateAt(blockX, blockY, blockZ), oreBlocks,
-            dripstoneBlock, dryPointed, waterloggedPointed);
+            dripstoneBlock, pointed);
     }
 
     @Override
@@ -94,9 +93,10 @@ final class V118DripstoneWorldBridge implements V118DripstoneFeature.WorldAccess
         if (outsideBuildHeight(blockY)) {
             return false;
         }
+        BlockPos pos = new BlockPos(blockX, blockY, blockZ);
         Block block = stateAt(blockX, blockY, blockZ).getBlock();
         return block == Blocks.WATER || block == Blocks.FLOWING_WATER
-            || block == waterloggedPointed;
+            || FluidloggedCompat.hasWater(world, pos);
     }
 
     @Override
@@ -114,11 +114,12 @@ final class V118DripstoneWorldBridge implements V118DripstoneFeature.WorldAccess
     public void setPointedDripstone(int blockX, int blockY, int blockZ,
             V118DripstoneFeature.Direction direction,
             V118DripstoneFeature.Thickness thickness, boolean waterlogged) {
-        BlockPointedDripstone block = waterlogged ? waterloggedPointed : dryPointed;
-        IBlockState state = block.getDefaultState()
+        IBlockState state = pointed.getDefaultState()
             .withProperty(BlockPointedDripstone.TIP_DIRECTION, facing(direction))
             .withProperty(BlockPointedDripstone.THICKNESS, runtimeThickness(thickness));
-        setIfWritable(blockX, blockY, blockZ, state);
+        if (setIfWritable(blockX, blockY, blockZ, state) && waterlogged) {
+            FluidloggedCompat.storeWater(world, new BlockPos(blockX, blockY, blockZ), state, 2);
+        }
     }
 
     @Override
@@ -126,11 +127,12 @@ final class V118DripstoneWorldBridge implements V118DripstoneFeature.WorldAccess
         setIfWritable(blockX, blockY, blockZ, Blocks.WATER.getDefaultState());
     }
 
-    private void setIfWritable(int blockX, int blockY, int blockZ, IBlockState state) {
+    private boolean setIfWritable(int blockX, int blockY, int blockZ, IBlockState state) {
         if (!outsideBuildHeight(blockY)
                 && withinWriteRadius(centerChunkX, centerChunkZ, blockX, blockZ)) {
-            world.setBlockState(new BlockPos(blockX, blockY, blockZ), state, 2);
+            return world.setBlockState(new BlockPos(blockX, blockY, blockZ), state, 2);
         }
+        return false;
     }
 
     @Override
@@ -168,8 +170,7 @@ final class V118DripstoneWorldBridge implements V118DripstoneFeature.WorldAccess
     }
 
     static V118DripstoneFeature.State classify(IBlockState state,
-            V118OreBlockMapper oreBlocks, Block dripstoneBlock, Block dryPointed,
-            Block waterloggedPointed) {
+            V118OreBlockMapper oreBlocks, Block dripstoneBlock, BlockPointedDripstone pointed) {
         if (state == null || state.getBlock() == Blocks.AIR) {
             return V118DripstoneFeature.State.AIR;
         }
@@ -183,7 +184,7 @@ final class V118DripstoneWorldBridge implements V118DripstoneFeature.WorldAccess
         if (block == dripstoneBlock) {
             return V118DripstoneFeature.State.DRIPSTONE_BLOCK;
         }
-        if (block == dryPointed || block == waterloggedPointed) {
+        if (block == pointed) {
             return V118DripstoneFeature.State.POINTED_DRIPSTONE;
         }
         return isDripstoneBaseMaterial(oreBlocks.materialFor(state))

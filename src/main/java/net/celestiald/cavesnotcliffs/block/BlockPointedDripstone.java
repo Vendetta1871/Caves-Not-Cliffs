@@ -1,8 +1,10 @@
 package net.celestiald.cavesnotcliffs.block;
 
+import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import net.celestiald.cavesnotcliffs.content.CncBlockProperties;
 import net.celestiald.cavesnotcliffs.content.DripstoneSoundEvents;
 import net.celestiald.cavesnotcliffs.client.ParticleDripstone;
+import net.celestiald.cavesnotcliffs.compat.FluidloggedCompat;
 import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics;
 import net.celestiald.cavesnotcliffs.dripstone.CauldronMechanics.DripFluid;
 import net.celestiald.cavesnotcliffs.dripstone.VanillaCauldronMeta;
@@ -17,6 +19,7 @@ import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.PropertyDirection;
 import net.minecraft.block.properties.PropertyEnum;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.creativetab.CreativeTabs;
@@ -40,19 +43,18 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
-import net.minecraft.world.Explosion;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.fml.common.Optional;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Random;
 
-/**
- * One canonical implementation for every Java 1.18.2 pointed-dripstone direction and thickness.
- * A second block-only identity stores the same ten states when source-waterlogged.
- */
-public final class BlockPointedDripstone extends Block {
+/** One canonical implementation for every Java 1.18.2 pointed-dripstone state. */
+@Optional.Interface(iface = "git.jbredwards.fluidlogged_api.api.block.IFluidloggable",
+        modid = "fluidlogged_api")
+public final class BlockPointedDripstone extends Block implements IFluidloggable {
     public static final PropertyDirection TIP_DIRECTION = PropertyDirection.create(
             "vertical_direction", EnumFacing.Plane.VERTICAL);
     public static final PropertyEnum<Thickness> THICKNESS =
@@ -77,13 +79,10 @@ public final class BlockPointedDripstone extends Block {
             new AxisAlignedBB(2.0D / 16.0D, 0.0D, 2.0D / 16.0D,
                     14.0D / 16.0D, 1.0D, 14.0D / 16.0D);
 
-    private final boolean waterloggedStorage;
-
-    public BlockPointedDripstone(boolean waterloggedStorage) {
+    public BlockPointedDripstone() {
         super(Material.ROCK, MapColor.ADOBE);
-        this.waterloggedStorage = waterloggedStorage;
         setUnlocalizedName("pointed_dripstone");
-        setCreativeTab(waterloggedStorage ? null : CreativeTabs.BUILDING_BLOCKS);
+        setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
         setSoundType(DripstoneSoundEvents.POINTED_DRIPSTONE);
         setHardness(1.5F);
         setResistance(CncBlockProperties.legacyResistance(3.0F));
@@ -93,8 +92,9 @@ public final class BlockPointedDripstone extends Block {
                 .withProperty(THICKNESS, Thickness.TIP));
     }
 
-    public boolean isWaterloggedStorage() {
-        return waterloggedStorage;
+    @Override
+    public boolean overrideApplyDefaultsSetting() {
+        return true;
     }
 
     @Override
@@ -137,12 +137,7 @@ public final class BlockPointedDripstone extends Block {
         boolean merge = !(placer instanceof EntityPlayer)
                 || !((EntityPlayer) placer).isSneaking();
         Thickness thickness = calculateThickness(world, pos, direction, merge);
-        BlockPointedDripstone target = waterFluid(world.getBlockState(pos))
-                ? waterloggedBlock() : dryBlock();
-        if (target == null) {
-            target = this;
-        }
-        return target.getDefaultState()
+        return getDefaultState()
                 .withProperty(TIP_DIRECTION, direction)
                 .withProperty(THICKNESS, thickness);
     }
@@ -156,6 +151,14 @@ public final class BlockPointedDripstone extends Block {
     @Override
     public boolean canPlaceBlockOnSide(World world, BlockPos pos, EnumFacing side) {
         return canPlaceBlockAt(world, pos);
+    }
+
+    @Override
+    public void onBlockAdded(World world, BlockPos pos, IBlockState state) {
+        super.onBlockAdded(world, pos, state);
+        if (FluidloggedCompat.hasFluid(world, pos)) {
+            FluidloggedCompat.notifyFluids(world, pos, true);
+        }
     }
 
     @Override
@@ -175,10 +178,9 @@ public final class BlockPointedDripstone extends Block {
                     state.getValue(THICKNESS) == Thickness.TIP_MERGE);
             if (next != state.getValue(THICKNESS)) {
                 world.setBlockState(pos, state.withProperty(THICKNESS, next), 2);
+                FluidloggedCompat.notifyFluids(world, pos, false,
+                        EnumFacing.UP, EnumFacing.DOWN);
             }
-        }
-        if (!world.isRemote && waterloggedStorage) {
-            emitWater(world, pos);
         }
     }
 
@@ -190,14 +192,11 @@ public final class BlockPointedDripstone extends Block {
         if (state.getValue(TIP_DIRECTION) == EnumFacing.UP) {
             if (!validPlacement(world, pos, EnumFacing.UP)) {
                 world.destroyBlock(pos, true);
-                restoreWaterAfterRemoval(world, pos, state);
             }
             return;
         }
         if (!validPlacement(world, pos, EnumFacing.DOWN)) {
             spawnFallingStalactite(world, pos, state);
-        } else if (waterloggedStorage) {
-            emitWater(world, pos);
         }
     }
 
@@ -208,54 +207,6 @@ public final class BlockPointedDripstone extends Block {
                 && isStalactiteStart(state, world, pos)) {
             growStalactiteOrStalagmiteIfPossible(state, world, pos, random);
         }
-    }
-
-    @Override
-    public void onBlockAdded(World world, BlockPos pos, IBlockState state) {
-        if (!world.isRemote && waterloggedStorage) {
-            emitWater(world, pos);
-        }
-    }
-
-    @Override
-    public boolean removedByPlayer(IBlockState state, World world, BlockPos pos,
-            EntityPlayer player, boolean willHarvest) {
-        boolean removed = super.removedByPlayer(state, world, pos, player, willHarvest);
-        if (removed && waterloggedStorage && world.isAirBlock(pos)) {
-            world.setBlockState(pos, Blocks.WATER.getDefaultState(), 3);
-        }
-        return removed;
-    }
-
-    @Override
-    public void onBlockExploded(World world, BlockPos pos, Explosion explosion) {
-        IBlockState state = world.getBlockState(pos);
-        super.onBlockExploded(world, pos, explosion);
-        restoreWaterAfterRemoval(world, pos, state);
-    }
-
-    private static void restoreWaterAfterRemoval(World world, BlockPos pos,
-            IBlockState state) {
-        if (state.getBlock() instanceof BlockPointedDripstone
-                && ((BlockPointedDripstone) state.getBlock()).waterloggedStorage
-                && world.isAirBlock(pos)) {
-            world.setBlockState(pos, Blocks.WATER.getDefaultState(), 3);
-        }
-    }
-
-    private void emitWater(World world, BlockPos pos) {
-        world.scheduleUpdate(pos, this, tickRate(world));
-        for (EnumFacing side : EnumFacing.values()) {
-            BlockPos neighbor = pos.offset(side);
-            if (world.isAirBlock(neighbor)) {
-                world.setBlockState(neighbor, Blocks.FLOWING_WATER.getDefaultState(), 2);
-            }
-        }
-    }
-
-    @Override
-    public int tickRate(World world) {
-        return 5;
     }
 
     @Override
@@ -320,10 +271,16 @@ public final class BlockPointedDripstone extends Block {
         return false;
     }
 
+    @Override
+    public BlockFaceShape getBlockFaceShape(IBlockAccess world, IBlockState state,
+            BlockPos pos, EnumFacing face) {
+        return BlockFaceShape.UNDEFINED;
+    }
+
     @SideOnly(Side.CLIENT)
     @Override
     public BlockRenderLayer getBlockLayer() {
-        return waterloggedStorage ? BlockRenderLayer.TRANSLUCENT : BlockRenderLayer.CUTOUT;
+        return BlockRenderLayer.CUTOUT;
     }
 
     @Override
@@ -333,8 +290,8 @@ public final class BlockPointedDripstone extends Block {
 
     @Override
     public Item getItemDropped(IBlockState state, Random random, int fortune) {
-        BlockPointedDripstone dry = dryBlock();
-        return dry == null ? Items.AIR : Item.getItemFromBlock(dry);
+        Item item = Item.getItemFromBlock(this);
+        return item == null ? Items.AIR : item;
     }
 
     @Override
@@ -370,7 +327,8 @@ public final class BlockPointedDripstone extends Block {
     public void randomDisplayTick(IBlockState state, World world, BlockPos pos,
             Random random) {
         if (state.getValue(TIP_DIRECTION) != EnumFacing.DOWN
-                || state.getValue(THICKNESS) != Thickness.TIP || waterloggedStorage) {
+                || state.getValue(THICKNESS) != Thickness.TIP
+                || FluidloggedCompat.hasFluid(world, pos)) {
             return;
         }
         float roll = random.nextFloat();
@@ -425,11 +383,11 @@ public final class BlockPointedDripstone extends Block {
                 && state.getValue(TIP_DIRECTION) == direction;
     }
 
-    public static boolean canDrip(IBlockState state) {
+    public static boolean canDrip(IBlockAccess world, BlockPos pos, IBlockState state) {
         return state.getBlock() instanceof BlockPointedDripstone
                 && state.getValue(TIP_DIRECTION) == EnumFacing.DOWN
                 && state.getValue(THICKNESS) == Thickness.TIP
-                && !((BlockPointedDripstone) state.getBlock()).waterloggedStorage;
+                && !FluidloggedCompat.hasFluid(world, pos);
     }
 
     private static void spawnFallingStalactite(World world, BlockPos root,
@@ -443,12 +401,8 @@ public final class BlockPointedDripstone extends Block {
             EntityFallingPointedDripstone.EntityCustom falling =
                     new EntityFallingPointedDripstone.EntityCustom(world,
                             cursor.getX() + 0.5D, cursor.getY(), cursor.getZ() + 0.5D,
-                            fallingState(state), damageFactor);
-            // Java 1.18's FallingBlockEntity strips WATERLOGGED from the carried state and
-            // replaces the source block with its retained fluid before adding the entity. The
-            // 1.12 entity instead tries to remove a same-identity source on its first tick, so
-            // perform the modern transition here and skip that legacy first-tick branch.
-            replaceSourceForFall(world, cursor, state);
+                            state, damageFactor);
+            replaceSourceForFall(world, cursor);
             falling.fallTime = 1;
             world.spawnEntity(falling);
             if (isTip(state, true)) {
@@ -459,40 +413,10 @@ public final class BlockPointedDripstone extends Block {
         }
     }
 
-    private static void replaceSourceForFall(World world, BlockPos pos,
-            IBlockState source) {
-        if (source.getBlock() instanceof BlockPointedDripstone
-                && ((BlockPointedDripstone) source.getBlock()).waterloggedStorage) {
-            world.setBlockState(pos, Blocks.WATER.getDefaultState(), 3);
-        } else {
+    private static void replaceSourceForFall(World world, BlockPos pos) {
+        if (!FluidloggedCompat.restoreFluid(world, pos, 3)) {
             world.setBlockToAir(pos);
         }
-    }
-
-    /** Returns the dry carried state used by Java 1.18's falling-block transition. */
-    public static IBlockState fallingState(IBlockState source) {
-        BlockPointedDripstone dry = dryBlock();
-        return dry == null ? source : copyStorageState(source, dry);
-    }
-
-    /** Restores the hidden waterlogged companion after a dry state lands in water. */
-    public static IBlockState landingState(IBlockState landed, boolean landedInWater) {
-        if (!landedInWater) {
-            return landed;
-        }
-        BlockPointedDripstone wet = waterloggedBlock();
-        return wet == null ? landed : copyStorageState(landed, wet);
-    }
-
-    /** Copies the two public pointed-dripstone properties between hidden storage identities. */
-    public static IBlockState copyStorageState(IBlockState source,
-            BlockPointedDripstone target) {
-        if (!(source.getBlock() instanceof BlockPointedDripstone) || target == null) {
-            return source;
-        }
-        return target.getDefaultState()
-                .withProperty(TIP_DIRECTION, source.getValue(TIP_DIRECTION))
-                .withProperty(THICKNESS, source.getValue(THICKNESS));
     }
 
     public static void maybeFillCauldron(IBlockState state, World world, BlockPos pos,
@@ -550,7 +474,7 @@ public final class BlockPointedDripstone extends Block {
                 distance < PointedDripstoneMechanics.MAX_CAULDRON_SEARCH; ++distance) {
             cursor = cursor.up();
             IBlockState state = world.getBlockState(cursor);
-            if (canDrip(state)) {
+            if (canDrip(world, cursor, state)) {
                 return cursor;
             }
             if (!canDripThrough(world, cursor, state)) {
@@ -676,7 +600,7 @@ public final class BlockPointedDripstone extends Block {
             return;
         }
         IBlockState tipState = world.getBlockState(tip);
-        if (!canDrip(tipState) || !canTipGrow(tipState, world, tip)) {
+        if (!canDrip(world, tip, tipState) || !canTipGrow(tipState, world, tip)) {
             return;
         }
         if (random.nextBoolean()) {
@@ -688,10 +612,10 @@ public final class BlockPointedDripstone extends Block {
 
     private static boolean canTipGrow(IBlockState state, World world, BlockPos pos) {
         EnumFacing direction = state.getValue(TIP_DIRECTION);
-        IBlockState forward = world.getBlockState(pos.offset(direction));
+        BlockPos forwardPos = pos.offset(direction);
+        IBlockState forward = world.getBlockState(forwardPos);
         if (forward.getMaterial().isLiquid()
-                || forward.getBlock() instanceof BlockPointedDripstone
-                && ((BlockPointedDripstone) forward.getBlock()).waterloggedStorage) {
+                || FluidloggedCompat.hasFluid(world, forwardPos)) {
             return false;
         }
         return forward.getMaterial() == Material.AIR
@@ -706,7 +630,8 @@ public final class BlockPointedDripstone extends Block {
                 ++distance) {
             cursor = cursor.down();
             IBlockState state = world.getBlockState(cursor);
-            if (state.getMaterial().isLiquid()) {
+            if (state.getMaterial().isLiquid()
+                    || FluidloggedCompat.hasFluid(world, cursor)) {
                 return;
             }
             if (isTip(state, false) && state.getValue(TIP_DIRECTION) == EnumFacing.UP
@@ -754,12 +679,17 @@ public final class BlockPointedDripstone extends Block {
 
     public static void createDripstone(World world, BlockPos pos, EnumFacing direction,
             Thickness thickness) {
-        BlockPointedDripstone target = waterFluid(world.getBlockState(pos))
-                ? waterloggedBlock() : dryBlock();
+        IBlockState existing = world.getBlockState(pos);
+        boolean water = existing.getMaterial() == Material.WATER
+                || FluidloggedCompat.hasWater(world, pos);
+        BlockPointedDripstone target = dryBlock();
         if (target != null) {
-            world.setBlockState(pos, target.getDefaultState()
+            IBlockState pointed = target.getDefaultState()
                     .withProperty(TIP_DIRECTION, direction)
-                    .withProperty(THICKNESS, thickness), 3);
+                    .withProperty(THICKNESS, thickness);
+            if (world.setBlockState(pos, pointed, 3) && water) {
+                FluidloggedCompat.storeWater(world, pos, pointed, existing, 3);
+            }
         }
     }
 
@@ -768,17 +698,8 @@ public final class BlockPointedDripstone extends Block {
                 && state.getValue(BlockLiquid.LEVEL) == 0;
     }
 
-    private static boolean waterFluid(IBlockState state) {
-        return state.getMaterial() == Material.WATER;
-    }
-
     private static BlockPointedDripstone dryBlock() {
         return BlockStalactite.block instanceof BlockPointedDripstone
                 ? (BlockPointedDripstone) BlockStalactite.block : null;
-    }
-
-    private static BlockPointedDripstone waterloggedBlock() {
-        return BlockPointedDripstoneWaterlogged.block instanceof BlockPointedDripstone
-                ? (BlockPointedDripstone) BlockPointedDripstoneWaterlogged.block : null;
     }
 }

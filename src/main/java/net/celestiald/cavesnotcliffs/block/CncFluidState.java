@@ -14,7 +14,7 @@ import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
 
-/** Reads source water retained by Java 1.12 companion blocks and packed states. */
+/** Reads source water retained by the mod's Java 1.12 companion blocks and packed states. */
 public final class CncFluidState {
     private CncFluidState() {
     }
@@ -30,9 +30,6 @@ public final class CncFluidState {
         }
         if (block instanceof BlockAmethystGrowth) {
             return ((BlockAmethystGrowth) block).isWaterlogged(state);
-        }
-        if (block instanceof BlockPointedDripstone) {
-            return ((BlockPointedDripstone) block).isWaterloggedStorage();
         }
         if (block instanceof LightningRodContent.LightningRodBlock) {
             return ((LightningRodContent.LightningRodBlock) block).isWaterloggedStorage();
@@ -56,7 +53,6 @@ public final class CncFluidState {
         }
         Block block = state.getBlock();
         return block instanceof BlockAmethystGrowth
-            || block instanceof BlockPointedDripstone
             || block instanceof LushDripleafBlocks.Small
             || block instanceof LushDripleafBlocks.Head
             || block instanceof LushDripleafBlocks.Stem
@@ -100,11 +96,6 @@ public final class CncFluidState {
                 .withProperty(BlockAmethystGrowth.FACING,
                     state.getValue(BlockAmethystGrowth.FACING))
                 .withProperty(BlockAmethystGrowth.WATERLOGGED, true), 3);
-        } else if (block instanceof BlockPointedDripstone) {
-            Block target = BlockPointedDripstoneWaterlogged.block;
-            placed = target instanceof BlockPointedDripstone && world.setBlockState(pos,
-                BlockPointedDripstone.copyStorageState(state,
-                    (BlockPointedDripstone) target), 3);
         } else if (block instanceof LushDripleafBlocks.Small
                 || block instanceof LushDripleafBlocks.Stem) {
             placed = world.setBlockState(pos,
@@ -159,8 +150,6 @@ public final class CncFluidState {
                 .withProperty(BlockAmethystGrowth.FACING,
                     state.getValue(BlockAmethystGrowth.FACING))
                 .withProperty(BlockAmethystGrowth.WATERLOGGED, false);
-        } else if (block instanceof BlockPointedDripstone) {
-            dryState = BlockPointedDripstone.fallingState(state);
         } else if (block instanceof LushDripleafBlocks.Small
                 || block instanceof LushDripleafBlocks.Stem) {
             dryState = state.withProperty(LushDripleafBlocks.WATERLOGGED, false);

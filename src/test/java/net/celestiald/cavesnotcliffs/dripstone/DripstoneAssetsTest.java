@@ -19,7 +19,6 @@ public class DripstoneAssetsTest {
         JsonObject variants = json(ROOT + "blockstates/pointed_dripstone.json")
                 .getAsJsonObject("variants");
         assertEquals(10, variants.size());
-        assertNotNull(resource(ROOT + "blockstates/pointed_dripstone_waterlogged.json"));
         assertNotNull(resource(ROOT + "models/block/pointed_dripstone.json"));
         for (String direction : new String[]{"up", "down"}) {
             for (String thickness : new String[]{"tip_merge", "tip", "frustum", "middle", "base"}) {

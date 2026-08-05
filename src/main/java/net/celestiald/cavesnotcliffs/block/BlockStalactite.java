@@ -24,7 +24,7 @@ public class BlockStalactite extends ElementsCavesNotCliffs.ModElement {
     @Override
     public void initElements() {
         BlockPointedDripstone canonical = (BlockPointedDripstone)
-                new BlockPointedDripstone(false)
+                new BlockPointedDripstone()
                         .setRegistryName(CncRegistryIds.POINTED_DRIPSTONE);
         elements.blocks.add(() -> canonical);
         elements.items.add(() -> new ItemBlock(canonical)

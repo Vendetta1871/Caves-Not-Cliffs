@@ -42,6 +42,25 @@ public class V118ClimateSamplerTest {
     }
 
     @Test
+    public void repeatedQuartResolutionPreservesResultsAcrossNegativeCoordinates() {
+        V118NoiseRouterData.Profile profile = V118NoiseRouterData.Profile.DEFAULT;
+        V118ClimateSampler cached = sampler(987654321L, profile);
+        V118ClimateSampler reference = sampler(987654321L, profile);
+        int[][] coordinates = {
+            {-513, -80, 257}, {-512, -79, 256}, {-1, -1, -1}, {0, 0, 0},
+            {1, 2, 1}, {127, 31, -129}, {512, 80, -256}
+        };
+        for (int[] coordinate : coordinates) {
+            V118Biome expected = reference.resolveQuart(coordinate[0], coordinate[1],
+                coordinate[2]);
+            assertEquals(expected, cached.resolveQuart(coordinate[0], coordinate[1],
+                coordinate[2]));
+            assertEquals(expected, cached.resolveQuart(coordinate[0], coordinate[1],
+                coordinate[2]));
+        }
+    }
+
+    @Test
     public void allNativeProfilesResolveDeterministicallyAcrossBuildRange() {
         for (V118NoiseRouterData.Profile profile : V118NoiseRouterData.Profile.values()) {
             long seed = Long.MIN_VALUE + profile.ordinal();
