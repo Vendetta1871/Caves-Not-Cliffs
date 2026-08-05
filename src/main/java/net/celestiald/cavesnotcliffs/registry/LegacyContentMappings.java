@@ -38,6 +38,9 @@ public final class LegacyContentMappings {
         map(blocks, "moss_layer", "moss_carpet");
         map(blocks, "dripstone", "dripstone_block");
         map(blocks, "stalactite", "pointed_dripstone");
+        // The 2.0.x hidden waterlogged companion shared BlockPointedDripstone's meta layout, so
+        // its saved states carry over directly once waterlogging moved to Fluidlogged API.
+        map(blocks, "pointed_dripstone_waterlogged", "pointed_dripstone");
         map(blocks, LEGACY_LAVA_CAULDRON, "lava_cauldron");
         // amethyst_geode remains registered as a hidden marker until its chunk conversion runs.
         map(blocks, "geode_casing", "smooth_basalt");

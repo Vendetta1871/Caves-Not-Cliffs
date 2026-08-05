@@ -3,6 +3,7 @@ package net.celestiald.cavesnotcliffs.registry;
 import net.minecraft.util.ResourceLocation;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -90,8 +91,18 @@ public class LegacyContentMappingsTest {
 
     @Test
     public void canonicalTargetsAreOneToOne() {
-        assertEquals(LegacyContentMappings.paths().size(),
-                new HashSet<>(LegacyContentMappings.paths().values()).size());
+        // Pointed-dripstone aliases intentionally converge: the 2.0.x waterlogged companion block
+        // had the same meta layout as the canonical block and folds into it.
+        Map<String, String> paths = LegacyContentMappings.paths();
+        Map<String, String> unique = new HashMap<>(paths);
+        unique.values().removeIf("pointed_dripstone"::equals);
+        assertEquals(unique.size(), new HashSet<>(unique.values()).size());
+    }
+
+    @Test
+    public void releasedWaterloggedPointedDripstoneFoldsIntoCanonicalBlock() {
+        assertEquals("pointed_dripstone",
+                LegacyContentMappings.canonicalBlockPath("pointed_dripstone_waterlogged"));
     }
 
     @Test

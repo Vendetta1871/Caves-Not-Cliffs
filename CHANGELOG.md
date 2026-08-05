@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Pointed dripstone is no longer a waterlogged block pair: the hidden
+  `pointed_dripstone_waterlogged` companion block is gone and waterlogging is handled
+  through the optional Fluidlogged API mod when it is installed (without it, dripstone
+  placed in water simply displaces the water, like most vanilla blocks). Saved
+  `pointed_dripstone_waterlogged` states from 2.0.x worlds remap onto the canonical
+  `pointed_dripstone` block — they keep their shape but lose the stored water unless
+  Fluidlogged API is present.
+- Fix the stonecutter not rendering transparent textures (glass-style cutout layer).
+- Speed up virtual biome resolution during terrain generation.
+
 ## 2.0.2
 
 - Store lava and powder snow cauldron contents on the vanilla `minecraft:cauldron` block itself
