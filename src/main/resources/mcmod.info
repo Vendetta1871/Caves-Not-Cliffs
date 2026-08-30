@@ -5,7 +5,7 @@
     "description": "Backports Caves & Cliffs features to 1.12.2. Requires Forge 14.23.5.2860+, MixinBootstrap and CaveBiomesAPI 1.1.2+. Fluidlogged API is an optional compatibility integration.",
     "version": "${version}",
     "credits": "CelestialD",
-    "logoFile": "",
+    "logoFile": "icon.png",
     "mcversion": "${mcversion}",
     "url": "https://github.com/Vendetta1871/Caves-Not-Cliffs",
     "updateUrl": "https://modrinth.com/mod/caves-not-cliffs-backported",
