@@ -112,6 +112,15 @@ final class ModdedBiomeOverlay {
         return vanilla;
     }
 
+    /**
+     * The modded biome the vanilla chain claims at a single block position, or null where
+     * the 1.18 projection stays. Null when disabled/failing.
+     */
+    Biome moddedBiomeAt(int blockX, int blockZ) {
+        Biome[] modded = moddedBlockBiomes(blockX, blockZ, 1, 1);
+        return modded == null || modded.length == 0 ? null : modded[0];
+    }
+
     static boolean isModded(Biome biome) {
         return biome != null
                 && biome.getRegistryName() != null

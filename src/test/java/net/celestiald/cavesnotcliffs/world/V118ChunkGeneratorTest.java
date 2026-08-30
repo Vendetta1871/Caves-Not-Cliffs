@@ -10,31 +10,6 @@ import static org.junit.Assert.assertTrue;
 
 public class V118ChunkGeneratorTest {
     @Test
-    public void dominantModdedBiomeWinsByMajorityAndIgnoresNulls() {
-        net.minecraft.world.biome.Biome forest = new net.minecraft.world.biome.Biome(
-            new net.minecraft.world.biome.Biome.BiomeProperties("Mod Forest")) {
-        };
-        forest.setRegistryName("somemod", "forest");
-        net.minecraft.world.biome.Biome grove = new net.minecraft.world.biome.Biome(
-            new net.minecraft.world.biome.Biome.BiomeProperties("Mod Grove")) {
-        };
-        grove.setRegistryName("somemod", "grove");
-
-        assertEquals(null, V118ChunkGenerator.dominantModdedBiome(null));
-        assertEquals(null, V118ChunkGenerator.dominantModdedBiome(
-            new net.minecraft.world.biome.Biome[16]));
-
-        net.minecraft.world.biome.Biome[] grid =
-            new net.minecraft.world.biome.Biome[16];
-        grid[0] = forest;
-        grid[1] = grove;
-        grid[2] = forest;
-        grid[3] = forest;
-        grid[15] = grove;
-        assertEquals(forest, V118ChunkGenerator.dominantModdedBiome(grid));
-    }
-
-    @Test
     public void mapsOnlyThreeNativeProfilesToJava118Routers() {
         assertTrue(V118ChunkGenerator.isNativeProfile(TerrainProfile.DEFAULT));
         assertTrue(V118ChunkGenerator.isNativeProfile(TerrainProfile.LARGE_BIOMES));

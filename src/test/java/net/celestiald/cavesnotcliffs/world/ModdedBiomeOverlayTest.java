@@ -75,6 +75,19 @@ public class ModdedBiomeOverlayTest {
     }
 
     @Test
+    public void moddedBiomeAtReturnsOnlyTheSampledCell() {
+        ModdedBiomeOverlay overlay = ModdedBiomeOverlay.of(fixedSampler(
+                null, new Biome[] { magicalForest }));
+        assertSame(magicalForest, overlay.moddedBiomeAt(16, 16));
+
+        ModdedBiomeOverlay vanilla = ModdedBiomeOverlay.of(fixedSampler(
+                null, new Biome[] { Biomes.FOREST }));
+        assertNull(vanilla.moddedBiomeAt(16, 16));
+
+        assertNull(ModdedBiomeOverlay.disabled().moddedBiomeAt(16, 16));
+    }
+
+    @Test
     public void disabledOverlayPassesEverythingThrough() {
         ModdedBiomeOverlay overlay = ModdedBiomeOverlay.disabled();
         assertFalse(overlay.isEnabled());
