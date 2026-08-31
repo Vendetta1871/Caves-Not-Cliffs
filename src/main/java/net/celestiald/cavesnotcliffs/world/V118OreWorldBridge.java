@@ -19,6 +19,7 @@ final class V118OreWorldBridge implements V118OrePlacements.WorldAccess {
     private final V118ChunkGenerator generator;
     private final V118OreBlockMapper blocks;
     private final Map<Long, Integer> oceanFloorHeights = new HashMap<>();
+    private final BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
 
     V118OreWorldBridge(World world, V118ChunkGenerator generator,
             V118OreBlockMapper blocks) {
@@ -76,7 +77,8 @@ final class V118OreWorldBridge implements V118OrePlacements.WorldAccess {
         if (isOutsideBuildHeight(blockY)) {
             return V118OreMaterial.AIR;
         }
-        return blocks.materialFor(world.getBlockState(new BlockPos(blockX, blockY, blockZ)));
+        return blocks.materialFor(world.getBlockState(
+            mutablePos.setPos(blockX, blockY, blockZ)));
     }
 
     @Override
@@ -85,7 +87,7 @@ final class V118OreWorldBridge implements V118OrePlacements.WorldAccess {
         if (isOutsideBuildHeight(blockY)) {
             return;
         }
-        world.setBlockState(new BlockPos(blockX, blockY, blockZ),
+        world.setBlockState(mutablePos.setPos(blockX, blockY, blockZ),
             blocks.stateFor(material), 2);
     }
 

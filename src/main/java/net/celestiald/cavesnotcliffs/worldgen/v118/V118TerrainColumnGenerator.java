@@ -133,11 +133,15 @@ public final class V118TerrainColumnGenerator {
 
     private TerrainColumn generateUncached(int columnX, int columnZ) {
         TerrainColumn.Builder builder = TerrainColumn.builder(columnX, columnZ);
-        CellFillGroup[] groups = createFillGroups(columnX, columnZ);
+        // Scanned once up front: the finished table is immutable, so every parallel fill lane
+        // and the post-fill surface pass read the same preliminary surface values.
+        NoiseBasedAquifer.PreliminarySurfaceLookup preliminarySurface =
+            V118PreliminarySurface.forColumn(settings,
+                V118DensityInterpolator.realize(router.initialDensityWithoutJaggedness(),
+                    settings),
+                columnX, columnZ);
+        CellFillGroup[] groups = createFillGroups(columnX, columnZ, preliminarySurface);
 
-        V118PreliminarySurface preliminarySurface = V118PreliminarySurface.fromRealizedDensity(
-            settings, V118DensityInterpolator.realize(router.initialDensityWithoutJaggedness(),
-                settings));
         NoiseBasedAquifer aquifer = new NoiseBasedAquifer(columnX, columnZ,
             settings.minY(), settings.height(), router.barrierNoise(),
             router.fluidLevelFloodednessNoise(), router.fluidLevelSpreadNoise(),
@@ -221,14 +225,15 @@ public final class V118TerrainColumnGenerator {
     }
 
     /** One cell-fill worker context per parallel lane, or the only context when serial. */
-    private CellFillGroup[] createFillGroups(int columnX, int columnZ) {
+    private CellFillGroup[] createFillGroups(int columnX, int columnZ,
+            NoiseBasedAquifer.PreliminarySurfaceLookup preliminarySurface) {
         // Group counts stay divisors of the 4x4 cell grid so bands tile it exactly.
         int requested = CELL_POOL == null ? 1 : Math.min(parallelism, MAX_PARALLELISM);
         int count = requested >= 16 ? 16 : requested >= 8 ? 8 : requested >= 4 ? 4
             : requested >= 2 ? 2 : 1;
         CellFillGroup[] groups = new CellFillGroup[count];
         for (int index = 0; index < count; ++index) {
-            groups[index] = new CellFillGroup(columnX, columnZ);
+            groups[index] = new CellFillGroup(columnX, columnZ, preliminarySurface);
         }
         return groups;
     }
@@ -341,7 +346,9 @@ public final class V118TerrainColumnGenerator {
     /**
      * Per-lane realized noise state. Realization wraps only the shared immutable noise graph in
      * fresh cache nodes, so a group's columns are bit-identical to the serial evaluation; the
-     * memoized corners/2D values simply get recomputed per lane instead of once per column.
+     * memoized corners/2D values simply get recomputed per lane instead of once per column. The
+     * preliminary surface is the exception: it is a pure function of the column, so all lanes
+     * read the one table scanned before the fill started.
      */
     private final class CellFillGroup {
         private final DensityFunction finalDensity;
@@ -351,16 +358,15 @@ public final class V118TerrainColumnGenerator {
         private final MutableDensityContext blockContext = new MutableDensityContext();
         private final long[] fluidBits = new long[(TerrainColumn.BLOCK_COUNT + 63) >>> 6];
 
-        private CellFillGroup(int columnX, int columnZ) {
+        private CellFillGroup(int columnX, int columnZ,
+                NoiseBasedAquifer.PreliminarySurfaceLookup preliminarySurface) {
             finalDensity = V118DensityInterpolator.realizeFinalDensity(router.finalDensity(),
                 settings);
             aquifer = new NoiseBasedAquifer(columnX, columnZ,
                 settings.minY(), settings.height(), router.barrierNoise(),
                 router.fluidLevelFloodednessNoise(), router.fluidLevelSpreadNoise(),
                 router.lavaNoise(), router.aquiferPositionalRandomFactory(),
-                V118PreliminarySurface.fromRealizedDensity(settings,
-                    V118DensityInterpolator.realize(router.initialDensityWithoutJaggedness(),
-                        settings)),
+                preliminarySurface,
                 V118TerrainColumnGenerator::globalFluid);
             oreVeinifier = new V118OreVeinifier(
                 V118DensityInterpolator.realize(router.veinToggle(), settings),
@@ -405,7 +411,7 @@ public final class V118TerrainColumnGenerator {
     private final class MutableSurfaceAccess implements V118SurfaceSystem.SurfaceAccess,
             V118WorldCarver.WorldAccess {
         private final TerrainColumn.Builder builder;
-        private final V118PreliminarySurface preliminarySurface;
+        private final NoiseBasedAquifer.PreliminarySurfaceLookup preliminarySurface;
         private final NoiseBasedAquifer aquifer;
         private final int[] highestNonAir;
         private final int columnX;
@@ -418,8 +424,9 @@ public final class V118TerrainColumnGenerator {
         private boolean lastAquiferShouldScheduleFluidUpdate;
 
         private MutableSurfaceAccess(TerrainColumn.Builder builder,
-                V118PreliminarySurface preliminarySurface, NoiseBasedAquifer aquifer,
-                int[] highestNonAir, int columnX, int columnZ, int minBlockX, int minBlockZ,
+                NoiseBasedAquifer.PreliminarySurfaceLookup preliminarySurface,
+                NoiseBasedAquifer aquifer, int[] highestNonAir, int columnX, int columnZ,
+                int minBlockX, int minBlockZ,
                 V118SurfaceSystem surfaceSystem, V118BiomeManager biomeManager,
                 MutableDensityContext blockContext) {
             this.builder = builder;

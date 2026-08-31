@@ -38,6 +38,13 @@ public final class V118DensityInterpolator {
     private static final class MarkerRealizer implements DensityFunction.Visitor {
         private final int cellWidth;
         private final int cellHeight;
+        // mapAll visits every reference to a shared sub-graph, so a cache-once marker reached
+        // through two parents (the lerp delta, the spaghetti roughness feeding both spaghetti2D
+        // and entrances) would otherwise be wrapped twice and keep recomputing. Keying the
+        // wrapper by marker identity preserves the router's sharing, matching NoiseChunk, where
+        // each marker node exists once.
+        private final java.util.IdentityHashMap<DensityFunction, DensityFunction> cacheOnceNodes =
+            new java.util.IdentityHashMap<DensityFunction, DensityFunction>();
 
         private MarkerRealizer(int cellWidth, int cellHeight) {
             this.cellWidth = cellWidth;
@@ -57,8 +64,14 @@ public final class V118DensityInterpolator {
                     return new FlatCache(marker.wrapped());
                 case CACHE_2D:
                     return new Cache2D(marker.wrapped());
-                case CACHE_ONCE:
-                    return marker.wrapped();
+                case CACHE_ONCE: {
+                    DensityFunction realized = cacheOnceNodes.get(marker.source());
+                    if (realized == null) {
+                        realized = new CacheOnce(marker.wrapped());
+                        cacheOnceNodes.put(marker.source(), realized);
+                    }
+                    return realized;
+                }
                 case CACHE_ALL_IN_CELL:
                     return new CellCache(marker.wrapped());
                 default:
@@ -109,6 +122,48 @@ public final class V118DensityInterpolator {
             key *= 0xff51afd7ed558ccdL;
             key ^= key >>> 33;
             return (int) key & CACHE_2D_MASK;
+        }
+    }
+
+    /**
+     * Single-entry memo of the last sampled position, the deterministic equivalent of
+     * NoiseChunk's per-cell cache-once epoch. Density functions are pure in their coordinates,
+     * so repeating a sample at the same point — the doubled lerp delta and the sub-trees shared
+     * by spaghetti2D/entrances/pillars — returns the identical value without recomputing it.
+     */
+    private static final class CacheOnce implements DensityFunction.SimpleFunction {
+        private final DensityFunction wrapped;
+        private int lastX = Integer.MIN_VALUE;
+        private int lastY = Integer.MIN_VALUE;
+        private int lastZ = Integer.MIN_VALUE;
+        private double lastValue;
+
+        private CacheOnce(DensityFunction wrapped) {
+            this.wrapped = wrapped;
+        }
+
+        @Override
+        public double compute(DensityFunction.FunctionContext context) {
+            int blockX = context.blockX();
+            int blockY = context.blockY();
+            int blockZ = context.blockZ();
+            if (blockX != lastX || blockY != lastY || blockZ != lastZ) {
+                lastX = blockX;
+                lastY = blockY;
+                lastZ = blockZ;
+                lastValue = wrapped.compute(context);
+            }
+            return lastValue;
+        }
+
+        @Override
+        public double minValue() {
+            return wrapped.minValue();
+        }
+
+        @Override
+        public double maxValue() {
+            return wrapped.maxValue();
         }
     }
 

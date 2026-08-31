@@ -69,6 +69,7 @@ final class V118MountainSurfaceWorldBridge
     private final World world;
     private final V118ChunkGenerator generator;
     private final SpringValidBlocks springValidBlocks;
+    private final HeightCache heightCache = new HeightCache();
     private int surfaceFeatureChunkX;
     private int surfaceFeatureChunkZ;
 
@@ -91,11 +92,13 @@ final class V118MountainSurfaceWorldBridge
     V118DefaultSpringPlacements.DecorationResult populateDefaultSprings(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes,
             V118DefaultSpringPlacements.SpringGate springGate) {
+        heightCache.clear();
         return V118DefaultSpringPlacements.decorate(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes, springGate);
     }
 
     int populateLavaLakes(int chunkX, int chunkZ) {
+        heightCache.clear();
         surfaceFeatureChunkX = chunkX;
         surfaceFeatureChunkZ = chunkZ;
         return V118LavaLakePlacements.decorate(this, world.getSeed(), chunkX, chunkZ);
@@ -103,17 +106,20 @@ final class V118MountainSurfaceWorldBridge
 
     V118MountainSurfacePlacements.DecorationResult populateFrozenSprings(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         return V118MountainSurfacePlacements.decorateFrozenSprings(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
     }
 
     V118MountainSurfacePlacements.DecorationResult populateForestRock(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         return V118MountainSurfacePlacements.decorateForestRock(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
     }
 
     void populateIceSurface(int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         surfaceFeatureChunkX = chunkX;
         surfaceFeatureChunkZ = chunkZ;
         V118IceSurfacePlacements.decorate(this, world.getSeed(), chunkX, chunkZ,
@@ -121,6 +127,7 @@ final class V118MountainSurfaceWorldBridge
     }
 
     void populateBlueIce(int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         surfaceFeatureChunkX = chunkX;
         surfaceFeatureChunkZ = chunkZ;
         V118IceSurfacePlacements.decorateBlueIce(this, world.getSeed(), chunkX, chunkZ,
@@ -128,6 +135,7 @@ final class V118MountainSurfaceWorldBridge
     }
 
     void populateDesertWell(int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         surfaceFeatureChunkX = chunkX;
         surfaceFeatureChunkZ = chunkZ;
         V118DesertWellPlacements.decorate(this, world.getSeed(), chunkX, chunkZ,
@@ -136,12 +144,14 @@ final class V118MountainSurfaceWorldBridge
 
     V118MountainSurfacePlacements.DecorationResult populateEarlyTrees(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         return V118MountainSurfacePlacements.decorateEarlyTrees(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
     }
 
     void populateSparseJungleTrees(int chunkX, int chunkZ,
             Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         if (regionBiomes.contains(V118Biome.SPARSE_JUNGLE)) {
             V118JungleTreeFeature.place(this, world.getSeed(), chunkX, chunkZ,
                 V118JungleTreeFeature.Family.SPARSE_JUNGLE);
@@ -150,6 +160,7 @@ final class V118MountainSurfaceWorldBridge
 
     void populateJungleTrees(int chunkX, int chunkZ,
             Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         if (regionBiomes.contains(V118Biome.JUNGLE)) {
             V118JungleTreeFeature.place(this, world.getSeed(), chunkX, chunkZ,
                 V118JungleTreeFeature.Family.JUNGLE);
@@ -164,6 +175,7 @@ final class V118MountainSurfaceWorldBridge
     void populateDarkForestVegetation(int chunkX, int chunkZ,
             Set<V118Biome> regionBiomes, boolean allowTrees,
             boolean allowHugeMushrooms) {
+        heightCache.clear();
         if (regionBiomes.contains(V118Biome.DARK_FOREST)) {
             V118DarkForestVegetationFeature.decorate(
                 this, world.getSeed(), chunkX, chunkZ, allowTrees,
@@ -173,48 +185,56 @@ final class V118MountainSurfaceWorldBridge
 
     V118MountainSurfacePlacements.DecorationResult populateWindsweptSavannaTrees(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         return V118MountainSurfacePlacements.decorateWindsweptSavannaTrees(
             this, world.getSeed(), chunkX, chunkZ, regionBiomes);
     }
 
     V118MountainSurfacePlacements.DecorationResult populateSavannaTrees(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         return V118MountainSurfacePlacements.decorateSavannaTrees(
             this, world.getSeed(), chunkX, chunkZ, regionBiomes);
     }
 
     V118MountainSurfacePlacements.DecorationResult populateEarlyDoublePlants(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         return V118MountainSurfacePlacements.decorateEarlyDoublePlants(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
     }
 
     V118MountainSurfacePlacements.DecorationResult populatePreLushDoublePlants(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         return V118MountainSurfacePlacements.decoratePreLushDoublePlants(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
     }
 
     V118MountainSurfacePlacements.DecorationResult populateEarlyShortGrass(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         return V118MountainSurfacePlacements.decorateEarlyShortGrass(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
     }
 
     V118MountainSurfacePlacements.DecorationResult populateEarlyFlowers(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         return V118MountainSurfacePlacements.decorateEarlyFlowers(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
     }
 
     V118MountainSurfacePlacements.DecorationResult populateLateDoublePlants(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         return V118MountainSurfacePlacements.decorateLateDoublePlants(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
     }
 
     void populateOldGrowthTrees(int chunkX, int chunkZ,
             Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         if (regionBiomes.contains(V118Biome.OLD_GROWTH_PINE_TAIGA)) {
             V118OldGrowthTreeFeature.place(this, world.getSeed(), chunkX, chunkZ,
                 V118OldGrowthTreeFeature.Family.OLD_GROWTH_PINE_TAIGA);
@@ -227,6 +247,7 @@ final class V118MountainSurfaceWorldBridge
 
     V118MountainSurfacePlacements.DecorationResult populatePreLateTrees(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         return V118MountainSurfacePlacements.decoratePreLateTrees(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
     }
@@ -240,12 +261,14 @@ final class V118MountainSurfaceWorldBridge
     V118MountainSurfacePlacements.DecorationResult populateVegetation(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes,
             V118MountainSurfacePlacements.VegetationGate vegetationGate) {
+        heightCache.clear();
         return V118MountainSurfacePlacements.decorateVegetation(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes, vegetationGate);
     }
 
     V118MountainSurfacePlacements.DecorationResult populateTopLayer(
             int chunkX, int chunkZ, Set<V118Biome> regionBiomes) {
+        heightCache.clear();
         return V118MountainSurfacePlacements.decorateTopLayer(this, world.getSeed(),
             chunkX, chunkZ, regionBiomes);
     }
@@ -267,20 +290,23 @@ final class V118MountainSurfaceWorldBridge
 
     @Override
     public int worldSurfaceHeight(int blockX, int blockZ) {
-        return firstAvailableHeight(blockX, blockZ,
-            state -> state.getMaterial() != Material.AIR);
+        return heightCache.get(blockX, blockZ, HeightCache.WORLD_SURFACE,
+            (x, z) -> firstAvailableHeight(x, z,
+                state -> state.getMaterial() != Material.AIR));
     }
 
     @Override
     public int oceanFloorHeight(int blockX, int blockZ) {
-        return firstAvailableHeight(blockX, blockZ,
-            state -> !isPowderSnow(state) && state.getMaterial().blocksMovement());
+        return heightCache.get(blockX, blockZ, HeightCache.OCEAN_FLOOR,
+            (x, z) -> firstAvailableHeight(x, z,
+                state -> !isPowderSnow(state) && state.getMaterial().blocksMovement()));
     }
 
     @Override
     public int motionBlockingHeight(int blockX, int blockZ) {
-        return firstAvailableHeight(blockX, blockZ,
-            V118MountainSurfaceWorldBridge::isMotionBlockingState);
+        return heightCache.get(blockX, blockZ, HeightCache.MOTION_BLOCKING,
+            (x, z) -> firstAvailableHeight(x, z,
+                V118MountainSurfaceWorldBridge::isMotionBlockingState));
     }
 
     @Override
@@ -388,6 +414,7 @@ final class V118MountainSurfaceWorldBridge
     private void setLakeState(int blockX, int blockY, int blockZ, IBlockState state) {
         BlockPos pos = new BlockPos(blockX, blockY, blockZ);
         if (canWriteSurfaceFeature(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, state, 2);
         }
     }
@@ -407,6 +434,63 @@ final class V118MountainSurfaceWorldBridge
             }
         }
         return TerrainColumn.MIN_Y;
+    }
+
+    /**
+     * Per-column memo of the three heightmap scans, valid for one populate step. Vegetation
+     * queries the same handful of columns hundreds of times per chunk, so each scan runs once
+     * per column per step. Every bridge write drops the column's entry, and each populate step
+     * clears the table on entry because the other decoration bridges write between steps.
+     */
+    static final class HeightCache {
+        static final int WORLD_SURFACE = 0;
+        static final int OCEAN_FLOOR = 1;
+        static final int MOTION_BLOCKING = 2;
+        private static final int KINDS = 3;
+        private static final int SLOTS = 256;
+        private static final long EMPTY_KEY = Long.MAX_VALUE;
+
+        private final long[] keys = new long[SLOTS];
+        private final int[] values = new int[SLOTS * KINDS];
+        private final int[] filled = new int[SLOTS];
+
+        HeightCache() {
+            clear();
+        }
+
+        int get(int blockX, int blockZ, int kind, Probe probe) {
+            int slot = ((blockX & 15) << 4) | (blockZ & 15);
+            long key = pack(blockX, blockZ);
+            if (keys[slot] != key) {
+                keys[slot] = key;
+                filled[slot] = 0;
+            }
+            int bit = 1 << kind;
+            if ((filled[slot] & bit) == 0) {
+                values[slot * KINDS + kind] = probe.compute(blockX, blockZ);
+                filled[slot] |= bit;
+            }
+            return values[slot * KINDS + kind];
+        }
+
+        void invalidate(int blockX, int blockZ) {
+            int slot = ((blockX & 15) << 4) | (blockZ & 15);
+            if (keys[slot] == pack(blockX, blockZ)) {
+                filled[slot] = 0;
+            }
+        }
+
+        void clear() {
+            java.util.Arrays.fill(keys, EMPTY_KEY);
+        }
+
+        private static long pack(int blockX, int blockZ) {
+            return ((long) blockX << 32) | (blockZ & 0xFFFFFFFFL);
+        }
+
+        interface Probe {
+            int compute(int blockX, int blockZ);
+        }
     }
 
     @Override
@@ -449,6 +533,7 @@ final class V118MountainSurfaceWorldBridge
             return;
         }
         EnumFacing facing = vineFacing(attachmentDirection);
+        heightCache.invalidate(pos.getX(), pos.getZ());
         world.setBlockState(pos, Blocks.VINE.getDefaultState()
             .withProperty(BlockVine.getPropertyFor(facing), true), 2);
     }
@@ -486,6 +571,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setPackedIce(BlockPos pos, int flags) {
         if (canWriteSurfaceFeature(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.PACKED_ICE.getDefaultState(), flags);
         }
     }
@@ -496,6 +582,7 @@ final class V118MountainSurfaceWorldBridge
             if (BlueIceContent.BLUE_ICE == null) {
                 throw new IllegalStateException("Blue ice block was not registered");
             }
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, BlueIceContent.BLUE_ICE.getDefaultState(), flags);
         }
     }
@@ -518,6 +605,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setSandstone(BlockPos pos) {
         if (canWriteSurfaceFeature(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.SANDSTONE.getDefaultState(), 2);
         }
     }
@@ -530,12 +618,14 @@ final class V118MountainSurfaceWorldBridge
         IBlockState slab = Blocks.STONE_SLAB.getDefaultState()
             .withProperty(BlockStoneSlab.VARIANT, BlockStoneSlab.EnumType.SAND)
             .withProperty(BlockSlab.HALF, BlockSlab.EnumBlockHalf.BOTTOM);
+        heightCache.invalidate(pos.getX(), pos.getZ());
         world.setBlockState(pos, slab, 2);
     }
 
     @Override
     public void setSourceWater(BlockPos pos) {
         if (canWriteSurfaceFeature(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.WATER.getDefaultState(), 2);
         }
     }
@@ -581,6 +671,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setMossyCobblestone(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.MOSSY_COBBLESTONE.getDefaultState(), 4);
         }
     }
@@ -634,6 +725,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setJungleLog(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.LOG.getStateFromMeta(3), 2);
         }
     }
@@ -646,6 +738,7 @@ final class V118MountainSurfaceWorldBridge
         IBlockState state = Blocks.LEAVES.getStateFromMeta(3)
             .withProperty(BlockLeaves.CHECK_DECAY, false)
             .withProperty(BlockLeaves.DECAYABLE, true);
+        heightCache.invalidate(pos.getX(), pos.getZ());
         world.setBlockState(pos, state, 2);
     }
 
@@ -657,6 +750,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setDarkOakLog(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.LOG2.getStateFromMeta(1), 2);
         }
     }
@@ -669,6 +763,7 @@ final class V118MountainSurfaceWorldBridge
         IBlockState state = Blocks.LEAVES2.getStateFromMeta(1)
             .withProperty(BlockLeaves.CHECK_DECAY, false)
             .withProperty(BlockLeaves.DECAYABLE, true);
+        heightCache.invalidate(pos.getX(), pos.getZ());
         world.setBlockState(pos, state, 2);
     }
 
@@ -679,6 +774,7 @@ final class V118MountainSurfaceWorldBridge
             return;
         }
         EnumFacing face = EnumFacing.valueOf(attachment.name());
+        heightCache.invalidate(pos.getX(), pos.getZ());
         world.setBlockState(pos, Blocks.VINE.getDefaultState()
             .withProperty(BlockVine.getPropertyFor(face), true), 2);
     }
@@ -689,6 +785,7 @@ final class V118MountainSurfaceWorldBridge
         if (!inside(pos)) {
             return;
         }
+        heightCache.invalidate(pos.getX(), pos.getZ());
         world.setBlockState(pos, Blocks.COCOA.getDefaultState()
             .withProperty(BlockCocoa.FACING, EnumFacing.valueOf(facing.name()))
             .withProperty(BlockCocoa.AGE, age), 2);
@@ -700,6 +797,7 @@ final class V118MountainSurfaceWorldBridge
             return;
         }
         EnumFacing face = EnumFacing.valueOf(attachment.name());
+        heightCache.invalidate(pos.getX(), pos.getZ());
         world.setBlockState(pos, Blocks.VINE.getDefaultState()
             .withProperty(BlockVine.getPropertyFor(face), true), 2);
     }
@@ -740,6 +838,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setPodzol(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.DIRT.getStateFromMeta(2), 2);
         }
     }
@@ -875,6 +974,7 @@ final class V118MountainSurfaceWorldBridge
         }
         Block block = kind == V118MushroomIslandVegetationFeature.MushroomKind.RED
             ? Blocks.RED_MUSHROOM_BLOCK : Blocks.BROWN_MUSHROOM_BLOCK;
+        heightCache.invalidate(pos.getX(), pos.getZ());
         world.setBlockState(pos, MushroomCapContent.state(block,
             faces.north(), faces.east(), faces.south(), faces.west(),
             faces.up(), faces.down()), 2);
@@ -883,6 +983,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setMushroomStem(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, MushroomStemContent.generatedStemState(), 2);
         }
     }
@@ -1021,6 +1122,7 @@ final class V118MountainSurfaceWorldBridge
         }
         Block block = world.getBlockState(pos).getBlock();
         if (!isDirtTag(block) || block == Blocks.GRASS || block == Blocks.MYCELIUM) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.DIRT.getDefaultState(), 2);
         }
     }
@@ -1028,6 +1130,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setSpruceLog(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.LOG.getStateFromMeta(1), 2);
         }
     }
@@ -1040,12 +1143,14 @@ final class V118MountainSurfaceWorldBridge
         IBlockState state = Blocks.LEAVES.getStateFromMeta(1)
             .withProperty(BlockLeaves.CHECK_DECAY, false)
             .withProperty(BlockLeaves.DECAYABLE, true);
+        heightCache.invalidate(pos.getX(), pos.getZ());
         world.setBlockState(pos, state, 2);
     }
 
     @Override
     public void setAcaciaLog(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.LOG2.getStateFromMeta(0), 2);
         }
     }
@@ -1058,12 +1163,14 @@ final class V118MountainSurfaceWorldBridge
         IBlockState state = Blocks.LEAVES2.getStateFromMeta(0)
             .withProperty(BlockLeaves.CHECK_DECAY, false)
             .withProperty(BlockLeaves.DECAYABLE, true);
+        heightCache.invalidate(pos.getX(), pos.getZ());
         world.setBlockState(pos, state, 2);
     }
 
     @Override
     public void setLog(BlockPos pos, LogAxis axis, TreeKind kind) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             V118TreeStateRules.setLog(world, pos, axis, kind);
         }
     }
@@ -1071,6 +1178,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setLeaves(BlockPos pos, TreeKind kind) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             V118TreeStateRules.setLeaves(world, pos, kind);
         }
     }
@@ -1078,6 +1186,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setLava(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.FLOWING_LAVA.getDefaultState(), 2);
         }
     }
@@ -1094,6 +1203,7 @@ final class V118MountainSurfaceWorldBridge
         if (!inside(pos)) {
             return;
         }
+        heightCache.invalidate(pos.getX(), pos.getZ());
         world.setBlockState(pos, springBlock(fluid).getDefaultState(), 2);
     }
 
@@ -1108,6 +1218,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setIce(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.ICE.getDefaultState(), 2);
         }
     }
@@ -1115,6 +1226,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setSnowLayer(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.SNOW_LAYER.getDefaultState(), 2);
         }
     }
@@ -1122,6 +1234,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setDeadBush(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.DEADBUSH.getDefaultState(), 2);
         }
     }
@@ -1129,6 +1242,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setSugarCane(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.REEDS.getDefaultState(), 2);
         }
     }
@@ -1136,6 +1250,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setTallGrass(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             Blocks.DOUBLE_PLANT.placeAt(world, pos,
                 BlockDoublePlant.EnumPlantType.byMetadata(2), 2);
         }
@@ -1144,6 +1259,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setLargeFern(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             Blocks.DOUBLE_PLANT.placeAt(world, pos,
                 BlockDoublePlant.EnumPlantType.byMetadata(3), 2);
         }
@@ -1152,6 +1268,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setShortGrass(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.TALLGRASS.getStateFromMeta(1), 2);
         }
     }
@@ -1159,6 +1276,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setFern(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.TALLGRASS.getStateFromMeta(2), 2);
         }
     }
@@ -1166,6 +1284,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setPoppy(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.RED_FLOWER.getStateFromMeta(0), 2);
         }
     }
@@ -1173,6 +1292,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setDandelion(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.YELLOW_FLOWER.getDefaultState(), 2);
         }
     }
@@ -1180,6 +1300,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setBlueOrchid(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.RED_FLOWER.getStateFromMeta(1), 2);
         }
     }
@@ -1187,6 +1308,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setBrownMushroom(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.BROWN_MUSHROOM.getDefaultState(), 2);
         }
     }
@@ -1194,6 +1316,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setRedMushroom(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.RED_MUSHROOM.getDefaultState(), 2);
         }
     }
@@ -1201,6 +1324,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setWaterlily(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.WATERLILY.getDefaultState(), 2);
         }
     }
@@ -1208,6 +1332,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setCactus(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.CACTUS.getDefaultState(), 2);
         }
     }
@@ -1215,6 +1340,7 @@ final class V118MountainSurfaceWorldBridge
     @Override
     public void setMelon(BlockPos pos) {
         if (inside(pos)) {
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, Blocks.MELON_BLOCK.getDefaultState(), 2);
         }
     }
@@ -1225,6 +1351,7 @@ final class V118MountainSurfaceWorldBridge
             if (PlainPumpkinContent.PUMPKIN == null) {
                 throw new IllegalStateException("Plain pumpkin block is not registered");
             }
+            heightCache.invalidate(pos.getX(), pos.getZ());
             world.setBlockState(pos, PlainPumpkinContent.PUMPKIN.getDefaultState(), 2);
         }
     }

@@ -12,6 +12,7 @@ import net.minecraft.init.Bootstrap;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -144,6 +145,50 @@ public class V118MountainSurfaceWorldBridgeTest {
             V118MountainSurfaceWorldBridge.springBlock(SpringFluid.WATER));
         assertSame(Blocks.FLOWING_LAVA,
             V118MountainSurfaceWorldBridge.springBlock(SpringFluid.LAVA));
+    }
+
+    @Test
+    public void heightCacheMemoizesColumnsUntilInvalidatedOrCleared() {
+        V118MountainSurfaceWorldBridge.HeightCache cache =
+            new V118MountainSurfaceWorldBridge.HeightCache();
+        int[] calls = {0};
+        V118MountainSurfaceWorldBridge.HeightCache.Probe probe = (x, z) -> {
+            ++calls[0];
+            return x * 3 + z;
+        };
+
+        assertEquals(17, cache.get(4, 5,
+            V118MountainSurfaceWorldBridge.HeightCache.WORLD_SURFACE, probe));
+        assertEquals(17, cache.get(4, 5,
+            V118MountainSurfaceWorldBridge.HeightCache.WORLD_SURFACE, probe));
+        assertEquals("a repeated column query must not rescan", 1, calls[0]);
+
+        assertEquals(17, cache.get(4, 5,
+            V118MountainSurfaceWorldBridge.HeightCache.MOTION_BLOCKING, probe));
+        assertEquals("each heightmap kind is memoized independently", 2, calls[0]);
+
+        cache.invalidate(4, 5);
+        assertEquals(17, cache.get(4, 5,
+            V118MountainSurfaceWorldBridge.HeightCache.WORLD_SURFACE, probe));
+        assertEquals("a write into the column must drop its entries", 3, calls[0]);
+
+        cache.invalidate(9, 5);
+        assertEquals(17, cache.get(4, 5,
+            V118MountainSurfaceWorldBridge.HeightCache.MOTION_BLOCKING, probe));
+        assertEquals("a write drops every kind of the column; other columns stay cached",
+            4, calls[0]);
+
+        assertEquals(65, cache.get(20, 5,
+            V118MountainSurfaceWorldBridge.HeightCache.WORLD_SURFACE, probe));
+        assertEquals(17, cache.get(4, 5,
+            V118MountainSurfaceWorldBridge.HeightCache.WORLD_SURFACE, probe));
+        assertEquals("columns colliding in one slot evict each other, never mix up",
+            6, calls[0]);
+
+        cache.clear();
+        assertEquals(17, cache.get(4, 5,
+            V118MountainSurfaceWorldBridge.HeightCache.WORLD_SURFACE, probe));
+        assertEquals("a new populate step must rescan", 7, calls[0]);
     }
 
     private static IBlockState stone(int metadata) {

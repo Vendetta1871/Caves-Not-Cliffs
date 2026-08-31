@@ -98,6 +98,65 @@ public class V118DensityInterpolatorTest {
             function.compute(x0 + 4, y0 + 8, z0 + 4));
     }
 
+    @Test
+    public void cacheOnceMemoizesOnlyTheLastSampledPosition() {
+        CountingCoordinateCode counting = new CountingCoordinateCode();
+        DensityFunction realized = V118DensityInterpolator.realize(
+            DensityFunctions.cacheOnce(counting), V118NoiseSettings.overworld(false));
+        DensityFunction plain = new CoordinateCode();
+
+        assertEquals(plain.compute(2, 3, 4), realized.compute(2, 3, 4), 0.0D);
+        assertEquals(plain.compute(2, 3, 4), realized.compute(2, 3, 4), 0.0D);
+        assertEquals("repeated sample at one position must not recompute",
+            1, counting.calls);
+
+        assertEquals(plain.compute(2, 3, 5), realized.compute(2, 3, 5), 0.0D);
+        assertEquals("a new position must recompute", 2, counting.calls);
+
+        assertEquals(plain.compute(2, 3, 4), realized.compute(2, 3, 4), 0.0D);
+        assertEquals("returning to an earlier position must recompute", 3, counting.calls);
+    }
+
+    @Test
+    public void cacheOnceRemovesTheDoubledLerpDeltaEvaluation() {
+        CountingCoordinateCode counting = new CountingCoordinateCode();
+        DensityFunction realized = V118DensityInterpolator.realize(
+            DensityFunctions.lerp(counting, DensityFunctions.constant(2.0D),
+                DensityFunctions.constant(6.0D)),
+            V118NoiseSettings.overworld(false));
+        DensityFunction expectedGraph = DensityFunctions.lerp(new CoordinateCode(),
+            DensityFunctions.constant(2.0D), DensityFunctions.constant(6.0D));
+        int samples = 0;
+        for (int[] position : new int[][] {{8, 16, 24}, {-4, 0, 12}, {31, -64, 7}}) {
+            assertEquals(expectedGraph.compute(position[0], position[1], position[2]),
+                realized.compute(position[0], position[1], position[2]), 0.0D);
+            ++samples;
+        }
+        assertEquals("lerp reads its delta twice per sample; cache-once must collapse that",
+            samples, counting.calls);
+    }
+
+    private static final class CountingCoordinateCode
+            implements DensityFunction.SimpleFunction {
+        private int calls;
+
+        @Override
+        public double compute(DensityFunction.FunctionContext context) {
+            ++calls;
+            return new CoordinateCode().compute(context);
+        }
+
+        @Override
+        public double minValue() {
+            return Double.NEGATIVE_INFINITY;
+        }
+
+        @Override
+        public double maxValue() {
+            return Double.POSITIVE_INFINITY;
+        }
+    }
+
     private static final class CoordinateCode implements DensityFunction.SimpleFunction {
         @Override
         public double compute(DensityFunction.FunctionContext context) {

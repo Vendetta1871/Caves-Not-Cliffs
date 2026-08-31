@@ -329,10 +329,21 @@ public final class DensityFunctions {
     public static final class Marker implements DensityFunction {
         private final MarkerType type;
         private final DensityFunction wrapped;
+        // The source node this marker was mapped from. mapAll copies the node, but visitors
+        // that wrap a marker in a memoizing node need the original identity to keep the
+        // expression graph's sharing (one lerp delta, one spaghetti roughness) intact.
+        private final Marker source;
 
         public Marker(MarkerType type, DensityFunction wrapped) {
             this.type = type;
             this.wrapped = wrapped;
+            this.source = this;
+        }
+
+        private Marker(MarkerType type, DensityFunction wrapped, Marker source) {
+            this.type = type;
+            this.wrapped = wrapped;
+            this.source = source;
         }
 
         public MarkerType type() {
@@ -341,6 +352,11 @@ public final class DensityFunctions {
 
         public DensityFunction wrapped() {
             return wrapped;
+        }
+
+        /** Identity of the pre-mapping node; stable across {@link #mapAll} copies. */
+        public Marker source() {
+            return source;
         }
 
         @Override
@@ -355,7 +371,7 @@ public final class DensityFunctions {
 
         @Override
         public DensityFunction mapAll(DensityFunction.Visitor visitor) {
-            return visitor.apply(new Marker(type, wrapped.mapAll(visitor)));
+            return visitor.apply(new Marker(type, wrapped.mapAll(visitor), source));
         }
 
         @Override
