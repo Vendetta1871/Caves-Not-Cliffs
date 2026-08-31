@@ -13,7 +13,7 @@ buildscript {
 apply plugin: 'net.minecraftforge.gradle.forge'
 apply plugin: 'org.spongepowered.mixin'
 
-version = '2.0.3'
+version = '2.0.4'
 group = 'net.celestiald'
 archivesBaseName = 'cavesnotcliffs'
 

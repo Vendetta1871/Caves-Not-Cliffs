@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.4
+
+- Fix modded biome decorators running on whole chunks where the biome barely appears
+  (issue #16): with Cherry_on installed, pink petals spawned everywhere grass generates.
+  The modded biome decoration pass now samples the biome at the center of the population
+  region — like vanilla 1.12.2 does — instead of majority-voting the whole 16x16 area.
+- Fix a crash in custom dungeon chest placement when another mod's chest block state
+  lacks the expected chest part/facing properties (from PR #17, thanks @NNYYOONNIIOO).
+- Faster terrain generation: repeated density evaluations (CACHE_ONCE markers such as
+  the spaghetti cave roughness, pillars and entrances) are now memoized per position,
+  the preliminary surface heightmap is computed once per column instead of once per
+  parallel stripe, and the mountain surface bridge caches column heightmaps during
+  decoration instead of rescanning up to 384 blocks per query. Generation output is
+  bit-identical to 2.0.3.
+- Ship a mod icon shown by launchers and the in-game mod list.
+- Depend on CaveBiomesAPI 1.1.3: extended-height worlds now render correctly under
+  Celeritas and its shader-enabled fork Actinium (issue #14).
+
 ## 2.0.3
 
 - Support modded surface biomes in native-profile worlds: biomes other mods add through
