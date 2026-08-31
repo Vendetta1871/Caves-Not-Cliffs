@@ -50,13 +50,12 @@ dependencies {
     // ForgeGradle 2.3's equivalent of `implementation fg.deobf(...)`.
     deobfCompile "curse.maven:fluidlogged-api-485654:8445863"
 
-    // JitPack has the 1.1.2 tag build cached as a failure (a transient sponge repo outage
-    // broke its first attempt); the commit below is exactly tag 1.1.2 and builds cleanly.
-    // Flip back to the plain '1.1.2' version once JitPack rebuilds the tag.
-    compileOnly('com.github.Vendetta1871:CaveBiomesAPI:09260f0633') {
+    // The 1.1.2 tag build is a frozen failure on JitPack (a transient sponge repo outage broke
+    // its first attempt and tag builds are not rebuilt), so 1.1.3 is the first usable tag.
+    compileOnly('com.github.Vendetta1871:CaveBiomesAPI:1.1.3') {
         transitive = false
     }
-    testCompile('com.github.Vendetta1871:CaveBiomesAPI:09260f0633') {
+    testCompile('com.github.Vendetta1871:CaveBiomesAPI:1.1.3') {
         transitive = false
     }
 
