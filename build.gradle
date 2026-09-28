@@ -27,7 +27,7 @@ if (devLaunch && requestedTasks.any { task ->
 }
 ext.forgeFloor = devLaunch ? '14.23.5.2847' : releaseForgeFloor
 
-version = '2.0.4'
+version = '2.0.5'
 group = 'net.celestiald'
 archivesBaseName = 'cavesnotcliffs'
 

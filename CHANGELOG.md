@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.0.5
 
 - Fix native 1.18 worlds generating without passive animals: new chunks now get their
   original cows, sheep, pigs and chickens right after decoration, as in 1.12 and 1.18.
