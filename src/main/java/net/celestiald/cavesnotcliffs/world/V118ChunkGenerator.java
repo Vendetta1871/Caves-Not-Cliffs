@@ -16,6 +16,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldEntitySpawner;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkPrimer;
@@ -360,6 +361,13 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         // knows the vanilla projection. Sits inside the same Decorate Pre/Post pair.
         decorateModdedBiome(chunkX, chunkZ);
         forgeEvents.decorationPost();
+        // Java 1.18 spawns a chunk's original passive mobs once its features are placed, like
+        // 1.12's overworld generator does right after decoration. Without this pass native
+        // worlds only ever received animals from the rare periodic creature spawner.
+        if (forgeEvents.allowPopulation(villageGenerated,
+                PopulateChunkEvent.Populate.EventType.ANIMALS)) {
+            spawnOriginalAnimals(chunkX, chunkZ);
+        }
         TerrainColumn column = columns.column(chunkX, chunkZ);
 
         for (int sectionY = TerrainColumn.MIN_CUBE_Y;
@@ -392,6 +400,24 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         random.setSeed((long) chunkX * xFactor ^ (long) chunkZ * zFactor ^ seed);
         moddedDecoration.decorate(center, world, random,
             new BlockPos(chunkX << 4, 0, chunkZ << 4));
+    }
+
+    /**
+     * Mirrors 1.18's {@code spawnOriginalMobs}: the biome is read at the top of the column at the
+     * chunk's minimum corner (never a cave biome) and the packs stay inside the populated chunk,
+     * seeded with the legacy decoration seed of that corner.
+     */
+    private void spawnOriginalAnimals(int chunkX, int chunkZ) {
+        int minBlockX = chunkX << 4;
+        int minBlockZ = chunkZ << 4;
+        Biome biome = world.getBiome(new BlockPos(minBlockX, TerrainColumn.MAX_Y, minBlockZ));
+        long seed = world.getSeed();
+        Random random = new Random(seed);
+        long xMultiplier = random.nextLong() | 1L;
+        long zMultiplier = random.nextLong() | 1L;
+        random.setSeed((long) minBlockX * xMultiplier + (long) minBlockZ * zMultiplier ^ seed);
+        WorldEntitySpawner.performWorldGenSpawning(world, biome, minBlockX, minBlockZ,
+            CUBE_SIZE, CUBE_SIZE, random);
     }
 
     private static DecorateBiomeEvent.Decorate.EventType decorationType(
