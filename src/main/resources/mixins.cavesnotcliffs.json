@@ -5,7 +5,8 @@
     "package": "net.celestiald.cavesnotcliffs.mixin",
     "refmap": "mixins.cavesnotcliffs.refmap.json",
     "mixins": [
-        "CauldronMixin"
+        "CauldronMixin",
+        "LightningBoltMixin"
     ],
     "client": [
         "GuiOverlayDebugMixin"

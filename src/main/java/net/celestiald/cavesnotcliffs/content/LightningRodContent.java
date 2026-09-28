@@ -18,6 +18,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.EnumParticleTypes;
@@ -50,6 +51,8 @@ public final class LightningRodContent {
     public static final String WATERLOGGED_PATH = "lightning_rod_waterlogged";
     public static final int RANGE = 128;
     public static final int ACTIVATION_TICKS = 8;
+    private static final String STRIKE_RESOLVED_KEY = "CncStrikeResolved";
+    private static final String STRIKE_ROD_KEY = "CncStrikeRod";
 
     private static LightningRodBlock publicRod;
     private static LightningRodBlock waterloggedRod;
@@ -82,6 +85,26 @@ public final class LightningRodContent {
         }
     }
 
+    /**
+     * Picks the rod a new bolt strikes, called by {@code LightningBoltMixin} from the bolt's
+     * constructor before it ignites anything. The choice is recorded on the bolt so the
+     * join-world handler neither searches again nor moves the bolt afterwards.
+     */
+    @Nullable
+    public static BlockPos resolveStrike(EntityLightningBolt bolt, double x, double y, double z) {
+        World world = bolt.world;
+        if (world == null || world.isRemote) {
+            return null;
+        }
+        BlockPos rod = findClosestExposedRod(world, new BlockPos(x, y - 1.0E-6D, z));
+        NBTTagCompound data = bolt.getEntityData();
+        data.setBoolean(STRIKE_RESOLVED_KEY, true);
+        if (rod != null) {
+            data.setLong(STRIKE_ROD_KEY, rod.toLong());
+        }
+        return rod;
+    }
+
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void redirectAndHandleLightning(EntityJoinWorldEvent event) {
         if (event.getWorld().isRemote || !(event.getEntity() instanceof EntityLightningBolt)
@@ -91,17 +114,28 @@ public final class LightningRodContent {
 
         EntityLightningBolt bolt = (EntityLightningBolt) event.getEntity();
         World world = event.getWorld();
-        BlockPos originalStrike = new BlockPos(bolt.posX, bolt.posY - 1.0E-6D, bolt.posZ);
-        BlockPos rod = findClosestExposedRod(world, originalStrike);
-        BlockPos strike = originalStrike;
+        NBTTagCompound data = bolt.getEntityData();
+        BlockPos strike = new BlockPos(bolt.posX, bolt.posY - 1.0E-6D, bolt.posZ);
+        BlockPos rod;
+        if (data.getBoolean(STRIKE_RESOLVED_KEY)) {
+            rod = data.hasKey(STRIKE_ROD_KEY) ? BlockPos.fromLong(data.getLong(STRIKE_ROD_KEY)) : null;
+        } else {
+            // The constructor redirect did not run (another mod redirected the same call): move
+            // the bolt here instead, although the constructor has already lit the original spot.
+            rod = findClosestExposedRod(world, strike);
+            if (rod != null) {
+                bolt.setPosition(rod.getX() + 0.5D, rod.getY() + 1.0D, rod.getZ() + 0.5D);
+            }
+        }
         if (rod != null) {
-            bolt.setPosition(rod.getX() + 0.5D, rod.getY() + 1.0D, rod.getZ() + 0.5D);
-            strike = rod;
             IBlockState rodState = world.getBlockState(rod);
-            ((LightningRodBlock) rodState.getBlock()).onLightningStrike(world, rod, rodState);
+            if (rodState.getBlock() instanceof LightningRodBlock) {
+                strike = rod;
+                ((LightningRodBlock) rodState.getBlock()).onLightningStrike(world, rod, rodState);
+            }
         }
         cleanCopper(world, strike);
-        bolt.getEntityData().setBoolean("CncCopperHandled", true);
+        data.setBoolean("CncCopperHandled", true);
     }
 
     public static boolean isLightningRod(Block block) {
@@ -147,7 +181,10 @@ public final class LightningRodContent {
                 if (!world.isBlockLoaded(new BlockPos(x, strike.getY(), z), false)) {
                     continue;
                 }
-                BlockPos top = world.getHeight(new BlockPos(x, 0, z)).down();
+                // The opacity height map skips the non-opaque rod and would report the block it
+                // stands on; the precipitation height stops at the first movement-blocking block,
+                // like 1.17's MOTION_BLOCKING rod check and vanilla 1.12's own strike position.
+                BlockPos top = world.getPrecipitationHeight(new BlockPos(x, 0, z)).down();
                 if (!isLightningRod(world.getBlockState(top).getBlock())
                         || !world.canSeeSky(top.up())) {
                     continue;
@@ -345,7 +382,7 @@ public final class LightningRodContent {
                 Random random) {
             if (!world.isThundering()
                     || (long) world.rand.nextInt(200) > world.getTotalWorldTime() % 200L
-                    || pos.getY() != world.getHeight(pos).getY() - 1) {
+                    || pos.getY() != world.getPrecipitationHeight(pos).getY() - 1) {
                 return;
             }
 
