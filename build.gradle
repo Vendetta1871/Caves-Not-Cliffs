@@ -13,6 +13,20 @@ buildscript {
 apply plugin: 'net.minecraftforge.gradle.forge'
 apply plugin: 'org.spongepowered.mixin'
 
+// Released jars require Forge 14.23.5.2860+ (@Mod and mcmod.info), but the FG 2.3 toolchain can
+// only launch 2847, where FML rejects that requirement before the mod loads. A Gradle run that
+// launches the game therefore compiles @Mod with the toolchain's own version; verifyReleaseJar
+// makes sure no such class reaches a release, and mixing both in one invocation is refused.
+def releaseForgeFloor = '14.23.5.2860'
+def requestedTasks = gradle.startParameter.taskNames.collect { it.toLowerCase() }
+def devLaunch = requestedTasks.any { it.endsWith('runclient') || it.endsWith('runserver') }
+if (devLaunch && requestedTasks.any { task ->
+        ['build', 'assemble', 'jar', 'reobfjar', 'verifyreleasejar', 'check'].any { task.endsWith(it) } }) {
+    throw new GradleException('Run runClient/runServer in a separate Gradle invocation from release'
+        + ' builds: dev launches compile @Mod against the 2847 dev toolchain.')
+}
+ext.forgeFloor = devLaunch ? '14.23.5.2847' : releaseForgeFloor
+
 version = '2.0.4'
 group = 'net.celestiald'
 archivesBaseName = 'cavesnotcliffs'
@@ -37,7 +51,16 @@ minecraft {
     // dependencies against the annotation constant, not mcmod.info.
     replaceIn 'net/celestiald/cavesnotcliffs/CavesNotCliffs.java'
     replace '@VERSION@', project.version
+    replace '@FORGE_FLOOR@', forgeFloor
 }
+
+configurations {
+    devMixinRuntime
+}
+
+// FG 2.3 cannot rewrite JitPack's CaveBiomesAPI sources jar ("invalid entry compressed size").
+// Remapped dependency sources only serve IDE navigation; the deobfuscated jars are unaffected.
+tasks.matching { it.name.startsWith('deobfCompileRemapDepSources') }.all { enabled = false }
 
 repositories {
     maven { url = 'https://cursemaven.com' }
@@ -52,18 +75,23 @@ dependencies {
 
     // The 1.1.2 tag build is a frozen failure on JitPack (a transient sponge repo outage broke
     // its first attempt and tag builds are not rebuilt), so 1.1.3 is the first usable tag.
-    compileOnly('com.github.Vendetta1871:CaveBiomesAPI:1.1.3') {
-        transitive = false
-    }
-    testCompile('com.github.Vendetta1871:CaveBiomesAPI:1.1.3') {
+    // Deobfuscated like Fluidlogged API: the JitPack jar is SRG-named, and its @Overwrite mixin
+    // methods only match the MCP-named dev runtime after FG remaps them. This also puts the API
+    // on the runClient/runServer classpath, so no copy belongs in run/mods. Not bundled.
+    deobfCompile('com.github.Vendetta1871:CaveBiomesAPI:1.1.3') {
         transitive = false
     }
 
-    // Compiled against, and present in the dev runtime, but deliberately NOT bundled into the jar.
-    // At runtime in a real instance, Mixin is provided by the MixinBootstrap mod (already required
-    // transitively via CaveBiomesAPI). Bundling Mixin here too would mean two copies of the library
-    // fighting over the same packages.
+    // Compiled against (the 0.7.11 annotation processor writes the refmap), but deliberately NOT
+    // bundled into the jar. At runtime in a real instance, Mixin is provided by the MixinBootstrap
+    // mod (already required transitively via CaveBiomesAPI). Bundling Mixin here too would mean
+    // two copies of the library fighting over the same packages.
     compile('org.spongepowered:mixin:0.7.11-SNAPSHOT') { transitive = false }
+
+    // The Mixin runtime MixinBootstrap 1.1.0 ships. runClient/runServer use it instead of the
+    // 0.7.11 build dependency, which rejects mixins production accepts (e.g. missing client-only
+    // injection targets on a dedicated server, overwrites of members another mod's AT widened).
+    devMixinRuntime('org.spongepowered:mixin:0.8.4') { transitive = false }
 
     testCompile 'junit:junit:4.13.2'
 }
@@ -242,6 +270,22 @@ task verifyReleaseJar(dependsOn: reobfJar) {
             if (zip.getEntry('net/celestiald/cavesnotcliffs/mixin/CauldronMixin.class') == null) {
                 throw new GradleException('Production jar is missing the cauldron mixin')
             }
+            def lightningMappings = refmapJson.data?.searge?.'net/celestiald/cavesnotcliffs/mixin/LightningBoltMixin'
+            if (lightningMappings == null || !lightningMappings.values().contains(
+                    'Lnet/minecraft/entity/effect/EntityLightningBolt;func_70012_b(DDDFF)V')) {
+                throw new GradleException('Production refmap is missing the LightningBoltMixin setLocationAndAngles mapping')
+            }
+            def modEntry = zip.getEntry('net/celestiald/cavesnotcliffs/CavesNotCliffs.class')
+            def modStream = zip.getInputStream(modEntry)
+            try {
+                if (!new String(modStream.bytes, 'ISO-8859-1').contains(
+                        "required-after:forge@[${releaseForgeFloor},)")) {
+                    throw new GradleException("@Mod does not require Forge ${releaseForgeFloor}"
+                        + ' (was the jar built by a runClient/runServer invocation?)')
+                }
+            } finally {
+                modStream.close()
+            }
             if (zip.getEntry('assets/minecraft/blockstates/cauldron.json') == null) {
                 throw new GradleException('Production jar is missing the vanilla cauldron blockstate override')
             }
@@ -252,6 +296,9 @@ task verifyReleaseJar(dependsOn: reobfJar) {
             def metadata = new groovy.json.JsonSlurper().parseText(readText('mcmod.info'))
             if (!(metadata instanceof List) || metadata.isEmpty() || metadata[0].version != project.version.toString()) {
                 throw new GradleException("mcmod.info does not contain release version ${project.version}")
+            }
+            if (!metadata[0].dependencies.contains("required-after:forge@[${releaseForgeFloor},)".toString())) {
+                throw new GradleException("mcmod.info does not require Forge ${releaseForgeFloor}")
             }
             if (!metadata[0].dependencies.any { it.startsWith('required-after:cavebiomesapi@') }) {
                 throw new GradleException('mcmod.info does not declare CaveBiomesAPI as a required runtime mod')
@@ -330,3 +377,15 @@ runClient {
 
 runClient.outputs.upToDateWhen { false }
 runServer.outputs.upToDateWhen { false }
+
+// Dev launches swap in the production Mixin runtime and leave Fluidlogged API out: its
+// transformers emit newer MCP names (e.g. Block.material) that do not exist under this project's
+// snapshot_20171003 mappings (Block.blockMaterial), so world generation dies with
+// NoSuchFieldError. Test that optional integration in a real instance.
+[runClient, runServer].each { launch ->
+    launch.doFirst {
+        classpath = configurations.devMixinRuntime + classpath.filter {
+            !(it.name ==~ /mixin-0\.7\.11.*\.jar/) && !(it.name ==~ /fluidlogged-api-.*\.jar/)
+        }
+    }
+}

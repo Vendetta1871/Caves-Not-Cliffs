@@ -155,3 +155,11 @@ CubicChunks linkage remains.
 The Java 8/ForgeGradle 2.3 development toolchain compiles against Forge 14.23.5.2847, the newest
 Forge release that still publishes the legacy `userdev` artifact. The produced mod declares and
 requires Forge 14.23.5.2860 or newer at runtime.
+
+`./gradlew runClient` and `./gradlew runServer` launch that 2847 toolchain, so a Gradle invocation
+that runs either task compiles `@Mod` with a 2847 Forge floor. Keep dev launches and release
+builds in separate invocations: the build refuses to mix them, and `verifyReleaseJar` rejects a jar
+that does not require 2860. Dev launches run Mixin 0.8.4 — the runtime MixinBootstrap 1.1.0
+ships — and take CaveBiomesAPI from the FG-deobfuscated dependency classpath, so its release jar
+must not be placed in `run/mods`. Fluidlogged API is compiled against but left out of dev launches:
+its transformers use MCP names from other mappings and break world generation there.

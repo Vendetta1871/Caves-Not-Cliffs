@@ -63,8 +63,10 @@ import net.celestiald.cavebiomes.api.IWorldVerticalBiomeProvider;
 
 import java.util.function.Supplier;
 
+// The Forge floor is a build token (see build.gradle): releases require 14.23.5.2860, while a
+// Gradle run that launches runClient/runServer on the FG 2.3 toolchain (2847) gets 2847.
 @Mod(modid = CavesNotCliffs.MODID, version = CavesNotCliffs.VERSION,
-		dependencies = "required-after:forge@[14.23.5.2860,);required-after:cavebiomesapi@[1.1.2,)")
+		dependencies = "required-after:forge@[@FORGE_FLOOR@,);required-after:cavebiomesapi@[1.1.2,)")
 public class CavesNotCliffs {
 	public static final String MODID = "cavesnotcliffs";
 	public static final String VERSION = "@VERSION@";
