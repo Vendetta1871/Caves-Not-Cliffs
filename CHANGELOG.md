@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- Fix native 1.18 worlds generating without passive animals: new chunks now get their
+  original cows, sheep, pigs and chickens right after decoration, as in 1.12 and 1.18.
+- Fix lightning rods never attracting lightning, and the original strike point still
+  catching fire: the rod search skipped the non-opaque rod, and the bolt set its target
+  on fire before it was redirected. Strikes now land on the closest exposed rod first.
+- Fix lush/dripstone cave biome tints and fog disappearing on the client after changing
+  dimension or respawning.
+- Fix the mod's own mountain biomes being treated as modded overlay biomes on the client.
+- Fix one failing modded biome decorator disabling decoration of every modded biome until
+  restart (and crashing the next chunk of that biome with "Already decorating").
+
 ## 2.0.4
 
 - Fix modded biome decorators running on whole chunks where the biome barely appears
