@@ -12,6 +12,8 @@
 - Fix the mod's own mountain biomes being treated as modded overlay biomes on the client.
 - Fix one failing modded biome decorator disabling decoration of every modded biome until
   restart (and crashing the next chunk of that biome with "Already decorating").
+- Depend on CaveBiomesAPI 1.1.4: world generation no longer crashes with
+  "Chunk has 16 sections, expected 24" when Fluidlogged API is installed.
 
 ## 2.0.4
 
