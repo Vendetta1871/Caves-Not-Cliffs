@@ -41,4 +41,13 @@ public class VirtualBiomeResolverRegistryTest {
         assertSame(Biomes.SAVANNA, VirtualBiomeResolverRegistry.resolveWithOverlay(
             V118Biome.SAVANNA, Biomes.PLAINS, Biomes.SAVANNA));
     }
+
+    @Test
+    public void ownMountainBiomeBaseKeepsTheVirtualProjection() {
+        Biome meadow = new Biome(new Biome.BiomeProperties("Meadow")) {
+        };
+        meadow.setRegistryName("cavesnotcliffs", "meadow");
+        assertSame(Biomes.ICE_MOUNTAINS, VirtualBiomeResolverRegistry.resolveWithOverlay(
+            V118Biome.FROZEN_PEAKS, meadow, Biomes.ICE_MOUNTAINS));
+    }
 }

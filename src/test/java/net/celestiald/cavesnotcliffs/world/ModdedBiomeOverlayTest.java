@@ -133,6 +133,14 @@ public class ModdedBiomeOverlayTest {
         assertFalse(ModdedBiomeOverlay.isModded(Biomes.FOREST));
     }
 
+    @Test
+    public void ownProjectionBiomesAreNotTreatedAsModded() {
+        Biome meadow = new Biome(new Biome.BiomeProperties("Meadow")) {
+        };
+        meadow.setRegistryName("cavesnotcliffs", "meadow");
+        assertFalse(ModdedBiomeOverlay.isModded(meadow));
+    }
+
     private static ModdedBiomeOverlay.Sampler fixedSampler(
             Biome[] generationGrid, Biome[] blockGrid) {
         return new ModdedBiomeOverlay.Sampler() {

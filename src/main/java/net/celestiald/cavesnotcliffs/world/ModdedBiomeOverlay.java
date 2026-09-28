@@ -1,5 +1,6 @@
 package net.celestiald.cavesnotcliffs.world;
 
+import net.celestiald.cavesnotcliffs.CavesNotCliffs;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeProvider;
 import org.apache.logging.log4j.LogManager;
@@ -121,10 +122,18 @@ final class ModdedBiomeOverlay {
         return modded == null || modded.length == 0 ? null : modded[0];
     }
 
+    /**
+     * Whether the biome comes from another mod. Caves Not Cliffs' own biomes (meadow, grove,
+     * the peaks and slopes, lush/dripstone caves) are part of the 1.18 projection itself, not
+     * overlay claims: treating them as modded made every mountain column bypass the resolver's
+     * climate projection and its cache.
+     */
     static boolean isModded(Biome biome) {
-        return biome != null
-                && biome.getRegistryName() != null
-                && !"minecraft".equals(biome.getRegistryName().getResourceDomain());
+        if (biome == null || biome.getRegistryName() == null) {
+            return false;
+        }
+        String domain = biome.getRegistryName().getResourceDomain();
+        return !"minecraft".equals(domain) && !CavesNotCliffs.MODID.equals(domain);
     }
 
     private static Biome overlay(Biome projected, Biome vanilla) {
