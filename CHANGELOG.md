@@ -12,6 +12,10 @@
 - Fix the mod's own mountain biomes being treated as modded overlay biomes on the client.
 - Fix one failing modded biome decorator disabling decoration of every modded biome until
   restart (and crashing the next chunk of that biome with "Already decorating").
+- Fix a multi-second server stall right after new terrain generates: gravel and sand
+  blobs that caves cut open were all scheduled to fall at once (about 1,800 falling-block
+  entities after spawn preparation). Blocks placed during native population now stay where
+  they generate, as in 1.18, until a neighbour update makes them fall.
 - Depend on CaveBiomesAPI 1.1.4: world generation no longer crashes with
   "Chunk has 16 sections, expected 24" when Fluidlogged API is installed.
 

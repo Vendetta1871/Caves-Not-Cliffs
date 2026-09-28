@@ -201,6 +201,15 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
 
     @Override
     public void populate(int chunkX, int chunkZ) {
+        World previous = WorldgenFallingBlocks.enter(world);
+        try {
+            populateFeatures(chunkX, chunkZ);
+        } finally {
+            WorldgenFallingBlocks.exit(previous);
+        }
+    }
+
+    private void populateFeatures(int chunkX, int chunkZ) {
         V118ForgeWorldgenEvents forgeEvents =
                 new V118ForgeWorldgenEvents(this, world, chunkX, chunkZ);
         forgeEvents.populationPre();

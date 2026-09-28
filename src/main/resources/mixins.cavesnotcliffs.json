@@ -6,7 +6,8 @@
     "refmap": "mixins.cavesnotcliffs.refmap.json",
     "mixins": [
         "CauldronMixin",
-        "LightningBoltMixin"
+        "LightningBoltMixin",
+        "WorldServerMixin"
     ],
     "client": [
         "GuiOverlayDebugMixin"

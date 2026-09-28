@@ -275,6 +275,11 @@ task verifyReleaseJar(dependsOn: reobfJar) {
                     'Lnet/minecraft/entity/effect/EntityLightningBolt;func_70012_b(DDDFF)V')) {
                 throw new GradleException('Production refmap is missing the LightningBoltMixin setLocationAndAngles mapping')
             }
+            def worldServerMappings = refmapJson.data?.searge?.'net/celestiald/cavesnotcliffs/mixin/WorldServerMixin'
+            if (worldServerMappings == null || !worldServerMappings.values().any {
+                    it.startsWith('Lnet/minecraft/world/WorldServer;func_175654_a(') }) {
+                throw new GradleException('Production refmap is missing the WorldServerMixin updateBlockTick mapping')
+            }
             def modEntry = zip.getEntry('net/celestiald/cavesnotcliffs/CavesNotCliffs.class')
             def modStream = zip.getInputStream(modEntry)
             try {
