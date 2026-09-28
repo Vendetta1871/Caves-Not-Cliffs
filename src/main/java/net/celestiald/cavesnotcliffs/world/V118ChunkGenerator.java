@@ -30,8 +30,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.WeakHashMap;
 import java.util.Set;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * Native schema-2 finite-column generator for the Java 1.18.2 density columns.
@@ -42,7 +40,6 @@ import org.apache.logging.log4j.Logger;
  * features run through isolated decoration bridges after structure population.</p>
  */
 public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopulationGenerator {
-    private static final Logger LOGGER = LogManager.getLogger("CavesNotCliffs/ModdedBiomes");
     private static final int CUBE_SIZE = 16;
     private static final Map<World, WeakReference<V118ChunkGenerator>> ACTIVE_GENERATORS =
         new WeakHashMap<World, WeakReference<V118ChunkGenerator>>();
@@ -70,7 +67,7 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
     private int lastGeneratedX;
     private int lastGeneratedZ;
     private boolean generatedOnce;
-    private boolean moddedDecorationFailed;
+    private final ModdedBiomeDecoration moddedDecoration = new ModdedBiomeDecoration();
 
     V118ChunkGenerator(World world, TerrainProfile terrainProfile,
             IChunkGenerator structureGenerator, ModdedBiomeOverlay overlay) {
@@ -377,8 +374,7 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
      * center of the chunk's population region — the same single sample point the 1.12
      * overworld generator uses to pick the decorating biome. Sampling the whole chunk and
      * majority-voting instead let a single modded cell drag its decorator across an entire
-     * vanilla chunk (issue #16). Mod decorators are outside our control, so a failing one
-     * is reported once and skipped instead of taking the server down mid-population.
+     * vanilla chunk (issue #16). Failures are contained by {@link ModdedBiomeDecoration}.
      */
     private void decorateModdedBiome(int chunkX, int chunkZ) {
         if (!biomeOverlay.isEnabled()) {
@@ -394,16 +390,8 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         long xFactor = random.nextLong() / 2L * 2L + 1L;
         long zFactor = random.nextLong() / 2L * 2L + 1L;
         random.setSeed((long) chunkX * xFactor ^ (long) chunkZ * zFactor ^ seed);
-        try {
-            center.decorate(world, random,
-                new BlockPos(chunkX << 4, 0, chunkZ << 4));
-        } catch (RuntimeException failure) {
-            if (!moddedDecorationFailed) {
-                LOGGER.warn("Modded biome decoration failed for {}; skipping it from now on",
-                        center.getRegistryName(), failure);
-                moddedDecorationFailed = true;
-            }
-        }
+        moddedDecoration.decorate(center, world, random,
+            new BlockPos(chunkX << 4, 0, chunkZ << 4));
     }
 
     private static DecorateBiomeEvent.Decorate.EventType decorationType(
