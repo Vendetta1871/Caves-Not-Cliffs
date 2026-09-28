@@ -23,7 +23,15 @@ public final class VirtualBiomeResolverRegistry {
         if (world == null || !V118ChunkGenerator.isNativeProfile(profile)) {
             return;
         }
-        Resolver resolver = new Resolver(
+        synchronized (RESOLVERS) {
+            // The contract is resent on every respawn; a same-dimension respawn keeps its
+            // WorldClient, and rebuilding the noise router for it would only drop the caches.
+            Resolver installed = RESOLVERS.get(world);
+            if (installed != null && installed.matches(seed, profile)) {
+                return;
+            }
+        }
+        Resolver resolver = new Resolver(seed, profile,
                 new V118TerrainColumnGenerator(seed,
                         V118ChunkGenerator.nativeProfileFor(profile)),
                 V118BiomeMapper.fromRegisteredBiomes());
@@ -104,6 +112,8 @@ public final class VirtualBiomeResolverRegistry {
     }
 
     private static final class Resolver {
+        private final long seed;
+        private final TerrainProfile profile;
         private final V118TerrainColumnGenerator columns;
         private final V118BiomeMapper biomes;
         private final int[] cachedX = new int[BLOCK_CACHE_SIZE];
@@ -111,9 +121,16 @@ public final class VirtualBiomeResolverRegistry {
         private final int[] cachedZ = new int[BLOCK_CACHE_SIZE];
         private final Biome[] cachedBiomes = new Biome[BLOCK_CACHE_SIZE];
 
-        private Resolver(V118TerrainColumnGenerator columns, V118BiomeMapper biomes) {
+        private Resolver(long seed, TerrainProfile profile,
+                V118TerrainColumnGenerator columns, V118BiomeMapper biomes) {
+            this.seed = seed;
+            this.profile = profile;
             this.columns = columns;
             this.biomes = biomes;
+        }
+
+        private boolean matches(long seed, TerrainProfile profile) {
+            return this.seed == seed && this.profile == profile;
         }
 
         private synchronized Biome resolve(int x, int y, int z, Biome base) {
