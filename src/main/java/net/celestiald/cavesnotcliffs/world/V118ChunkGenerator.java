@@ -123,6 +123,7 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         monsterRooms = new V118MonsterRoomWorldBridge(world);
         mountainSurface = new V118MountainSurfaceWorldBridge(world, this, blockStates);
         registerActiveGenerator(world, this);
+        overlay.prepare();
     }
 
     public TerrainProfile getTerrainProfile() {
@@ -202,9 +203,11 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
     @Override
     public void populate(int chunkX, int chunkZ) {
         World previous = WorldgenFallingBlocks.enter(world);
+        World filtering = ModdedBiomeDecoration.suspendFiltering();
         try {
             populateFeatures(chunkX, chunkZ);
         } finally {
+            ModdedBiomeDecoration.resumeFiltering(filtering);
             WorldgenFallingBlocks.exit(previous);
         }
     }
@@ -277,98 +280,107 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
         if (allowLavaSprings) {
             mountainSurface.populateFrozenSprings(chunkX, chunkZ, decorationBiomes);
         }
+        // VEGETAL_DECORATION step 9. Where a climate-hosted modded biome stands in for the
+        // host, its own decorator supplies the vegetation instead of the host's 1.18 one.
+        boolean hostVegetation = decorateHostedModdedBiome(chunkX, chunkZ);
         boolean allowTrees = forgeEvents.allowDecoration(
                 DecorateBiomeEvent.Decorate.EventType.TREE);
         // VEGETAL_DECORATION index 1 is the windswept-savanna acacia/oak selector.
-        if (allowTrees) {
+        if (hostVegetation && allowTrees) {
             mountainSurface.populateWindsweptSavannaTrees(
                 chunkX, chunkZ, decorationBiomes);
         }
         // Sparse-jungle trees occupy global index 4.
-        if (allowTrees) {
+        if (hostVegetation && allowTrees) {
             mountainSurface.populateSparseJungleTrees(chunkX, chunkZ, decorationBiomes);
         }
         // Wooded-badlands oak trees follow at global index 5.
-        if (allowTrees) {
+        if (hostVegetation && allowTrees) {
             mountainSurface.populateEarlyTrees(chunkX, chunkZ, decorationBiomes);
         }
         // Jungle trees follow at global index 7.
-        if (allowTrees) {
+        if (hostVegetation && allowTrees) {
             mountainSurface.populateJungleTrees(chunkX, chunkZ, decorationBiomes);
         }
         boolean allowGrass = forgeEvents.allowDecoration(
                 DecorateBiomeEvent.Decorate.EventType.GRASS);
         // VEGETAL_DECORATION index 8 precedes tree index 9 and warm flowers at 10.
-        if (allowGrass) {
+        if (hostVegetation && allowGrass) {
             mountainSurface.populateEarlyDoublePlants(chunkX, chunkZ, decorationBiomes);
         }
         // The savanna acacia/oak selector occupies index 9 before warm flowers at 10.
-        if (allowTrees) {
+        if (hostVegetation && allowTrees) {
             mountainSurface.populateSavannaTrees(chunkX, chunkZ, decorationBiomes);
         }
         boolean allowFlowers = forgeEvents.allowDecoration(
                 DecorateBiomeEvent.Decorate.EventType.FLOWERS);
         // Warm flowers follow at index 10.
-        if (allowFlowers) {
+        if (hostVegetation && allowFlowers) {
             mountainSurface.populateEarlyFlowers(chunkX, chunkZ, decorationBiomes);
         }
         // Grass indices 11/12 precede dark-forest vegetation at index 13.
-        if (allowGrass) {
+        if (hostVegetation && allowGrass) {
             mountainSurface.populateEarlyShortGrass(chunkX, chunkZ, decorationBiomes);
         }
         boolean allowBigMushrooms = forgeEvents.allowDecoration(
                 DecorateBiomeEvent.Decorate.EventType.BIG_SHROOM);
-        mountainSurface.populateDarkForestVegetation(
-            chunkX, chunkZ, decorationBiomes, allowTrees, allowBigMushrooms);
-        beeTrees.populateBeforeLush(chunkX, chunkZ, decorationBiomes,
-                allowTrees, allowFlowers);
+        if (hostVegetation) {
+            mountainSurface.populateDarkForestVegetation(
+                chunkX, chunkZ, decorationBiomes, allowTrees, allowBigMushrooms);
+            beeTrees.populateBeforeLush(chunkX, chunkZ, decorationBiomes,
+                    allowTrees, allowFlowers);
+        }
         // Index 21 precedes the lush-cave vegetation beginning at index 22.
-        if (allowGrass) {
+        if (hostVegetation && allowGrass) {
             mountainSurface.populatePreLushDoublePlants(chunkX, chunkZ, decorationBiomes);
         }
         if (forgeEvents.allowDecoration(
                 DecorateBiomeEvent.Decorate.EventType.CUSTOM)) {
             lushCaves.populate(chunkX, chunkZ, decorationBiomes);
         }
-        beeTrees.populateAfterLush(chunkX, chunkZ, decorationBiomes,
-                allowTrees, allowFlowers, allowGrass);
+        if (hostVegetation) {
+            beeTrees.populateAfterLush(chunkX, chunkZ, decorationBiomes,
+                    allowTrees, allowFlowers, allowGrass);
+        }
         // Windswept-forest trees at index 35 follow the meadow tree at 34.
-        if (allowTrees) {
+        if (hostVegetation && allowTrees) {
             mountainSurface.populatePreLateTrees(chunkX, chunkZ, decorationBiomes);
         }
         // Large fern index 36 follows windswept-forest trees at 35.
-        if (allowGrass) {
+        if (hostVegetation && allowGrass) {
             mountainSurface.populateLateDoublePlants(chunkX, chunkZ, decorationBiomes);
         }
         // Old-growth pine and spruce tree selectors occupy indices 37 and 38.
-        if (allowTrees) {
+        if (hostVegetation && allowTrees) {
             mountainSurface.populateOldGrowthTrees(chunkX, chunkZ, decorationBiomes);
         }
         // Indices 39-42, 44-64, 66-69, 71, 72, 74, and 75 follow.
-        mountainSurface.populateVegetation(chunkX, chunkZ, decorationBiomes,
-                category -> {
-                    switch (category) {
-                        case TREE:
-                            return allowTrees;
-                        case FLOWERS:
-                            return allowFlowers;
-                        case GRASS:
-                            return allowGrass;
-                        case BIG_MUSHROOM:
-                            return allowBigMushrooms;
-                        default:
-                            return forgeEvents.allowDecoration(decorationType(category));
-                    }
-                });
+        if (hostVegetation) {
+            mountainSurface.populateVegetation(chunkX, chunkZ, decorationBiomes,
+                    category -> {
+                        switch (category) {
+                            case TREE:
+                                return allowTrees;
+                            case FLOWERS:
+                                return allowFlowers;
+                            case GRASS:
+                                return allowGrass;
+                            case BIG_MUSHROOM:
+                                return allowBigMushrooms;
+                            default:
+                                return forgeEvents.allowDecoration(decorationType(category));
+                        }
+                    });
+        }
         // TOP_LAYER_MODIFICATION step 10 is the last represented decoration stage.
         if (forgeEvents.allowPopulation(villageGenerated,
                 PopulateChunkEvent.Populate.EventType.ICE)) {
             mountainSurface.populateTopLayer(chunkX, chunkZ, decorationBiomes);
         }
-        // Modded overlay biomes (e.g. Thaumcraft's Magical Forest) get the vanilla
+        // Legacy-chain overlay biomes (e.g. Thaumcraft's Magical Forest) get the vanilla
         // biome.decorate pass they were designed for; the 1.18 pipeline above only
         // knows the vanilla projection. Sits inside the same Decorate Pre/Post pair.
-        decorateModdedBiome(chunkX, chunkZ);
+        decorateLegacyModdedBiome(chunkX, chunkZ);
         forgeEvents.decorationPost();
         // Java 1.18 spawns a chunk's original passive mobs once its features are placed, like
         // 1.12's overworld generator does right after decoration. Without this pass native
@@ -387,28 +399,66 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
     }
 
     /**
-     * Runs the vanilla {@code biome.decorate} pass when a modded overlay biome sits at the
-     * center of the chunk's population region — the same single sample point the 1.12
+     * Runs the vanilla {@code biome.decorate} pass when a legacy-chain overlay biome sits at
+     * the center of the chunk's population region — the same single sample point the 1.12
      * overworld generator uses to pick the decorating biome. Sampling the whole chunk and
      * majority-voting instead let a single modded cell drag its decorator across an entire
      * vanilla chunk (issue #16). Failures are contained by {@link ModdedBiomeDecoration}.
      */
-    private void decorateModdedBiome(int chunkX, int chunkZ) {
-        if (!biomeOverlay.isEnabled()) {
+    private void decorateLegacyModdedBiome(int chunkX, int chunkZ) {
+        if (!biomeOverlay.isEnabled() || biomeOverlay.isClimateHosted()) {
             return;
         }
-        Biome center = biomeOverlay.moddedBiomeAt(
+        Biome center = biomeOverlay.moddedBiomeAt(null,
                 (chunkX << 4) + 16, (chunkZ << 4) + 16);
         if (center == null) {
             return;
         }
+        moddedDecoration.decorate(center, world, moddedDecorationRandom(chunkX, chunkZ),
+            new BlockPos(chunkX << 4, 0, chunkZ << 4));
+    }
+
+    /**
+     * Climate-hosted modded biomes decorate at the start of 1.18's vegetal step, after ores,
+     * disks and springs and before the top-layer freeze, so snow settles on their trees like
+     * on native ones. Like 1.12, the decorator that runs is the one at the center of the
+     * population region (offset by 8 into the next chunks), with its 1.12 ores and terrain
+     * features filtered out. Returns whether this chunk keeps its host's 1.18 vegetation:
+     * not where a modded biome claims the chunk's own center, unless that biome's decorator
+     * has failed and would leave the ground bare.
+     */
+    private boolean decorateHostedModdedBiome(int chunkX, int chunkZ) {
+        if (!biomeOverlay.isClimateHosted()) {
+            return true;
+        }
+        int centerX = (chunkX << 4) + 16;
+        int centerZ = (chunkZ << 4) + 16;
+        Biome center = biomeOverlay.claim(surfaceHost(centerX, centerZ), centerX, centerZ);
+        if (center != null) {
+            moddedDecoration.decorateHosted(center, world,
+                moddedDecorationRandom(chunkX, chunkZ),
+                new BlockPos(chunkX << 4, 0, chunkZ << 4));
+        }
+        int ownX = (chunkX << 4) + 8;
+        int ownZ = (chunkZ << 4) + 8;
+        Biome own = biomeOverlay.claim(surfaceHost(ownX, ownZ), ownX, ownZ);
+        return own == null || moddedDecoration.hasFailed(own);
+    }
+
+    /** The 1.18 surface biome of a column, as written to the chunk biome array. */
+    private V118Biome surfaceHost(int blockX, int blockZ) {
+        return ModdedBiomeOverlay.hostFor(columns.column(blockX >> 4, blockZ >> 4)
+            .surfaceBiomeId(blockX & 15, blockZ & 15));
+    }
+
+    /** 1.12's decoration seed for the chunk, which modded decorators expect. */
+    private Random moddedDecorationRandom(int chunkX, int chunkZ) {
         long seed = world.getSeed();
         Random random = new Random(seed);
         long xFactor = random.nextLong() / 2L * 2L + 1L;
         long zFactor = random.nextLong() / 2L * 2L + 1L;
         random.setSeed((long) chunkX * xFactor ^ (long) chunkZ * zFactor ^ seed);
-        moddedDecoration.decorate(center, world, random,
-            new BlockPos(chunkX << 4, 0, chunkZ << 4));
+        return random;
     }
 
     /**
@@ -518,8 +568,9 @@ public final class V118ChunkGenerator implements IChunkGenerator, IExtendedPopul
             // represented only by the bucket bridge in this backport.
             return AXOLOTL_SPAWNS;
         }
-        return getRegisteredVirtualBiome(pos.getX(), pos.getY(), pos.getZ())
-            .getSpawnableList(type);
+        // The resolved biome: a modded biome claiming the surface spawns its own mobs, cave
+        // biomes and unclaimed columns the registered 1.18 projection's.
+        return world.getBiome(pos).getSpawnableList(type);
     }
 
     @Override

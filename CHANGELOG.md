@@ -16,6 +16,16 @@
   blobs that caves cut open were all scheduled to fall at once (about 1,800 falling-block
   entities after spawn preparation). Blocks placed during native population now stay where
   they generate, as in 1.18, until a neighbour update makes them fall.
+- Rework biomes from other mods in native worlds (issue #15): modded biomes no longer appear
+  wherever the 1.12 biome layers put them, on top of unrelated 1.18 terrain ("biomes mixed in a
+  pot", swamps without water, jungles next to taiga). Each modded biome now replaces only the
+  1.18 biomes it fits by temperature, rainfall, height and biome type, across large regions
+  with natural borders, so the world keeps the 1.18 layout. Inside, it uses its own
+  top/filler soil, decorator and mob spawns, while its 1.12 ores, blobs, springs and disks are
+  skipped in favour of the 1.18 ones. Structures follow the biome actually there. New
+  `moddedBiomes` config: region size, vanilla weight, blacklist and host pins. Worlds created
+  with 2.0.3/2.0.4 keep the old layout unless `moddedBiomes.upgradeExistingWorlds` is set.
+- Mobs spawn from the modded biome's own spawn lists where a modded biome covers the surface.
 - Depend on CaveBiomesAPI 1.1.4: world generation no longer crashes with
   "Chunk has 16 sections, expected 24" when Fluidlogged API is installed.
 

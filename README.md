@@ -74,8 +74,8 @@ from Y=-64 through Y=319, while existing worlds keep their saved generator contr
 ### World and save compatibility
 
 - `world.enableForNewOverworlds=true` applies only when an Overworld is first created
-- Terrain schema, base world type, generator options, and terrain profile are persisted so later
-  config changes cannot convert an existing world
+- Terrain schema, base world type, generator options, terrain profile, and modded-biome layout
+  are persisted so later config changes cannot convert an existing world
 - Released placeholder IDs and state-split blocks are remapped or migrated to canonical content
   while preserving inventories and block/entity NBT
 
@@ -96,6 +96,33 @@ and still obeys this config.
 
 Use `/cncbiome` in-game to identify the cave-biome region at your current position, or
 `/cncbiome <x> <y> <z>` to inspect another coordinate.
+
+## Biomes from other mods
+
+Surface biomes that other mods add to the Overworld (through Forge's `BiomeManager` or the base
+world type's biome layers) generate in native worlds without breaking the 1.18 layout. Each
+modded biome is matched to the 1.18 biomes it fits by temperature, rainfall, height and biome
+type: a modded swamp replaces parts of 1.18 swamps, a modded alpine biome replaces peaks and
+slopes, a modded forest replaces forests, and land and water biomes never swap places. Large
+regions with natural borders decide, for every 1.18 biome inside them, whether it stays vanilla
+or which fitting modded biome takes over, weighted by each mod's own biome weights.
+
+Terrain, caves, aquifers and ores stay 1.18 everywhere. A modded biome brings its name, colors,
+mob spawns and vegetation: its grass/dirt or sand becomes the biome's own `topBlock` and
+`fillerBlock`, its decorator replaces the 1.18 vegetation in the chunks it covers, and its 1.12
+ores, dirt/gravel blobs, springs, lakes and sand/clay disks are skipped because the 1.18 ones are
+already there. Structures follow the biome that is actually there, as in 1.12.
+
+The server log lists which 1.18 biomes every modded biome replaces. The `moddedBiomes` section of
+`config/cavesnotcliffs.cfg` tunes the layout for chunks generated afterwards: `regionSize`
+(1024 blocks, ×4 in Large Biomes), `vanillaWeight` (10; higher makes modded biomes rarer),
+`blacklist` (`modid:biome` or `modid:*`) and `hosts` (`modid:biome=plains,forest` pins a biome to
+chosen 1.18 biomes).
+
+Worlds created with 2.0.3 or 2.0.4 keep the earlier layout, which paints modded biomes wherever
+the 1.12 biome layers put them, so their explored land and new chunks keep matching. Set
+`moddedBiomes.upgradeExistingWorlds=true` to switch such a world to the 1.18 fit; new chunks then
+use it, and borders with already explored modded biomes show seams.
 
 ## Performance
 

@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.world;
 
 import net.celestiald.cavesnotcliffs.worldgen.v118.OverworldBiomeBuilder;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118BiomeManager;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118ClimateSampler;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118NoiseRouter;
@@ -70,13 +71,18 @@ public final class V118BiomeProvider extends BiomeProvider {
         if (reuse == null || reuse.length < width * height) {
             reuse = new Biome[width * height];
         }
+        V118Biome[] hosts = overlay.isClimateHosted() ? new V118Biome[width * height] : null;
         for (int localZ = 0; localZ < height; ++localZ) {
             for (int localX = 0; localX < width; ++localX) {
-                reuse[localX + localZ * width] = biomes.biomeFor(climateSampler.resolveQuart(
-                    x + localX, SURFACE_SAMPLE_QUART_Y, z + localZ));
+                V118Biome host = climateSampler.resolveQuart(
+                    x + localX, SURFACE_SAMPLE_QUART_Y, z + localZ);
+                if (hosts != null) {
+                    hosts[localX + localZ * width] = host;
+                }
+                reuse[localX + localZ * width] = biomes.biomeFor(host);
             }
         }
-        return overlay.overlayForGeneration(reuse, x, z, width, height);
+        return overlay.overlayForGeneration(reuse, hosts, x, z, width, height);
     }
 
     /** Block-scale grid: applies the same Voronoi zoom the chunk biome array is written with. */
@@ -86,27 +92,33 @@ public final class V118BiomeProvider extends BiomeProvider {
         if (reuse == null || reuse.length < width * length) {
             reuse = new Biome[width * length];
         }
+        V118Biome[] hosts = overlay.isClimateHosted() ? new V118Biome[width * length] : null;
         for (int localZ = 0; localZ < length; ++localZ) {
             for (int localX = 0; localX < width; ++localX) {
-                reuse[localX + localZ * width] = biomes.biomeFor(biomeManager.getBiome(
-                    x + localX, SURFACE_SAMPLE_Y, z + localZ));
+                V118Biome host = biomeManager.getBiome(
+                    x + localX, SURFACE_SAMPLE_Y, z + localZ);
+                if (hosts != null) {
+                    hosts[localX + localZ * width] = host;
+                }
+                reuse[localX + localZ * width] = biomes.biomeFor(host);
             }
         }
-        return overlay.overlayBlock(reuse, x, z, width, length);
+        return overlay.overlayBlock(reuse, hosts, x, z, width, length);
     }
 
     @Override
     public boolean areBiomesViable(int x, int z, int radius, List<Biome> allowed) {
-        // Deliberately climate-only: 1.18 structure placement consults the 1.18 layout,
-        // not the modded-biome overlay sampled from the vanilla chain.
+        // Legacy-chain worlds stay climate-only: their overlay patches ignore the 1.18
+        // terrain, so structures keep following the 1.18 layout there. Climate-hosted claims
+        // follow it, so the biome a player sees is the one that decides, as in 1.12 (a village
+        // only spawns in a modded biome that its mod registered as a village biome).
         int minQuartX = x - radius >> 2;
         int minQuartZ = z - radius >> 2;
         int maxQuartX = x + radius >> 2;
         int maxQuartZ = z + radius >> 2;
         for (int quartZ = minQuartZ; quartZ <= maxQuartZ; ++quartZ) {
             for (int quartX = minQuartX; quartX <= maxQuartX; ++quartX) {
-                Biome biome = biomes.biomeFor(climateSampler.resolveQuart(
-                    quartX, SURFACE_SAMPLE_QUART_Y, quartZ));
+                Biome biome = hostedBiomeAtQuart(quartX, quartZ);
                 if (!allowed.contains(biome)) {
                     return false;
                 }
@@ -119,15 +131,18 @@ public final class V118BiomeProvider extends BiomeProvider {
     public BlockPos findBiomePosition(int x, int z, int range, List<Biome> biomeList,
             Random random) {
         // Biome search tools (Nature's Compass) must locate biomes that only exist as
-        // overlay patches, e.g. Thaumcraft's Magical Forest. The overlay is sampled at
-        // block scale here — the same scale the chunk biome array is written with — so a
-        // reported position actually holds the biome. Row-by-row so a huge search radius
-        // never materializes the whole grid at once.
+        // overlay patches, e.g. Thaumcraft's Magical Forest. The legacy chain overlay is
+        // sampled at block scale here — the same scale the chunk biome array is written
+        // with — so a reported position actually holds the biome; climate-hosted claims are
+        // resolved per quart like the projection. Row-by-row so a huge search radius never
+        // materializes the whole grid at once.
         boolean needsOverlay = false;
-        for (Biome biome : biomeList) {
-            if (ModdedBiomeOverlay.isModded(biome)) {
-                needsOverlay = true;
-                break;
+        if (!overlay.isClimateHosted()) {
+            for (Biome biome : biomeList) {
+                if (ModdedBiomeOverlay.isModded(biome)) {
+                    needsOverlay = true;
+                    break;
+                }
             }
         }
         int minQuartX = x - range >> 2;
@@ -141,7 +156,7 @@ public final class V118BiomeProvider extends BiomeProvider {
         for (int row = 0; row < height; ++row) {
             int quartZ = minQuartZ + row;
             Biome[] moddedRow = needsOverlay
-                ? overlay.moddedBlockBiomes(minQuartX << 2, quartZ << 2, width << 2, 1)
+                ? overlay.moddedBlockBiomes(null, minQuartX << 2, quartZ << 2, width << 2, 1)
                 : null;
             for (int localX = 0; localX < width; ++localX) {
                 Biome biome = null;
@@ -149,8 +164,7 @@ public final class V118BiomeProvider extends BiomeProvider {
                     biome = moddedRow[localX << 2];
                 }
                 if (biome == null) {
-                    biome = biomes.biomeFor(climateSampler.resolveQuart(
-                        minQuartX + localX, SURFACE_SAMPLE_QUART_Y, quartZ));
+                    biome = hostedBiomeAtQuart(minQuartX + localX, quartZ);
                 }
                 if (biomeList.contains(biome)) {
                     if (found == null || random.nextInt(matches + 1) == 0) {
@@ -161,5 +175,12 @@ public final class V118BiomeProvider extends BiomeProvider {
             }
         }
         return found;
+    }
+
+    /** The 1.18 projection of a quart, or the climate-hosted modded biome claiming it. */
+    private Biome hostedBiomeAtQuart(int quartX, int quartZ) {
+        V118Biome host = climateSampler.resolveQuart(quartX, SURFACE_SAMPLE_QUART_Y, quartZ);
+        Biome claim = overlay.claim(host, (quartX << 2) + 2, (quartZ << 2) + 2);
+        return claim != null ? claim : biomes.biomeFor(host);
     }
 }

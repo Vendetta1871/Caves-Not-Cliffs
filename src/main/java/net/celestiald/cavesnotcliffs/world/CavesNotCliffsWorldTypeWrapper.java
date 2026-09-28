@@ -2,6 +2,7 @@ package net.celestiald.cavesnotcliffs.world;
 
 import net.celestiald.cavebiomes.api.ExtendedChunkAPI;
 import net.celestiald.cavebiomes.api.IWrappedWorldType;
+import net.celestiald.cavesnotcliffs.config.CavesNotCliffsConfig;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
@@ -13,13 +14,18 @@ import net.minecraft.world.gen.layer.GenLayer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Map;
 import java.util.Random;
+import java.util.WeakHashMap;
 import java.util.function.Supplier;
 
 /** Hidden finite-world type which preserves a selected two-dimensional generator as its base. */
 public final class CavesNotCliffsWorldTypeWrapper extends WorldType
         implements CavesNotCliffsFiniteWorldType, IWrappedWorldType {
     private static final Logger LOGGER = LogManager.getLogger("CavesNotCliffs/WorldType");
+    /** One overlay per world, shared by its chunk generator and biome provider. */
+    private static final Map<World, ModdedBiomeOverlay> OVERLAYS =
+            new WeakHashMap<World, ModdedBiomeOverlay>();
     private final WorldType baseType;
     private final TerrainProfile terrainProfile;
 
@@ -66,7 +72,7 @@ public final class CavesNotCliffsWorldTypeWrapper extends WorldType
         TerrainProfile persistedProfile = data.getTerrainProfile();
         if (V118ChunkGenerator.isNativeProfile(persistedProfile)) {
             return new V118ChunkGenerator(world, persistedProfile, baseGenerator,
-                moddedBiomeOverlay(world));
+                moddedBiomeOverlay(world, data));
         }
         return DelegatingFiniteChunkGenerator.wrap(baseGenerator);
     }
@@ -91,26 +97,59 @@ public final class CavesNotCliffsWorldTypeWrapper extends WorldType
             if (data != null && V118ChunkGenerator.isNativeProfile(data.getTerrainProfile())) {
                 return new V118BiomeProvider(world.getSeed(),
                     V118ChunkGenerator.nativeProfileFor(data.getTerrainProfile()),
-                    V118BiomeMapper.fromRegisteredBiomes(), moddedBiomeOverlay(world));
+                    V118BiomeMapper.fromRegisteredBiomes(), moddedBiomeOverlay(world, data));
             }
         }
         return delegate(world, () -> baseType.getBiomeProvider(world));
     }
 
     /**
-     * Builds the vanilla biome chain of the base world type (with every biome other mods
-     * injected through BiomeManager) so modded biomes can overlay the 1.18 projection.
-     * Any failure leaves the overlay disabled instead of breaking world creation.
+     * The modded-biome overlay of a native world, in the layout its save records (see
+     * {@link ModdedBiomeOverlay}). Both layouts consult the vanilla biome chain of the base
+     * world type, with every biome other mods injected through BiomeManager: the legacy one
+     * paints from it, the climate-hosted one only discovers biomes in it. Any failure leaves
+     * the overlay disabled instead of breaking world creation.
      */
-    private ModdedBiomeOverlay moddedBiomeOverlay(World world) {
+    private ModdedBiomeOverlay moddedBiomeOverlay(World world, CavesNotCliffsWorldData data) {
+        synchronized (OVERLAYS) {
+            ModdedBiomeOverlay cached = OVERLAYS.get(world);
+            if (cached != null) {
+                return cached;
+            }
+        }
+        ModdedBiomeOverlay overlay;
         try {
-            return ModdedBiomeOverlay.fromVanillaProvider(
-                delegate(world, () -> baseType.getBiomeProvider(world)));
+            BiomeProvider chain = delegate(world, () -> baseType.getBiomeProvider(world));
+            CavesNotCliffsConfig.ModdedBiomes config = CavesNotCliffsConfig.MODDED_BIOMES;
+            boolean climateHosted = data.getModdedBiomeLayout()
+                    >= CavesNotCliffsWorldData.CLIMATE_HOSTED_MODDED_BIOME_LAYOUT
+                    || config.upgradeExistingWorlds;
+            if (climateHosted) {
+                int regionSize = config.regionSize
+                        * (data.getTerrainProfile() == TerrainProfile.LARGE_BIOMES ? 4 : 1);
+                ModdedBiomeOverlay.Sampler sampler = ModdedBiomeOverlay.chainSampler(chain);
+                ModdedBiomeCatalog.Settings settings =
+                        ModdedBiomeCatalog.parse(config.blacklist, config.hosts);
+                double vanillaWeight = config.vanillaWeight;
+                overlay = ModdedBiomeOverlay.climateHosted(
+                        new ModdedBiomeRegions(world.getSeed(), regionSize),
+                        () -> ModdedBiomeCatalog.buildHosts(sampler, settings, vanillaWeight));
+            } else {
+                overlay = ModdedBiomeOverlay.fromVanillaProvider(chain);
+            }
         } catch (RuntimeException failure) {
             LOGGER.warn("Could not sample the base world type's biome chain; modded biomes"
                     + " stay disabled for this world", failure);
-            return ModdedBiomeOverlay.disabled();
+            overlay = ModdedBiomeOverlay.disabled();
         }
+        synchronized (OVERLAYS) {
+            ModdedBiomeOverlay raced = OVERLAYS.get(world);
+            if (raced != null) {
+                return raced;
+            }
+            OVERLAYS.put(world, overlay);
+        }
+        return overlay;
     }
 
     @Override

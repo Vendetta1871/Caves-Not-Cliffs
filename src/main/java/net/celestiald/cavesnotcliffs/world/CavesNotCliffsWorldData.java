@@ -12,6 +12,10 @@ import java.util.WeakHashMap;
 public final class CavesNotCliffsWorldData {
     public static final int LEGACY_SCHEMA = 1;
     public static final int CURRENT_SCHEMA = 2;
+    /** Modded biomes painted where the base type's 1.12 GenLayer chain puts them. */
+    public static final int LEGACY_MODDED_BIOME_LAYOUT = 1;
+    /** Modded biomes replacing the 1.18 biomes they fit (see ModdedBiomeHosts). */
+    public static final int CLIMATE_HOSTED_MODDED_BIOME_LAYOUT = 2;
 
     private static final String ROOT_KEY = "cavesnotcliffs";
     private static final String SCHEMA_KEY = "terrainSchema";
@@ -19,6 +23,7 @@ public final class CavesNotCliffsWorldData {
     private static final String BASE_CLASS_KEY = "baseTypeClass";
     private static final String OPTIONS_KEY = "generatorOptions";
     private static final String PROFILE_KEY = "terrainProfile";
+    private static final String MODDED_BIOME_LAYOUT_KEY = "moddedBiomeLayout";
     private static final Map<WorldInfo, NBTTagCompound> RUNTIME_DATA =
             Collections.synchronizedMap(new WeakHashMap<WorldInfo, NBTTagCompound>());
 
@@ -28,15 +33,18 @@ public final class CavesNotCliffsWorldData {
     private final String generatorOptions;
     private final String terrainProfileName;
     private final TerrainProfile terrainProfile;
+    private final int moddedBiomeLayout;
 
     private CavesNotCliffsWorldData(int terrainSchema, String baseTypeName,
-            String baseTypeClass, String generatorOptions, String terrainProfileName) {
+            String baseTypeClass, String generatorOptions, String terrainProfileName,
+            int moddedBiomeLayout) {
         this.terrainSchema = terrainSchema;
         this.baseTypeName = baseTypeName;
         this.baseTypeClass = baseTypeClass;
         this.generatorOptions = generatorOptions;
         this.terrainProfileName = terrainProfileName;
         this.terrainProfile = TerrainProfile.bySerializedName(terrainProfileName);
+        this.moddedBiomeLayout = moddedBiomeLayout;
     }
 
     public int getTerrainSchema() {
@@ -59,6 +67,14 @@ public final class CavesNotCliffsWorldData {
         return terrainProfile;
     }
 
+    /**
+     * How modded biomes are laid out. Saves written before the key existed used the legacy
+     * GenLayer layout, and keep it so their explored and new land agree.
+     */
+    public int getModdedBiomeLayout() {
+        return moddedBiomeLayout;
+    }
+
     public static CavesNotCliffsWorldData read(WorldInfo worldInfo) {
         NBTTagCompound dimensionData = worldInfo.getDimensionData(0);
         NBTTagCompound tag;
@@ -79,35 +95,46 @@ public final class CavesNotCliffsWorldData {
                 tag.getString(BASE_TYPE_KEY),
                 tag.getString(BASE_CLASS_KEY),
                 tag.getString(OPTIONS_KEY),
-                tag.getString(PROFILE_KEY));
+                tag.getString(PROFILE_KEY),
+                tag.hasKey(MODDED_BIOME_LAYOUT_KEY, 99)
+                        ? tag.getInteger(MODDED_BIOME_LAYOUT_KEY)
+                        : LEGACY_MODDED_BIOME_LAYOUT);
     }
 
     public static CavesNotCliffsWorldData writeLegacy(WorldInfo worldInfo) {
         return write(worldInfo, LEGACY_SCHEMA, WorldType.DEFAULT, TerrainProfile.DEFAULT,
-                safeOptions(worldInfo.getGeneratorOptions()));
+                safeOptions(worldInfo.getGeneratorOptions()), LEGACY_MODDED_BIOME_LAYOUT);
+    }
+
+    /** Contract of a newly created schema-2 world. */
+    public static CavesNotCliffsWorldData writeCurrent(WorldInfo worldInfo, WorldType baseType,
+            TerrainProfile profile) {
+        return writeCurrent(worldInfo, baseType, profile, CLIMATE_HOSTED_MODDED_BIOME_LAYOUT);
     }
 
     public static CavesNotCliffsWorldData writeCurrent(WorldInfo worldInfo, WorldType baseType,
-            TerrainProfile profile) {
+            TerrainProfile profile, int moddedBiomeLayout) {
         return write(worldInfo, CURRENT_SCHEMA, baseType, profile,
-                safeOptions(worldInfo.getGeneratorOptions()));
+                safeOptions(worldInfo.getGeneratorOptions()), moddedBiomeLayout);
     }
 
     private static CavesNotCliffsWorldData write(WorldInfo worldInfo, int schema,
-            WorldType baseType, TerrainProfile profile, String options) {
+            WorldType baseType, TerrainProfile profile, String options, int moddedBiomeLayout) {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setInteger(SCHEMA_KEY, schema);
         tag.setString(BASE_TYPE_KEY, baseType.getName());
         tag.setString(BASE_CLASS_KEY, baseType.getClass().getName());
         tag.setString(OPTIONS_KEY, options);
         tag.setString(PROFILE_KEY, profile.getSerializedName());
+        tag.setInteger(MODDED_BIOME_LAYOUT_KEY, moddedBiomeLayout);
 
         NBTTagCompound dimensionData = worldInfo.getDimensionData(0);
         dimensionData.setTag(ROOT_KEY, tag);
         worldInfo.setDimensionData(0, dimensionData);
         RUNTIME_DATA.put(worldInfo, tag.copy());
         return new CavesNotCliffsWorldData(schema, baseType.getName(),
-                baseType.getClass().getName(), options, profile.getSerializedName());
+                baseType.getClass().getName(), options, profile.getSerializedName(),
+                moddedBiomeLayout);
     }
 
     /**

@@ -2,6 +2,7 @@ package net.celestiald.cavesnotcliffs.world;
 
 import net.celestiald.cavebiomes.api.ExtendedChunkAPI;
 import net.celestiald.cavesnotcliffs.worldgen.v118.TerrainColumn;
+import net.celestiald.cavesnotcliffs.worldgen.v118.V118Biome;
 import net.celestiald.cavesnotcliffs.worldgen.v118.V118Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.biome.Biome;
@@ -19,6 +20,7 @@ final class V118ChunkSlicer {
     private final V118BlockStateMapper blockStates;
     private final V118BiomeMapper biomes;
     private final ModdedBiomeOverlay overlay;
+    private final ModdedBiomeSurface moddedSurface;
     private final char[] materialIds = new char[TerrainColumn.BLOCKS_PER_CUBE];
     private final IBlockState[] sectionStates = new IBlockState[TerrainColumn.BLOCKS_PER_CUBE];
     private boolean warnedAboutWideModdedBiome;
@@ -41,6 +43,7 @@ final class V118ChunkSlicer {
         this.blockStates = blockStates;
         this.biomes = biomes;
         this.overlay = overlay;
+        moddedSurface = new ModdedBiomeSurface(biomes);
     }
 
     void slice(TerrainColumn column, int sectionY, Chunk chunk, boolean skylight) {
@@ -147,7 +150,11 @@ final class V118ChunkSlicer {
             throw new NullPointerException("chunk");
         }
         int[] biomeIds = projectedSurfaceBiomeIds(column);
-        applyModdedBiomeOverlay(biomeIds, chunk.x, chunk.z);
+        V118Biome[] hosts = surfaceHosts(column);
+        Biome[] claims = applyModdedBiomeOverlay(biomeIds, hosts, chunk.x, chunk.z);
+        if (claims != null && overlay.isClimateHosted()) {
+            moddedSurface.apply(chunk, hosts, claims);
+        }
         if (ExtendedBiomeStorageCompat.replaceSurfaceBiomes(chunk, biomeIds)) {
             return;
         }
@@ -167,20 +174,23 @@ final class V118ChunkSlicer {
     }
 
     /**
-     * Lets modded biomes from the vanilla chain (e.g. Thaumcraft's Magical Forest via
-     * BiomeManager) claim the surface plane so biome-driven mod content — tree worldgen,
-     * grass tints, fog — works in native-profile worlds.
+     * Lets modded biomes claim the surface plane so biome-driven mod content — tree worldgen,
+     * grass tints, fog — works in native-profile worlds. Returns the claims that were written
+     * (null per unclaimed column), or null when nothing was claimed.
      */
-    void applyModdedBiomeOverlay(int[] biomeIds, int chunkX, int chunkZ) {
+    Biome[] applyModdedBiomeOverlay(int[] biomeIds, V118Biome[] hosts, int chunkX,
+            int chunkZ) {
         if (!overlay.isEnabled()) {
-            return;
+            return null;
         }
-        Biome[] modded = overlay.moddedBlockBiomes(
+        Biome[] modded = overlay.moddedBlockBiomes(hosts,
             chunkX << 4, chunkZ << 4, TerrainColumn.WIDTH, TerrainColumn.WIDTH);
         if (modded == null) {
-            return;
+            return null;
         }
         boolean extendedStorage = ExtendedBiomeStorageCompat.isAvailable();
+        Biome[] applied = new Biome[biomeIds.length];
+        boolean any = false;
         for (int index = 0; index < biomeIds.length && index < modded.length; ++index) {
             Biome biome = modded[index];
             if (biome == null) {
@@ -202,7 +212,22 @@ final class V118ChunkSlicer {
                 continue;
             }
             biomeIds[index] = biomeId;
+            applied[index] = biome;
+            any = true;
         }
+        return any ? applied : null;
+    }
+
+    /** The 1.18 surface biome of every column, indexed {@code z * 16 + x}. */
+    static V118Biome[] surfaceHosts(TerrainColumn column) {
+        V118Biome[] hosts = new V118Biome[TerrainColumn.SURFACE_BIOME_COUNT];
+        for (int localZ = 0; localZ < TerrainColumn.WIDTH; ++localZ) {
+            for (int localX = 0; localX < TerrainColumn.WIDTH; ++localX) {
+                hosts[localZ * TerrainColumn.WIDTH + localX] =
+                    ModdedBiomeOverlay.hostFor(column.surfaceBiomeId(localX, localZ));
+            }
+        }
+        return hosts;
     }
 
     private int[] projectedSurfaceBiomeIds(TerrainColumn column) {

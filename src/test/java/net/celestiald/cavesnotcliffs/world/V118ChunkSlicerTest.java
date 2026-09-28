@@ -189,7 +189,7 @@ public class V118ChunkSlicerTest {
         int plainsId = Biome.getIdForBiome(Biomes.PLAINS);
         int[] biomeIds = new int[TerrainColumn.SURFACE_BIOME_COUNT];
         Arrays.fill(biomeIds, plainsId);
-        slicer.applyModdedBiomeOverlay(biomeIds, 0, 0);
+        slicer.applyModdedBiomeOverlay(biomeIds, null, 0, 0);
 
         assertEquals(Biome.getIdForBiome(magicalForest), biomeIds[0]);
         // The unresolvable biome id cannot be written, so the cell keeps the projection

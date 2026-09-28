@@ -199,8 +199,10 @@ public final class WorldHeightBootstrap {
                 throw new IllegalStateException("Schema-2 Caves Not Cliffs world lost its wrapper metadata");
             }
             CavesNotCliffsWorldTypeWrapper wrapper = (CavesNotCliffsWorldTypeWrapper) selected;
-            CavesNotCliffsWorldData.writeCurrent(
-                    worldInfo, wrapper.getBaseType(), wrapper.getTerrainProfile());
+            // An existing world: its explored land may already hold legacy-layout modded biomes.
+            CavesNotCliffsWorldData.writeCurrent(worldInfo, wrapper.getBaseType(),
+                    wrapper.getTerrainProfile(),
+                    CavesNotCliffsWorldData.LEGACY_MODDED_BIOME_LAYOUT);
             return;
         }
 
