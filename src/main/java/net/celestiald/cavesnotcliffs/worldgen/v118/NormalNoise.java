@@ -14,20 +14,33 @@ public final class NormalNoise {
     private final PerlinNoise second;
     private final double maxValue;
     private final NoiseParameters parameters;
+    // Native copy of the octave tables, or null when sampling in Java (see NativeNoise).
+    private final NativeNoise.Blob nativeBlob;
+    private final long nativeHandle;
 
     public static NormalNoise create(RandomSource random, int firstOctave, double... amplitudes) {
         return create(random, new NoiseParameters(firstOctave, amplitudes));
     }
 
     public static NormalNoise create(RandomSource random, NoiseParameters parameters) {
-        return new NormalNoise(random, parameters, true);
+        return new NormalNoise(random, parameters, true, false);
+    }
+
+    /**
+     * Like {@link #create(RandomSource, NoiseParameters)}, sampled by the native kernel when
+     * it is available. For long-lived, heavily sampled noises: each one allocates a direct
+     * buffer for its tables.
+     */
+    static NormalNoise createAccelerated(RandomSource random, NoiseParameters parameters) {
+        return new NormalNoise(random, parameters, true, NativeNoise.AVAILABLE);
     }
 
     public static NormalNoise createLegacy(RandomSource random, NoiseParameters parameters) {
-        return new NormalNoise(random, parameters, false);
+        return new NormalNoise(random, parameters, false, false);
     }
 
-    private NormalNoise(RandomSource random, NoiseParameters parameters, boolean modern) {
+    private NormalNoise(RandomSource random, NoiseParameters parameters, boolean modern,
+            boolean accelerated) {
         this.parameters = parameters;
         int firstOctave = parameters.firstOctave();
         List<Double> amplitudes = parameters.amplitudes();
@@ -49,6 +62,18 @@ public final class NormalNoise {
         }
         valueFactor = (1.0D / 6.0D) / expectedDeviation(maxIndex - minIndex);
         maxValue = (first.maxValue() + second.maxValue()) * valueFactor;
+        nativeBlob = accelerated ? exportNative() : null;
+        nativeHandle = nativeBlob == null ? 0L : nativeBlob.handle;
+    }
+
+    /** Whether {@link NativeNoise}'s kernel samples this noise. */
+    boolean isNative() {
+        return nativeHandle != 0L;
+    }
+
+    /** This noise's tables in the native kernel's layout, or null if they do not fit it. */
+    NativeNoise.Blob exportNative() {
+        return NativeNoise.exportNormal(first, second, INPUT_FACTOR, valueFactor);
     }
 
     public double maxValue() {
@@ -60,6 +85,14 @@ public final class NormalNoise {
     }
 
     public double getValue(double x, double y, double z) {
+        if (nativeHandle != 0L) {
+            return NativeNoise.normal(nativeHandle, x, y, z);
+        }
+        return sampleJava(x, y, z);
+    }
+
+    /** The reference sampler; the native kernel must agree with it bit for bit. */
+    double sampleJava(double x, double y, double z) {
         double shiftedX = x * INPUT_FACTOR;
         double shiftedY = y * INPUT_FACTOR;
         double shiftedZ = z * INPUT_FACTOR;

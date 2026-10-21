@@ -290,7 +290,7 @@ public final class V118NoiseRouterData {
         }
 
         private NormalNoise normal(String name) {
-            return V118NoiseParameters.instantiate(name, positional);
+            return V118NoiseParameters.instantiateAccelerated(name, positional);
         }
     }
 }

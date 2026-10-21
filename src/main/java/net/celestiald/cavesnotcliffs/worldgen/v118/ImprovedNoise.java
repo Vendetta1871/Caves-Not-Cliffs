@@ -71,6 +71,11 @@ public final class ImprovedNoise {
             shiftedX - floorX, shiftedY - floorY, shiftedZ - floorZ, derivative);
     }
 
+    /** Appends the 256-entry permutation table in NativeNoise's layout. */
+    void putPermutation(java.nio.ByteBuffer out) {
+        out.put(permutation);
+    }
+
     private static double gradDot(int hash, double x, double y, double z) {
         int[] gradient = GRADIENT[hash & 15];
         return gradient[0] * x + gradient[1] * y + gradient[2] * z;

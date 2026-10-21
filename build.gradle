@@ -171,6 +171,50 @@ processResources {
     }
 }
 
+// Native AVX2 noise sampler (src/main/native, loaded by worldgen/v118/NativeNoise). Both
+// libraries are freestanding (no C runtime, no imports), so one clang + lld toolchain builds the
+// Linux library and cross-builds the Windows DLL, and neither has a glibc or MSVC runtime floor.
+// -ffp-contract=off keeps the arithmetic bit-identical to the Java samplers. -PskipNativeNoise
+// builds a Java-only jar for machines without clang; verifyReleaseJar rejects such a jar.
+def nativeNoiseSource = file('src/main/native/cncnoise.cpp')
+def nativeNoiseOutput = file("${buildDir}/native-noise")
+def nativeNoiseCompiler = project.findProperty('nativeClang') ?: 'clang++'
+def nativeNoiseResourceRoot = 'net/celestiald/cavesnotcliffs/natives'
+// Unwind tables are plain data (.eh_frame / .pdata) that stack walkers and crash reporters read;
+// Win64 requires them for functions that save the non-volatile XMM registers.
+def nativeNoiseFlags = ['-std=c++17', '-O3', '-ffreestanding', '-nostdlib', '-fno-exceptions',
+    '-fno-rtti', '-fno-stack-protector', '-fasynchronous-unwind-tables', '-ffp-contract=off',
+    '-fno-fast-math', '-fvisibility=hidden', '-fuse-ld=lld', '-shared', '-Wall', '-Wextra',
+    '-Werror']
+def nativeNoiseTargets = [
+    linux: [triple: 'x86_64-linux-gnu', library: 'linux-x86_64/libcavesnotcliffs_noise.so',
+            flags: ['-fPIC', '-Wl,-z,defs', '-Wl,--build-id=none']],
+    windows: [triple: 'x86_64-pc-windows-msvc', library: 'windows-x86_64/cavesnotcliffs_noise.dll',
+              flags: ['-mno-stack-arg-probe', '-Wl,/noentry', '-Wl,/noimplib']]
+]
+ext.nativeNoiseLibraries = nativeNoiseTargets.values().collect { "${nativeNoiseResourceRoot}/${it.library}" }
+
+if (!project.hasProperty('skipNativeNoise')) {
+    def nativeNoiseTasks = nativeNoiseTargets.collect { name, target ->
+        def output = new File(nativeNoiseOutput, "${nativeNoiseResourceRoot}/${target.library}")
+        def arguments = ["--target=${target.triple}".toString()] + nativeNoiseFlags + target.flags
+        tasks.create("compileNativeNoise${name.capitalize()}", Exec) {
+            group = 'build'
+            description = "Builds the ${target.library} native noise sampler."
+            inputs.file nativeNoiseSource
+            inputs.property 'compiler', nativeNoiseCompiler
+            inputs.property 'arguments', arguments
+            outputs.file output
+            doFirst { output.parentFile.mkdirs() }
+            commandLine([nativeNoiseCompiler] + arguments + ['-o', output.path, nativeNoiseSource.path])
+        }
+    }
+    processResources {
+        dependsOn nativeNoiseTasks
+        from(nativeNoiseOutput)
+    }
+}
+
 // These are Minecraft fields used by the current source tree which have MCP/development names.
 // Finding one on a net.minecraft owner in the distributable proves that reobfuscation was skipped
 // or incomplete (Material.ROCK was the original release-blocking example).
@@ -290,6 +334,15 @@ task verifyReleaseJar(dependsOn: reobfJar) {
                 }
             } finally {
                 modStream.close()
+            }
+            nativeNoiseLibraries.each { library ->
+                if (zip.getEntry(library) == null) {
+                    throw new GradleException("Production jar is missing the native noise sampler ${library}"
+                        + ' (was it built with -PskipNativeNoise?)')
+                }
+            }
+            if (zip.getEntry("${nativeNoiseResourceRoot}/windows-x86_64/cavesnotcliffs_noise.lib") != null) {
+                throw new GradleException('Production jar contains the native sampler import library')
             }
             if (zip.getEntry('assets/minecraft/blockstates/cauldron.json') == null) {
                 throw new GradleException('Production jar is missing the vanilla cauldron blockstate override')

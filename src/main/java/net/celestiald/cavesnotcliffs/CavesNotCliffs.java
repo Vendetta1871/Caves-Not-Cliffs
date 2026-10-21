@@ -59,6 +59,7 @@ import net.celestiald.cavesnotcliffs.world.ModdedBiomeFeatureFilter;
 import net.celestiald.cavesnotcliffs.world.WorldHeightBootstrap;
 import net.celestiald.cavesnotcliffs.world.VirtualBiomeResolverRegistry;
 import net.celestiald.cavesnotcliffs.network.TerrainContractNetwork;
+import net.celestiald.cavesnotcliffs.worldgen.v118.NativeNoise;
 import net.celestiald.cavebiomes.api.BiomeLayerAPI;
 import net.celestiald.cavebiomes.api.IWorldVerticalBiomeProvider;
 
@@ -108,6 +109,9 @@ public class CavesNotCliffs {
 		MinecraftForge.EVENT_BUS.register(worldHeightBootstrap);
 		BiomeLayerAPI.register(verticalBiomeProvider);
 		TerrainContractNetwork.initialize();
+		// Resolves the optional native noise sampler up front, so the log states which one
+		// world generation uses (and why the Java fallback was chosen, if it was).
+		event.getModLog().info("Terrain noise: {}", NativeNoise.status());
 		MinecraftForge.EVENT_BUS.register(LavaCauldronHandler.INSTANCE);
 		MinecraftForge.EVENT_BUS.register(ImportedHeightMapRebuildHandler.INSTANCE);
 		MinecraftForge.EVENT_BUS.register(LegacySchemaOnePopulationHandler.INSTANCE);

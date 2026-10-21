@@ -1,5 +1,8 @@
 package net.celestiald.cavesnotcliffs.worldgen.v118;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /** Exact Java 1.18.2 legacy three-Perlin base-density sampler. */
 public final class BlendedNoise implements DensityFunction.SimpleFunction {
     private static final int[] LIMIT_OCTAVES = range(-15, 0);
@@ -15,9 +18,17 @@ public final class BlendedNoise implements DensityFunction.SimpleFunction {
     private final int cellWidth;
     private final int cellHeight;
     private final double maxValue;
+    // Native copy of the octave tables, or null when sampling in Java (see NativeNoise).
+    private final NativeNoise.Blob nativeBlob;
+    private final long nativeHandle;
 
     public BlendedNoise(RandomSource random, NoiseSamplingSettings settings,
             int cellWidth, int cellHeight) {
+        this(random, settings, cellWidth, cellHeight, NativeNoise.AVAILABLE);
+    }
+
+    BlendedNoise(RandomSource random, NoiseSamplingSettings settings,
+            int cellWidth, int cellHeight, boolean accelerated) {
         minLimitNoise = PerlinNoise.createLegacyForBlendedNoise(random, LIMIT_OCTAVES);
         maxLimitNoise = PerlinNoise.createLegacyForBlendedNoise(random, LIMIT_OCTAVES);
         mainNoise = PerlinNoise.createLegacyForBlendedNoise(random, MAIN_OCTAVES);
@@ -28,9 +39,55 @@ public final class BlendedNoise implements DensityFunction.SimpleFunction {
         this.cellWidth = cellWidth;
         this.cellHeight = cellHeight;
         maxValue = minLimitNoise.maxBrokenValue(yScale);
+        nativeBlob = accelerated ? exportNative() : null;
+        nativeHandle = nativeBlob == null ? 0L : nativeBlob.handle;
+    }
+
+    /** Whether {@link NativeNoise}'s kernel samples this noise. */
+    boolean isNative() {
+        return nativeHandle != 0L;
+    }
+
+    /** This noise's tables in the native kernel's layout, or null if an octave is absent. */
+    NativeNoise.Blob exportNative() {
+        List<NativeNoise.Octave> main = nativeOctaves(mainNoise, 8);
+        List<NativeNoise.Octave> minLimit = nativeOctaves(minLimitNoise, 16);
+        List<NativeNoise.Octave> maxLimit = nativeOctaves(maxLimitNoise, 16);
+        if (main == null || minLimit == null || maxLimit == null) {
+            return null;
+        }
+        return NativeNoise.exportBlended(xzScale, yScale, xzMainScale, yMainScale, cellWidth,
+            cellHeight, main, minLimit, maxLimit);
+    }
+
+    /**
+     * The octaves {@link #computeJava} visits, each with its octaveScale and the exact power
+     * of two 1/octaveScale the kernel multiplies by instead of dividing.
+     */
+    private static List<NativeNoise.Octave> nativeOctaves(PerlinNoise noise, int count) {
+        List<NativeNoise.Octave> octaves = new ArrayList<NativeNoise.Octave>(count);
+        double octaveScale = 1.0D;
+        for (int octave = 0; octave < count; ++octave) {
+            ImprovedNoise level = noise.getOctaveNoise(octave);
+            if (level == null) {
+                return null;
+            }
+            octaves.add(new NativeNoise.Octave(level, 1.0D, octaveScale, 1.0D / octaveScale,
+                0.0D));
+            octaveScale /= 2.0D;
+        }
+        return octaves;
     }
 
     public double compute(int blockX, int blockY, int blockZ) {
+        if (nativeHandle != 0L) {
+            return NativeNoise.blended(nativeHandle, blockX, blockY, blockZ);
+        }
+        return computeJava(blockX, blockY, blockZ);
+    }
+
+    /** The reference sampler; the native kernel must agree with it bit for bit. */
+    double computeJava(int blockX, int blockY, int blockZ) {
         int cellX = Math.floorDiv(blockX, cellWidth);
         int cellY = Math.floorDiv(blockY, cellHeight);
         int cellZ = Math.floorDiv(blockZ, cellWidth);

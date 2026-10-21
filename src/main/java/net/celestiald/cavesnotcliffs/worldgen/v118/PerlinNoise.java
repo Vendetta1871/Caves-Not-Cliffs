@@ -148,6 +148,24 @@ public class PerlinNoise {
         return value;
     }
 
+    /**
+     * Appends the present octaves in {@link #getValue(double, double, double)}'s summation
+     * order, with the input and value factors that loop applies to each.
+     */
+    void collectNativeOctaves(List<NativeNoise.Octave> out, double coordinateScale) {
+        double inputFactor = lowestFreqInputFactor;
+        double valueFactor = lowestFreqValueFactor;
+        for (int index = 0; index < noiseLevels.length; ++index) {
+            ImprovedNoise noise = noiseLevels[index];
+            if (noise != null) {
+                out.add(new NativeNoise.Octave(noise, coordinateScale, inputFactor, valueFactor,
+                    amplitudes[index]));
+            }
+            inputFactor *= 2.0D;
+            valueFactor /= 2.0D;
+        }
+    }
+
     public double maxBrokenValue(double value) {
         return edgeValue(value + 2.0D);
     }

@@ -23,6 +23,12 @@ public final class V118NoiseParameters {
         return NormalNoise.create(positional.fromHashOf("minecraft:" + name), get(name));
     }
 
+    /** {@link #instantiate} for the density router's long-lived noises (see NativeNoise). */
+    static NormalNoise instantiateAccelerated(String name, PositionalRandomFactory positional) {
+        return NormalNoise.createAccelerated(positional.fromHashOf("minecraft:" + name),
+            get(name));
+    }
+
     public static Map<String, NormalNoise.NoiseParameters> all() {
         return PARAMETERS;
     }

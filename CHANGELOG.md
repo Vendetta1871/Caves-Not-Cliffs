@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Faster terrain generation on x86-64 Linux and Windows CPUs with AVX2: the 1.18 noise
+  samplers behind terrain shape, caves, aquifers and climate now run in a small native library
+  shipped inside the jar (nothing extra to install). A terrain column takes about 27% less time
+  to generate on an i7-8650U, with one terrain thread or four. The output is bit-identical to
+  the Java samplers, which remain the fallback everywhere else (macOS, ARM, older CPUs) and can
+  be forced with `-Dcavesnotcliffs.nativeNoise=false`; the log line `Terrain noise: ...` names
+  the sampler in use.
+
 ## 2.0.5
 
 - Fix native 1.18 worlds generating without passive animals: new chunks now get their

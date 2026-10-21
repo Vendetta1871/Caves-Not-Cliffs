@@ -134,6 +134,12 @@ thread populates the current one. Column output is bit-identical either way. Fir
 preparation still takes a minute or two on older CPUs, and lowering the view distance helps
 during both spawn preparation and exploration.
 
+On x86-64 Linux and Windows with an AVX2 CPU, the terrain, cave and climate noise is sampled by a
+small native library bundled in the jar, which cuts the time per terrain column by about a quarter.
+It produces exactly the same numbers as the Java samplers, which are used everywhere else (macOS,
+ARM, CPUs without AVX2) or with `-Dcavesnotcliffs.nativeNoise=false`. The game log reports the
+active sampler on a `Terrain noise:` line.
+
 ## Known limitations
 
 - Native Java 1.18.2 terrain is supplied for Default, Large Biomes, and Amplified. Flat,
@@ -177,8 +183,13 @@ Use a Java 8 JDK and the checked-in wrapper; no system Gradle installation is ne
 
 On Windows, run `gradlew.bat clean test build verifyReleaseJar`. The release artifact is
 `build/libs/cavesnotcliffs-<version>.jar`. The build fails if that jar is not reobfuscated, if its
-release metadata is wrong, if CaveBiomesAPI classes were accidentally bundled, or if static
-CubicChunks linkage remains.
+release metadata is wrong, if CaveBiomesAPI classes were accidentally bundled, if static
+CubicChunks linkage remains, or if a native noise library is missing.
+
+The native noise sampler (`src/main/native`) needs `clang++` and `lld` from LLVM on the `PATH`
+(or `-PnativeClang=/path/to/clang++`). One host builds both the Linux library and the Windows DLL:
+they are freestanding and import nothing, so no MinGW or MSVC toolchain is involved.
+`-PskipNativeNoise` builds a Java-only jar for development; `verifyReleaseJar` rejects it.
 
 The Java 8/ForgeGradle 2.3 development toolchain compiles against Forge 14.23.5.2847, the newest
 Forge release that still publishes the legacy `userdev` artifact. The produced mod declares and
