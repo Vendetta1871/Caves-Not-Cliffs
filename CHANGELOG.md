@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Faster terrain generation everywhere: each terrain column now evaluates the interpolated
+  terrain and cave noise once per cell corner, in bulk and spread over the terrain threads,
+  instead of re-evaluating all eight corners for every 4x8x4 cell. Together with the native
+  sampler below, a column takes about 45% less time to generate; output is unchanged.
 - Faster terrain generation on x86-64 Linux and Windows CPUs with AVX2: the 1.18 noise
   samplers behind terrain shape, caves, aquifers and climate now run in a small native library
   shipped inside the jar (nothing extra to install). A terrain column takes about 27% less time

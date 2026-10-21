@@ -140,7 +140,11 @@ public final class V118TerrainColumnGenerator {
                 V118DensityInterpolator.realize(router.initialDensityWithoutJaggedness(),
                     settings),
                 columnX, columnZ);
-        CellFillGroup[] groups = createFillGroups(columnX, columnZ, preliminarySurface);
+        V118DensityInterpolator.ColumnCorners corners = new V118DensityInterpolator.ColumnCorners(
+            settings, columnX * TerrainColumn.WIDTH, columnZ * TerrainColumn.WIDTH,
+            TerrainColumn.WIDTH);
+        CellFillGroup[] groups = createFillGroups(columnX, columnZ, preliminarySurface, corners);
+        fillCorners(groups, corners);
 
         NoiseBasedAquifer aquifer = new NoiseBasedAquifer(columnX, columnZ,
             settings.minY(), settings.height(), router.barrierNoise(),
@@ -224,16 +228,38 @@ public final class V118TerrainColumnGenerator {
         return builder.build();
     }
 
+    /**
+     * Computes every interpolated node's cell corners for the column up front, spread over the
+     * lanes by corner column, so the cell fill below only interpolates them.
+     */
+    private void fillCorners(CellFillGroup[] groups,
+            V118DensityInterpolator.ColumnCorners corners) {
+        if (groups.length == 1) {
+            groups[0].corners.fill(0, 1);
+        } else {
+            int step = groups.length;
+            java.util.concurrent.ForkJoinTask<?> task = CELL_POOL.submit(
+                () -> java.util.stream.IntStream.range(1, groups.length)
+                    .parallel()
+                    .forEach(index -> groups[index].corners.fill(index, step)));
+            groups[0].corners.fill(0, step);
+            task.join();
+        }
+        corners.markReady();
+    }
+
     /** One cell-fill worker context per parallel lane, or the only context when serial. */
     private CellFillGroup[] createFillGroups(int columnX, int columnZ,
-            NoiseBasedAquifer.PreliminarySurfaceLookup preliminarySurface) {
+            NoiseBasedAquifer.PreliminarySurfaceLookup preliminarySurface,
+            V118DensityInterpolator.ColumnCorners corners) {
         // Group counts stay divisors of the 4x4 cell grid so bands tile it exactly.
         int requested = CELL_POOL == null ? 1 : Math.min(parallelism, MAX_PARALLELISM);
         int count = requested >= 16 ? 16 : requested >= 8 ? 8 : requested >= 4 ? 4
             : requested >= 2 ? 2 : 1;
         CellFillGroup[] groups = new CellFillGroup[count];
         for (int index = 0; index < count; ++index) {
-            groups[index] = new CellFillGroup(columnX, columnZ, preliminarySurface);
+            groups[index] = new CellFillGroup(columnX, columnZ, preliminarySurface,
+                corners.newLane());
         }
         return groups;
     }
@@ -357,11 +383,14 @@ public final class V118TerrainColumnGenerator {
         private final V118ClimateSampler climateSampler;
         private final MutableDensityContext blockContext = new MutableDensityContext();
         private final long[] fluidBits = new long[(TerrainColumn.BLOCK_COUNT + 63) >>> 6];
+        private final V118DensityInterpolator.ColumnCorners.Lane corners;
 
         private CellFillGroup(int columnX, int columnZ,
-                NoiseBasedAquifer.PreliminarySurfaceLookup preliminarySurface) {
+                NoiseBasedAquifer.PreliminarySurfaceLookup preliminarySurface,
+                V118DensityInterpolator.ColumnCorners.Lane corners) {
+            this.corners = corners;
             finalDensity = V118DensityInterpolator.realizeFinalDensity(router.finalDensity(),
-                settings);
+                settings, corners);
             aquifer = new NoiseBasedAquifer(columnX, columnZ,
                 settings.minY(), settings.height(), router.barrierNoise(),
                 router.fluidLevelFloodednessNoise(), router.fluidLevelSpreadNoise(),
@@ -369,9 +398,9 @@ public final class V118TerrainColumnGenerator {
                 preliminarySurface,
                 V118TerrainColumnGenerator::globalFluid);
             oreVeinifier = new V118OreVeinifier(
-                V118DensityInterpolator.realize(router.veinToggle(), settings),
-                V118DensityInterpolator.realize(router.veinRidged(), settings),
-                V118DensityInterpolator.realize(router.veinGap(), settings),
+                V118DensityInterpolator.realize(router.veinToggle(), settings, corners),
+                V118DensityInterpolator.realize(router.veinRidged(), settings, corners),
+                V118DensityInterpolator.realize(router.veinGap(), settings, corners),
                 router.oreVeinsPositionalRandomFactory());
             climateSampler = new V118ClimateSampler(router, settings, biomeTable);
         }

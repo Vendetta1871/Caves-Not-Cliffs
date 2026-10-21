@@ -16,6 +16,16 @@ public final class V118DensityInterpolator {
 
     public static DensityFunction realize(DensityFunction function,
             V118NoiseSettings settings) {
+        return realize(function, settings, null);
+    }
+
+    /**
+     * Realizes a function whose interpolated nodes read their cell corners from a column's
+     * shared corner grids once {@link ColumnCorners#markReady} has run, and register with
+     * {@code lane} so it can fill its share of those grids.
+     */
+    public static DensityFunction realize(DensityFunction function,
+            V118NoiseSettings settings, ColumnCorners.Lane lane) {
         if (function == null) {
             throw new NullPointerException("function");
         }
@@ -23,7 +33,7 @@ public final class V118DensityInterpolator {
             throw new NullPointerException("settings");
         }
         return function.mapAll(new MarkerRealizer(settings.getCellWidth(),
-            settings.getCellHeight()));
+            settings.getCellHeight(), lane));
     }
 
     /**
@@ -32,7 +42,131 @@ public final class V118DensityInterpolator {
      */
     public static DensityFunction realizeFinalDensity(DensityFunction function,
             V118NoiseSettings settings) {
-        return realize(DensityFunctions.cacheAllInCell(function), settings);
+        return realizeFinalDensity(function, settings, null);
+    }
+
+    public static DensityFunction realizeFinalDensity(DensityFunction function,
+            V118NoiseSettings settings, ColumnCorners.Lane lane) {
+        return realize(DensityFunctions.cacheAllInCell(function), settings, lane);
+    }
+
+    /**
+     * Every interpolated node's corner values over one column's cell grid, computed in bulk
+     * before the cells are filled, like NoiseChunk's slice caches. Filling a cell then reads
+     * its eight corners instead of evaluating them: adjacent cells share corners, so the
+     * column evaluates each interpolated node at its 5x49x5 corners rather than 8 per cell.
+     *
+     * <p>Grids are keyed by the interpolated marker's source identity, so every lane's
+     * realization of a node shares one grid. Each lane fills a disjoint set of corner columns
+     * with its own realized nodes (their memo caches are single-threaded); density functions
+     * are pure in their coordinates, so values do not depend on which lane computed them or
+     * in which order. Lanes must finish {@link Lane#fill} and the caller must
+     * {@link #markReady} before any lane reads, e.g. across a fork/join.</p>
+     */
+    public static final class ColumnCorners {
+        private final int minX;
+        private final int minY;
+        private final int minZ;
+        private final int cellWidth;
+        private final int cellHeight;
+        private final int countX;
+        private final int countY;
+        private final int countZ;
+        private final java.util.IdentityHashMap<DensityFunctions.Marker, double[]> grids =
+            new java.util.IdentityHashMap<DensityFunctions.Marker, double[]>();
+        private boolean ready;
+
+        public ColumnCorners(V118NoiseSettings settings, int minBlockX, int minBlockZ,
+                int width) {
+            cellWidth = settings.getCellWidth();
+            cellHeight = settings.getCellHeight();
+            minX = minBlockX;
+            minY = settings.minY();
+            minZ = minBlockZ;
+            countX = width / cellWidth + 1;
+            countY = settings.getCellCountY() + 1;
+            countZ = width / cellWidth + 1;
+        }
+
+        /** Number of (x, z) corner columns, the unit of work {@link Lane#fill} splits. */
+        public int cornerColumns() {
+            return countX * countZ;
+        }
+
+        /** New per-lane registry; create lanes and realize their functions serially. */
+        public Lane newLane() {
+            return new Lane();
+        }
+
+        /** Publishes the filled grids to the interpolated nodes of every lane. */
+        public void markReady() {
+            ready = true;
+        }
+
+        private double[] grid(DensityFunctions.Marker source) {
+            double[] grid = grids.get(source);
+            if (grid == null) {
+                grid = new double[countX * countY * countZ];
+                grids.put(source, grid);
+            }
+            return grid;
+        }
+
+        /** Index of the cell whose lowest corner is at (x0, y0, z0), or -1 outside the grid. */
+        private int cellIndex(int x0, int y0, int z0) {
+            if (!ready) {
+                return -1;
+            }
+            int cellX = (x0 - minX) / cellWidth;
+            int cellY = (y0 - minY) / cellHeight;
+            int cellZ = (z0 - minZ) / cellWidth;
+            if (x0 < minX || y0 < minY || z0 < minZ || cellX + 1 >= countX
+                    || cellY + 1 >= countY || cellZ + 1 >= countZ) {
+                return -1;
+            }
+            return (cellX * countZ + cellZ) * countY + cellY;
+        }
+
+        /** One fill lane's interpolated nodes, one per marker source. */
+        public final class Lane {
+            private final java.util.IdentityHashMap<DensityFunctions.Marker, Interpolated>
+                nodes = new java.util.IdentityHashMap<DensityFunctions.Marker, Interpolated>();
+
+            private Lane() {
+            }
+
+            private ColumnCorners owner() {
+                return ColumnCorners.this;
+            }
+
+            private double[] register(DensityFunctions.Marker source, Interpolated node) {
+                if (!nodes.containsKey(source)) {
+                    nodes.put(source, node);
+                }
+                return grid(source);
+            }
+
+            /** Fills corner columns {@code from, from + step, ...} of every grid. */
+            public void fill(int from, int step) {
+                MutableDensityContext delegate = new MutableDensityContext();
+                for (java.util.Map.Entry<DensityFunctions.Marker, Interpolated> entry
+                        : nodes.entrySet()) {
+                    double[] grid = grids.get(entry.getKey());
+                    Interpolated node = entry.getValue();
+                    for (int column = from; column < countX * countZ; column += step) {
+                        int cornerX = column / countZ;
+                        int cornerZ = column % countZ;
+                        int blockX = minX + cornerX * cellWidth;
+                        int blockZ = minZ + cornerZ * cellWidth;
+                        int base = (cornerX * countZ + cornerZ) * countY;
+                        for (int cornerY = 0; cornerY < countY; ++cornerY) {
+                            grid[base + cornerY] = node.sampleCorner(delegate,
+                                blockX, minY + cornerY * cellHeight, blockZ);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private static final class MarkerRealizer implements DensityFunction.Visitor {
@@ -46,9 +180,12 @@ public final class V118DensityInterpolator {
         private final java.util.IdentityHashMap<DensityFunction, DensityFunction> cacheOnceNodes =
             new java.util.IdentityHashMap<DensityFunction, DensityFunction>();
 
-        private MarkerRealizer(int cellWidth, int cellHeight) {
+        private final ColumnCorners.Lane lane;
+
+        private MarkerRealizer(int cellWidth, int cellHeight, ColumnCorners.Lane lane) {
             this.cellWidth = cellWidth;
             this.cellHeight = cellHeight;
+            this.lane = lane;
         }
 
         @Override
@@ -58,8 +195,15 @@ public final class V118DensityInterpolator {
             }
             DensityFunctions.Marker marker = (DensityFunctions.Marker) function;
             switch (marker.type()) {
-                case INTERPOLATED:
-                    return new Interpolated(marker.wrapped(), cellWidth, cellHeight);
+                case INTERPOLATED: {
+                    Interpolated interpolated = new Interpolated(marker.wrapped(), cellWidth,
+                        cellHeight);
+                    if (lane != null) {
+                        interpolated.columnCorners = lane.owner();
+                        interpolated.grid = lane.register(marker.source(), interpolated);
+                    }
+                    return interpolated;
+                }
                 case FLAT_CACHE:
                     return new FlatCache(marker.wrapped());
                 case CACHE_2D:
@@ -272,6 +416,9 @@ public final class V118DensityInterpolator {
         private boolean lastCellCacheContext;
         private final double[] corners = new double[8];
         private final CellContext sampleContext = new CellContext();
+        // Set at realization when this node takes part in a column's bulk corner fill.
+        private ColumnCorners columnCorners;
+        private double[] grid;
 
         private Interpolated(DensityFunction wrapped, int cellWidth, int cellHeight) {
             this.wrapped = wrapped;
@@ -316,6 +463,22 @@ public final class V118DensityInterpolator {
             lastCellY = y0;
             lastCellZ = z0;
             lastCellCacheContext = cellCacheContext;
+            int cell = columnCorners == null ? -1 : columnCorners.cellIndex(x0, y0, z0);
+            if (cell >= 0) {
+                // Same order as the computed branch below: x fastest, then y, then z.
+                int strideY = 1;
+                int strideZ = columnCorners.countY;
+                int strideX = columnCorners.countZ * columnCorners.countY;
+                corners[0] = grid[cell];
+                corners[1] = grid[cell + strideX];
+                corners[2] = grid[cell + strideY];
+                corners[3] = grid[cell + strideX + strideY];
+                corners[4] = grid[cell + strideZ];
+                corners[5] = grid[cell + strideX + strideZ];
+                corners[6] = grid[cell + strideY + strideZ];
+                corners[7] = grid[cell + strideX + strideY + strideZ];
+                return;
+            }
             int x1 = x0 + cellWidth;
             int y1 = y0 + cellHeight;
             int z1 = z0 + cellWidth;
@@ -327,6 +490,15 @@ public final class V118DensityInterpolator {
             corners[5] = sample(context, x1, y0, z1);
             corners[6] = sample(context, x0, y1, z1);
             corners[7] = sample(context, x1, y1, z1);
+        }
+
+        /**
+         * A corner value for the bulk fill. Equal to {@link #sample} in either context: the
+         * cell-cache context only forwards blendDensity, which is the identity here.
+         */
+        private double sampleCorner(DensityFunction.FunctionContext delegate, int x, int y,
+                int z) {
+            return wrapped.compute(sampleContext.set(delegate, x, y, z));
         }
 
         private double sample(DensityFunction.FunctionContext context, int x, int y, int z) {
