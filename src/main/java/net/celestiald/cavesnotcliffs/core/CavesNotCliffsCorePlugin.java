@@ -25,8 +25,9 @@ public final class CavesNotCliffsCorePlugin implements IFMLLoadingPlugin {
             // crash the whole game launch here; let CavesNotCliffs#preInit report the missing
             // dependency cleanly.
             System.setProperty(MIXIN_MISSING_PROPERTY, "true");
-            System.err.println("[Caves Not Cliffs] SpongePowered Mixin not found - is the "
-                    + "MixinBootstrap mod installed? (https://modrinth.com/mod/mixinbootstrap)");
+            System.err.println("[Caves Not Cliffs] SpongePowered Mixin not found - install the "
+                    + "MixinBootstrap (https://modrinth.com/mod/mixinbootstrap) or MixinBooter "
+                    + "(https://modrinth.com/mod/mixinbooter) mod; Cleanroom includes it built in.");
         }
     }
     @Override

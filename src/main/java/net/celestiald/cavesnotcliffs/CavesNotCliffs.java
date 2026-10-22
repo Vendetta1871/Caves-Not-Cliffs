@@ -99,8 +99,9 @@ public class CavesNotCliffs {
 		// stop here with a clear message rather than letting the game run with a half-applied,
 		// broken cauldron.
 		if (Boolean.getBoolean("cavesnotcliffs.mixinMissing")) {
-			throw new RuntimeException("Caves Not Cliffs requires the MixinBootstrap mod. "
-					+ "Download it from https://modrinth.com/mod/mixinbootstrap and put it in your mods folder.");
+			throw new RuntimeException("Caves Not Cliffs requires the SpongePowered Mixin runtime. "
+					+ "Install MixinBootstrap (https://modrinth.com/mod/mixinbootstrap) or MixinBooter "
+					+ "(https://modrinth.com/mod/mixinbooter); Cleanroom already includes it.");
 		}
 		// NoiseThreader threads the same noise work this mod already accelerates natively;
 		// refuse the pair up front instead of letting a pack run two noise systems at once.
