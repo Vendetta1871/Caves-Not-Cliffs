@@ -1,5 +1,7 @@
 package net.celestiald.cavesnotcliffs.worldgen.v118;
 
+import net.minecraftforge.fml.common.Loader;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -23,7 +25,8 @@ import java.util.Locale;
  * <p>The kernels reproduce the Java arithmetic bit for bit, so a world generates identically
  * with or without them; the Java classes stay the reference and the fallback. The library is
  * used only on x86-64 Linux and Windows CPUs with AVX2, after it agrees with the Java samplers
- * on a self-test. {@code -Dcavesnotcliffs.nativeNoise=false} forces the Java path.</p>
+ * on a self-test. {@code -Dcavesnotcliffs.nativeNoise=false} forces the Java path, and so does
+ * a NoiseThreader install: one noise accelerator per pack is enough.</p>
  *
  * <p>Each accelerated sampler copies its octave tables into a direct buffer in the kernels'
  * layout and passes the buffer's address on every call. The sampler keeps the buffer
@@ -31,6 +34,8 @@ import java.util.Locale;
  */
 public final class NativeNoise {
     public static final String PROPERTY = "cavesnotcliffs.nativeNoise";
+    /** NoiseThreader already accelerates noise generation; the sampler stands down for it. */
+    private static final String NOISE_THREADER = "noisethreader";
     static final String RESOURCE_ROOT = "/net/celestiald/cavesnotcliffs/natives/";
     /** Must equal ABI_VERSION in cncnoise.cpp. */
     private static final int ABI_VERSION = 1;
@@ -208,9 +213,24 @@ public final class NativeNoise {
         }
     }
 
+    /**
+     * NoiseThreader detection. Unit tests load this class outside a Forge runtime, where the
+     * mod registry cannot be built; there the sampler is judged on its own merits.
+     */
+    private static boolean noiseThreaderInstalled() {
+        try {
+            return Loader.isModLoaded(NOISE_THREADER);
+        } catch (Throwable noForgeRuntime) {
+            return false;
+        }
+    }
+
     private static String load() throws IOException {
         if (!Boolean.parseBoolean(System.getProperty(PROPERTY, "true"))) {
             return "disabled by -D" + PROPERTY + "=false";
+        }
+        if (noiseThreaderInstalled()) {
+            return "NoiseThreader is installed";
         }
         String platform = platform();
         if (platform == null) {
