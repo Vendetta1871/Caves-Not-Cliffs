@@ -10,6 +10,10 @@ public final class CavesNotCliffsConfig {
     @Config.Comment("World-creation settings. Changing these values never converts an existing save.")
     public static final World WORLD = new World();
 
+    @Config.Name("drops")
+    @Config.Comment("What mining gives. Changing these values applies to the next block broken.")
+    public static final Drops DROPS = new Drops();
+
     @Config.Name("moddedBiomes")
     @Config.Comment({
             "How biomes from other mods appear in native 1.18 Overworlds. A modded biome replaces",
@@ -68,5 +72,16 @@ public final class CavesNotCliffsConfig {
                 "Existing worlds keep the format recorded in their save, regardless of this value."
         })
         public boolean enableForNewOverworlds = true;
+    }
+
+    public static final class Drops {
+        @Config.Name("rawOreDrops")
+        @Config.Comment({
+                "Vanilla iron and gold ores drop raw iron and raw gold like in 1.18, with the",
+                "1.18 Fortune range. Set to false to keep the 1.12 drops - the ore blocks",
+                "themselves - for packs whose ore processing expects smelting them instead.",
+                "Deepslate ores always drop their raw material; 1.12 has no equivalent of them."
+        })
+        public boolean rawOreDrops = true;
     }
 }

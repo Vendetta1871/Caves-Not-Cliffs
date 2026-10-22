@@ -1,6 +1,7 @@
 package net.celestiald.cavesnotcliffs.content;
 
 import net.celestiald.cavesnotcliffs.CavesNotCliffs;
+import net.celestiald.cavesnotcliffs.config.CavesNotCliffsConfig;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
@@ -21,6 +22,9 @@ public final class VanillaRawOreDrops {
 
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void replaceVanillaOreDrops(BlockEvent.HarvestDropsEvent event) {
+        if (!CavesNotCliffsConfig.DROPS.rawOreDrops) {
+            return;
+        }
         Block block = event.getState().getBlock();
         String replacement = replacementPath(block, event.isSilkTouching());
         if (replacement == null) {

@@ -1,8 +1,12 @@
 package net.celestiald.cavesnotcliffs.content;
 
+import net.celestiald.cavesnotcliffs.config.CavesNotCliffsConfig;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Bootstrap;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.event.world.BlockEvent;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -29,6 +33,24 @@ public class VanillaRawOreDropsTest {
         assertNull(VanillaRawOreDrops.replacementPath(Blocks.COAL_ORE, false));
         assertNull(VanillaRawOreDrops.replacementPath(Blocks.IRON_ORE, true));
         assertNull(VanillaRawOreDrops.replacementPath(Blocks.GOLD_ORE, true));
+    }
+
+    @Test
+    public void theConfigSwitchKeepsTheUntouchedVanillaOreBlockDrop() {
+        List<ItemStack> drops = new ArrayList<>();
+        drops.add(new ItemStack(Blocks.IRON_ORE));
+        BlockEvent.HarvestDropsEvent event = new BlockEvent.HarvestDropsEvent(null,
+                BlockPos.ORIGIN, Blocks.IRON_ORE.getDefaultState(), 0, 1.0F, drops, null, false);
+
+        CavesNotCliffsConfig.DROPS.rawOreDrops = false;
+        try {
+            VanillaRawOreDrops.replaceVanillaOreDrops(event);
+        } finally {
+            CavesNotCliffsConfig.DROPS.rawOreDrops = true;
+        }
+
+        assertEquals(1, drops.size());
+        assertEquals(Item.getItemFromBlock(Blocks.IRON_ORE), drops.get(0).getItem());
     }
 
     @Test
