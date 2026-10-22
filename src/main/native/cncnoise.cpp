@@ -10,6 +10,16 @@
 // used either (it pulls in <stdio.h>), so the few JNI types are declared below.
 
 #include <stdint.h>
+#if defined(_MSC_VER)
+// Clang targeting MSVC defines _MSC_VER, and its immintrin.h (through clang 19) hides every
+// intrinsic header behind the matching feature macro. The kernels enable AVX2 per function
+// with target attributes instead of -mavx2, so define the macros here. They only control
+// which declarations the headers show; the code generator still emits AVX2 instructions
+// exclusively inside the target("avx2") functions below.
+#define __AVX__ 1
+#define __AVX2__ 1
+#define __SSE4_1__ 1
+#endif
 #include <immintrin.h>
 #include <cpuid.h>
 
