@@ -45,6 +45,7 @@ import net.minecraft.item.Item;
 import net.minecraft.block.Block;
 import net.celestiald.cavesnotcliffs.command.CommandCaveBiome;
 import net.celestiald.cavesnotcliffs.compat.FutureMcCompat;
+import net.celestiald.cavesnotcliffs.compat.NoiseThreaderConflict;
 import net.celestiald.cavesnotcliffs.content.CncMaterialContent;
 import net.celestiald.cavesnotcliffs.content.DungeonChestContent;
 import net.celestiald.cavesnotcliffs.content.OreDictionaryCompat;
@@ -101,6 +102,9 @@ public class CavesNotCliffs {
 			throw new RuntimeException("Caves Not Cliffs requires the MixinBootstrap mod. "
 					+ "Download it from https://modrinth.com/mod/mixinbootstrap and put it in your mods folder.");
 		}
+		// NoiseThreader threads the same noise work this mod already accelerates natively;
+		// refuse the pair up front instead of letting a pack run two noise systems at once.
+		NoiseThreaderConflict.haltIfInstalled();
 		DungeonChestContent.registerTileEntity();
 		// Creating the hidden alias registers it before level.dat or server.properties is parsed.
 		if (WORLD_TYPE == null) {
