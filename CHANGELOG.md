@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- No more crash on world load when Alfheim is installed: it rewrites the chunk lighting for the
+  vanilla Y 0..256 range, so a light read below Y zero (a pointed dripstone replacing water at
+  Y=-1, a torch in a deepslate cave) died with `ArrayIndexOutOfBoundsException: -1`, and above
+  Y zero light came from the section 64 blocks below the queried spot. CaveBiomesAPI 1.1.5 now
+  refuses to start next to Alfheim while the world height is extended and says what to do
+  instead; packs that keep the vanilla height still load both mods together.
 - Faster terrain generation everywhere: each terrain column now evaluates the interpolated
   terrain and cave noise once per cell corner, in bulk and spread over the terrain threads,
   instead of re-evaluating all eight corners for every 4x8x4 cell. Together with the native
