@@ -27,7 +27,7 @@ if (devLaunch && requestedTasks.any { task ->
 }
 ext.forgeFloor = devLaunch ? '14.23.5.2847' : releaseForgeFloor
 
-version = '2.0.5'
+version = '2.0.6'
 group = 'net.celestiald'
 archivesBaseName = 'cavesnotcliffs'
 
@@ -78,7 +78,7 @@ dependencies {
     // Deobfuscated like Fluidlogged API: the JitPack jar is SRG-named, and its @Overwrite mixin
     // methods only match the MCP-named dev runtime after FG remaps them. This also puts the API
     // on the runClient/runServer classpath, so no copy belongs in run/mods. Not bundled.
-    deobfCompile('com.github.Vendetta1871:CaveBiomesAPI:1.1.4') {
+    deobfCompile('com.github.Vendetta1871:CaveBiomesAPI:1.1.5') {
         transitive = false
     }
 

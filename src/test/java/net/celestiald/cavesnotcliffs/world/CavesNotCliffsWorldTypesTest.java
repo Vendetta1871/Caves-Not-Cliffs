@@ -76,6 +76,7 @@ public class CavesNotCliffsWorldTypesTest {
                     CavesNotCliffsWorldTypes.wrapperForBase(base);
             assertNotNull(wrapper);
             assertSame(base, wrapper.getBaseType());
+            assertEquals(192.0F, wrapper.getCloudHeight(), 0.0F);
             assertTrue(wrapper instanceof CavesNotCliffsFiniteWorldType);
             assertFalse(wrapper.canBeCreated());
             assertTrue(wrapper.getName().length() <= WorldTypeNaming.MAX_WORLD_TYPE_NAME_LENGTH);

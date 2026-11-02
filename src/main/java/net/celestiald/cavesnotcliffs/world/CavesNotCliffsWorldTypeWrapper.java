@@ -179,7 +179,8 @@ public final class CavesNotCliffsWorldTypeWrapper extends WorldType
 
     @Override
     public float getCloudHeight() {
-        return baseType.getCloudHeight();
+        // Java 1.18.2 moved clouds above the old 1.12 mountain range.
+        return 192.0F;
     }
 
     @Override

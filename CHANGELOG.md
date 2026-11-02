@@ -2,12 +2,20 @@
 
 ## Unreleased
 
+- Require CaveBiomesAPI 1.1.5 or newer.
+- Raise clouds from vanilla 1.12's Y=128 to Java 1.18.2's Y=192 in extended-height worlds
+  (issue #21).
+- Cancel obsolete asynchronous terrain prestarts when the prediction changes instead of letting
+  them keep consuming terrain workers after their results have been abandoned (issue #22).
 - No more crash on world load when Alfheim is installed: it rewrites the chunk lighting for the
   vanilla Y 0..256 range, so a light read below Y zero (a pointed dripstone replacing water at
   Y=-1, a torch in a deepslate cave) died with `ArrayIndexOutOfBoundsException: -1`, and above
   Y zero light came from the section 64 blocks below the queried spot. CaveBiomesAPI 1.1.5 now
   refuses to start next to Alfheim while the world height is extended and says what to do
   instead; packs that keep the vanilla height still load both mods together.
+
+## 2.0.5
+
 - Faster terrain generation everywhere: each terrain column now evaluates the interpolated
   terrain and cave noise once per cell corner, in bulk and spread over the terrain threads,
   instead of re-evaluating all eight corners for every 4x8x4 cell. Together with the native
@@ -19,9 +27,6 @@
   the Java samplers, which remain the fallback everywhere else (macOS, ARM, older CPUs) and can
   be forced with `-Dcavesnotcliffs.nativeNoise=false`; the log line `Terrain noise: ...` names
   the sampler in use.
-
-## 2.0.5
-
 - Fix native 1.18 worlds generating without passive animals: new chunks now get their
   original cows, sheep, pigs and chickens right after decoration, as in 1.12 and 1.18.
 - Fix lightning rods never attracting lightning, and the original strike point still

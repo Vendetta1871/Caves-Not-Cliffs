@@ -2,6 +2,9 @@ package net.celestiald.cavesnotcliffs.worldgen.v118;
 
 import org.junit.Test;
 
+import java.lang.reflect.Field;
+import java.util.List;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -83,7 +86,7 @@ public class V118TerrainColumnGeneratorTest {
     }
 
     @Test
-    public void prestartedColumnsMatchInlineGeneration() {
+    public void prestartedColumnsMatchInlineGeneration() throws ReflectiveOperationException {
         V118TerrainColumnGenerator generator = new V118TerrainColumnGenerator(123456789L,
             V118NoiseRouterData.Profile.DEFAULT, true, false, 4);
         V118TerrainColumnGenerator reference = new V118TerrainColumnGenerator(123456789L,
@@ -93,10 +96,17 @@ public class V118TerrainColumnGeneratorTest {
         generator.prestart(0, 1);
         assertEquals(digest(reference.column(1, 0)), digest(generator.column(1, 0)));
         assertEquals(digest(reference.column(0, 1)), digest(generator.column(0, 1)));
-        // A prestart nobody claims is dropped once the slots fill, without affecting lookups.
+        // A prestart nobody claims is cancelled once the slots fill, without affecting lookups.
         generator.prestart(-5, -5);
         generator.prestart(-6, -6);
+        Field prestartedField = V118TerrainColumnGenerator.class.getDeclaredField("prestarted");
+        prestartedField.setAccessible(true);
+        List<?> pending = (List<?>) prestartedField.get(generator);
+        Object discarded = pending.get(0);
         generator.prestart(-7, -7);
+        Field cancelledField = discarded.getClass().getDeclaredField("cancelled");
+        cancelledField.setAccessible(true);
+        assertTrue(cancelledField.getBoolean(discarded));
         assertEquals(digest(reference.column(2, 2)), digest(generator.column(2, 2)));
     }
 

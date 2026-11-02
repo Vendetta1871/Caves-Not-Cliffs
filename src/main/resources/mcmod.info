@@ -2,7 +2,7 @@
   {
     "modid": "cavesnotcliffs",
     "name": "Caves Not Cliffs",
-    "description": "Backports Caves & Cliffs features to 1.12.2. Requires Forge 14.23.5.2860+, a Mixin runtime (MixinBootstrap or MixinBooter; built into Cleanroom) and CaveBiomesAPI 1.1.2+. Fluidlogged API is an optional compatibility integration.",
+    "description": "Backports Caves & Cliffs features to 1.12.2. Requires Forge 14.23.5.2860+, a Mixin runtime (MixinBootstrap or MixinBooter; built into Cleanroom) and CaveBiomesAPI 1.1.5+. Fluidlogged API is an optional compatibility integration.",
     "version": "${version}",
     "credits": "CelestialD",
     "logoFile": "icon.png",
@@ -14,7 +14,7 @@
     ],
     "dependencies": [
       "required-after:forge@[14.23.5.2860,)",
-      "required-after:cavebiomesapi@[1.1.2,)"
+      "required-after:cavebiomesapi@[1.1.5,)"
     ]
   }
 ]
