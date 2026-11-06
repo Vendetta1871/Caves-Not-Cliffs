@@ -7,11 +7,11 @@
 
 [github-badge]: https://img.shields.io/badge/GitHub-Source-181717?style=for-the-badge&logo=github&logoColor=white
 [github]: https://github.com/Vendetta1871/Caves-Not-Cliffs
-[discord-badge]: docs/badges/discord.svg
+[discord-badge]: https://raw.githubusercontent.com/Vendetta1871/Caves-Not-Cliffs/main/docs/badges/discord.svg
 [discord]: https://discord.gg/gvmeswCQFP
 [modrinth-badge]: https://img.shields.io/badge/Modrinth-Download-00AF5C?style=for-the-badge&logo=modrinth&logoColor=white
 [modrinth]: https://modrinth.com/mod/caves-not-cliffs-backported
-[curseforge-badge]: docs/badges/curseforge.svg
+[curseforge-badge]: https://raw.githubusercontent.com/Vendetta1871/Caves-Not-Cliffs/main/docs/badges/curseforge.svg
 [curseforge]: https://www.curseforge.com/minecraft/mc-mods/caves-not-cliffs-backport
 
 Caves Not Cliffs 2.0 backports Java 1.18.2 Overworld terrain and its represented Caves & Cliffs
