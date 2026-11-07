@@ -15,8 +15,7 @@
 [curseforge]: https://www.curseforge.com/minecraft/mc-mods/caves-not-cliffs-backport
 
 Caves Not Cliffs 2.0 backports Java 1.18.2 Overworld terrain and its represented Caves & Cliffs
-content to Minecraft 1.12.2. New Overworlds use a default-on, finite CaveBiomesAPI-backed schema
-from Y=-64 through Y=319, while existing worlds keep their saved generator contract.
+content to Minecraft 1.12.2.
 
 ***
 
@@ -30,60 +29,20 @@ from Y=-64 through Y=319, while existing worlds keep their saved generator contr
   ore veins, fluid scheduling, and a bounded weighted cache
 - A virtual 3D biome resolver with a legacy surface-biome projection for Minecraft 1.12
   spawning, colors, and chunk storage
-- The six available Minecraft 1.12 structure families retained through a structure-only bridge
-- `/cncbiome` for querying the resolved biome at any position
-
-### Caves, mountains, and native features
 
 ![Biomes](https://github.com/user-attachments/assets/c15db242-fe78-4cb1-abbc-a748d9996448)
-
-- Lush and dripstone cave biomes with Java 1.18.2 feature ordering
-- Meadow, Grove, Snowy Slopes, Jagged Peaks, Frozen Peaks, and Stony Peaks
-- Exact ordinary ore bands and exposure reduction, large copper and iron veins, soft disks,
-  underwater magma, tuff placement, and amethyst geodes
-- Functional terrain-generated powder snow, buckets, dispensers, layered cauldrons, sinking,
-  freezing, and leather protection
 
 ### Faithful block and crafting families
 
 ![Blocks](https://github.com/user-attachments/assets/d22c54a2-9b83-444c-be77-25d61a0afae7)
 
-- The complete deepslate family, all eight deepslate ores, raw copper/iron/gold and their blocks,
-  smelting, crafting, and stonecutting
-- Later-vanilla tuff shape variants and the retained custom calcite decorative set
-- Every copper oxidation and waxed stage across blocks, cut blocks, stairs, and slabs, with
-  radius-four aging, axe scraping/unwaxing, lightning cleaning, and lightning rods
-- Budding amethyst and all four growth stages, canonical shard drops and sounds, tinted glass,
-  and a functional spyglass
-- Functional stonecutter and composter systems
-
 ### Living caves and dripstone mechanics
 
 ![Mechanics](https://github.com/user-attachments/assets/9d462641-c2f0-4bcc-8035-f28cf1483d46)
 
-- Glow berries as the edible cave-vine planting item, with no invented seed item
-- Azaleas and flowering azaleas, both leaf types, rooted dirt, hanging roots, moss spreading,
-  small and big dripleaf, spore blossoms, potting, composting, and azalea-tree growth
-- One canonical pointed-dripstone family with growth, thickness recalculation, falling
-  stalactites, stalagmite damage, trident breaking, water retention, and faithful water/lava
-  cauldron behavior
-
 ### Axolotls, bees, and honey
 
 ![Axobee](https://github.com/user-attachments/assets/9f1d34f3-7fe8-4fa7-9ff6-1b8fc7611511)
-
-- Five axolotl variants, breeding and blue mutation odds, bucket/NBT round trips, aging,
-  dehydration, play-dead behavior, combat support, and lush-cave spawning
-- Bee pollination, breeding, anger, stinging, hive routing, crop growth, sounds, animation, and
-  persistent NBT
-- Generated and sapling-grown bee nests, three-occupant nests and hives, honey production,
-  smoke-safe harvesting, Silk Touch occupant preservation, comparators, and dispensers
-- Honeycomb waxing through interaction, crafting, and dispensers, plus honey-block movement and
-  piston adhesion including honey/slime incompatibility
-- Normal and soul campfires with four-slot cooking, smoke and signal-smoke columns, projectile
-  lighting, water dousing, hive calming, container handling, drops, sounds, and particles
-- All sixteen dyed candles plus the undyed candle, one-to-four candle stacking, waterlogging,
-  lighting and extinguishing, and the complete hidden candle-cake state family
 
 ### World and save compatibility
 
@@ -92,24 +51,6 @@ from Y=-64 through Y=319, while existing worlds keep their saved generator contr
   are persisted so later config changes cannot convert an existing world
 - Released placeholder IDs and state-split blocks are remapped or migrated to canonical content
   while preserving inventories and block/entity NBT
-
-## Creating a v2 world
-
-Install the requirements below and create a world normally. Caves Not Cliffs applies its v2 format
-to newly created Overworlds by default while preserving the selected base world type and its
-options. Default, Large Biomes, and Amplified receive native Java 1.18.2 terrain profiles; other
-compatible 2D types retain their selected generator through the finite delegated bridge. No
-`level-type` change is required on a dedicated server.
-
-The setting is written to `config/cavesnotcliffs.cfg` as
-`world.enableForNewOverworlds=true`. Set it to `false` before creating a world to leave that new
-Overworld unchanged. The setting is evaluated only at first creation: existing vanilla worlds,
-schema-1 Caves Not Cliffs worlds, and schema-2 worlds always keep their recorded format. A stale
-`level-type=cavesnotcliffs` on a newly created server is treated like the normal default selection
-and still obeys this config.
-
-Use `/cncbiome` in-game to identify the cave-biome region at your current position, or
-`/cncbiome <x> <y> <z>` to inspect another coordinate.
 
 ## Biomes from other mods
 
@@ -138,28 +79,8 @@ the 1.12 biome layers put them, so their explored land and new chunks keep match
 `moddedBiomes.upgradeExistingWorlds=true` to switch such a world to the 1.18 fit; new chunks then
 use it, and borders with already explored modded biomes show seams.
 
-## Performance
-
-Java 1.18.2-style terrain is inherently heavier than vanilla 1.12.2 generation. 2.0.0 fills each
-terrain column's density cells and virtual biome quarts on a small worker pool, controlled by
-`-Dcavesnotcliffs.terrainThreads=N` (default: half the available processors, capped at 8;
-`1` restores the fully serial path), and pre-starts the likely next column while the server
-thread populates the current one. Column output is bit-identical either way. First-time spawn
-preparation still takes a minute or two on older CPUs, and lowering the view distance helps
-during both spawn preparation and exploration.
-
-On x86-64 Linux and Windows with an AVX2 CPU, the terrain, cave and climate noise is sampled by a
-small native library bundled in the jar, which cuts the time per terrain column by about a quarter.
-It produces exactly the same numbers as the Java samplers, which are used everywhere else (macOS,
-ARM, CPUs without AVX2) or with `-Dcavesnotcliffs.nativeNoise=false`. The game log reports the
-active sampler on a `Terrain noise:` line.
-
 ## Known limitations
 
-- Native Java 1.18.2 terrain is supplied for Default, Large Biomes, and Amplified. Flat,
-  Customized, Default 1.1, debug, and compatible third-party 2D types retain their selected
-  generator and options through the finite delegated bridge. Existing third-party cubic types
-  remain authoritative and are not wrapped.
 - Schema-2 worlds retain only Minecraft 1.12's mineshaft, village, stronghold, temple,
   ocean-monument, and woodland-mansion structure families. Post-1.12 structures are not
   backported.
@@ -173,44 +94,3 @@ active sampler on a `Terrain noise:` line.
 - Nether and End generation remain unchanged.
 - CaveBiomesAPI owns the process-wide finite chunk height. Client and server must use the same
   API build; the server synchronizes its authoritative range when a player joins.
-
-## Requirements
-
-Caves Not Cliffs 2.0.x targets Minecraft 1.12.2 and requires:
-
-- [Minecraft Forge 14.23.5.2860 or newer](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.12.2.html)
-- [CaveBiomesAPI 1.1.5 or newer](https://github.com/Vendetta1871/CaveBiomesAPI)
-- [MixinBootstrap 1.1.0](https://github.com/LXGaming/MixinBootstrap/releases/tag/v1.1.0)
-
-OptiFine HD_U_E3 is supported, including extended-height rendering; other OptiFine builds are
-untested.
-
-## Building
-
-Use a Java 8 JDK and the checked-in wrapper; no system Gradle installation is needed:
-
-```bash
-./gradlew clean test build verifyReleaseJar
-```
-
-On Windows, run `gradlew.bat clean test build verifyReleaseJar`. The release artifact is
-`build/libs/cavesnotcliffs-<version>.jar`. The build fails if that jar is not reobfuscated, if its
-release metadata is wrong, if CaveBiomesAPI classes were accidentally bundled, if static
-CubicChunks linkage remains, or if a native noise library is missing.
-
-The native noise sampler (`src/main/native`) needs `clang++` and `lld` from LLVM on the `PATH`
-(or `-PnativeClang=/path/to/clang++`). One host builds both the Linux library and the Windows DLL:
-they are freestanding and import nothing, so no MinGW or MSVC toolchain is involved.
-`-PskipNativeNoise` builds a Java-only jar for development; `verifyReleaseJar` rejects it.
-
-The Java 8/ForgeGradle 2.3 development toolchain compiles against Forge 14.23.5.2847, the newest
-Forge release that still publishes the legacy `userdev` artifact. The produced mod declares and
-requires Forge 14.23.5.2860 or newer at runtime.
-
-`./gradlew runClient` and `./gradlew runServer` launch that 2847 toolchain, so a Gradle invocation
-that runs either task compiles `@Mod` with a 2847 Forge floor. Keep dev launches and release
-builds in separate invocations: the build refuses to mix them, and `verifyReleaseJar` rejects a jar
-that does not require 2860. Dev launches run Mixin 0.8.4 — the runtime MixinBootstrap 1.1.0
-ships — and take CaveBiomesAPI from the FG-deobfuscated dependency classpath, so its release jar
-must not be placed in `run/mods`. Fluidlogged API is compiled against but left out of dev launches:
-its transformers use MCP names from other mappings and break world generation there.
