@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.0.6
 
 - Require CaveBiomesAPI 1.1.5 or newer.
 - Raise clouds from vanilla 1.12's Y=128 to Java 1.18.2's Y=192 in extended-height worlds
